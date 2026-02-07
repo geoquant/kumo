@@ -36,9 +36,11 @@ export interface LabelProps extends KumoLabelVariantsProps {
   tooltip?: ReactNode;
   /** Additional CSS classes */
   className?: string;
+  /** The id of the form element this label is associated with */
+  htmlFor?: string;
   /**
    * When true, only renders the inline content (indicators, tooltip) without
-   * the outer span with font styling. Useful when composed inside another
+   * the outer label element with font styling. Useful when composed inside another
    * label element that already provides the text styling.
    * @default false
    */
@@ -75,6 +77,7 @@ export function Label({
   showOptional = false,
   tooltip,
   className,
+  htmlFor,
   asContent = false,
 }: LabelProps) {
   const content = (
@@ -101,11 +104,14 @@ export function Label({
     );
   }
 
-  // When used standalone, apply full label styling
+  // When used standalone, render as <label> for accessibility
   return (
-    <span className={cn(labelVariants(), labelContentVariants(), className)}>
+    <label
+      htmlFor={htmlFor}
+      className={cn(labelVariants(), labelContentVariants(), className)}
+    >
       {content}
-    </span>
+    </label>
   );
 }
 
