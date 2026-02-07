@@ -122,13 +122,28 @@ const renderIconNode = (IconComponent?: Icon | React.ReactNode) => {
   return <Comp />;
 };
 
-export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
-  KumoButtonVariantsProps & {
-    children?: React.ReactNode;
-    className?: string;
-    icon?: Icon | React.ReactNode;
-    loading?: boolean;
-  };
+type ButtonBaseProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  children?: React.ReactNode;
+  className?: string;
+  icon?: Icon | React.ReactNode;
+  loading?: boolean;
+};
+
+type ButtonWithTextProps = ButtonBaseProps & {
+  shape?: "base";
+  size?: KumoButtonSize;
+  variant?: KumoButtonVariant;
+};
+
+type IconOnlyButtonProps = ButtonBaseProps & {
+  shape: "square" | "circle";
+  size?: KumoButtonSize;
+  variant?: KumoButtonVariant;
+  /** Required for icon-only buttons to provide accessible label for screen readers */
+  "aria-label": string;
+};
+
+export type ButtonProps = ButtonWithTextProps | IconOnlyButtonProps;
 
 export type LinkButtonProps = React.AnchorHTMLAttributes<HTMLAnchorElement> &
   KumoButtonVariantsProps & {
