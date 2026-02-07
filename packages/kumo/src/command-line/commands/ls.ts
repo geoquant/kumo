@@ -25,8 +25,8 @@ interface ComponentRegistry {
  */
 function getRegistryPath(): string {
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  // When bundled and running from dist/command-line/, go up 2 levels to package root then into catalog/
-  return join(__dirname, "..", "..", "catalog", "component-registry.json");
+  // When bundled and running from dist/command-line/, go up 2 levels to package root then into ai/
+  return join(__dirname, "..", "..", "ai", "component-registry.json");
 }
 
 /**
@@ -75,7 +75,7 @@ export function ls(): void {
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "ENOENT") {
       console.error(
-        "Error: Component registry not found. Run `pnpm build:ai-metadata` first.",
+        "Error: Component registry not found. Please ensure @cloudflare/kumo is installed correctly.",
       );
       process.exit(1);
     }
