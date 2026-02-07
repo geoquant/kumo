@@ -81,6 +81,7 @@ export {
   inputVariants,
   type InputProps,
   InputArea,
+  Textarea,
   type InputAreaProps,
   InputGroup,
 } from "./components/input";
