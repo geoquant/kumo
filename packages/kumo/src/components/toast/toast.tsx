@@ -77,6 +77,9 @@ export interface ToastyProps extends KumoToastVariantsProps {
   children: React.ReactNode;
 }
 
+/** Alias for Toasty — provided for discoverability when migrating from other libraries */
+export const ToastProvider = Toasty;
+
 export function Toasty({ children }: ToastyProps) {
   return (
     <Toast.Provider>
