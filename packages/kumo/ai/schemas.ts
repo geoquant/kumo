@@ -130,22 +130,7 @@ export const BreadcrumbsPropsSchema = z.object({
   className: z.string().optional(),
 });
 
-export const ButtonPropsSchema = z.object({
-  children: z.union([z.string(), z.number(), z.boolean(), z.null(), DynamicValueSchema]).optional(),
-  className: z.string().optional(),
-  icon: z.union([z.string(), z.number(), z.boolean(), z.null(), DynamicValueSchema]).optional(),
-  loading: z.boolean().optional(),
-  shape: z.enum(["base", "square", "circle"]).optional(),
-  size: z.enum(["xs", "sm", "base", "lg"]).optional(),
-  variant: z.enum(["primary", "secondary", "ghost", "destructive", "secondary-destructive", "outline"]).optional(),
-  id: z.string().optional(),
-  lang: z.string().optional(),
-  title: z.string().optional(),
-  disabled: z.boolean().optional(),
-  name: z.string().optional(),
-  type: z.enum(["submit", "reset", "button"]).optional(),
-  value: z.unknown().optional(),
-});
+export const ButtonPropsSchema = z.object({});
 
 export const CheckboxPropsSchema = z.object({
   variant: z.enum(["default", "error"]).optional(), // Visual variant: "default" or "error" for validation failures (visual only, no error text)
@@ -269,7 +254,8 @@ export const LabelPropsSchema = z.object({
   showOptional: z.boolean().optional(), // When true (and required is false), shows gray "(optional)" text after the label
   tooltip: z.union([z.string(), z.number(), z.boolean(), z.null(), DynamicValueSchema]).optional(), // Tooltip content to display next to the label via an info icon
   className: z.string().optional(), // Additional CSS classes
-  asContent: z.boolean().optional(), // When true, only renders the inline content (indicators, tooltip) without the outer span with font styling. Useful when composed inside another label element that already provides the text styling.
+  htmlFor: z.string().optional(), // The id of the form element this label is associated with
+  asContent: z.boolean().optional(), // When true, only renders the inline content (indicators, tooltip) without the outer label element with font styling. Useful when composed inside another label element that already provides the text styling.
 });
 
 export const LayerCardPropsSchema = z.object({

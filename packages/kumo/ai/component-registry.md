@@ -225,51 +225,6 @@ Button component
 
 **Props:**
 
-- `children`: ReactNode
-- `className`: string
-- `icon`: ReactNode
-- `loading`: boolean
-- `shape`: enum [default: base]
-  - `"base"`: Default rectangular button shape
-  - `"square"`: Square button for icon-only actions
-  - `"circle"`: Circular button for icon-only actions
-- `size`: enum [default: base]
-  - `"xs"`: Extra small button for compact UIs
-  - `"sm"`: Small button for secondary actions
-  - `"base"`: Default button size
-  - `"lg"`: Large button for primary CTAs
-- `variant`: enum [default: secondary]
-  - `"primary"`: High-emphasis button for primary actions
-  - `"secondary"`: Default button style for most actions
-  - `"ghost"`: Minimal button with no background
-  - `"destructive"`: Danger button for destructive actions like delete
-  - `"secondary-destructive"`: Secondary button with destructive text for less prominent dangerous actions
-  - `"outline"`: Bordered button with transparent background
-
-  **State Classes:**
-  - `"primary"`:
-    - `hover`: `hover:bg-kumo-brand-hover`
-    - `focus`: `focus:bg-kumo-brand-hover`
-    - `disabled`: `disabled:bg-kumo-brand/50`
-  - `"secondary"`:
-    - `not-disabled`: `not-disabled:hover:border-secondary! not-disabled:hover:bg-kumo-control`
-    - `disabled`: `disabled:bg-kumo-control/50 disabled:!text-kumo-default/70`
-    - `data-state`: `data-[state=open]:bg-kumo-control`
-  - `"ghost"`:
-    - `hover`: `hover:bg-kumo-tint`
-  - `"destructive"`:
-    - `hover`: `hover:bg-kumo-danger/70`
-  - `"secondary-destructive"`:
-    - `not-disabled`: `not-disabled:hover:border-secondary! not-disabled:hover:bg-kumo-control`
-    - `disabled`: `disabled:bg-kumo-control/50 disabled:!text-kumo-danger/70`
-    - `data-state`: `data-[state=open]:bg-kumo-control`
-- `id`: string
-- `lang`: string
-- `title`: string
-- `disabled`: boolean
-- `name`: string
-- `type`: enum
-- `value`: string | string[] | number
 
 **Colors (kumo tokens used):**
 
@@ -313,8 +268,18 @@ Button component
 
 ```tsx
 <div className="flex flex-wrap items-center gap-3">
-      <Button variant="secondary" shape="square" icon={PlusIcon} />
-      <Button variant="secondary" shape="circle" icon={PlusIcon} />
+      <Button
+        variant="secondary"
+        shape="square"
+        icon={PlusIcon}
+        aria-label="Add item"
+      />
+      <Button
+        variant="secondary"
+        shape="circle"
+        icon={PlusIcon}
+        aria-label="Add item"
+      />
     </div>
 ```
 
@@ -1398,81 +1363,23 @@ This is a compound component. Use these sub-components:
 
 #### Dialog.Root
 
-Controls the open state of the dialog. Doesn't render its own HTML element.
-
-Props:
-- `open`: boolean - Whether the dialog is currently open (controlled mode)
-- `defaultOpen`: boolean [default: false] - Whether the dialog is initially open (uncontrolled mode)
-- `onOpenChange`: (open: boolean, event: Event) => void - Callback fired when the dialog opens or closes
-- `modal`: boolean | 'trap-focus' [default: true] - Whether the dialog is modal. When true, focus is trapped and page scroll is locked
-- `dismissible`: boolean [default: true] - Whether clicking outside closes the dialog
-
-Usage:
-```tsx
-<Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
-```
-```tsx
-<Dialog.Root defaultOpen={false}>
-```
+Root sub-component
 
 #### Dialog.Trigger
 
-A button that opens the dialog when clicked. Renders a `<button>` element.
-
-Props:
-- `render`: ReactElement | ((props, state) => ReactElement) - Custom element to render instead of the default button
-- `disabled`: boolean - Whether the trigger is disabled
-
-Usage:
-```tsx
-<Dialog.Trigger render={<Button>Open</Button>} />
-```
-```tsx
-<Dialog.Trigger>Open Dialog</Dialog.Trigger>
-```
+Trigger sub-component
 
 #### Dialog.Title
 
-A heading that labels the dialog for accessibility. Renders a `<h2>` element.
-
-Props:
-- `render`: ReactElement | ((props, state) => ReactElement) - Custom element to render instead of the default h2
-
-Usage:
-```tsx
-<Dialog.Title>Confirm Action</Dialog.Title>
-```
-```tsx
-<Dialog.Title render={<h3 />}>Custom Heading</Dialog.Title>
-```
+Title sub-component
 
 #### Dialog.Description
 
-A paragraph providing additional context about the dialog. Renders a `<p>` element.
-
-Props:
-- `render`: ReactElement | ((props, state) => ReactElement) - Custom element to render instead of the default p
-
-Usage:
-```tsx
-<Dialog.Description>Are you sure you want to proceed?</Dialog.Description>
-```
+Description sub-component
 
 #### Dialog.Close
 
-A button that closes the dialog when clicked. Renders a `<button>` element.
-
-Props:
-- `render`: ReactElement | ((props, state) => ReactElement) - Custom element to render instead of the default button
-- `disabled`: boolean - Whether the close button is disabled
-
-Usage:
-```tsx
-<Dialog.Close render={<Button>Cancel</Button>} />
-```
-```tsx
-<Dialog.Close>×</Dialog.Close>
-```
+Close sub-component
 
 
 **Examples:**
@@ -1531,6 +1438,48 @@ Usage:
         </Dialog.Description>
         <div className="mt-8 flex justify-end gap-2">
           <Button variant="secondary">Cancel</Button>
+          <Dialog.Close
+            render={(props) => (
+              <Button variant="destructive" {...props}>
+                Delete
+              </Button>
+            )}
+          />
+        </div>
+      </Dialog>
+    </Dialog.Root>
+```
+
+```tsx
+<Dialog.Root disablePointerDismissal>
+      <Dialog.Trigger
+        render={(p) => (
+          <Button {...p} variant="destructive">
+            Delete Project
+          </Button>
+        )}
+      />
+      <Dialog className="p-8">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-kumo-danger/20">
+            <Warning size={20} className="text-kumo-danger" />
+          </div>
+          <Dialog.Title className="text-xl font-semibold">
+            Delete Project?
+          </Dialog.Title>
+        </div>
+        <Dialog.Description className="text-kumo-subtle">
+          This action cannot be undone. This will permanently delete the project
+          and all associated data.
+        </Dialog.Description>
+        <div className="mt-8 flex justify-end gap-2">
+          <Dialog.Close
+            render={(props) => (
+              <Button variant="secondary" {...props}>
+                Cancel
+              </Button>
+            )}
+          />
           <Dialog.Close
             render={(props) => (
               <Button variant="destructive" {...props}>
@@ -2218,8 +2167,10 @@ Label component for form fields.  Provides a standardized way to display labels 
   Tooltip content to display next to the label via an info icon
 - `className`: string
   Additional CSS classes
+- `htmlFor`: string
+  The id of the form element this label is associated with
 - `asContent`: boolean
-  When true, only renders the inline content (indicators, tooltip) without the outer span with font styling. Useful when composed inside another label element that already provides the text styling.
+  When true, only renders the inline content (indicators, tooltip) without the outer label element with font styling. Useful when composed inside another label element that already provides the text styling.
 
 **Colors (kumo tokens used):**
 
