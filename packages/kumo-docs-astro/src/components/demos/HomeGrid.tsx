@@ -230,10 +230,14 @@ export function HomeGrid() {
         <TooltipProvider>
           <div className="flex gap-2">
             <Tooltip content="Add" asChild open>
-              <Button shape="square" icon={PlusIcon} />
+              <Button shape="square" icon={PlusIcon} aria-label="Add" />
             </Tooltip>
             <Tooltip content="Change language" asChild>
-              <Button shape="square" icon={TranslateIcon} />
+              <Button
+                shape="square"
+                icon={TranslateIcon}
+                aria-label="Change language"
+              />
             </Tooltip>
           </div>
         </TooltipProvider>

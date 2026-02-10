@@ -18,6 +18,7 @@ export function DialogBasicDemo() {
                 variant="secondary"
                 shape="square"
                 icon={<X />}
+                aria-label="Close"
               />
             )}
           />
@@ -48,6 +49,7 @@ export function DialogWithActionsDemo() {
                 variant="secondary"
                 shape="square"
                 icon={<X />}
+                aria-label="Close"
               />
             )}
           />
