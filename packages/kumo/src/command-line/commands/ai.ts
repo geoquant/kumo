@@ -8,15 +8,13 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
 /**
  * Print the AI usage guide to stdout
  */
 export function ai(): void {
-  // Resolve from commands/ -> command-line/ -> src/ -> packages/kumo/
-  const packageRoot = join(__dirname, "../../..");
-  const usagePath = join(packageRoot, "ai", "USAGE.md");
+  // When bundled into dist/command-line/cli.js, go up 2 levels to reach packages/kumo/
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const usagePath = join(__dirname, "..", "..", "ai", "USAGE.md");
 
   try {
     const content = readFileSync(usagePath, "utf-8");
