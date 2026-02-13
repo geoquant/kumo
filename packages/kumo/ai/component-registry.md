@@ -3994,31 +3994,35 @@ ResizeHandle sub-component
         <Table>
           <Table.Header>
             <Table.Row>
-              <Table.CheckHead aria-label="Select all rows" />
+              <Table.CheckHead
+                checked={selectedIds.size === rows.length}
+                indeterminate={
+                  selectedIds.size > 0 && selectedIds.size < rows.length
+                }
+                onValueChange={toggleAll}
+                aria-label="Select all rows"
+              />
               <Table.Head>Subject</Table.Head>
               <Table.Head>From</Table.Head>
               <Table.Head>Date</Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            <Table.Row>
-              <Table.CheckCell aria-label="Select row 1" />
-              <Table.Cell>Kumo v1.0.0 released</Table.Cell>
-              <Table.Cell>Visal In</Table.Cell>
-              <Table.Cell>5 seconds ago</Table.Cell>
-            </Table.Row>
-            <Table.Row variant="selected">
-              <Table.CheckCell checked aria-label="Select row 2" />
-              <Table.Cell>New Job Offer</Table.Cell>
-              <Table.Cell>Cloudflare</Table.Cell>
-              <Table.Cell>10 minutes ago</Table.Cell>
-            </Table.Row>
-            <Table.Row>
-              <Table.CheckCell aria-label="Select row 3" />
-              <Table.Cell>Daily Email Digest</Table.Cell>
-              <Table.Cell>Cloudflare</Table.Cell>
-              <Table.Cell>1 hour ago</Table.Cell>
-            </Table.Row>
+            {rows.map((row) => (
+              <Table.Row
+                key={row.id}
+                variant={selectedIds.has(row.id) ? "selected" : "default"}
+              >
+                <Table.CheckCell
+                  checked={selectedIds.has(row.id)}
+                  onValueChange={() => toggleRow(row.id)}
+                  aria-label={`Select ${row.subject}`}
+                />
+                <Table.Cell>{row.subject}</Table.Cell>
+                <Table.Cell>{row.from}</Table.Cell>
+                <Table.Cell>{row.date}</Table.Cell>
+              </Table.Row>
+            ))}
           </Table.Body>
         </Table>
       </LayerCard.Primary>
@@ -4068,7 +4072,14 @@ ResizeHandle sub-component
           </colgroup>
           <Table.Header>
             <Table.Row>
-              <Table.CheckHead aria-label="Select all rows" />
+              <Table.CheckHead
+                checked={selectedIds.size === emailData.length}
+                indeterminate={
+                  selectedIds.size > 0 && selectedIds.size < emailData.length
+                }
+                onValueChange={toggleAll}
+                aria-label="Select all rows"
+              />
               <Table.Head>Subject</Table.Head>
               <Table.Head>From</Table.Head>
               <Table.Head>Date</Table.Head>
@@ -4076,13 +4087,14 @@ ResizeHandle sub-component
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {emailData.map((row, index) => (
+            {emailData.map((row) => (
               <Table.Row
                 key={row.id}
-                variant={index === 1 ? "selected" : "default"}
+                variant={selectedIds.has(row.id) ? "selected" : "default"}
               >
                 <Table.CheckCell
-                  checked={index === 1}
+                  checked={selectedIds.has(row.id)}
+                  onValueChange={() => toggleRow(row.id)}
                   aria-label={`Select ${row.subject}`}
                 />
                 <Table.Cell>
