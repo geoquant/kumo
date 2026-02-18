@@ -1,0 +1,40 @@
+{
+  "name": "@a2ui-bridge/react-kumo",
+  "version": "0.1.0",
+  "description": "Cloudflare Kumo UI components for A2UI React applications",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@a2ui-bridge/core": "workspace:*",
+    "@a2ui-bridge/react": "workspace:*",
+    "@cloudflare/kumo": "link:../../../../packages/kumo",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "react": "^18.3.0",
+    "typescript": "^5.7.2"
+  }
+}
