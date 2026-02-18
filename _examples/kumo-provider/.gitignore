@@ -1,0 +1,22 @@
+node_modules
+package-lock.json
+
+# Environment variables (IMPORTANT!)
+.env
+.env.local
+.env.production
+.env.development
+
+# Build output
+dist/
+
+# Logs
+*.log
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store

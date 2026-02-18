@@ -1,0 +1,42 @@
+{
+  "name": "@a2ui-bridge/core",
+  "version": "0.1.0",
+  "description": "Core protocol processing for A2UI - framework agnostic message processor",
+  "author": "tpitre",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/southleft/a2ui-bridge.git",
+    "directory": "packages/core"
+  },
+  "keywords": [
+    "a2ui",
+    "adaptive-ui",
+    "llm",
+    "protocol",
+    "ai-ui"
+  ]
+}
