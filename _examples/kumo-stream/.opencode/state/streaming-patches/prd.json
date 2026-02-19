@@ -1,0 +1,194 @@
+{
+  "prdName": "streaming-patches",
+  "tasks": [
+    {
+      "id": "core-1",
+      "category": "core",
+      "description": "RFC 6902 patch application function that applies add/replace/remove operations to a Spec (UITree) using JSON Pointer paths",
+      "steps": [
+        "src/core/rfc6902.ts exists with applyPatch(spec, patch) and parsePatchLine(line) exports",
+        "applyPatch with op:add to /root sets the root field",
+        "applyPatch with op:add to /elements/{key} adds an element to the elements map",
+        "applyPatch with op:add using /- suffix appends to an array (e.g. /elements/card/children/-)",
+        "applyPatch with op:replace overwrites an existing value at path",
+        "applyPatch with op:remove deletes the value at path",
+        "applyPatch on nonexistent path for remove is a no-op (no throw)",
+        "applyPatch returns a new shallow copy of Spec on every call (never mutates input)",
+        "parsePatchLine returns null for invalid JSON or missing op/path fields",
+        "Only add/replace/remove ops supported — no move/copy/test"
+      ],
+      "passes": true
+    },
+    {
+      "id": "core-2",
+      "category": "core",
+      "description": "JSONL line parser that accumulates text chunks, splits on newlines, and returns parsed JsonPatchOp arrays",
+      "steps": [
+        "src/core/jsonl-parser.ts exists with createJsonlParser() export returning { push, flush }",
+        "push(chunk) with a single complete line (ending in \\n) returns one JsonPatchOp",
+        "push(chunk) with multiple lines in one chunk returns multiple JsonPatchOps",
+        "push(chunk) with a line split across two chunks buffers the first, returns parsed on second",
+        "Empty lines are skipped (not returned)",
+        "Invalid JSON lines are silently skipped (not thrown)",
+        "Lines starting with ``` (markdown fences) are silently skipped",
+        "flush() returns the buffered incomplete line as a parsed JsonPatchOp if valid"
+      ],
+      "passes": false
+    },
+    {
+      "id": "core-3",
+      "category": "core",
+      "description": "useUITree hook rewritten to accept RFC 6902 patches instead of custom UITreePatch, with batched applyPatches",
+      "steps": [
+        "src/core/hooks.ts exports useUITree() returning { tree, applyPatch, applyPatches, reset }",
+        "applyPatch(patch: JsonPatchOp) applies a single patch and triggers re-render",
+        "applyPatches(patches: JsonPatchOp[]) applies multiple patches in a single setState call",
+        "reset() returns tree to empty state { root: '', elements: {} }",
+        "No DataModel in the return type — data model is dropped",
+        "Imports applyPatch from rfc6902.ts, not patches.ts"
+      ],
+      "passes": false
+    },
+    {
+      "id": "core-4",
+      "category": "core",
+      "description": "System prompt rewritten to instruct LLM to emit JSONL patch lines instead of monolithic JSON",
+      "steps": [
+        "src/core/system-prompt.ts instructs LLM to respond with JSONL (one JSON Patch op per line)",
+        "Prompt specifies: first line sets /root, subsequent lines add elements top-down",
+        "Prompt specifies: parent elements include full children array upfront (Strategy A)",
+        "Prompt specifies: one element per line, no markdown fences, no explanations",
+        "Prompt includes 2-3 complete JSONL examples showing the wire format",
+        "All existing component documentation, design rules, and anti-patterns are preserved"
+      ],
+      "passes": false
+    },
+    {
+      "id": "functional-1",
+      "category": "functional",
+      "description": "ChatDemo.tsx wired to streaming pipeline: useUITree + JSONL parser replaces monolithic setTree",
+      "steps": [
+        "ChatDemo.tsx uses useUITree() hook instead of raw useState<UITree>",
+        "ChatDemo.tsx creates a JSONL parser via createJsonlParser() per stream",
+        "onText callback passes delta to parser.push(), applies returned patches via applyPatches",
+        "onDone callback calls parser.flush() and applies remaining patches",
+        "On new message or reset, calls reset() and creates a new parser instance",
+        "extractUITree import removed from primary path (or demoted to fallback only)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "functional-2",
+      "category": "functional",
+      "description": "UITreeRenderer tolerates missing element keys during streaming by rendering nothing instead of error divs",
+      "steps": [
+        "During streaming, children array keys that reference nonexistent elements render as null (invisible)",
+        "After streaming completes, missing keys can render as errors (existing behavior)",
+        "Mechanism exists to distinguish streaming vs. complete state (prop or context)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "cleanup-1",
+      "category": "cleanup",
+      "description": "Delete custom patch system and its tests, replaced by RFC 6902",
+      "steps": [
+        "src/core/patches.ts is deleted",
+        "src/__tests__/patches.test.ts is deleted",
+        "No remaining imports of patches.ts anywhere in the codebase",
+        "TypeScript compiles without errors after deletion"
+      ],
+      "passes": false
+    },
+    {
+      "id": "testing-1",
+      "category": "testing",
+      "description": "RFC 6902 applyPatch unit tests covering all operations and edge cases",
+      "steps": [
+        "src/__tests__/rfc6902.test.ts exists",
+        "Tests add to /root path",
+        "Tests add element to /elements/{key}",
+        "Tests add to array with /- suffix",
+        "Tests replace existing value",
+        "Tests remove element",
+        "Tests no-op on remove of nonexistent path",
+        "Tests invalid path handling",
+        "Tests immutability (input not mutated)",
+        "All tests pass via pnpm --filter kumo-stream test"
+      ],
+      "passes": true
+    },
+    {
+      "id": "testing-2",
+      "category": "testing",
+      "description": "JSONL parser unit tests covering chunking, edge cases, and error tolerance",
+      "steps": [
+        "src/__tests__/jsonl-parser.test.ts exists",
+        "Tests single complete line",
+        "Tests multiple lines in one chunk",
+        "Tests line split across chunks",
+        "Tests empty lines skipped",
+        "Tests invalid JSON skipped",
+        "Tests markdown fence lines skipped",
+        "Tests flush returns buffered incomplete line",
+        "All tests pass via pnpm --filter kumo-stream test"
+      ],
+      "passes": false
+    },
+    {
+      "id": "testing-3",
+      "category": "testing",
+      "description": "Streaming integration test simulating token-by-token JSONL delivery and verifying incremental tree growth",
+      "steps": [
+        "src/__tests__/streaming-integration.test.ts exists",
+        "Simulates token-by-token delivery of a multi-line JSONL response",
+        "Verifies tree grows incrementally (after N tokens, tree has M elements)",
+        "Verifies final tree after all tokens matches expected UITree structure",
+        "All tests pass via pnpm --filter kumo-stream test"
+      ],
+      "passes": false
+    },
+    {
+      "id": "regression-1",
+      "category": "regression",
+      "description": "All existing functionality preserved: presets, multi-turn, stop, errors",
+      "steps": [
+        "All 7 preset prompts produce valid streaming UI (manual or automated test)",
+        "Multi-turn conversation works (send prompt, get response, send another)",
+        "Stop button halts streaming and partial UI remains visible",
+        "Error states display correctly when API key missing or stream fails",
+        "pnpm --filter kumo-stream test passes with zero failures"
+      ],
+      "passes": false
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Flat UITree format: { root: string, elements: Record<string, UIElement> } from @cloudflare/kumo/catalog",
+      "Recursive rendering: UITreeRenderer.tsx walks flat element map from root, resolves children by key",
+      "Anthropic SDK streaming: stream-client.ts wraps client.messages.stream() with onText/onDone/onError",
+      "React 18 batching: multiple setState calls in same handler batched into single render"
+    ],
+    "keyFiles": [
+      "src/app/ChatDemo.tsx",
+      "src/core/json-extractor.ts",
+      "src/core/system-prompt.ts",
+      "src/core/UITreeRenderer.tsx",
+      "src/core/hooks.ts",
+      "src/core/patches.ts",
+      "src/__tests__/patches.test.ts",
+      "src/core/stream-client.ts",
+      "src/core/types.ts"
+    ],
+    "nonGoals": [
+      "No Cloudflare Worker — browser-side streaming only",
+      "No useCatalogStream hook — library-level abstraction deferred",
+      "No diffUITree — LLM emits patches directly",
+      "No structural sharing / React.memo — shallow copies, optimize later",
+      "No multi-turn streaming improvements — per-turn only",
+      "No state / $bindState / form interactivity — DataModel dropped",
+      "No loadable/UMD bundle",
+      "No library integration into @cloudflare/kumo — deferred until example proves out"
+    ]
+  }
+}
