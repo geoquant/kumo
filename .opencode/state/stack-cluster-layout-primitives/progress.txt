@@ -127,3 +127,10 @@ Started: 2026-02-19
 - `pnpm typecheck` (workspace-wide): 14 pre-existing errors in kumo-docs-astro — all Phosphor `IconProps` type mismatches, unrelated to Stack/Cluster
 - No code changes needed — verification task only
 - **Learnings:** kumo-docs-astro has known Phosphor icon type errors (14 total). These predate this work and affect SearchDialog, SidebarNav, EmptyDemo, DialogDemo, FigmaPage, ResourceListDemo, and Heading components. All are `className`/`size`/`weight` prop mismatches against `IconProps`.
+
+## Task - changeset-1
+- Created `.changeset/stack-cluster-layout-primitives.md` with `@cloudflare/kumo: minor`
+- Documents both Stack and Cluster components with prop signatures and usage examples
+- Follows existing changeset style (cf. `date-picker-component.md` for minor component additions)
+- Files changed: `.changeset/stack-cluster-layout-primitives.md` (new)
+- **Learnings:** Changeset filenames can be descriptive (not just random slugs) — existing files like `date-picker-component.md` use readable names. The `pnpm changeset` CLI generates random slugs, but manual creation with descriptive names works fine.
