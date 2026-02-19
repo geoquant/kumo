@@ -153,10 +153,12 @@ User: "Welcome the user"
 User: "I need to schedule a follow-up appointment with my doctor about my prescription refill"
 
 {"op":"add","path":"/root","value":"card"}
-{"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["heading","subtitle","form-grid","actions"]}}
-{"op":"add","path":"/elements/heading","value":{"key":"heading","type":"Text","props":{"children":"Schedule Your Follow-Up","variant":"heading2"},"parentKey":"card"}}
-{"op":"add","path":"/elements/subtitle","value":{"key":"subtitle","type":"Text","props":{"children":"Let's get your prescription refill sorted.","variant":"secondary"},"parentKey":"card"}}
-{"op":"add","path":"/elements/form-grid","value":{"key":"form-grid","type":"Grid","props":{"variant":"2up","gap":"base"},"children":["doctor-input","date-input","type-select","notes-input"],"parentKey":"card"}}
+{"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["card-stack"]}}
+{"op":"add","path":"/elements/card-stack","value":{"key":"card-stack","type":"Stack","props":{"gap":"lg"},"children":["header","form-grid","actions"],"parentKey":"card"}}
+{"op":"add","path":"/elements/header","value":{"key":"header","type":"Stack","props":{"gap":"xs"},"children":["heading","subtitle"],"parentKey":"card-stack"}}
+{"op":"add","path":"/elements/heading","value":{"key":"heading","type":"Text","props":{"children":"Schedule Your Follow-Up","variant":"heading2"},"parentKey":"header"}}
+{"op":"add","path":"/elements/subtitle","value":{"key":"subtitle","type":"Text","props":{"children":"Let's get your prescription refill sorted.","variant":"secondary"},"parentKey":"header"}}
+{"op":"add","path":"/elements/form-grid","value":{"key":"form-grid","type":"Grid","props":{"variant":"2up","gap":"base"},"children":["doctor-input","date-input","type-select","notes-input"],"parentKey":"card-stack"}}
 {"op":"add","path":"/elements/doctor-input","value":{"key":"doctor-input","type":"Input","props":{"label":"Doctor's Name","placeholder":"Dr. Smith"},"parentKey":"form-grid"}}
 {"op":"add","path":"/elements/date-input","value":{"key":"date-input","type":"Input","props":{"label":"Preferred Date","placeholder":"MM/DD/YYYY"},"parentKey":"form-grid"}}
 {"op":"add","path":"/elements/type-select","value":{"key":"type-select","type":"Select","props":{"label":"Visit Type","placeholder":"Select visit type"},"children":["opt-refill","opt-followup","opt-checkup"],"parentKey":"form-grid"}}
@@ -164,7 +166,7 @@ User: "I need to schedule a follow-up appointment with my doctor about my prescr
 {"op":"add","path":"/elements/opt-followup","value":{"key":"opt-followup","type":"SelectOption","props":{"value":"followup","children":"Follow-Up"},"parentKey":"type-select"}}
 {"op":"add","path":"/elements/opt-checkup","value":{"key":"opt-checkup","type":"SelectOption","props":{"value":"checkup","children":"General Checkup"},"parentKey":"type-select"}}
 {"op":"add","path":"/elements/notes-input","value":{"key":"notes-input","type":"Input","props":{"label":"Notes for the doctor","placeholder":"Any symptoms or concerns?"},"parentKey":"form-grid"}}
-{"op":"add","path":"/elements/actions","value":{"key":"actions","type":"Div","props":{"className":"flex justify-end gap-2 pt-4"},"children":["cancel-btn","submit-btn"],"parentKey":"card"}}
+{"op":"add","path":"/elements/actions","value":{"key":"actions","type":"Cluster","props":{"gap":"sm","justify":"end"},"children":["cancel-btn","submit-btn"],"parentKey":"card-stack"}}
 {"op":"add","path":"/elements/cancel-btn","value":{"key":"cancel-btn","type":"Button","props":{"children":"Cancel","variant":"ghost"},"parentKey":"actions"}}
 {"op":"add","path":"/elements/submit-btn","value":{"key":"submit-btn","type":"Button","props":{"children":"Schedule Visit","variant":"primary"},"parentKey":"actions"}}
 
