@@ -159,6 +159,7 @@
       "passes": false
     }
   ],
+  "branch": "geoquant/streaming-ui",
   "context": {
     "patterns": [
       "Stateful wrapper pattern: src/core/stateful-wrappers.tsx — useState bridge + onAction callback",
