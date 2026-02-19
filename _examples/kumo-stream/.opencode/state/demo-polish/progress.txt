@@ -1,0 +1,23 @@
+# Progress Log
+PRD: demo-polish
+Started: 2026-02-19
+
+## Codebase Patterns
+- App shell: `src/app/App.tsx` wraps `<ChatDemo />` inside `kumo-root` div with `data-mode`
+- Dark mode: `data-mode="light"|"dark"` on root wrapper; Kumo tokens auto-adapt via `light-dark()`
+- Kumo `Button` with `variant="outline" size="sm"` for chrome controls (dark mode toggle)
+- Plain HTML (`h1`, `p`) for non-interactive text; Kumo `Text` only in component rendering
+- ChatDemo controls: `flex gap-2` form, Input `flex-1`, action buttons inline
+- Pre-existing lint false positives: `UITreeRenderer.tsx` lines 65/162 (semantic tokens misdetected as raw colors)
+
+---
+
+## Task - ui-1
+- Restyled App.tsx to match cross-boundary.html layout
+- Container: `max-w-[960px] p-8 px-6` (was `max-w-4xl p-8`)
+- Header: flex row with h1 (text-xl font-semibold) + dark mode toggle (Kumo Button outline/sm)
+- Subtitle: plain `<p>` with `text-[13px] opacity-60` (was Kumo `Text variant="secondary"`)
+- Dark mode: `useState` toggle, sets `data-mode` on root wrapper
+- Removed Kumo `Text` import from App.tsx (no longer needed)
+- Files changed: `src/app/App.tsx`
+- **Learnings:** ChatDemo controls already matched target layout (flex gap-2, Input flex-1). Only App.tsx shell needed restyling.
