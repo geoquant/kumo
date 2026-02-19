@@ -148,7 +148,7 @@
         "Test at _examples/kumo-stream/src/__tests__/streaming-integration.test.ts uses Cluster with valid props",
         "Test passes successfully"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "build-1",
