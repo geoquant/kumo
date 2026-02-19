@@ -108,7 +108,7 @@
         "Test: handler works with no params and no context (both optional)",
         "All tests pass via vitest run"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "testing-2",
