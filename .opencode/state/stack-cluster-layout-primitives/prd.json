@@ -114,7 +114,7 @@
         "UITreeRenderer resolves type:\"Stack\" to the Stack component",
         "UITreeRenderer resolves type:\"Cluster\" to the Cluster component"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "integration-2",

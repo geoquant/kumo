@@ -16,6 +16,7 @@ import {
   Banner,
   Button,
   Checkbox,
+  Cluster,
   Empty,
   Grid,
   Input,
@@ -23,6 +24,7 @@ import {
   Loader,
   Meter,
   Select,
+  Stack,
   Surface,
   Switch,
   Table,
@@ -42,6 +44,8 @@ export const COMPONENT_MAP: Record<string, AnyComponent> = {
   // Layout
   Surface: Surface as AnyComponent,
   Grid: Grid as AnyComponent,
+  Stack: Stack as AnyComponent,
+  Cluster: Cluster as AnyComponent,
 
   // Content
   Text: Text as AnyComponent,
