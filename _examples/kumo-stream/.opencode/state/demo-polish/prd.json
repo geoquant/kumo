@@ -29,7 +29,7 @@
         "Reset clears all history",
         "Previous turns' actions don't fire (only latest turn interactive)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-3",
