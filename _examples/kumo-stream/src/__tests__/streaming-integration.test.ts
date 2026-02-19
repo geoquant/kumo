@@ -279,7 +279,7 @@ describe("streaming integration: complex UI with nested children", () => {
       JSON.stringify({
         op: "add",
         path: "/elements/layout-1",
-        value: el("layout-1", "Stack", { direction: "horizontal", gap: "4" }, [
+        value: el("layout-1", "Cluster", { gap: "base", wrap: "nowrap" }, [
           "card-a",
           "card-b",
         ]),
