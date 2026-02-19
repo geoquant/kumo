@@ -95,7 +95,7 @@
         "Dark mode toggle still works",
         "Existing button styling still correct"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "testing-1",
