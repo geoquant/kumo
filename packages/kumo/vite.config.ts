@@ -191,6 +191,10 @@ export default defineConfig(({ mode }) => {
             __dirname,
             "src/components/stack/index.ts",
           ),
+          "components/cluster": resolve(
+            __dirname,
+            "src/components/cluster/index.ts",
+          ),
           // PLOP_INJECT_COMPONENT_ENTRY
           // Utils entry point
           utils: resolve(__dirname, "src/utils/index.ts"),

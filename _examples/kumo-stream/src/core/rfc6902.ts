@@ -104,12 +104,23 @@ export function parsePatchLine(line: string): JsonPatchOp | null {
 // Path parsing
 // =============================================================================
 
+/** Segments that must never appear in a JSON Pointer path (prototype pollution). */
+const BLOCKED_SEGMENTS = new Set(["__proto__", "constructor", "prototype"]);
+
 /** Parse a JSON Pointer path into segments. Leading "/" is stripped. */
 function parsePath(path: string): string[] {
   if (path === "" || path === "/") return [];
   const raw = path.startsWith("/") ? path.slice(1) : path;
   // RFC 6901: ~1 → /, ~0 → ~
-  return raw.split("/").map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"));
+  const segments = raw
+    .split("/")
+    .map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"));
+
+  for (const seg of segments) {
+    if (BLOCKED_SEGMENTS.has(seg)) return [];
+  }
+
+  return segments;
 }
 
 // =============================================================================
