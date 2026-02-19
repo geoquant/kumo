@@ -178,7 +178,7 @@
         "React is bundled inside the UMD (not externalized)",
         "pnpm build:loadable succeeds and outputs to dist/loadable/"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "cross-2",
