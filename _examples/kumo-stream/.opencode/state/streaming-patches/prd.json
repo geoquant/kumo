@@ -159,7 +159,7 @@
         "Error states display correctly when API key missing or stream fails",
         "pnpm --filter kumo-stream test passes with zero failures"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "cross-1",
