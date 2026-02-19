@@ -8,6 +8,7 @@ Started: 2026-02-19
 - **DynamicValue resolution deferred**: params passed as-is (no path resolution in v1)
 - **Test pattern**: vitest + happy-dom, relative imports from `../core/`, `vi.fn()` for mocks
 - **Optional field elision**: use `...(val != null ? { key: val } : undefined)` to omit undefined keys entirely from event objects
+- **Spy component for renderer tests**: inject a SpyComponent into COMPONENT_MAP, use `data-spy-key` prop + `capturedPropsMap` to assert per-element props. Clean up in afterEach.
 
 ---
 
@@ -17,3 +18,10 @@ Started: 2026-02-19
   - `src/core/action-handler.ts` (new) — ActionEvent type, ActionDispatch type, createActionHandler factory
   - `src/__tests__/action-handler.test.ts` (new) — 6 unit tests covering dispatch, params merge, context passthrough, optional field elision
 - **Learnings**: Action.params uses DynamicValue but renderer passes through raw — future task may resolve paths. The spread pattern `...(x != null ? { k: x } : undefined)` cleanly omits optional keys without `if` branching.
+
+## Task - functional-2
+- **Implemented**: UITreeRenderer reads `element.action` and injects `onAction` prop via `createActionHandler`
+- **Files changed**:
+  - `src/core/UITreeRenderer.tsx` (modified) — added `onAction?: ActionDispatch` to `UITreeRendererProps`, threaded through `RenderElement` recursion (Div branch + component branch), inject `onAction` handler when `element.action != null && onAction != null`
+  - `src/__tests__/ui-tree-renderer-action.test.tsx` (new) — 6 tests: injection when action present, no injection when absent, no injection when dispatch omitted, prop preservation, correct ActionEvent dispatch, nested child threading
+- **Learnings**: Testing React component prop injection requires a Spy component pattern — register a spy in COMPONENT_MAP, capture props per-key via `data-spy-key` to distinguish multiple instances in a tree. `@testing-library/react` works with happy-dom env despite LSP not resolving types.
