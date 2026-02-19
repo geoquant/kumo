@@ -192,6 +192,10 @@ export default defineConfig(({ mode }) => {
             "src/components/date-picker/index.ts",
           ),
           "components/flow": resolve(__dirname, "src/components/flow/index.ts"),
+          "components/stack": resolve(
+            __dirname,
+            "src/components/stack/index.ts",
+          ),
           // PLOP_INJECT_COMPONENT_ENTRY
           // Utils entry point
           utils: resolve(__dirname, "src/utils/index.ts"),
@@ -248,7 +252,10 @@ export default defineConfig(({ mode }) => {
             // Add "use client" to all chunks since this is a client-side component library
             // RSC apps will need this directive on all components that use hooks/events
             // Exception: server utilities should NOT have "use client"
-            if (chunk.name === "code/server" || chunk.fileName?.includes("code/server")) {
+            if (
+              chunk.name === "code/server" ||
+              chunk.fileName?.includes("code/server")
+            ) {
               return "";
             }
             return '"use client";\n';
