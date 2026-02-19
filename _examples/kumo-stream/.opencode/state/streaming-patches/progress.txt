@@ -14,6 +14,9 @@ Started: 2026-02-19
 - Test runner: `pnpm test` in `_examples/kumo-stream/` (not pnpm --filter)
 - Vitest globals enabled; import { describe, it, expect } from "vitest"
 - Test helper pattern: `el()` factory + `tree()` factory for concise test setup
+- Anthropic SDK streaming: `client.messages.stream()` → `.on('text', delta)` / `.on('finalMessage')` / `.on('error')` / `.controller.abort()`
+- Vite env vars: `VITE_` prefix required, accessed via `import.meta.env.VITE_*`, needs `src/vite-env.d.ts` for TS
+- kumo-stream is NOT in pnpm workspace; run commands from `_examples/kumo-stream/` dir directly
 
 ---
 
@@ -66,3 +69,23 @@ Started: 2026-02-19
   - All design rules, design thinking, and anti-patterns preserved
 - Files changed: `src/core/system-prompt.ts`
 - **Learnings:** Strategy A (children array declared upfront in parent element) is key for streaming — the renderer can reference child keys before child elements exist, which pairs with functional-2's "render missing keys as null" behavior.
+
+## Task - functional-1
+- Created `src/core/stream-client.ts`: Anthropic SDK streaming wrapper
+  - `startStream(config, messages, callbacks)` returns `StreamHandle` with `abort()`
+  - Wraps `client.messages.stream()` with `on('text')`, `on('finalMessage')`, `on('error')`
+  - `dangerouslyAllowBrowser: true` for client-side demo (non-production)
+  - Uses `SYSTEM_PROMPT` from system-prompt.ts, configurable model via env
+- Created `src/app/ChatDemo.tsx`: main streaming UI chat interface
+  - Uses `useUITree()` hook (not raw `useState<UITree>`)
+  - Creates fresh `createJsonlParser()` per stream in `parserRef`
+  - `onText` → `parser.push(delta)` → `applyPatches(ops)` for incremental rendering
+  - `onDone` → `parser.flush()` → `applyPatches(remaining)` for final buffer
+  - `reset()` + new parser on each new message; full reset clears conversation history
+  - Stop button aborts stream, flushes partial content so it stays visible
+  - 7 preset prompts, freeform input, error display for missing API key
+  - `extractUITree` not imported — fully replaced by JSONL pipeline
+- Created `src/vite-env.d.ts`: Vite ImportMeta type declarations for `VITE_ANTHROPIC_API_KEY`
+- Updated `src/app/App.tsx`: renders `ChatDemo` with page chrome
+- Files changed: `src/core/stream-client.ts`, `src/app/ChatDemo.tsx`, `src/app/App.tsx`, `src/vite-env.d.ts`
+- **Learnings:** Anthropic SDK's `MessageStream` uses `.on('text', (delta, snapshot))` for deltas and `.on('finalMessage', (msg))` for completion. The `stream.controller.abort()` is the cancellation mechanism. `dangerouslyAllowBrowser: true` required for client-side usage.
