@@ -11,6 +11,7 @@ Started: 2026-02-19
 - **Optional field elision**: use `...(val != null ? { key: val } : undefined)` to omit undefined keys entirely from event objects
 - **Spy component for renderer tests**: inject a SpyComponent into COMPONENT_MAP, use `data-spy-key` prop + `capturedPropsMap` to assert per-element props. Clean up in afterEach.
 - **Hook options pattern**: `useUITree(options?: UseUITreeOptions)` — options object for extensibility. Pass-through values (like `onAction`) returned alongside state so consumers wire them to renderers.
+- **Module-level Set + test cleanup**: for pub/sub patterns with module-level state (e.g. subscriber Set), export a `_clear*()` function for test cleanup in afterEach. Vitest reuses module state across tests.
 
 ---
 
@@ -34,3 +35,11 @@ Started: 2026-02-19
   - `src/core/hooks.ts` (modified) — added `UseUITreeOptions` interface with optional `onAction: ActionDispatch`, `useUITree` now accepts `options?` param, `UseUITreeReturn` includes `onAction` field (pass-through)
   - `src/__tests__/use-ui-tree-on-action.test.tsx` (new) — 6 tests: onAction returned from options, undefined when omitted, undefined when empty options, existing return unaffected, full integration test (hook → renderer → spy component → dispatch), no-onAction integration
 - **Learnings**: Hook is a pure state manager — it doesn't own the render, so `onAction` is a pass-through rather than internally consumed. Integration tests using a wrapper component that renders both `useUITree` and `UITreeRenderer` together are the most thorough way to verify end-to-end wiring. `renderHook` from `@testing-library/react` available for unit-level hook tests.
+
+## Task - functional-4
+- **Implemented**: Cross-boundary UMD API action dispatch with pub/sub + CustomEvent
+- **Files changed**:
+  - `src/loadable/action-dispatch.ts` (new) — subscriber Set, `dispatch()` fans out to all handlers + fires `CustomEvent('kumo-action')` on window, `onAction()` returns unsubscribe fn, SSR guard on CustomEvent, error isolation per handler
+  - `src/loadable/index.ts` (modified) — import `dispatchAction`/`onAction`, pass `dispatchAction` as `onAction` to `UITreeRenderer` in both `renderContainer` and `renderTree`, add `onAction` to `CloudflareKumoAPI` interface + `api` object
+  - `src/__tests__/action-dispatch.test.ts` (new) — 10 tests: subscribe/receive, unsubscribe stops delivery, multi-subscriber fanout, selective unsubscribe, error isolation, CustomEvent fire, detail with params/context, detail without optional fields, no-subscriber safety, CustomEvent fires without subscribers
+- **Learnings**: Separate action dispatch module from loadable/index.ts keeps each file focused. `_clearSubscribers()` test utility needed since module-level Set persists across tests in vitest. Error isolation via try/catch per handler prevents one bad subscriber from blocking others. Optional field elision pattern reused from action-handler for CustomEvent detail.

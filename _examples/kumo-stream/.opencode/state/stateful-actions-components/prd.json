@@ -52,7 +52,7 @@
         "CustomEvent detail contains actionName, sourceKey, params, context",
         "Guard: typeof window !== 'undefined' check prevents SSR errors"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-5",
