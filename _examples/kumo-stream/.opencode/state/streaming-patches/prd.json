@@ -86,7 +86,7 @@
         "After streaming completes, missing keys can render as errors (existing behavior)",
         "Mechanism exists to distinguish streaming vs. complete state (prop or context)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "cleanup-1",
