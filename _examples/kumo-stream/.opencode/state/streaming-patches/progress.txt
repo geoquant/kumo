@@ -9,6 +9,8 @@ Started: 2026-02-19
 - VCS is git (not jj)
 
 ## Codebase Patterns
+- UMD loadable pattern: `window.CloudflareKumo` global with `_trees` Map for per-container UITree state and `_roots` Map for React root reuse; `flushSync` for synchronous DOM updates during progressive rendering
+- Vite lib `cssFileName` option controls CSS output name; `fileName` as function overrides JS name but changes CSS to package name unless `cssFileName` is set
 - UIElement interface lacks index signature; use `as unknown as AnyRecord` bridge type for generic nested-path traversal
 - UITree = { root: string, elements: Record<string, UIElement> } from @cloudflare/kumo/catalog
 - Test runner: `pnpm test` in `_examples/kumo-stream/` (not pnpm --filter)
@@ -128,3 +130,22 @@ Started: 2026-02-19
 - All 96 tests pass (56 existing + 40 new), TypeScript clean
 - Files changed: `src/__tests__/regression.test.ts`
 - **Learnings:** `simulateStream()` and `simulatePartialStream()` helpers provide a clean abstraction for testing the full pipeline without React or network. `resolveApiKey()` extracted to avoid TS narrowing `never` on constant `undefined` values.
+
+## Task - cross-1
+- Implemented `src/loadable/index.ts`: UMD entry point exposing `window.CloudflareKumo` API
+  - `applyPatch(op, containerId)` — single RFC 6902 op applied to internal tree state, synchronous re-render via `flushSync`
+  - `applyPatches(ops, containerId)` — batch N ops in one render pass
+  - `renderTree(tree, containerId)` — wholesale tree replacement (non-streaming, streaming=false)
+  - `createParser()` — delegates to `createJsonlParser()` from jsonl-parser.ts
+  - `setTheme(mode)` — sets `data-mode` on `document.body` + dispatches `kumo-theme-change` CustomEvent
+  - `reset(containerId)` — deletes tree state, unmounts React root, removes from maps
+  - Internal `Map<string, UITree>` for per-container tree state
+  - Internal `Map<string, Root>` for React root reuse (never recreated per render)
+  - React bundled inside the UMD (not externalized)
+- Created `src/loadable/theme.tsx`: ThemeWrapper component (needed by cross-1, fully specified in cross-2)
+  - Wraps children in `<div data-mode={mode} className="kumo-root">`
+  - Listens for `kumo-theme-change` CustomEvent, updates mode state reactively
+- Updated `vite.loadable.config.ts`: added Tailwind CSS plugin, `@` alias, `cssFileName: "style"`, `.umd.js` extension
+- `pnpm build:loadable` outputs `dist/loadable/component-loadable.umd.js` (405KB) + `dist/loadable/style.css` (72KB)
+- Files changed: `src/loadable/index.ts`, `src/loadable/theme.tsx`, `vite.loadable.config.ts`
+- **Learnings:** Vite's `fileName` as function changes CSS output to package name; need explicit `cssFileName: "style"` to control it. `flushSync` is critical for cross-boundary progressive rendering — without it, React batches updates and the host page sees stale DOM. ThemeWrapper needed in loadable context since UITreeRenderer has hardcoded `data-mode="light"` — ThemeWrapper wraps it to provide reactivity.
