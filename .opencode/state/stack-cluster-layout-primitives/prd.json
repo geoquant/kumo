@@ -90,7 +90,7 @@
         "Demo shows basic Cluster usage with gap and justify variants",
         "Demo shows wrap and align prop usage"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "codegen-1",
