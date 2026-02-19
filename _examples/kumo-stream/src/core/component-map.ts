@@ -19,11 +19,11 @@ import {
   Empty,
   Grid,
   Input,
+  InputArea,
   Link,
   Loader,
   Meter,
   Radio,
-  Select,
   Stack,
   Surface,
   Table,
@@ -72,6 +72,7 @@ export const COMPONENT_MAP: Record<string, AnyComponent> = {
   // Interactive (uncontrolled — no wrapper needed)
   RadioGroup: Radio.Group as AnyComponent,
   RadioItem: Radio.Item as AnyComponent,
+  Textarea: InputArea as AnyComponent,
 
   // Data display
   Table: Table as AnyComponent,
