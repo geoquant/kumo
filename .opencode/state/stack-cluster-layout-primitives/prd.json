@@ -169,7 +169,7 @@
         "Changeset references @cloudflare/kumo with minor bump",
         "Changeset describes Stack and Cluster layout primitives"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
