@@ -101,3 +101,13 @@ Started: 2026-02-19
 - Surface and Grid remain unchanged
 - Files changed: `_examples/kumo-stream/src/core/system-prompt.ts`
 - **Learnings:** System prompt layout order matters for LLM attention: Surface → Stack → Cluster → Grid → Div puts the most useful primitives first and the escape hatch last, naturally steering the LLM toward constrained components.
+
+## Task - integration-3
+- Rewrote Example 2 (Doctor Appointment Form) in system prompt to use Stack/Cluster
+- Added `card-stack` (Stack, gap:"lg") as card's single child — wraps header, form-grid, actions
+- Added `header` (Stack, gap:"xs") to tightly pair heading + subtitle
+- Replaced `actions` Div (`className:"flex justify-end gap-2 pt-4"`) with Cluster (`gap:"sm"`, `justify:"end"`)
+- Zero Div usage remaining in Example 2
+- Grid retained for form layout (2up) — correct tool for the job
+- Files changed: `_examples/kumo-stream/src/core/system-prompt.ts`
+- **Learnings:** Example 2 now demonstrates the idiomatic composition pattern: Surface → Stack (vertical sections) → Grid (form) + Cluster (actions). This teaches the LLM the intended hierarchy: Surface for containment, Stack for vertical flow, Cluster for horizontal groups, Grid for form fields.
