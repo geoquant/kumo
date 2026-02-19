@@ -127,7 +127,7 @@
         "Div is described as \"Escape hatch (AVOID — prefer Stack/Cluster/Grid)\"",
         "Surface and Grid remain documented"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "integration-3",

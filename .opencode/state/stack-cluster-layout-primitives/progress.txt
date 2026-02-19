@@ -92,3 +92,12 @@ Started: 2026-02-19
 - `KNOWN_TYPES` set auto-derives from map keys, so `getUnknownTypes()` also recognizes them
 - Files changed: `_examples/kumo-stream/src/core/component-map.ts`
 - **Learnings:** component-map.ts is the single bridge between LLM JSON and React. Adding a component is: 1) import from @cloudflare/kumo, 2) add to COMPONENT_MAP object with matching key name. KNOWN_TYPES derives automatically.
+
+## Task - integration-2
+- Updated Layout section in `_examples/kumo-stream/src/core/system-prompt.ts` (lines 79-96)
+- Added Stack: gap (6 values) + align (4 values) + usage guidance (vertical stacking)
+- Added Cluster: gap (6 values) + justify (4 values) + align (5 values) + wrap (2 values) + usage guidance (horizontal rows)
+- Demoted Div to "Escape hatch (AVOID — prefer Stack/Cluster/Grid)" with single-sentence guidance
+- Surface and Grid remain unchanged
+- Files changed: `_examples/kumo-stream/src/core/system-prompt.ts`
+- **Learnings:** System prompt layout order matters for LLM attention: Surface → Stack → Cluster → Grid → Div puts the most useful primitives first and the escape hatch last, naturally steering the LLM toward constrained components.

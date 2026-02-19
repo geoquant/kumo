@@ -79,11 +79,21 @@ Where each UIElement is:
 ### Layout
 - **Surface** — Card/container: \`{ type: "Surface", props: {}, children: [...] }\`
   - Renders as a card with border and shadow. No variant prop needed.
+- **Stack** — Vertical flex column: \`{ type: "Stack", props: { gap: "base" }, children: [...] }\`
+  - gap: "none" | "xs" | "sm" | "base" | "lg" | "xl"
+  - align: "start" | "center" | "end" | "stretch" (default: "stretch")
+  - Use for stacking content vertically: headings + text, form fields, card sections.
+- **Cluster** — Horizontal flex row: \`{ type: "Cluster", props: { gap: "sm", justify: "end" }, children: [...] }\`
+  - gap: "none" | "xs" | "sm" | "base" | "lg" | "xl"
+  - justify: "start" | "center" | "end" | "between" (default: "start")
+  - align: "start" | "center" | "end" | "baseline" | "stretch" (default: "center")
+  - wrap: "wrap" | "nowrap" (default: "wrap")
+  - Use for button rows, tag groups, inline metadata, horizontal actions.
 - **Grid** — Responsive grid: \`{ type: "Grid", props: { variant: "2up", gap: "base" }, children: [...] }\`
   - variant: "2up" | "side-by-side" | "2-1" | "1-2" | "3up" | "4up" | "6up"
   - gap: "none" | "sm" | "base" | "lg"
-- **Div** — Generic flex container: \`{ type: "Div", props: { className: "flex gap-2" }, children: [...] }\`
-  - Use for flex rows, spacing, alignment. Pass Tailwind utility classes via className.
+- **Div** — Escape hatch (AVOID — prefer Stack/Cluster/Grid): \`{ type: "Div", props: { className: "..." }, children: [...] }\`
+  - Only use when Stack, Cluster, and Grid cannot express the layout you need.
 
 ### Content
 - **Text** — All text content: \`{ type: "Text", props: { children: "text", variant: "heading1" } }\`
