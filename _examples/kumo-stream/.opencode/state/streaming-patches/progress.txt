@@ -54,3 +54,15 @@ Started: 2026-02-19
   - Imports `applyPatch` from `rfc6902.ts` (not `patches.ts`)
 - Files changed: `src/core/hooks.ts`
 - **Learnings:** Explicit `UITree` annotation on functional setState params (`prev: UITree`) needed because LSP can't resolve `@cloudflare/kumo/catalog` types in dev — without it, `prev` infers as `any`.
+
+## Task - core-4
+- Rewrote `src/core/system-prompt.ts`: JSONL patch output format replaces monolithic JSON
+  - Opening instruction changed from "valid JSON matching UITree schema" to "JSONL — one JSON Patch operation per line"
+  - Added "Response Format: JSONL (JSON Patch)" section with op types (add/replace/remove)
+  - Added "Emission Order (Strategy A — Top-Down with Upfront Children)" with 4 rules
+  - Replaced monolithic JSON example with 3 complete JSONL examples (greeting, form, dashboard)
+  - Anti-patterns extended: added "wrapping in markdown fences" and "emitting explanatory text"
+  - All component documentation (Layout, Content, Interactive, Data Display, Navigation, Feedback) preserved verbatim
+  - All design rules, design thinking, and anti-patterns preserved
+- Files changed: `src/core/system-prompt.ts`
+- **Learnings:** Strategy A (children array declared upfront in parent element) is key for streaming — the renderer can reference child keys before child elements exist, which pairs with functional-2's "render missing keys as null" behavior.

@@ -61,7 +61,7 @@
         "Prompt includes 2-3 complete JSONL examples showing the wire format",
         "All existing component documentation, design rules, and anti-patterns are preserved"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-1",
