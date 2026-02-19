@@ -111,10 +111,19 @@ Where each UIElement is:
   - size: "xs" | "sm" | "base" | "lg"
 - **Input** — Text input: \`{ type: "Input", props: { label: "Email", placeholder: "you@example.com" } }\`
   - Input auto-wraps with Field when \`label\` is provided. Just use Input directly with label.
+- **Textarea** — Multiline text: \`{ type: "Textarea", props: { label: "Description", placeholder: "Enter details...", defaultValue: "" } }\`
+  - Same as InputArea. Use \`defaultValue\` for pre-filled content. Uncontrolled — no state wrapper needed.
 - **Checkbox** — Boolean: \`{ type: "Checkbox", props: { label: "Remember me" } }\`
 - **Select** — Dropdown: \`{ type: "Select", props: { label: "Category", placeholder: "Choose..." }, children: ["opt-1", "opt-2"] }\`
   - Children must be SelectOption elements: \`{ type: "SelectOption", props: { value: "v1", children: "Label" } }\`
 - **Switch** — Toggle: \`{ type: "Switch", props: { label: "Enable notifications" } }\`
+- **RadioGroup** — Radio button group (compound): \`{ type: "RadioGroup", props: { defaultValue: "opt1" }, children: ["radio-1", "radio-2"] }\`
+  - Children must be RadioItem elements: \`{ type: "RadioItem", props: { value: "opt1", label: "Option 1" } }\`
+  - Uncontrolled — use \`defaultValue\` on RadioGroup for initial selection
+- **Collapsible** — Expandable section: \`{ type: "Collapsible", props: { label: "More details", defaultOpen: false }, children: [...] }\`
+  - label (required): header text shown as the toggle trigger
+  - defaultOpen: boolean (default false) — initial expanded state
+  - Wraps content that can be shown/hidden
 
 ### Data Display
 - **Table** — Data table with sub-components:
@@ -138,6 +147,36 @@ Where each UIElement is:
 ### Feedback
 - **Loader** — Loading state: \`{ type: "Loader", props: {} }\`
 - **Empty** — Empty state: \`{ type: "Empty", props: { title: "No data", description: "Nothing to show yet" } }\`
+
+## Action Field (Interactive Events)
+
+Interactive elements can trigger named actions via an \`action\` field on the UIElement. When the user interacts with the component (click, toggle, select), an action event is dispatched to the host application.
+
+### Format
+
+Add an \`action\` field alongside \`props\` on any interactive element:
+\`\`\`
+{ key: "...", type: "Button", props: { ... }, action: { "name": "action_name" } }
+\`\`\`
+
+The action object:
+- \`name\` (string, required) — identifies which action to trigger (e.g. "submit_form", "delete_item")
+- \`params\` (object, optional) — static parameters attached to the action (e.g. \`{ "itemId": "abc" }\`)
+
+### Which Components Support Actions
+
+Any component mapped to a stateful wrapper dispatches actions automatically when the user interacts:
+- **Button** — dispatches on click
+- **Select** — dispatches on selection change (context includes \`{ value }\`)
+- **Checkbox** — dispatches on toggle (context includes \`{ checked }\`)
+- **Switch** — dispatches on toggle (context includes \`{ checked }\`)
+- **Tabs** — dispatches on tab change (context includes \`{ value }\`)
+- **Collapsible** — dispatches on open/close (context includes \`{ open }\`)
+
+### Rules
+- Only add \`action\` to elements where the host needs to react (e.g. form submission, navigation, data mutation)
+- Not every interactive element needs an action — pure display-only controls can omit it
+- Use descriptive snake_case action names: "submit_form", "toggle_setting", "select_plan"
 
 ## Example 1: Simple Greeting
 
@@ -182,6 +221,28 @@ User: "Show me server status"
 {"op":"add","path":"/elements/cpu-meter","value":{"key":"cpu-meter","type":"Meter","props":{"label":"CPU Usage","value":42,"max":100,"customValue":"42%"},"parentKey":"metrics"}}
 {"op":"add","path":"/elements/memory-meter","value":{"key":"memory-meter","type":"Meter","props":{"label":"Memory","value":68,"max":100,"customValue":"68%"},"parentKey":"metrics"}}
 {"op":"add","path":"/elements/disk-meter","value":{"key":"disk-meter","type":"Meter","props":{"label":"Disk","value":31,"max":100,"customValue":"31%"},"parentKey":"metrics"}}
+
+## Example 4: Interactive Form with Actions
+
+User: "Create a notification preferences form"
+
+{"op":"add","path":"/root","value":"card"}
+{"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["card-stack"]}}
+{"op":"add","path":"/elements/card-stack","value":{"key":"card-stack","type":"Stack","props":{"gap":"lg"},"children":["header","form-fields","actions"],"parentKey":"card"}}
+{"op":"add","path":"/elements/header","value":{"key":"header","type":"Stack","props":{"gap":"xs"},"children":["heading","subtitle"],"parentKey":"card-stack"}}
+{"op":"add","path":"/elements/heading","value":{"key":"heading","type":"Text","props":{"children":"Notification Preferences","variant":"heading2"},"parentKey":"header"}}
+{"op":"add","path":"/elements/subtitle","value":{"key":"subtitle","type":"Text","props":{"children":"Choose how you'd like to stay in the loop.","variant":"secondary"},"parentKey":"header"}}
+{"op":"add","path":"/elements/form-fields","value":{"key":"form-fields","type":"Stack","props":{"gap":"base"},"children":["channel-select","email-check","sms-check","notes"],"parentKey":"card-stack"}}
+{"op":"add","path":"/elements/channel-select","value":{"key":"channel-select","type":"Select","props":{"label":"Primary Channel","placeholder":"Select channel"},"children":["opt-email","opt-sms","opt-push"],"parentKey":"form-fields","action":{"name":"select_channel"}}}
+{"op":"add","path":"/elements/opt-email","value":{"key":"opt-email","type":"SelectOption","props":{"value":"email","children":"Email"},"parentKey":"channel-select"}}
+{"op":"add","path":"/elements/opt-sms","value":{"key":"opt-sms","type":"SelectOption","props":{"value":"sms","children":"SMS"},"parentKey":"channel-select"}}
+{"op":"add","path":"/elements/opt-push","value":{"key":"opt-push","type":"SelectOption","props":{"value":"push","children":"Push Notification"},"parentKey":"channel-select"}}
+{"op":"add","path":"/elements/email-check","value":{"key":"email-check","type":"Checkbox","props":{"label":"Send weekly digest email"},"parentKey":"form-fields","action":{"name":"toggle_digest"}}}
+{"op":"add","path":"/elements/sms-check","value":{"key":"sms-check","type":"Checkbox","props":{"label":"Send critical alerts via SMS"},"parentKey":"form-fields","action":{"name":"toggle_sms_alerts"}}}
+{"op":"add","path":"/elements/notes","value":{"key":"notes","type":"Textarea","props":{"label":"Additional notes","placeholder":"Any special preferences?","defaultValue":""},"parentKey":"form-fields"}}
+{"op":"add","path":"/elements/actions","value":{"key":"actions","type":"Cluster","props":{"gap":"sm","justify":"end"},"children":["cancel-btn","save-btn"],"parentKey":"card-stack"}}
+{"op":"add","path":"/elements/cancel-btn","value":{"key":"cancel-btn","type":"Button","props":{"children":"Cancel","variant":"ghost"},"parentKey":"actions"}}
+{"op":"add","path":"/elements/save-btn","value":{"key":"save-btn","type":"Button","props":{"children":"Save Preferences","variant":"primary"},"parentKey":"actions","action":{"name":"submit_preferences"}}}
 
 ## Important
 
