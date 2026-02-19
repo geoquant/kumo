@@ -97,3 +97,11 @@ Started: 2026-02-19
 - Updated `ChatDemo.tsx` to pass `streaming={isStreaming}` to `UITreeRenderer`
 - Files changed: `src/core/UITreeRenderer.tsx`, `src/app/ChatDemo.tsx`
 - **Learnings:** The `streaming` prop propagates through recursive `RenderElement` calls. A simple boolean prop is sufficient — no need for React context since the prop is already threaded through the render tree. Default `false` preserves backward compatibility.
+
+## Task - cleanup-1
+- Deleted `src/core/patches.ts` (custom UITreePatch system — add/replace/remove/batch)
+- Deleted `src/__tests__/patches.test.ts` (all tests for the custom patch system)
+- Verified zero remaining imports of `patches.ts` anywhere in codebase
+- TypeScript compiles clean, all 48 tests pass (rfc6902 + jsonl-parser)
+- Files deleted: `src/core/patches.ts`, `src/__tests__/patches.test.ts`
+- **Learnings:** Clean deletion — no other module depended on patches.ts. The RFC 6902 replacement (rfc6902.ts) was already fully wired in prior tasks, so this was purely dead code removal.
