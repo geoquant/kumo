@@ -89,3 +89,11 @@ Started: 2026-02-19
 - Updated `src/app/App.tsx`: renders `ChatDemo` with page chrome
 - Files changed: `src/core/stream-client.ts`, `src/app/ChatDemo.tsx`, `src/app/App.tsx`, `src/vite-env.d.ts`
 - **Learnings:** Anthropic SDK's `MessageStream` uses `.on('text', (delta, snapshot))` for deltas and `.on('finalMessage', (msg))` for completion. The `stream.controller.abort()` is the cancellation mechanism. `dangerouslyAllowBrowser: true` required for client-side usage.
+
+## Task - functional-2
+- Added `streaming` prop to `UITreeRenderer` and `RenderElement` — when true, missing element keys render as `null` (invisible) instead of error divs
+- During streaming, parent elements declare children arrays before child elements arrive (Strategy A); this prevents red "Missing element" errors from flashing
+- After streaming completes (`streaming=false`, the default), missing keys revert to error rendering for debugging
+- Updated `ChatDemo.tsx` to pass `streaming={isStreaming}` to `UITreeRenderer`
+- Files changed: `src/core/UITreeRenderer.tsx`, `src/app/ChatDemo.tsx`
+- **Learnings:** The `streaming` prop propagates through recursive `RenderElement` calls. A simple boolean prop is sufficient — no need for React context since the prop is already threaded through the render tree. Default `false` preserves backward compatibility.

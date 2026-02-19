@@ -262,7 +262,9 @@ export function ChatDemo() {
       )}
 
       {/* Rendered UITree */}
-      {isRenderableTree(tree) && <UITreeRenderer tree={tree} />}
+      {isRenderableTree(tree) && (
+        <UITreeRenderer tree={tree} streaming={isStreaming} />
+      )}
     </div>
   );
 }
