@@ -53,3 +53,12 @@ Started: 2026-02-19
 - Already completed during component-1 and component-2
 - Vite build entries at `packages/kumo/vite.config.ts` lines 190-197
 - `pnpm --filter @cloudflare/kumo build` succeeds
+
+## Task - demo-1
+- Created `packages/kumo-docs-astro/src/components/demos/StackDemo.tsx`
+- Three exported demos following GridDemo pattern:
+  - `StackDemo()` — basic usage with default gap
+  - `StackGapDemo()` — all 6 gap variants (none/xs/sm/base/lg/xl)
+  - `StackAlignDemo()` — all 4 align variants (stretch/start/center/end)
+- Uses `Surface` + `Text` from `@cloudflare/kumo` for visual items, `text-kumo-subtle` labels
+- **Learnings:** Demo naming is load-bearing — function names must end with `Demo` suffix and file must be `{Component}Demo.tsx` for the codegen extraction pipeline to pick them up.

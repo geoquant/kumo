@@ -79,7 +79,7 @@
         "Demo shows basic Stack usage with gap variants",
         "Demo shows align prop usage"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "demo-2",
