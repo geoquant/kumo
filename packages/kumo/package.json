@@ -183,6 +183,10 @@
       "types": "./dist/src/components/flow/index.d.ts",
       "import": "./dist/components/flow.js"
     },
+    "./components/stack": {
+      "types": "./dist/src/components/stack/index.d.ts",
+      "import": "./dist/components/stack.js"
+    },
     "./utils": {
       "types": "./dist/src/utils/index.d.ts",
       "import": "./dist/utils.js"
