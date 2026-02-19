@@ -176,3 +176,18 @@ Started: 2026-02-19
   - Added devDependencies: `express`, `cors`, `dotenv`, `tsx`, `@types/express`, `@types/cors`, `@types/node`
 - Files changed: `server/index.ts`, `tsconfig.server.json`, `package.json`, `bun.lock`
 - **Learnings:** `tsx` is the cleanest way to run TS + ESM server code — handles `.ts` imports without build step. The server imports `SYSTEM_PROMPT` directly from the shared `src/core/` module, avoiding duplication. `bun install` breaks pnpm `link:` deps; need to manually restore symlink with absolute path after install. SSE format is much simpler than kumo-provider's partial JSON parsing — JSONL patches are already line-delimited, so the server just forwards raw text deltas.
+
+## Task - cross-4
+- Created `public/cross-boundary.html`: plain HTML cross-boundary demo page
+  - Zero React in host page — all rendering via `window.CloudflareKumo` UMD API
+  - Loads `dist/loadable/component-loadable.umd.js` + `dist/loadable/style.css`
+  - Text input with Enter key support, Generate/Stop/Reset buttons, theme toggle
+  - POSTs to `/api/chat`, reads SSE stream via `ReadableStream` reader + `TextDecoder`
+  - SSE frame parsing: splits on `\n\n`, extracts `data: ` prefix, parses JSON events
+  - Text deltas fed to `CloudflareKumo.createParser().push(delta)` → `applyPatch(op, containerId)`
+  - Done/error events handled: flush parser, cleanup state, update status text
+  - Theme toggle calls `CloudflareKumo.setTheme()` — components switch light/dark reactively
+  - Reset calls `CloudflareKumo.reset()` before new stream; aborts in-flight stream if active
+  - Minimal CSS for page chrome; dark mode styles via `body[data-mode="dark"]`
+- Files changed: `public/cross-boundary.html` (new)
+- **Learnings:** SSE parsing in vanilla JS needs manual `\n\n` splitting — no native EventSource for POST requests. The `ReadableStream` reader approach with a `sseBuffer` accumulator handles partial frames correctly. The UMD API's `applyPatch` (singular, per-op) works well for progressive rendering since each SSE frame may contain multiple JSONL lines parsed into multiple ops — applying them one at a time gives maximum visual progressiveness.

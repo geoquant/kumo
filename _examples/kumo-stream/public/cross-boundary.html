@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kumo Cross-Boundary Demo</title>
+    <link rel="stylesheet" href="/dist/loadable/style.css" />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background: #f5f5f5;
+        color: #1a1a1a;
+        transition:
+          background 0.2s,
+          color 0.2s;
+      }
+
+      body[data-mode="dark"] {
+        background: #1a1a1a;
+        color: #f5f5f5;
+      }
+
+      .page {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px 24px;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .header p {
+        margin: 4px 0 0;
+        font-size: 13px;
+        opacity: 0.6;
+      }
+
+      .controls {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .controls input[type="text"] {
+        flex: 1;
+        padding: 8px 12px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        outline: none;
+        background: #fff;
+        color: #1a1a1a;
+      }
+
+      body[data-mode="dark"] .controls input[type="text"] {
+        background: #2a2a2a;
+        border-color: #444;
+        color: #f5f5f5;
+      }
+
+      .controls input[type="text"]:focus {
+        border-color: #f6821f;
+        box-shadow: 0 0 0 2px rgba(246, 130, 31, 0.2);
+      }
+
+      button {
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        cursor: pointer;
+        background: #fff;
+        color: #1a1a1a;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+      }
+
+      body[data-mode="dark"] button {
+        background: #2a2a2a;
+        border-color: #444;
+        color: #f5f5f5;
+      }
+
+      button:hover:not(:disabled) {
+        background: #f0f0f0;
+      }
+
+      body[data-mode="dark"] button:hover:not(:disabled) {
+        background: #3a3a3a;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      button.primary {
+        background: #f6821f;
+        border-color: #f6821f;
+        color: #fff;
+      }
+
+      button.primary:hover:not(:disabled) {
+        background: #e0741a;
+      }
+
+      button.danger {
+        background: #dc3545;
+        border-color: #dc3545;
+        color: #fff;
+      }
+
+      button.danger:hover:not(:disabled) {
+        background: #c82333;
+      }
+
+      .status {
+        font-size: 13px;
+        margin-bottom: 12px;
+        min-height: 20px;
+        opacity: 0.7;
+      }
+
+      #kumo-container {
+        min-height: 100px;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body data-mode="light">
+    <div class="page">
+      <div class="header">
+        <div>
+          <h1>Kumo Cross-Boundary Demo</h1>
+          <p>
+            Plain HTML &mdash; no React, no build step. Components rendered via
+            UMD bundle.
+          </p>
+        </div>
+        <button id="theme-toggle" type="button">Dark Mode</button>
+      </div>
+
+      <div class="controls">
+        <input
+          id="prompt-input"
+          type="text"
+          placeholder="Describe a UI to generate..."
+          autocomplete="off"
+        />
+        <button id="generate-btn" class="primary" type="button">
+          Generate
+        </button>
+        <button id="stop-btn" class="danger" type="button" disabled>
+          Stop
+        </button>
+        <button id="reset-btn" type="button">Reset</button>
+      </div>
+
+      <div id="status" class="status"></div>
+      <div id="kumo-container"></div>
+    </div>
+
+    <script src="/dist/loadable/component-loadable.umd.js"></script>
+    <script>
+      // =========================================================================
+      // Cross-boundary streaming demo
+      //
+      // Reads SSE from /api/chat, feeds deltas through CloudflareKumo's JSONL
+      // parser, and applies RFC 6902 patches to render kumo components
+      // progressively — all without React in the host page.
+      // =========================================================================
+
+      (function () {
+        "use strict";
+
+        var CONTAINER_ID = "kumo-container";
+
+        // -----------------------------------------------------------------------
+        // DOM refs
+        // -----------------------------------------------------------------------
+
+        var promptInput = document.getElementById("prompt-input");
+        var generateBtn = document.getElementById("generate-btn");
+        var stopBtn = document.getElementById("stop-btn");
+        var resetBtn = document.getElementById("reset-btn");
+        var themeToggle = document.getElementById("theme-toggle");
+        var statusEl = document.getElementById("status");
+
+        // -----------------------------------------------------------------------
+        // State
+        // -----------------------------------------------------------------------
+
+        var abortController = null;
+        var parser = null;
+        var isDark = false;
+
+        // -----------------------------------------------------------------------
+        // Helpers
+        // -----------------------------------------------------------------------
+
+        function setStatus(text) {
+          statusEl.textContent = text;
+        }
+
+        function setStreaming(active) {
+          promptInput.disabled = active;
+          generateBtn.disabled = active;
+          stopBtn.disabled = !active;
+        }
+
+        // -----------------------------------------------------------------------
+        // SSE stream reader
+        // -----------------------------------------------------------------------
+
+        function streamChat(message) {
+          // Reset previous state
+          CloudflareKumo.reset(CONTAINER_ID);
+          parser = CloudflareKumo.createParser();
+          setStatus("Generating UI...");
+          setStreaming(true);
+
+          abortController = new AbortController();
+
+          fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: message }),
+            signal: abortController.signal,
+          })
+            .then(function (res) {
+              if (!res.ok) {
+                throw new Error("Server responded with " + res.status);
+              }
+              return readSSEStream(res.body);
+            })
+            .catch(function (err) {
+              if (err.name === "AbortError") {
+                setStatus("Stopped.");
+              } else {
+                setStatus("Error: " + err.message);
+              }
+              flushParser();
+              cleanup();
+            });
+        }
+
+        function readSSEStream(body) {
+          var reader = body.getReader();
+          var decoder = new TextDecoder();
+          var sseBuffer = "";
+
+          function pump() {
+            return reader.read().then(function (result) {
+              if (result.done) {
+                flushParser();
+                cleanup();
+                setStatus("Done.");
+                return;
+              }
+
+              sseBuffer += decoder.decode(result.value, { stream: true });
+
+              // Split on double-newline (SSE frame boundary)
+              var frames = sseBuffer.split("\n\n");
+              // Last element is either empty or incomplete — keep buffered
+              sseBuffer = frames.pop() || "";
+
+              for (var i = 0; i < frames.length; i++) {
+                var frame = frames[i].trim();
+                if (!frame.startsWith("data: ")) continue;
+
+                var json = frame.slice(6); // strip "data: "
+                try {
+                  var event = JSON.parse(json);
+                } catch (_e) {
+                  continue;
+                }
+
+                if (event.type === "text" && typeof event.delta === "string") {
+                  var ops = parser.push(event.delta);
+                  for (var j = 0; j < ops.length; j++) {
+                    CloudflareKumo.applyPatch(ops[j], CONTAINER_ID);
+                  }
+                } else if (event.type === "done") {
+                  flushParser();
+                  cleanup();
+                  setStatus("Done.");
+                  return;
+                } else if (event.type === "error") {
+                  flushParser();
+                  cleanup();
+                  setStatus("Error: " + (event.message || "Unknown error"));
+                  return;
+                }
+              }
+
+              return pump();
+            });
+          }
+
+          return pump();
+        }
+
+        function flushParser() {
+          if (!parser) return;
+          var remaining = parser.flush();
+          for (var i = 0; i < remaining.length; i++) {
+            CloudflareKumo.applyPatch(remaining[i], CONTAINER_ID);
+          }
+          parser = null;
+        }
+
+        function cleanup() {
+          abortController = null;
+          setStreaming(false);
+        }
+
+        // -----------------------------------------------------------------------
+        // Event handlers
+        // -----------------------------------------------------------------------
+
+        generateBtn.addEventListener("click", function () {
+          var text = promptInput.value.trim();
+          if (!text) return;
+          promptInput.value = "";
+          streamChat(text);
+        });
+
+        promptInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" && !generateBtn.disabled) {
+            var text = promptInput.value.trim();
+            if (!text) return;
+            promptInput.value = "";
+            streamChat(text);
+          }
+        });
+
+        stopBtn.addEventListener("click", function () {
+          if (abortController) {
+            abortController.abort();
+            // AbortError handler in streamChat's catch will flush + cleanup
+          }
+        });
+
+        resetBtn.addEventListener("click", function () {
+          if (abortController) {
+            abortController.abort();
+            abortController = null;
+          }
+          parser = null;
+          CloudflareKumo.reset(CONTAINER_ID);
+          setStreaming(false);
+          setStatus("");
+          promptInput.value = "";
+        });
+
+        themeToggle.addEventListener("click", function () {
+          isDark = !isDark;
+          var mode = isDark ? "dark" : "light";
+          CloudflareKumo.setTheme(mode);
+          themeToggle.textContent = isDark ? "Light Mode" : "Dark Mode";
+        });
+      })();
+    </script>
+  </body>
+</html>
