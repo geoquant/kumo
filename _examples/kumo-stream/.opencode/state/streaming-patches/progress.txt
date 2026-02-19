@@ -1,0 +1,24 @@
+# Progress Log
+PRD: streaming-patches
+Started: 2026-02-19
+
+## Codebase Patterns
+- UIElement interface lacks index signature; use `as unknown as AnyRecord` bridge type for generic nested-path traversal
+- UITree = { root: string, elements: Record<string, UIElement> } from @cloudflare/kumo/catalog
+- Test runner: `pnpm test` in `_examples/kumo-stream/` (not pnpm --filter)
+- Vitest globals enabled; import { describe, it, expect } from "vitest"
+- Test helper pattern: `el()` factory + `tree()` factory for concise test setup
+
+---
+
+## Task - core-1 + testing-1
+- Implemented `src/core/rfc6902.ts`: RFC 6902 subset (add/replace/remove) applied to UITree
+  - `applyPatch(spec, patch)` — immutable, returns new shallow copy per call
+  - `parsePatchLine(line)` — parses JSON string to JsonPatchOp, null for invalid input
+  - JSON Pointer path parsing with RFC 6901 escaping (~0, ~1)
+  - /- array-append convention for nested paths (e.g. /elements/card/children/-)
+  - AnyRecord bridge type to handle UIElement <-> Record<string, unknown> incompatibility
+- Implemented `src/__tests__/rfc6902.test.ts`: 27 tests covering all ops and edge cases
+  - add /root, add /elements/{key}, add with /-, replace, remove, no-op remove, edge cases, immutability, parsePatchLine
+- Files changed: `src/core/rfc6902.ts`, `src/__tests__/rfc6902.test.ts`
+- **Learnings:** UIElement's interface type doesn't satisfy `Record<string, unknown>` constraint due to missing index signature. Need explicit bridge types (toRecord/toElement) for generic nested-path operations.
