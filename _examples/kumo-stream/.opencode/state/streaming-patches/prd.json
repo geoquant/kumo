@@ -98,7 +98,7 @@
         "No remaining imports of patches.ts anywhere in the codebase",
         "TypeScript compiles without errors after deletion"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "testing-1",
@@ -160,6 +160,89 @@
         "pnpm --filter kumo-stream test passes with zero failures"
       ],
       "passes": false
+    },
+    {
+      "id": "cross-1",
+      "category": "cross-boundary",
+      "description": "UMD loadable entry point exposing window.CloudflareKumo with patch-aware rendering, JSONL parser, theme control, and tree reset",
+      "steps": [
+        "src/loadable/index.ts exists and assigns window.CloudflareKumo object",
+        "CloudflareKumo.applyPatch(op, containerId) applies one RFC 6902 op to internal tree state and re-renders the container",
+        "CloudflareKumo.applyPatches(ops, containerId) applies multiple ops in a single render pass",
+        "CloudflareKumo.renderTree(tree, containerId) replaces entire tree wholesale (non-streaming use case)",
+        "CloudflareKumo.createParser() returns a JsonlParser instance with push() and flush()",
+        "CloudflareKumo.setTheme(mode) dispatches kumo-theme-change CustomEvent and sets data-mode on document.body",
+        "CloudflareKumo.reset(containerId) clears tree state and unmounts the container",
+        "Internal Map<containerId, UITree> tracks per-container tree state",
+        "Internal Map<containerId, ReactRoot> reuses React roots (no destroy/recreate per render)",
+        "React is bundled inside the UMD (not externalized)",
+        "pnpm build:loadable succeeds and outputs to dist/loadable/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "cross-2",
+      "category": "cross-boundary",
+      "description": "ThemeWrapper component and theme support in UITreeRenderer — reactive light/dark mode via CustomEvent",
+      "steps": [
+        "src/loadable/theme.tsx exports ThemeWrapper component",
+        "ThemeWrapper renders children inside <div data-mode={mode} className=\"kumo-root\">",
+        "ThemeWrapper listens for kumo-theme-change CustomEvent on window and updates mode state",
+        "setTheme() also sets data-mode on document.body for portalled elements (Select dropdowns, etc.)",
+        "UITreeRenderer in loadable context is wrapped by ThemeWrapper (not hardcoded data-mode=\"light\")",
+        "Theme change causes re-render of all rendered components in new mode"
+      ],
+      "passes": false
+    },
+    {
+      "id": "cross-3",
+      "category": "cross-boundary",
+      "description": "Express proxy server that streams Anthropic responses as SSE, keeping API key server-side",
+      "steps": [
+        "server/index.ts exists with Express app",
+        "POST /api/chat accepts { message: string, history?: Array<{role, content}> } JSON body",
+        "Server reads ANTHROPIC_API_KEY from process.env (not VITE_ prefixed)",
+        "Server imports SYSTEM_PROMPT from src/core/system-prompt.ts",
+        "Server streams Anthropic text deltas as SSE: data: {\"type\":\"text\",\"delta\":\"...\"}\n\n",
+        "Server sends data: {\"type\":\"done\"}\n\n on stream completion",
+        "Server sends data: {\"type\":\"error\",\"message\":\"...\"}\n\n on failure",
+        "CORS enabled for local development",
+        "Server serves dist/loadable/ and public/ as static files",
+        "package.json has \"serve\" script that starts the server",
+        "express, cors, and dotenv added to devDependencies in package.json"
+      ],
+      "passes": false
+    },
+    {
+      "id": "cross-4",
+      "category": "cross-boundary",
+      "description": "Plain HTML cross-boundary demo page that loads UMD bundle and renders streaming kumo components with zero React in the host",
+      "steps": [
+        "public/cross-boundary.html exists — plain HTML, no JSX, no build step",
+        "Page loads dist/loadable/component-loadable.umd.js via <script> tag",
+        "Page loads dist/loadable/style.css via <link> tag",
+        "Page has a text input, Generate button, and theme toggle button",
+        "Generate button POSTs to /api/chat and reads the SSE response stream",
+        "Text deltas are fed to CloudflareKumo.createParser().push(delta)",
+        "Parsed ops are applied via CloudflareKumo.applyPatch(op, 'container-id')",
+        "Kumo components appear progressively inside a container div",
+        "Theme toggle calls CloudflareKumo.setTheme() and components switch light/dark",
+        "Reset/new prompt calls CloudflareKumo.reset() before starting new stream"
+      ],
+      "passes": false
+    },
+    {
+      "id": "cross-5",
+      "category": "cross-boundary",
+      "description": "UMD loadable build produces correct CSS output that kumo components can use without Tailwind in the host page",
+      "steps": [
+        "pnpm build:loadable outputs both component-loadable.umd.js and style.css to dist/loadable/",
+        "style.css includes kumo's standalone CSS (semantic tokens, component styles)",
+        "Loading style.css in a plain HTML page is sufficient for kumo components to render correctly",
+        "No Tailwind build step required in the host page",
+        "Components render with correct colors, spacing, and typography in the cross-boundary demo"
+      ],
+      "passes": false
     }
   ],
   "context": {
@@ -167,7 +250,11 @@
       "Flat UITree format: { root: string, elements: Record<string, UIElement> } from @cloudflare/kumo/catalog",
       "Recursive rendering: UITreeRenderer.tsx walks flat element map from root, resolves children by key",
       "Anthropic SDK streaming: stream-client.ts wraps client.messages.stream() with onText/onDone/onError",
-      "React 18 batching: multiple setState calls in same handler batched into single render"
+      "React 18 batching: multiple setState calls in same handler batched into single render",
+      "UMD loadable pattern: window.CloudflareKumo global with _roots Map for React root reuse (from kumo-provider)",
+      "flushSync for synchronous DOM updates during progressive rendering (from kumo-provider)",
+      "ThemeWrapper with kumo-theme-change CustomEvent + data-mode attribute (from kumo-provider)",
+      "SSE streaming: server sends data: JSON\\n\\n lines, client reads via ReadableStream reader + TextDecoder"
     ],
     "keyFiles": [
       "src/app/ChatDemo.tsx",
@@ -178,17 +265,27 @@
       "src/core/patches.ts",
       "src/__tests__/patches.test.ts",
       "src/core/stream-client.ts",
-      "src/core/types.ts"
+      "src/core/types.ts",
+      "src/core/component-map.ts",
+      "src/core/rfc6902.ts",
+      "src/core/jsonl-parser.ts",
+      "vite.loadable.config.ts",
+      "../kumo-provider/src/loader.tsx",
+      "../kumo-provider/server.js"
     ],
     "nonGoals": [
-      "No Cloudflare Worker — browser-side streaming only",
+      "No Cloudflare Worker — local Express only",
       "No useCatalogStream hook — library-level abstraction deferred",
       "No diffUITree — LLM emits patches directly",
       "No structural sharing / React.memo — shallow copies, optimize later",
       "No multi-turn streaming improvements — per-turn only",
       "No state / $bindState / form interactivity — DataModel dropped",
-      "No loadable/UMD bundle",
-      "No library integration into @cloudflare/kumo — deferred until example proves out"
+      "No library integration into @cloudflare/kumo — deferred until example proves out",
+      "No dynamic registry fetching — 16 hardcoded components proves the pattern",
+      "No stateful component wrappers — no Combobox/Dialog/Popover; stateless proves architecture",
+      "No full 38-component parity — 16 is sufficient for the demo",
+      "No MutationObserver animations — defer polish",
+      "No multi-turn in cross-boundary demo — single prompt only"
     ]
   }
 }
