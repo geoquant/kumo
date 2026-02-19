@@ -10,6 +10,7 @@ Started: 2026-02-19
 - **Test pattern**: vitest + happy-dom, relative imports from `../core/`, `vi.fn()` for mocks
 - **Optional field elision**: use `...(val != null ? { key: val } : undefined)` to omit undefined keys entirely from event objects
 - **Spy component for renderer tests**: inject a SpyComponent into COMPONENT_MAP, use `data-spy-key` prop + `capturedPropsMap` to assert per-element props. Clean up in afterEach.
+- **Hook options pattern**: `useUITree(options?: UseUITreeOptions)` — options object for extensibility. Pass-through values (like `onAction`) returned alongside state so consumers wire them to renderers.
 
 ---
 
@@ -26,3 +27,10 @@ Started: 2026-02-19
   - `src/core/UITreeRenderer.tsx` (modified) — added `onAction?: ActionDispatch` to `UITreeRendererProps`, threaded through `RenderElement` recursion (Div branch + component branch), inject `onAction` handler when `element.action != null && onAction != null`
   - `src/__tests__/ui-tree-renderer-action.test.tsx` (new) — 6 tests: injection when action present, no injection when absent, no injection when dispatch omitted, prop preservation, correct ActionEvent dispatch, nested child threading
 - **Learnings**: Testing React component prop injection requires a Spy component pattern — register a spy in COMPONENT_MAP, capture props per-key via `data-spy-key` to distinguish multiple instances in a tree. `@testing-library/react` works with happy-dom env despite LSP not resolving types.
+
+## Task - functional-3
+- **Implemented**: `useUITree` hook accepts optional `onAction` callback via options object and surfaces it in return value for threading to `UITreeRenderer`
+- **Files changed**:
+  - `src/core/hooks.ts` (modified) — added `UseUITreeOptions` interface with optional `onAction: ActionDispatch`, `useUITree` now accepts `options?` param, `UseUITreeReturn` includes `onAction` field (pass-through)
+  - `src/__tests__/use-ui-tree-on-action.test.tsx` (new) — 6 tests: onAction returned from options, undefined when omitted, undefined when empty options, existing return unaffected, full integration test (hook → renderer → spy component → dispatch), no-onAction integration
+- **Learnings**: Hook is a pure state manager — it doesn't own the render, so `onAction` is a pass-through rather than internally consumed. Integration tests using a wrapper component that renders both `useUITree` and `UITreeRenderer` together are the most thorough way to verify end-to-end wiring. `renderHook` from `@testing-library/react` available for unit-level hook tests.

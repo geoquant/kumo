@@ -37,7 +37,7 @@
         "When a component triggers onAction, the callback fires with ActionEvent payload",
         "Omitting onAction still works (no errors, no changes to existing behavior)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-4",
