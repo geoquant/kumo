@@ -57,3 +57,9 @@ Started: 2026-02-19
 - **Files changed**:
   - `src/core/system-prompt.ts` (modified) — added "Action Field (Interactive Events)" section with format, supported components, rules; added RadioGroup/RadioItem, Textarea, Collapsible to Interactive section; added Example 4 (notification preferences form with Select + Checkbox + Button actions)
 - **Learnings**: System prompt is a pure string template — no type or runtime implications. Changes only affect LLM output quality. The worked example demonstrates action field on Select, Checkbox, and Button simultaneously, which is the most common real-world pattern (form with interactive controls + submit).
+
+## Task - functional-7
+- **Implemented**: Action event log panel in cross-boundary demo
+- **Files changed**:
+  - `public/cross-boundary.html` (modified) — added "Action Events" log panel with dark mode support, `kumo-action` CustomEvent listener that renders timestamped entries with actionName/sourceKey/params/context, clear button, auto-scroll, empty state placeholder, XSS-safe via `escapeHtml()` using DOM text node
+- **Learnings**: Button styles in the page are scoped to `.controls button` and `.header button` — the log panel's clear button needed its own `.action-log-header button` rules to avoid inheriting kumo container Tailwind resets. `CustomEvent.detail` carries the same shape as ActionEvent but without TS types — the log formatter handles optional params/context gracefully.
