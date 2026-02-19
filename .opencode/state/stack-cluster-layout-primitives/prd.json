@@ -138,7 +138,7 @@
         "Example 2 in system prompt uses Cluster for button rows",
         "Example 2 no longer uses Div for layout purposes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "test-1",
