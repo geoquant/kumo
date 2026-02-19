@@ -15,7 +15,6 @@ import {
   Badge,
   Banner,
   Button,
-  Checkbox,
   Cluster,
   Empty,
   Grid,
@@ -23,14 +22,20 @@ import {
   Link,
   Loader,
   Meter,
+  Radio,
   Select,
   Stack,
   Surface,
-  Switch,
   Table,
-  Tabs,
   Text,
 } from "@cloudflare/kumo";
+import {
+  StatefulCheckbox,
+  StatefulCollapsible,
+  StatefulSelect,
+  StatefulSwitch,
+  StatefulTabs,
+} from "./stateful-wrappers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic rendering bridge
 type AnyComponent = React.ComponentType<any>;
@@ -39,6 +44,8 @@ type AnyComponent = React.ComponentType<any>;
  * Map of UITree type strings -> React components.
  *
  * Keys must match the `type` field in UIElement objects from the LLM.
+ * Stateful wrappers replace controlled-only kumo components so LLM-generated
+ * UIs are interactive without host state management.
  */
 export const COMPONENT_MAP: Record<string, AnyComponent> = {
   // Layout
@@ -52,13 +59,19 @@ export const COMPONENT_MAP: Record<string, AnyComponent> = {
   Badge: Badge as AnyComponent,
   Banner: Banner as AnyComponent,
 
-  // Interactive
+  // Interactive (stateful wrappers for controlled-only components)
   Button: Button as AnyComponent,
   Input: Input as AnyComponent,
-  Checkbox: Checkbox as AnyComponent,
-  Select: Select as AnyComponent,
-  SelectOption: Select.Option as AnyComponent,
-  Switch: Switch as AnyComponent,
+  Checkbox: StatefulCheckbox as AnyComponent,
+  Select: StatefulSelect as AnyComponent,
+  SelectOption: StatefulSelect.Option as AnyComponent,
+  Switch: StatefulSwitch as AnyComponent,
+  Tabs: StatefulTabs as AnyComponent,
+  Collapsible: StatefulCollapsible as AnyComponent,
+
+  // Interactive (uncontrolled — no wrapper needed)
+  RadioGroup: Radio.Group as AnyComponent,
+  RadioItem: Radio.Item as AnyComponent,
 
   // Data display
   Table: Table as AnyComponent,
@@ -69,7 +82,6 @@ export const COMPONENT_MAP: Record<string, AnyComponent> = {
   TableCell: Table.Cell as AnyComponent,
   TableFooter: Table.Footer as AnyComponent,
   Meter: Meter as AnyComponent,
-  Tabs: Tabs as AnyComponent,
 
   // Navigation
   Link: Link as AnyComponent,
