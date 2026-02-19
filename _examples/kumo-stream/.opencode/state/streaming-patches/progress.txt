@@ -2,6 +2,12 @@
 PRD: streaming-patches
 Started: 2026-02-19
 
+## CRITICAL: Branch Rules
+- **ALL work for this PRD goes on branch `geoquant/streaming-ui`** — DO NOT create new branches
+- Before any commit: `git branch --show-current` must show `geoquant/streaming-ui`
+- If on wrong branch: `git checkout geoquant/streaming-ui` first
+- VCS is git (not jj)
+
 ## Codebase Patterns
 - UIElement interface lacks index signature; use `as unknown as AnyRecord` bridge type for generic nested-path traversal
 - UITree = { root: string, elements: Record<string, UIElement> } from @cloudflare/kumo/catalog
