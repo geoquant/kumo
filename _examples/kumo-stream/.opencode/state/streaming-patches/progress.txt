@@ -43,3 +43,14 @@ Started: 2026-02-19
   - Combined push+flush workflow simulating token-by-token streaming
 - Files changed: `src/core/jsonl-parser.ts`, `src/__tests__/jsonl-parser.test.ts`
 - **Learnings:** Parser reuses `parsePatchLine` from rfc6902.ts — good separation of concerns. The `isSkippable` check for markdown fences needs `.trim()` since LLMs sometimes indent fence markers.
+
+## Task - core-3
+- Implemented `src/core/hooks.ts`: `useUITree()` React hook for RFC 6902 patch-driven tree state
+  - Returns `{ tree, applyPatch, applyPatches, reset }` — no DataModel
+  - `applyPatch(patch)` — single patch via functional setState (no stale closures)
+  - `applyPatches(patches)` — folds N patches in one `setTree` call (batched render)
+  - `reset()` — returns to `EMPTY_TREE` constant
+  - All updaters are `useCallback`-stable references
+  - Imports `applyPatch` from `rfc6902.ts` (not `patches.ts`)
+- Files changed: `src/core/hooks.ts`
+- **Learnings:** Explicit `UITree` annotation on functional setState params (`prev: UITree`) needed because LSP can't resolve `@cloudflare/kumo/catalog` types in dev — without it, `prev` infers as `any`.
