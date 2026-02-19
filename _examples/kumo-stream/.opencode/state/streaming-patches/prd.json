@@ -192,7 +192,7 @@
         "UITreeRenderer in loadable context is wrapped by ThemeWrapper (not hardcoded data-mode=\"light\")",
         "Theme change causes re-render of all rendered components in new mode"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "cross-3",
