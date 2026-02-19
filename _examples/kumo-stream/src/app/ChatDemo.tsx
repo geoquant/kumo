@@ -11,7 +11,7 @@
  * Each new message resets the tree and creates a fresh parser instance.
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Anthropic from "@anthropic-ai/sdk";
 import { Button, Input, Text, Surface } from "@cloudflare/kumo";
@@ -20,6 +20,7 @@ import { useUITree } from "../core/hooks";
 import { createJsonlParser, type JsonlParser } from "../core/jsonl-parser";
 import { startStream, type StreamHandle } from "../core/stream-client";
 import { UITreeRenderer, isRenderableTree } from "../core/UITreeRenderer";
+import type { UITree } from "../core/types";
 
 // =============================================================================
 // Constants
@@ -65,6 +66,52 @@ interface ErrorInfo {
   readonly message: string;
 }
 
+/** A single turn in the conversation history. */
+type ChatHistoryEntry =
+  | { readonly role: "user"; readonly content: string }
+  | { readonly role: "assistant"; readonly tree: UITree };
+
+// =============================================================================
+// ChatHistory sub-components
+// =============================================================================
+
+function UserBubble({ content }: { readonly content: string }) {
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[80%] rounded-lg bg-kumo-brand-subtle px-3 py-2 text-sm text-kumo-default">
+        {content}
+      </div>
+    </div>
+  );
+}
+
+function AssistantSnapshot({ tree }: { readonly tree: UITree }) {
+  return (
+    <div className="rounded-lg border border-kumo-line bg-kumo-elevated p-3 opacity-80">
+      <UITreeRenderer tree={tree} streaming={false} />
+    </div>
+  );
+}
+
+function ChatHistoryView({
+  entries,
+}: {
+  readonly entries: readonly ChatHistoryEntry[];
+}) {
+  if (entries.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-4">
+      {entries.map((entry, i) =>
+        entry.role === "user" ? (
+          <UserBubble key={i} content={entry.content} />
+        ) : (
+          <AssistantSnapshot key={i} tree={entry.tree} />
+        ),
+      )}
+    </div>
+  );
+}
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -74,12 +121,22 @@ export function ChatDemo() {
   const [status, setStatus] = useState<StreamingStatus>("idle");
   const [error, setError] = useState<ErrorInfo | null>(null);
   const [messages, setMessages] = useState<Anthropic.MessageParam[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatHistoryEntry[]>([]);
 
   const { tree, applyPatches, reset } = useUITree();
 
   // Mutable refs for the parser and stream handle — not part of render state
   const parserRef = useRef<JsonlParser | null>(null);
   const streamRef = useRef<StreamHandle | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-scroll to bottom when history or tree changes
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [chatHistory, tree]);
 
   const handleSubmit = useCallback(
     (text: string) => {
@@ -95,6 +152,20 @@ export function ChatDemo() {
 
       const trimmed = text.trim();
       if (trimmed === "") return;
+
+      // Snapshot current tree into history before resetting
+      if (isRenderableTree(tree)) {
+        setChatHistory((prev) => [
+          ...prev,
+          { role: "assistant" as const, tree: structuredClone(tree) },
+        ]);
+      }
+
+      // Add user message to visible history
+      setChatHistory((prev) => [
+        ...prev,
+        { role: "user" as const, content: trimmed },
+      ]);
 
       // Reset UI for new message
       reset();
@@ -154,7 +225,7 @@ export function ChatDemo() {
 
       streamRef.current = handle;
     },
-    [messages, reset, applyPatches],
+    [messages, tree, reset, applyPatches],
   );
 
   const handleStop = useCallback(() => {
@@ -185,6 +256,7 @@ export function ChatDemo() {
 
     reset();
     setMessages([]);
+    setChatHistory([]);
     setError(null);
     setStatus("idle");
     setPrompt("");
@@ -199,6 +271,10 @@ export function ChatDemo() {
   );
 
   const isStreaming = status === "streaming";
+
+  const hasHistory = chatHistory.length > 0;
+  const hasCurrentContent =
+    isRenderableTree(tree) || (isStreaming && !isRenderableTree(tree));
 
   return (
     <div className="flex flex-col gap-6">
@@ -254,17 +330,29 @@ export function ChatDemo() {
         </Surface>
       )}
 
-      {/* Streaming indicator */}
-      {isStreaming && !isRenderableTree(tree) && (
-        <Text variant="secondary" size="sm">
-          Generating UI...
-        </Text>
-      )}
+      {/* Scrollable conversation area */}
+      <div
+        ref={scrollRef}
+        className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto"
+      >
+        {/* Conversation history (past turns) */}
+        <ChatHistoryView entries={chatHistory} />
 
-      {/* Rendered UITree */}
-      {isRenderableTree(tree) && (
-        <UITreeRenderer tree={tree} streaming={isStreaming} />
-      )}
+        {/* Separator between history and current turn */}
+        {hasHistory && hasCurrentContent && <hr className="border-kumo-line" />}
+
+        {/* Current streaming indicator */}
+        {isStreaming && !isRenderableTree(tree) && (
+          <Text variant="secondary" size="sm">
+            Generating UI...
+          </Text>
+        )}
+
+        {/* Current turn's rendered UITree (interactive) */}
+        {isRenderableTree(tree) && (
+          <UITreeRenderer tree={tree} streaming={isStreaming} />
+        )}
+      </div>
     </div>
   );
 }
