@@ -111,3 +111,12 @@ Started: 2026-02-19
 - Grid retained for form layout (2up) — correct tool for the job
 - Files changed: `_examples/kumo-stream/src/core/system-prompt.ts`
 - **Learnings:** Example 2 now demonstrates the idiomatic composition pattern: Surface → Stack (vertical sections) → Grid (form) + Cluster (actions). This teaches the LLM the intended hierarchy: Surface for containment, Stack for vertical flow, Cluster for horizontal groups, Grid for form fields.
+
+## Task - test-1
+- Fixed streaming integration test at line 282 in `_examples/kumo-stream/src/__tests__/streaming-integration.test.ts`
+- Changed `el("layout-1", "Stack", { direction: "horizontal", gap: "4" }, ...)` → `el("layout-1", "Cluster", { gap: "base", wrap: "nowrap" }, ...)`
+- Three fixes: 1) Stack→Cluster (horizontal layout), 2) removed invalid `direction` prop, 3) `gap: "4"`→`gap: "base"` (valid token)
+- Test verifies JSONL parsing/tree-building, not React rendering — assertions on tree structure (root, element count, children arrays) remain unchanged
+- All 8 tests in file pass
+- Files changed: `_examples/kumo-stream/src/__tests__/streaming-integration.test.ts`
+- **Learnings:** The test's `el()` helper creates raw UIElement objects for parser testing — component type and props aren't validated at this level. But using valid types/props is still important for test readability and as documentation of correct usage patterns.
