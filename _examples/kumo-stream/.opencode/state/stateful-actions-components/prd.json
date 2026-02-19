@@ -25,7 +25,7 @@
         "Existing prop spreading unchanged — onAction is additive",
         "Render a tree with an element that has action field — verify onAction reaches the component"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-3",
