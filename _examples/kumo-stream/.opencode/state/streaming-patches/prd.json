@@ -33,7 +33,7 @@
         "Lines starting with ``` (markdown fences) are silently skipped",
         "flush() returns the buffered incomplete line as a parsed JsonPatchOp if valid"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "core-3",
@@ -133,7 +133,7 @@
         "Tests flush returns buffered incomplete line",
         "All tests pass via pnpm --filter kumo-stream test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "testing-3",
