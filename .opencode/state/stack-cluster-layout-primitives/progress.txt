@@ -38,3 +38,18 @@ Started: 2026-02-19
   - `packages/kumo/vite.config.ts` (build entry at PLOP marker)
   - `packages/kumo/package.json` (exports map entry)
 - **Learnings:** Cluster is identical structure to Stack but with `flex` (no `flex-col`) as base class, plus `justify` and `wrap` variant axes. The shared gap scale confirms these are a matched pair.
+
+## Task - component-3
+- Verification task: confirmed Stack and Cluster share identical gap token scale (none→gap-0, xs→gap-1, sm→gap-2, base→gap-4, lg→gap-6, xl→gap-8)
+- Grid gap scale confirmed unchanged: uses different tokens (none/sm/base/lg) with responsive behavior (e.g. `gap-2 md:gap-6 lg:gap-8`)
+- No code changes needed — implementations from component-1 and component-2 already satisfied this
+- **Learnings:** Grid uses a 4-value gap scale (none/sm/base/lg) with responsive classes, while Stack/Cluster use a 6-value scale (none/xs/sm/base/lg/xl) with static classes. These are intentionally different.
+
+## Task - export-1
+- Already completed during component-1 and component-2
+- Barrel exports at `packages/kumo/src/index.ts` lines 204-222 export Stack, Cluster, and all variant/type symbols
+
+## Task - export-2
+- Already completed during component-1 and component-2
+- Vite build entries at `packages/kumo/vite.config.ts` lines 190-197
+- `pnpm --filter @cloudflare/kumo build` succeeds
