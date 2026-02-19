@@ -426,6 +426,19 @@ export const CloudflareLogoPropsSchema = z.object({
   variant: z.enum(["glyph", "full"]).optional(), // Logo variant - `glyph`: Cloud icon only - `full`: Cloud icon with "CLOUDFLARE" wordmark below
 });
 
+export const ClusterPropsSchema = z.object({
+  gap: z.enum(["none", "xs", "sm", "base", "lg", "xl"]).optional(), // Gap size between cluster items. - `"none"` -- 0px - `"xs"` -- 4px - `"sm"` -- 8px - `"base"` -- 16px - `"lg"` -- 24px - `"xl"` -- 32px
+  justify: z.enum(["start", "center", "end", "between"]).optional(), // Main-axis distribution of cluster items. - `"start"` -- Pack to start - `"center"` -- Center - `"end"` -- Pack to end - `"between"` -- Space evenly
+  align: z.enum(["start", "center", "end", "baseline", "stretch"]).optional(), // Cross-axis alignment of cluster items. - `"start"` -- Align to start - `"center"` -- Center - `"end"` -- Align to end - `"baseline"` -- Align baselines - `"stretch"` -- Fill cross axis
+  wrap: z.enum(["wrap", "nowrap"]).optional(), // Whether items wrap to new lines or stay on one line. - `"wrap"` -- Allow wrapping - `"nowrap"` -- Force single line
+  render: z.union([z.string(), z.number(), z.boolean(), z.null(), DynamicValueSchema]).optional(), // Allows you to replace the component’s HTML element with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render.
+  children: z.union([z.string(), z.number(), z.boolean(), z.null(), DynamicValueSchema]).optional(),
+  className: z.string().optional(),
+  id: z.string().optional(),
+  lang: z.string().optional(),
+  title: z.string().optional(),
+});
+
 export const CodePropsSchema = z.object({
   lang: z.enum(["ts", "tsx", "jsonc", "bash", "css"]).optional(), // Language hint for the code content. - `"ts"` — TypeScript code - `"tsx"` — TypeScript JSX code - `"jsonc"` — JSON with comments - `"bash"` — Shell/Bash commands - `"css"` — CSS styles
   code: z.string(), // The code string to display.
@@ -653,6 +666,17 @@ export const SensitiveInputPropsSchema = z.object({
   error: z.unknown().optional(), // Error message or validation error object
 });
 
+export const StackPropsSchema = z.object({
+  gap: z.enum(["none", "xs", "sm", "base", "lg", "xl"]).optional(), // Gap size between stack items. - `"none"` -- 0px - `"xs"` -- 4px - `"sm"` -- 8px - `"base"` -- 16px - `"lg"` -- 24px - `"xl"` -- 32px
+  align: z.enum(["start", "center", "end", "stretch"]).optional(), // Cross-axis alignment of stack items. - `"start"` -- Align to start - `"center"` -- Center - `"end"` -- Align to end - `"stretch"` -- Fill cross axis
+  render: z.union([z.string(), z.number(), z.boolean(), z.null(), DynamicValueSchema]).optional(), // Allows you to replace the component’s HTML element with a different tag, or compose it with another component. Accepts a `ReactElement` or a function that returns the element to render.
+  children: z.union([z.string(), z.number(), z.boolean(), z.null(), DynamicValueSchema]).optional(),
+  className: z.string().optional(),
+  id: z.string().optional(),
+  lang: z.string().optional(),
+  title: z.string().optional(),
+});
+
 export const SurfacePropsSchema = z.object({
   as: z.unknown().optional(), // The HTML element type to render as (e.g. `"div"`, `"section"`, `"article"`).
   className: z.string().optional(), // Additional CSS classes merged via `cn()`.
@@ -727,7 +751,7 @@ export const TooltipPropsSchema = z.object({
 /**
  * All valid component type names
  */
-export type KumoComponentType = "Badge" | "Banner" | "Breadcrumbs" | "Button" | "Checkbox" | "ClipboardText" | "CloudflareLogo" | "Code" | "Collapsible" | "Combobox" | "CommandPalette" | "DatePicker" | "DateRangePicker" | "Dialog" | "DropdownMenu" | "Empty" | "Field" | "Grid" | "Input" | "InputArea" | "Label" | "LayerCard" | "Link" | "Loader" | "MenuBar" | "Meter" | "Pagination" | "Popover" | "Radio" | "Select" | "SensitiveInput" | "Surface" | "Switch" | "Table" | "Tabs" | "Text" | "Toasty" | "Tooltip";
+export type KumoComponentType = "Badge" | "Banner" | "Breadcrumbs" | "Button" | "Checkbox" | "ClipboardText" | "CloudflareLogo" | "Cluster" | "Code" | "Collapsible" | "Combobox" | "CommandPalette" | "DatePicker" | "DateRangePicker" | "Dialog" | "DropdownMenu" | "Empty" | "Field" | "Grid" | "Input" | "InputArea" | "Label" | "LayerCard" | "Link" | "Loader" | "MenuBar" | "Meter" | "Pagination" | "Popover" | "Radio" | "Select" | "SensitiveInput" | "Stack" | "Surface" | "Switch" | "Table" | "Tabs" | "Text" | "Toasty" | "Tooltip";
 
 export const KumoComponentTypeSchema = z.enum([
   "Badge",
@@ -737,6 +761,7 @@ export const KumoComponentTypeSchema = z.enum([
   "Checkbox",
   "ClipboardText",
   "CloudflareLogo",
+  "Cluster",
   "Code",
   "Collapsible",
   "Combobox",
@@ -761,6 +786,7 @@ export const KumoComponentTypeSchema = z.enum([
   "Radio",
   "Select",
   "SensitiveInput",
+  "Stack",
   "Surface",
   "Switch",
   "Table",
@@ -781,6 +807,7 @@ export const ComponentPropsSchemas = {
   Checkbox: CheckboxPropsSchema,
   ClipboardText: ClipboardTextPropsSchema,
   CloudflareLogo: CloudflareLogoPropsSchema,
+  Cluster: ClusterPropsSchema,
   Code: CodePropsSchema,
   Collapsible: CollapsiblePropsSchema,
   Combobox: ComboboxPropsSchema,
@@ -805,6 +832,7 @@ export const ComponentPropsSchemas = {
   Radio: RadioPropsSchema,
   Select: SelectPropsSchema,
   SensitiveInput: SensitiveInputPropsSchema,
+  Stack: StackPropsSchema,
   Surface: SurfacePropsSchema,
   Switch: SwitchPropsSchema,
   Table: TablePropsSchema,
@@ -868,4 +896,4 @@ export function validateUITree(tree: unknown): SafeParseResult<UITree> {
 /**
  * List of all component names (for catalog generation)
  */
-export const KUMO_COMPONENT_NAMES = ["Badge", "Banner", "Breadcrumbs", "Button", "Checkbox", "ClipboardText", "CloudflareLogo", "Code", "Collapsible", "Combobox", "CommandPalette", "DatePicker", "DateRangePicker", "Dialog", "DropdownMenu", "Empty", "Field", "Grid", "Input", "InputArea", "Label", "LayerCard", "Link", "Loader", "MenuBar", "Meter", "Pagination", "Popover", "Radio", "Select", "SensitiveInput", "Surface", "Switch", "Table", "Tabs", "Text", "Toasty", "Tooltip"] as const;
+export const KUMO_COMPONENT_NAMES = ["Badge", "Banner", "Breadcrumbs", "Button", "Checkbox", "ClipboardText", "CloudflareLogo", "Cluster", "Code", "Collapsible", "Combobox", "CommandPalette", "DatePicker", "DateRangePicker", "Dialog", "DropdownMenu", "Empty", "Field", "Grid", "Input", "InputArea", "Label", "LayerCard", "Link", "Loader", "MenuBar", "Meter", "Pagination", "Popover", "Radio", "Select", "SensitiveInput", "Stack", "Surface", "Switch", "Table", "Tabs", "Text", "Toasty", "Tooltip"] as const;
