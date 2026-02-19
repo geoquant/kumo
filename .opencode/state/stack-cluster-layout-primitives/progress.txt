@@ -25,3 +25,16 @@ Started: 2026-02-19
   - `packages/kumo/vite.config.ts` (build entry at PLOP marker)
   - `packages/kumo/package.json` (exports map entry)
 - **Learnings:** Export path validation tests in `tests/imports/` will fail for new components until a build is run. This is expected — the `describe.skipIf(!isBuilt)` guard only skips when dist/ doesn't exist at all, not when a single new component is missing.
+
+## Task - component-2
+- Implemented Cluster component at `packages/kumo/src/components/cluster/cluster.tsx`
+- Horizontal flex layout with constrained gap (none/xs/sm/base/lg/xl), justify (start/center/end/between), align (start/center/end/baseline/stretch), wrap (wrap/nowrap) props
+- Same pattern as Stack: `render` prop via useRender, forwardRef, displayName, cn() composition
+- Exported KUMO_CLUSTER_VARIANTS, KUMO_CLUSTER_DEFAULT_VARIANTS, clusterVariants()
+- Files changed:
+  - `packages/kumo/src/components/cluster/cluster.tsx` (new)
+  - `packages/kumo/src/components/cluster/index.ts` (new)
+  - `packages/kumo/src/index.ts` (barrel export at PLOP marker)
+  - `packages/kumo/vite.config.ts` (build entry at PLOP marker)
+  - `packages/kumo/package.json` (exports map entry)
+- **Learnings:** Cluster is identical structure to Stack but with `flex` (no `flex-col`) as base class, plus `justify` and `wrap` variant axes. The shared gap scale confirms these are a matched pair.
