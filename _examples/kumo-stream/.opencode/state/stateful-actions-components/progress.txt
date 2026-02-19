@@ -96,3 +96,10 @@ Started: 2026-02-19
 - **Files changed**: None — verification only
 - **Results**: rfc6902 (27), jsonl-parser (21), regression (40), streaming-integration (8), loadable-css (11), action-handler (6), action-dispatch (10), component-map-new-entries (10), stateful-wrappers (12), ui-tree-renderer-action (6), use-ui-tree-on-action (6), streaming-action-integration (6). `tsc --noEmit` clean.
 - **Learnings**: The dual-React stderr warnings in component-map-new-entries are expected (bundled vs test React) — error boundary catches gracefully, tests pass. Total test count grew from ~107 to 163 due to new test files added in testing-1 through testing-3.
+
+## Task - validation-1
+- **Implemented**: Verified UMD bundle size under 500KB limit
+- **Results**: `vite build --config vite.loadable.config.ts` produces `dist/loadable/component-loadable.umd.js` at **419.51 KB** (gzip: 134.74 KB), CSS at 71.80 KB (gzip: 13.07 KB)
+- **Verification**: `tsc --noEmit` clean, 163/163 tests pass, build succeeds
+- **Files changed**: None — validation only
+- **Learnings**: Bundle includes all stateful wrappers, action dispatch, component map additions, and system prompt changes from prior tasks and still comfortably fits under 500KB. The ~80KB headroom leaves room for future component additions.
