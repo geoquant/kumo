@@ -28,3 +28,18 @@ Started: 2026-02-19
   - add /root, add /elements/{key}, add with /-, replace, remove, no-op remove, edge cases, immutability, parsePatchLine
 - Files changed: `src/core/rfc6902.ts`, `src/__tests__/rfc6902.test.ts`
 - **Learnings:** UIElement's interface type doesn't satisfy `Record<string, unknown>` constraint due to missing index signature. Need explicit bridge types (toRecord/toElement) for generic nested-path operations.
+
+## Task - core-2 + testing-2
+- Implemented `src/core/jsonl-parser.ts`: stateful JSONL streaming parser
+  - `createJsonlParser()` returns `{ push, flush }` interface
+  - `push(chunk)` buffers text, splits on `\n`, parses complete lines via `parsePatchLine`
+  - `flush()` attempts to parse remaining buffer contents
+  - Silently skips: empty lines, invalid JSON, markdown fences (``` prefixed)
+  - Returns `readonly JsonPatchOp[]` from both push and flush
+- Implemented `src/__tests__/jsonl-parser.test.ts`: 21 tests covering all verification steps
+  - Single complete line, multiple lines in one chunk, line split across 2-3 chunks
+  - Empty/whitespace lines skipped, invalid JSON skipped, markdown fences skipped
+  - flush returns buffered incomplete line, clears buffer after flush
+  - Combined push+flush workflow simulating token-by-token streaming
+- Files changed: `src/core/jsonl-parser.ts`, `src/__tests__/jsonl-parser.test.ts`
+- **Learnings:** Parser reuses `parsePatchLine` from rfc6902.ts — good separation of concerns. The `isSkippable` check for markdown fences needs `.trim()` since LLMs sometimes indent fence markers.
