@@ -88,9 +88,28 @@ app.post("/api/chat", async (req, res) => {
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
-  /** Send one SSE frame. */
+  let closed = false;
+
+  /** Send one SSE frame. Guards against writing to a closed response. */
   function send(payload: Record<string, unknown>): void {
-    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    if (closed) return;
+    try {
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    } catch {
+      // Connection already closed — ignore
+      closed = true;
+    }
+  }
+
+  /** Safely end the response. */
+  function end(): void {
+    if (closed) return;
+    closed = true;
+    try {
+      res.end();
+    } catch {
+      // Already ended — ignore
+    }
   }
 
   try {
@@ -125,25 +144,55 @@ app.post("/api/chat", async (req, res) => {
 
     stream.on("finalMessage", () => {
       send({ type: "done" });
-      res.end();
+      end();
     });
 
     stream.on("error", (err) => {
+      // Ignore abort errors — expected when the client disconnects
+      const isAbort =
+        err.name === "APIUserAbortError" ||
+        err.message === "Request was aborted.";
+      if (isAbort || closed) return;
       console.error("[/api/chat] Anthropic stream error:", err.message);
       send({ type: "error", message: err.message });
-      res.end();
+      end();
     });
 
-    // If the client disconnects, abort the Anthropic stream
-    req.on("close", () => {
-      stream.controller.abort();
+    // If the client disconnects, abort the Anthropic stream.
+    // Listen on `res` not `req` — req.close fires when the request body
+    // is fully read (immediately for POST), not when the client disconnects.
+    res.on("close", () => {
+      if (closed) return; // Already ended normally
+      console.log("[/api/chat] Client disconnected");
+      closed = true;
+      try {
+        stream.controller.abort();
+      } catch {
+        // Stream may already be finished — ignore
+      }
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown server error";
-    console.error("[/api/chat] Error:", message);
-    send({ type: "error", message });
-    res.end();
+    const msg = err instanceof Error ? err.message : "Unknown server error";
+    console.error("[/api/chat] Error:", msg);
+    send({ type: "error", message: msg });
+    end();
   }
+});
+
+// ---------------------------------------------------------------------------
+// Process-level error handlers (prevent crash on unhandled abort errors)
+// ---------------------------------------------------------------------------
+
+process.on("unhandledRejection", (reason) => {
+  // APIUserAbortError is expected when clients disconnect during streaming.
+  // Check both class name and message since transpilation may mangle names.
+  if (reason instanceof Error) {
+    const isAbort =
+      reason.name === "APIUserAbortError" ||
+      reason.message === "Request was aborted.";
+    if (isAbort) return;
+  }
+  console.error("[unhandledRejection]", reason);
 });
 
 // ---------------------------------------------------------------------------
