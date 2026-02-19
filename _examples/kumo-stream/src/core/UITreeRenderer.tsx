@@ -25,6 +25,12 @@ const BLOCKED_PROPS = new Set(["dangerouslySetInnerHTML", "ref", "key"]);
 interface UITreeRendererProps {
   /** The UITree to render. */
   readonly tree: UITree;
+  /**
+   * When true, children referencing nonexistent element keys render as null
+   * (invisible) instead of error divs. Set to true during streaming, when
+   * parent elements declare child keys before the child elements arrive.
+   */
+  readonly streaming?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,10 +90,12 @@ function RenderElement({
   elementKey,
   elements,
   depth = 0,
+  streaming = false,
 }: {
   readonly elementKey: string;
   readonly elements: Record<string, UIElement>;
   readonly depth?: number;
+  readonly streaming?: boolean;
 }): React.JSX.Element | null {
   if (depth > MAX_DEPTH) {
     return (
@@ -99,6 +107,10 @@ function RenderElement({
 
   const element = elements[elementKey];
   if (!element) {
+    // During streaming, missing keys are expected (parent declared children
+    // before child elements arrived). Render nothing — they'll appear on the
+    // next patch.
+    if (streaming) return null;
     return (
       <div className="text-xs text-kumo-danger">
         Missing element: {elementKey}
@@ -126,6 +138,7 @@ function RenderElement({
               elementKey={childKey}
               elements={elements}
               depth={nextDepth}
+              streaming={streaming}
             />
           ))}
         </div>
@@ -165,6 +178,7 @@ function RenderElement({
           elementKey={childKey}
           elements={elements}
           depth={nextDepth}
+          streaming={streaming}
         />,
       );
     }
@@ -205,6 +219,7 @@ function filterDivProps(
 
 export function UITreeRenderer({
   tree,
+  streaming = false,
 }: UITreeRendererProps): React.JSX.Element | null {
   if (!tree.root || Object.keys(tree.elements).length === 0) {
     return null;
@@ -212,7 +227,11 @@ export function UITreeRenderer({
 
   return (
     <div data-mode="light" className="kumo-root">
-      <RenderElement elementKey={tree.root} elements={tree.elements} />
+      <RenderElement
+        elementKey={tree.root}
+        elements={tree.elements}
+        streaming={streaming}
+      />
     </div>
   );
 }
