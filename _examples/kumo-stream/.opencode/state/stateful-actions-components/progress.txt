@@ -63,3 +63,9 @@ Started: 2026-02-19
 - **Files changed**:
   - `public/cross-boundary.html` (modified) — added "Action Events" log panel with dark mode support, `kumo-action` CustomEvent listener that renders timestamped entries with actionName/sourceKey/params/context, clear button, auto-scroll, empty state placeholder, XSS-safe via `escapeHtml()` using DOM text node
 - **Learnings**: Button styles in the page are scoped to `.controls button` and `.header button` — the log panel's clear button needed its own `.action-log-header button` rules to avoid inheriting kumo container Tailwind resets. `CustomEvent.detail` carries the same shape as ActionEvent but without TS types — the log formatter handles optional params/context gracefully.
+
+## Task - testing-1
+- **Implemented**: Verified existing unit tests for action handler factory (written during functional-1) cover all PRD steps
+- **Files changed**: None — tests already existed in `src/__tests__/action-handler.test.ts` with 6 passing tests
+- **Verification**: `vitest run` passes all 6 tests, `tsc --noEmit` clean
+- **Learnings**: Tests were written alongside implementation in functional-1 but PRD task wasn't marked passing. Always mark testing tasks when tests are written proactively.
