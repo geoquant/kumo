@@ -11,6 +11,7 @@ import React, { Component } from "react";
 import type { ReactNode } from "react";
 import type { UITree, UIElement } from "./types";
 import { COMPONENT_MAP, KNOWN_TYPES } from "./component-map";
+import { createActionHandler, type ActionDispatch } from "./action-handler";
 
 /** Maximum recursion depth to prevent infinite loops from circular refs. */
 const MAX_DEPTH = 50;
@@ -31,6 +32,12 @@ interface UITreeRendererProps {
    * parent elements declare child keys before the child elements arrive.
    */
   readonly streaming?: boolean;
+  /**
+   * Host callback invoked when a component with an `action` field triggers
+   * its onAction. Receives a well-formed ActionEvent with actionName,
+   * sourceKey, params, and context.
+   */
+  readonly onAction?: ActionDispatch;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,11 +98,13 @@ function RenderElement({
   elements,
   depth = 0,
   streaming = false,
+  onAction,
 }: {
   readonly elementKey: string;
   readonly elements: Record<string, UIElement>;
   readonly depth?: number;
   readonly streaming?: boolean;
+  readonly onAction?: ActionDispatch;
 }): React.JSX.Element | null {
   if (depth > MAX_DEPTH) {
     return (
@@ -139,6 +148,7 @@ function RenderElement({
               elements={elements}
               depth={nextDepth}
               streaming={streaming}
+              onAction={onAction}
             />
           ))}
         </div>
@@ -161,6 +171,15 @@ function RenderElement({
   const safeProps = sanitizeProps(props as Record<string, unknown>);
   const { children: propsChildren, ...restProps } = safeProps;
 
+  // Inject onAction handler when element declares an action field
+  if (element.action != null && onAction != null) {
+    restProps.onAction = createActionHandler(
+      element.action,
+      elementKey,
+      onAction,
+    );
+  }
+
   // Build rendered child elements from children[] key references
   const renderedChildren: ReactNode[] = [];
 
@@ -179,6 +198,7 @@ function RenderElement({
           elements={elements}
           depth={nextDepth}
           streaming={streaming}
+          onAction={onAction}
         />,
       );
     }
@@ -220,6 +240,7 @@ function filterDivProps(
 export function UITreeRenderer({
   tree,
   streaming = false,
+  onAction,
 }: UITreeRendererProps): React.JSX.Element | null {
   if (!tree.root || Object.keys(tree.elements).length === 0) {
     return null;
@@ -230,6 +251,7 @@ export function UITreeRenderer({
       elementKey={tree.root}
       elements={tree.elements}
       streaming={streaming}
+      onAction={onAction}
     />
   );
 }
