@@ -82,7 +82,10 @@
         box-shadow: 0 0 0 2px rgba(246, 130, 31, 0.2);
       }
 
-      button {
+      /* Scope page button styles to .controls and .header so they don't
+         override Tailwind @layer utilities inside #kumo-container. */
+      .controls button,
+      .header button {
         padding: 8px 16px;
         font-size: 14px;
         font-weight: 500;
@@ -96,42 +99,46 @@
           border-color 0.15s;
       }
 
-      body[data-mode="dark"] button {
+      body[data-mode="dark"] .controls button,
+      body[data-mode="dark"] .header button {
         background: #2a2a2a;
         border-color: #444;
         color: #f5f5f5;
       }
 
-      button:hover:not(:disabled) {
+      .controls button:hover:not(:disabled),
+      .header button:hover:not(:disabled) {
         background: #f0f0f0;
       }
 
-      body[data-mode="dark"] button:hover:not(:disabled) {
+      body[data-mode="dark"] .controls button:hover:not(:disabled),
+      body[data-mode="dark"] .header button:hover:not(:disabled) {
         background: #3a3a3a;
       }
 
-      button:disabled {
+      .controls button:disabled,
+      .header button:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
 
-      button.primary {
+      .controls button.primary {
         background: #f6821f;
         border-color: #f6821f;
         color: #fff;
       }
 
-      button.primary:hover:not(:disabled) {
+      .controls button.primary:hover:not(:disabled) {
         background: #e0741a;
       }
 
-      button.danger {
+      .controls button.danger {
         background: #dc3545;
         border-color: #dc3545;
         color: #fff;
       }
 
-      button.danger:hover:not(:disabled) {
+      .controls button.danger:hover:not(:disabled) {
         background: #c82333;
       }
 
