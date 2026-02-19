@@ -146,7 +146,7 @@
         "Verifies final tree after all tokens matches expected UITree structure",
         "All tests pass via pnpm --filter kumo-stream test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "regression-1",

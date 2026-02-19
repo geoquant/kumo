@@ -105,3 +105,15 @@ Started: 2026-02-19
 - TypeScript compiles clean, all 48 tests pass (rfc6902 + jsonl-parser)
 - Files deleted: `src/core/patches.ts`, `src/__tests__/patches.test.ts`
 - **Learnings:** Clean deletion — no other module depended on patches.ts. The RFC 6902 replacement (rfc6902.ts) was already fully wired in prior tasks, so this was purely dead code removal.
+
+## Task - testing-3
+- Implemented `src/__tests__/streaming-integration.test.ts`: 8 tests across 4 describe blocks
+  - Token-by-token delivery: small chunks (10 char), single-char, whole-line — all produce correct final tree
+  - Incremental growth: verifies tree shape at each stage (empty → root → card → heading → text)
+  - Final tree verification: chunked vs whole-line delivery produce identical results; element relationships correct
+  - Complex UI: dashboard layout with 5 elements, monotonically growing element count; replace op mid-stream
+- Pure data-layer integration test — exercises createJsonlParser + applyPatch pipeline without React
+- `tokenize()` helper splits JSONL response into fixed-size chunks to simulate LLM streaming tokenizer
+- `foldPatches()` helper mirrors the fold logic from `useUITree.applyPatches` in hooks.ts
+- Files changed: `src/__tests__/streaming-integration.test.ts`
+- **Learnings:** The parser + patch pipeline is deterministic — chunk size doesn't affect final result, only the number of intermediate snapshots. `tokenize` with odd chunk sizes (7, 13) reliably splits mid-JSON, proving the parser's buffering correctness.
