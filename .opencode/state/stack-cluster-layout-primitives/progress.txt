@@ -1,0 +1,27 @@
+# Progress Log
+PRD: stack-cluster-layout-primitives
+Started: 2026-02-19
+
+## Codebase Patterns
+- **Render prop (NOT polymorphic `as`)**: Use Link pattern — `useRender` from `@base-ui/react/use-render` + `mergeProps` from `@base-ui/react/merge-props`. Type: `useRender.ComponentProps<"div">`. No type casts needed. Consumer composes via `<Stack render={<section />}>`. Default: `<div />`.
+- **Variant exports**: `KUMO_{NAME}_VARIANTS` (with `.classes` and `.description`) + `KUMO_{NAME}_DEFAULT_VARIANTS` as const objects. Derived types via `keyof typeof`.
+- **Variant function**: `{name}Variants()` function using `cn()` to compose base classes + variant classes. Consumed by component and available as public API.
+- **Component scaffolding**: Create `src/components/{name}/` with `{name}.tsx` + `index.ts`. Then update 3 files: `src/index.ts` (PLOP_INJECT_EXPORT), `vite.config.ts` (PLOP_INJECT_COMPONENT_ENTRY), `package.json` (exports map).
+- **Gap token scale (Stack/Cluster)**: none→gap-0, xs→gap-1, sm→gap-2, base→gap-4, lg→gap-6, xl→gap-8. Different from Grid's responsive gap scale.
+
+---
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - component-1
+- Implemented Stack component at `packages/kumo/src/components/stack/stack.tsx`
+- Vertical flex layout with constrained gap (none/xs/sm/base/lg/xl) and align (start/center/end/stretch) props
+- `render` prop via useRender (Base UI), forwardRef, displayName, cn() composition
+- Replaced polymorphic `as` prop with `render` prop — zero type casts, full type inference
+- Exported KUMO_STACK_VARIANTS, KUMO_STACK_DEFAULT_VARIANTS, stackVariants()
+- Files changed:
+  - `packages/kumo/src/components/stack/stack.tsx` (new)
+  - `packages/kumo/src/components/stack/index.ts` (new)
+  - `packages/kumo/src/index.ts` (barrel export at PLOP marker)
+  - `packages/kumo/vite.config.ts` (build entry at PLOP marker)
+  - `packages/kumo/package.json` (exports map entry)
+- **Learnings:** Export path validation tests in `tests/imports/` will fail for new components until a build is run. This is expected — the `describe.skipIf(!isBuilt)` guard only skips when dist/ doesn't exist at all, not when a single new component is missing.
