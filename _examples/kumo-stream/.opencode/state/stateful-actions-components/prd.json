@@ -156,7 +156,7 @@
         "Check dist/loadable/component-loadable.umd.js size",
         "Size is under 500KB"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "branch": "geoquant/streaming-ui",
