@@ -90,3 +90,9 @@ Started: 2026-02-19
     6. `streaming=false`: shows "Missing element" error but present element actions still work
 - **Strategy**: Spy component pattern (same as ui-tree-renderer-action tests) + `triggerAction()` helper that invokes captured onAction handler by spy key. Simulates streaming by omitting elements from the tree then re-rendering with them added.
 - **Learnings**: `rerender()` from `@testing-library/react` is key for testing streaming — re-render with an updated tree that has new elements. Must clear `capturedPropsMap` before rerender to get fresh captures. The `streaming` prop only affects missing element rendering (null vs error div) — action dispatch works identically in both modes.
+
+## Task - testing-4
+- **Implemented**: Verified all 163 tests pass across 12 test files — zero regressions
+- **Files changed**: None — verification only
+- **Results**: rfc6902 (27), jsonl-parser (21), regression (40), streaming-integration (8), loadable-css (11), action-handler (6), action-dispatch (10), component-map-new-entries (10), stateful-wrappers (12), ui-tree-renderer-action (6), use-ui-tree-on-action (6), streaming-action-integration (6). `tsc --noEmit` clean.
+- **Learnings**: The dual-React stderr warnings in component-map-new-entries are expected (bundled vs test React) — error boundary catches gracefully, tests pass. Total test count grew from ~107 to 163 due to new test files added in testing-1 through testing-3.
