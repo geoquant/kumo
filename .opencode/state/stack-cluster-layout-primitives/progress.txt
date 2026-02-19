@@ -62,3 +62,13 @@ Started: 2026-02-19
   - `StackAlignDemo()` — all 4 align variants (stretch/start/center/end)
 - Uses `Surface` + `Text` from `@cloudflare/kumo` for visual items, `text-kumo-subtle` labels
 - **Learnings:** Demo naming is load-bearing — function names must end with `Demo` suffix and file must be `{Component}Demo.tsx` for the codegen extraction pipeline to pick them up.
+
+## Task - demo-2
+- Created `packages/kumo-docs-astro/src/components/demos/ClusterDemo.tsx`
+- Four exported demos:
+  - `ClusterDemo()` — basic usage with default gap
+  - `ClusterGapDemo()` — 4 representative gap variants (none/sm/base/xl)
+  - `ClusterJustifyDemo()` — all 4 justify variants (start/center/end/between)
+  - `ClusterWrapAlignDemo()` — wrap (wrap/nowrap) + all align variants (start/center/baseline/stretch)
+- Uses mixed-size items to visually demonstrate alignment differences
+- **Learnings:** Cluster demos need more items than Stack to show wrapping behavior. Using `max-w-xs` on the wrap demo container forces wrapping to be visible.
