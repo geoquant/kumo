@@ -211,7 +211,7 @@
         "package.json has \"serve\" script that starts the server",
         "express, cors, and dotenv added to devDependencies in package.json"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "cross-4",
