@@ -12,6 +12,7 @@ Started: 2026-02-19
 - **Spy component for renderer tests**: inject a SpyComponent into COMPONENT_MAP, use `data-spy-key` prop + `capturedPropsMap` to assert per-element props. Clean up in afterEach.
 - **Hook options pattern**: `useUITree(options?: UseUITreeOptions)` — options object for extensibility. Pass-through values (like `onAction`) returned alongside state so consumers wire them to renderers.
 - **Module-level Set + test cleanup**: for pub/sub patterns with module-level state (e.g. subscriber Set), export a `_clear*()` function for test cleanup in afterEach. Vitest reuses module state across tests.
+- **Dual-React in tests**: kumo `dist/` components can't render in test env (bundled React ≠ test React). Test COMPONENT_MAP wiring by asserting no `.text-kumo-warning` (Unknown component), not by full DOM rendering.
 
 ---
 
@@ -43,3 +44,10 @@ Started: 2026-02-19
   - `src/loadable/index.ts` (modified) — import `dispatchAction`/`onAction`, pass `dispatchAction` as `onAction` to `UITreeRenderer` in both `renderContainer` and `renderTree`, add `onAction` to `CloudflareKumoAPI` interface + `api` object
   - `src/__tests__/action-dispatch.test.ts` (new) — 10 tests: subscribe/receive, unsubscribe stops delivery, multi-subscriber fanout, selective unsubscribe, error isolation, CustomEvent fire, detail with params/context, detail without optional fields, no-subscriber safety, CustomEvent fires without subscribers
 - **Learnings**: Separate action dispatch module from loadable/index.ts keeps each file focused. `_clearSubscribers()` test utility needed since module-level Set persists across tests in vitest. Error isolation via try/catch per handler prevents one bad subscriber from blocking others. Optional field elision pattern reused from action-handler for CustomEvent detail.
+
+## Task - functional-5
+- **Implemented**: Textarea (InputArea) added to COMPONENT_MAP; RadioGroup, RadioItem, Collapsible verified as already present
+- **Files changed**:
+  - `src/core/component-map.ts` (modified) — added `InputArea` import, `Textarea: InputArea` entry in uncontrolled section; removed unused `Select` import (pre-existing lint fix)
+  - `src/__tests__/component-map-new-entries.test.tsx` (new) — 10 tests: KNOWN_TYPES includes RadioGroup/RadioItem/Textarea/Collapsible; COMPONENT_MAP entries defined; UITreeRenderer resolves RadioGroup+RadioItem and Textarea types (no "Unknown component" error)
+- **Learnings**: RadioGroup/RadioItem were already in COMPONENT_MAP from a prior task. Kumo `dist/` components fail to render in tests due to dual-React issue (bundled vs test env) — error boundary catches gracefully. Test rendering by asserting no "Unknown component" warning (`.text-kumo-warning`) rather than full DOM output. `forwardRef` components have `typeof === 'object'` not `'function'`.
