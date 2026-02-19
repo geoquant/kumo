@@ -117,3 +117,14 @@ Started: 2026-02-19
 - `foldPatches()` helper mirrors the fold logic from `useUITree.applyPatches` in hooks.ts
 - Files changed: `src/__tests__/streaming-integration.test.ts`
 - **Learnings:** The parser + patch pipeline is deterministic — chunk size doesn't affect final result, only the number of intermediate snapshots. `tokenize` with odd chunk sizes (7, 13) reliably splits mid-JSON, proving the parser's buffering correctness.
+
+## Task - regression-1
+- Implemented `src/__tests__/regression.test.ts`: 40 tests across 5 describe blocks
+  - **7 preset fixtures**: realistic JSONL for all preset categories (Welcome, DNS Editor, Dashboard, Support Ticket, Pricing Table, Settings, Analytics) — each verified for renderability, child reference resolution, and known component types
+  - **Multi-turn**: sequential turns produce independent trees, no state leakage between turns, message history accumulates correctly
+  - **Stop/abort**: partial delivery after N lines yields valid partial tree; root-only not renderable; all delivered elements preserved; flush after incomplete line handled gracefully
+  - **Error states**: missing/empty API key detection, error mid-stream preserves partial tree (flush-before-error pattern), error on first token → empty tree, malformed JSONL (bad JSON, markdown fences, truncated) silently tolerated
+  - **isRenderableTree contract**: empty tree, root-only, elements-only, complete tree
+- All 96 tests pass (56 existing + 40 new), TypeScript clean
+- Files changed: `src/__tests__/regression.test.ts`
+- **Learnings:** `simulateStream()` and `simulatePartialStream()` helpers provide a clean abstraction for testing the full pipeline without React or network. `resolveApiKey()` extracted to avoid TS narrowing `never` on constant `undefined` values.
