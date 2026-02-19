@@ -84,3 +84,11 @@ Started: 2026-02-19
   - `packages/kumo/ai/component-registry.md`
   - `packages/kumo/ai/schemas.ts`
 - **Learnings:** `codegen:registry` in kumo already runs `codegen:demos` in docs internally as a pre-step. Running it separately first is safe (idempotent) but not strictly required. Pre-existing warnings (DatePicker, Table schema generation failures) are known issues with fallback handling — not related to Stack/Cluster.
+
+## Task - integration-1
+- Added Stack and Cluster imports + COMPONENT_MAP entries in `_examples/kumo-stream/src/core/component-map.ts`
+- Both placed in "Layout" section alongside Surface and Grid
+- UITreeRenderer resolves `type:"Stack"` and `type:"Cluster"` via `COMPONENT_MAP[type]` (line 149)
+- `KNOWN_TYPES` set auto-derives from map keys, so `getUnknownTypes()` also recognizes them
+- Files changed: `_examples/kumo-stream/src/core/component-map.ts`
+- **Learnings:** component-map.ts is the single bridge between LLM JSON and React. Adding a component is: 1) import from @cloudflare/kumo, 2) add to COMPONENT_MAP object with matching key name. KNOWN_TYPES derives automatically.
