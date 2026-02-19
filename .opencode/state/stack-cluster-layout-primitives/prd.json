@@ -45,7 +45,7 @@
         "Cluster gap tokens map identically to Stack",
         "Grid's gap scale is unchanged (still has responsive behavior)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "export-1",
@@ -57,7 +57,7 @@
         "KUMO_STACK_VARIANTS, KUMO_STACK_DEFAULT_VARIANTS exported from package",
         "KUMO_CLUSTER_VARIANTS, KUMO_CLUSTER_DEFAULT_VARIANTS exported from package"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "export-2",
@@ -68,7 +68,7 @@
         "Cluster entry exists in vite.config.ts component entries",
         "pnpm --filter @cloudflare/kumo build succeeds"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "demo-1",
