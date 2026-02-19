@@ -242,7 +242,7 @@
         "No Tailwind build step required in the host page",
         "Components render with correct colors, spacing, and typography in the cross-boundary demo"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
