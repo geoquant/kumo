@@ -323,12 +323,7 @@ Primary action trigger. Supports multiple variants, sizes, shapes, icons, and lo
 ```tsx
 <div className="flex flex-wrap items-center gap-2">
       <Button variant="secondary">Button</Button>
-      <Button
-        variant="secondary"
-        shape="square"
-        icon={PlusIcon}
-        aria-label="Add"
-      />
+      <Button variant="secondary" shape="square" icon={PlusIcon} />
     </div>
 ```
 
@@ -1023,6 +1018,284 @@ Cloudflare logo component.
       </span>
       <PoweredByCloudflare />
     </footer>
+```
+
+
+---
+
+### Cluster
+
+Horizontal flex layout primitive with constrained gap, justify, align, and wrap tokens.  Uses `render` prop for element composition (renders `<div>` by default): ```tsx <Cluster gap="base" justify="between"> <Button>Cancel</Button> <Button>Submit</Button> </Cluster>  <Cluster render={<nav />} gap="sm" wrap="nowrap"> <a href="/home">Home</a> <a href="/about">About</a> </Cluster> ```
+
+**Type:** component
+
+**Import:** `import { Cluster } from "@cloudflare/kumo";`
+
+**Category:** Other
+
+**Props:**
+
+- `gap`: enum [default: base]
+  - `"none"`: No gap between cluster items
+  - `"xs"`: Extra-small gap (4px) between cluster items
+  - `"sm"`: Small gap (8px) between cluster items
+  - `"base"`: Base gap (16px) between cluster items
+  - `"lg"`: Large gap (24px) between cluster items
+  - `"xl"`: Extra-large gap (32px) between cluster items
+- `justify`: enum [default: start]
+  - `"start"`: Pack items to the start of the main axis
+  - `"center"`: Center items on the main axis
+  - `"end"`: Pack items to the end of the main axis
+  - `"between"`: Distribute items evenly with first/last at edges
+- `align`: enum [default: center]
+  - `"start"`: Align items to the start of the cross axis
+  - `"center"`: Center items on the cross axis
+  - `"end"`: Align items to the end of the cross axis
+  - `"baseline"`: Align items along their baselines
+  - `"stretch"`: Stretch items to fill the cross axis
+- `wrap`: enum [default: wrap]
+  - `"wrap"`: Allow items to wrap to new lines
+  - `"nowrap"`: Force items onto a single line
+- `render`: ReactNode
+  Allows you to replace the component’s HTML element with a different tag, or compose it with another component.
+
+Accepts a `ReactElement` or a function that returns the element to render.
+- `children`: ReactNode
+- `className`: string
+- `id`: string
+- `lang`: string
+- `title`: string
+
+**Examples:**
+
+```tsx
+<Cluster gap="base">
+      <Surface className="rounded-lg p-4">
+        <Text bold>Item 1</Text>
+      </Surface>
+      <Surface className="rounded-lg p-4">
+        <Text bold>Item 2</Text>
+      </Surface>
+      <Surface className="rounded-lg p-4">
+        <Text bold>Item 3</Text>
+      </Surface>
+    </Cluster>
+```
+
+```tsx
+<div className="flex flex-col gap-8">
+      <div>
+        <p className="mb-2 text-kumo-subtle">gap="none"</p>
+        <Cluster gap="none">
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>1</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>2</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>3</Text>
+          </Surface>
+        </Cluster>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">gap="sm"</p>
+        <Cluster gap="sm">
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>1</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>2</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>3</Text>
+          </Surface>
+        </Cluster>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">gap="base" (default)</p>
+        <Cluster gap="base">
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>1</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>2</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>3</Text>
+          </Surface>
+        </Cluster>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">gap="xl"</p>
+        <Cluster gap="xl">
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>1</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>2</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>3</Text>
+          </Surface>
+        </Cluster>
+      </div>
+    </div>
+```
+
+```tsx
+<div className="flex flex-col gap-8">
+      <div>
+        <p className="mb-2 text-kumo-subtle">justify="start" (default)</p>
+        <Cluster gap="sm" justify="start">
+          <Surface className="rounded-lg p-4">
+            <Text>A</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>B</Text>
+          </Surface>
+        </Cluster>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">justify="center"</p>
+        <Cluster gap="sm" justify="center">
+          <Surface className="rounded-lg p-4">
+            <Text>A</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>B</Text>
+          </Surface>
+        </Cluster>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">justify="end"</p>
+        <Cluster gap="sm" justify="end">
+          <Surface className="rounded-lg p-4">
+            <Text>A</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>B</Text>
+          </Surface>
+        </Cluster>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">justify="between"</p>
+        <Cluster gap="sm" justify="between">
+          <Surface className="rounded-lg p-4">
+            <Text>A</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>B</Text>
+          </Surface>
+        </Cluster>
+      </div>
+    </div>
+```
+
+```tsx
+<div className="flex flex-col gap-8">
+      <div>
+        <p className="mb-2 text-kumo-subtle">wrap="wrap" (default)</p>
+        <Cluster gap="sm" wrap="wrap" className="max-w-xs">
+          <Surface className="rounded-lg p-4">
+            <Text>One</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>Two</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>Three</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>Four</Text>
+          </Surface>
+        </Cluster>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">wrap="nowrap"</p>
+        <Cluster gap="sm" wrap="nowrap">
+          <Surface className="rounded-lg p-4">
+            <Text>One</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>Two</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>Three</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>Four</Text>
+          </Surface>
+        </Cluster>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">align="start"</p>
+        <Cluster gap="sm" align="start">
+          <Surface className="rounded-lg p-2">
+            <Text size="sm">Small</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text size="lg">Large</Text>
+          </Surface>
+          <Surface className="rounded-lg p-2">
+            <Text size="sm">Small</Text>
+          </Surface>
+        </Cluster>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">align="center" (default)</p>
+        <Cluster gap="sm" align="center">
+          <Surface className="rounded-lg p-2">
+            <Text size="sm">Small</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text size="lg">Large</Text>
+          </Surface>
+          <Surface className="rounded-lg p-2">
+            <Text size="sm">Small</Text>
+          </Surface>
+        </Cluster>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">align="baseline"</p>
+        <Cluster gap="sm" align="baseline">
+          <Surface className="rounded-lg p-2">
+            <Text size="sm">Small</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text size="lg">Large</Text>
+          </Surface>
+          <Surface className="rounded-lg p-2">
+            <Text size="sm">Small</Text>
+          </Surface>
+        </Cluster>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">align="stretch"</p>
+        <Cluster gap="sm" align="stretch">
+          <Surface className="rounded-lg p-2">
+            <Text size="sm">Small</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text size="lg">Large</Text>
+          </Surface>
+          <Surface className="rounded-lg p-2">
+            <Text size="sm">Small</Text>
+          </Surface>
+        </Cluster>
+      </div>
+    </div>
 ```
 
 
@@ -1992,7 +2265,6 @@ Close sub-component
                 variant="secondary"
                 shape="square"
                 icon={<X />}
-                aria-label="Close"
               />
             )}
           />
@@ -2021,7 +2293,6 @@ Close sub-component
                 variant="secondary"
                 shape="square"
                 icon={<X />}
-                aria-label="Close"
               />
             )}
           />
@@ -2990,12 +3261,7 @@ Secondary sub-component
 <LayerCard>
       <LayerCard.Secondary className="flex items-center justify-between">
         <div>Next Steps</div>
-        <Button
-          variant="ghost"
-          size="sm"
-          shape="square"
-          aria-label="Go to next steps"
-        >
+        <Button variant="ghost" size="sm" shape="square">
           <ArrowRightIcon size={16} />
         </Button>
       </LayerCard.Secondary>
@@ -3519,7 +3785,7 @@ Close sub-component
 ```tsx
 <Popover>
       <Popover.Trigger asChild>
-        <Button shape="square" icon={BellIcon} aria-label="Notifications" />
+        <Button shape="square" icon={BellIcon} />
       </Popover.Trigger>
       <Popover.Content>
         <Popover.Title>Notifications</Popover.Title>
@@ -4055,6 +4321,196 @@ Password/secret input that masks its value by default and reveals on click. Incl
         defaultValue="my-secret-value"
         description="Keep this value secure and don't share it"
       />
+    </div>
+```
+
+
+---
+
+### Stack
+
+Vertical flex layout primitive with constrained gap and alignment tokens.  Uses `render` prop for element composition (renders `<div>` by default): ```tsx <Stack gap="base"> <Surface className="p-4">First</Surface> <Surface className="p-4">Second</Surface> </Stack>  <Stack render={<nav />} gap="sm"> <a href="/home">Home</a> <a href="/about">About</a> </Stack> ```
+
+**Type:** component
+
+**Import:** `import { Stack } from "@cloudflare/kumo";`
+
+**Category:** Other
+
+**Props:**
+
+- `gap`: enum [default: base]
+  - `"none"`: No gap between stack items
+  - `"xs"`: Extra-small gap (4px) between stack items
+  - `"sm"`: Small gap (8px) between stack items
+  - `"base"`: Base gap (16px) between stack items
+  - `"lg"`: Large gap (24px) between stack items
+  - `"xl"`: Extra-large gap (32px) between stack items
+- `align`: enum [default: stretch]
+  - `"start"`: Align items to the start of the cross axis
+  - `"center"`: Center items on the cross axis
+  - `"end"`: Align items to the end of the cross axis
+  - `"stretch"`: Stretch items to fill the cross axis
+- `render`: ReactNode
+  Allows you to replace the component’s HTML element with a different tag, or compose it with another component.
+
+Accepts a `ReactElement` or a function that returns the element to render.
+- `children`: ReactNode
+- `className`: string
+- `id`: string
+- `lang`: string
+- `title`: string
+
+**Examples:**
+
+```tsx
+<Stack gap="base">
+      <Surface className="rounded-lg p-4">
+        <Text bold>Item 1</Text>
+        <div className="mt-1">
+          <Text variant="secondary">First stack item</Text>
+        </div>
+      </Surface>
+      <Surface className="rounded-lg p-4">
+        <Text bold>Item 2</Text>
+        <div className="mt-1">
+          <Text variant="secondary">Second stack item</Text>
+        </div>
+      </Surface>
+      <Surface className="rounded-lg p-4">
+        <Text bold>Item 3</Text>
+        <div className="mt-1">
+          <Text variant="secondary">Third stack item</Text>
+        </div>
+      </Surface>
+    </Stack>
+```
+
+```tsx
+<div className="flex flex-col gap-8">
+      <div>
+        <p className="mb-2 text-kumo-subtle">gap="none"</p>
+        <Stack gap="none">
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>1</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>2</Text>
+          </Surface>
+        </Stack>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">gap="xs"</p>
+        <Stack gap="xs">
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>1</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>2</Text>
+          </Surface>
+        </Stack>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">gap="sm"</p>
+        <Stack gap="sm">
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>1</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>2</Text>
+          </Surface>
+        </Stack>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">gap="base" (default)</p>
+        <Stack gap="base">
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>1</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>2</Text>
+          </Surface>
+        </Stack>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">gap="lg"</p>
+        <Stack gap="lg">
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>1</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>2</Text>
+          </Surface>
+        </Stack>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">gap="xl"</p>
+        <Stack gap="xl">
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>1</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4 text-center">
+            <Text>2</Text>
+          </Surface>
+        </Stack>
+      </div>
+    </div>
+```
+
+```tsx
+<div className="flex flex-col gap-8">
+      <div>
+        <p className="mb-2 text-kumo-subtle">align="stretch" (default)</p>
+        <Stack gap="sm" align="stretch">
+          <Surface className="rounded-lg p-4">
+            <Text>Full width</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>Full width</Text>
+          </Surface>
+        </Stack>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">align="start"</p>
+        <Stack gap="sm" align="start">
+          <Surface className="rounded-lg p-4">
+            <Text>Aligned start</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>Short</Text>
+          </Surface>
+        </Stack>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">align="center"</p>
+        <Stack gap="sm" align="center">
+          <Surface className="rounded-lg p-4">
+            <Text>Centered</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>Short</Text>
+          </Surface>
+        </Stack>
+      </div>
+
+      <div>
+        <p className="mb-2 text-kumo-subtle">align="end"</p>
+        <Stack gap="sm" align="end">
+          <Surface className="rounded-lg p-4">
+            <Text>Aligned end</Text>
+          </Surface>
+          <Surface className="rounded-lg p-4">
+            <Text>Short</Text>
+          </Surface>
+        </Stack>
+      </div>
     </div>
 ```
 
@@ -4819,7 +5275,7 @@ Accessible popup that shows additional information on hover/focus. Wrap your app
 ```tsx
 <TooltipProvider>
       <Tooltip content="Add new item" asChild>
-        <Button shape="square" icon={PlusIcon} aria-label="Add new item" />
+        <Button shape="square" icon={PlusIcon} />
       </Tooltip>
     </TooltipProvider>
 ```
@@ -4828,14 +5284,10 @@ Accessible popup that shows additional information on hover/focus. Wrap your app
 <TooltipProvider>
       <div className="flex gap-2">
         <Tooltip content="Add" asChild>
-          <Button shape="square" icon={PlusIcon} aria-label="Add" />
+          <Button shape="square" icon={PlusIcon} />
         </Tooltip>
         <Tooltip content="Change language" asChild>
-          <Button
-            shape="square"
-            icon={TranslateIcon}
-            aria-label="Change language"
-          />
+          <Button shape="square" icon={TranslateIcon} />
         </Tooltip>
       </div>
     </TooltipProvider>
@@ -4872,7 +5324,7 @@ Multi-line textarea input with Input variants and InputArea-specific dimensions
 - **Feedback:** Banner, Loader, Toasty
 - **Action:** Button, ClipboardText
 - **Input:** Checkbox, Combobox, DateRangePicker, Field, Input, Radio, Select, Switch
-- **Other:** CloudflareLogo, DatePicker, Label, Link, SensitiveInput, Table, DeleteResource
+- **Other:** CloudflareLogo, Cluster, DatePicker, Label, Link, SensitiveInput, Stack, Table, DeleteResource
 - **Navigation:** CommandPalette, MenuBar, Pagination, Tabs
 - **Overlay:** Dialog, DropdownMenu, Popover, Tooltip
 - **Layout:** Grid, Surface, PageHeader, ResourceListPage
