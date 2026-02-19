@@ -1,0 +1,19 @@
+# Progress Log
+PRD: stateful-actions-components
+Started: 2026-02-19
+
+## Codebase Patterns
+- **Stateful wrapper onAction**: `OnActionCallback = (context?: Record<string, unknown>) => void` — wrappers call `onAction?.({ value/checked/open: next })` on state change
+- **Action type**: `Action { name, params?: Record<string, DynamicValue>, confirm?, onSuccess?, onError? }` from `@cloudflare/kumo/catalog`
+- **DynamicValue resolution deferred**: params passed as-is (no path resolution in v1)
+- **Test pattern**: vitest + happy-dom, relative imports from `../core/`, `vi.fn()` for mocks
+- **Optional field elision**: use `...(val != null ? { key: val } : undefined)` to omit undefined keys entirely from event objects
+
+---
+
+## Task - functional-1
+- **Implemented**: `ActionEvent` interface and `createActionHandler` factory in `src/core/action-handler.ts`
+- **Files changed**:
+  - `src/core/action-handler.ts` (new) — ActionEvent type, ActionDispatch type, createActionHandler factory
+  - `src/__tests__/action-handler.test.ts` (new) — 6 unit tests covering dispatch, params merge, context passthrough, optional field elision
+- **Learnings**: Action.params uses DynamicValue but renderer passes through raw — future task may resolve paths. The spread pattern `...(x != null ? { k: x } : undefined)` cleanly omits optional keys without `if` branching.
