@@ -81,7 +81,7 @@
         "Documents Textarea as alias for InputArea",
         "Documents Collapsible component with open/defaultOpen props"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-7",

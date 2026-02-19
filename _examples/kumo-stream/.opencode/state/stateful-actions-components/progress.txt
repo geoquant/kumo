@@ -51,3 +51,9 @@ Started: 2026-02-19
   - `src/core/component-map.ts` (modified) — added `InputArea` import, `Textarea: InputArea` entry in uncontrolled section; removed unused `Select` import (pre-existing lint fix)
   - `src/__tests__/component-map-new-entries.test.tsx` (new) — 10 tests: KNOWN_TYPES includes RadioGroup/RadioItem/Textarea/Collapsible; COMPONENT_MAP entries defined; UITreeRenderer resolves RadioGroup+RadioItem and Textarea types (no "Unknown component" error)
 - **Learnings**: RadioGroup/RadioItem were already in COMPONENT_MAP from a prior task. Kumo `dist/` components fail to render in tests due to dual-React issue (bundled vs test env) — error boundary catches gracefully. Test rendering by asserting no "Unknown component" warning (`.text-kumo-warning`) rather than full DOM output. `forwardRef` components have `typeof === 'object'` not `'function'`.
+
+## Task - functional-6
+- **Implemented**: System prompt updated with action field docs, new component docs, and worked example
+- **Files changed**:
+  - `src/core/system-prompt.ts` (modified) — added "Action Field (Interactive Events)" section with format, supported components, rules; added RadioGroup/RadioItem, Textarea, Collapsible to Interactive section; added Example 4 (notification preferences form with Select + Checkbox + Button actions)
+- **Learnings**: System prompt is a pure string template — no type or runtime implications. Changes only affect LLM output quality. The worked example demonstrates action field on Select, Checkbox, and Button simultaneously, which is the most common real-world pattern (form with interactive controls + submit).
