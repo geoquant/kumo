@@ -9,6 +9,9 @@ Started: 2026-02-19
 - Plain HTML (`h1`, `p`) for non-interactive text; Kumo `Text` only in component rendering
 - ChatDemo controls: `flex gap-2` form, Input `flex-1`, action buttons inline
 - Pre-existing lint false positives: `UITreeRenderer.tsx` lines 65/162 (semantic tokens misdetected as raw colors)
+- UITree is plain data (`{ root: string, elements: Record<string, UIElement> }`), safe to `structuredClone` for snapshots
+- `AssistantSnapshot` renders read-only past turns by omitting `onAction` from `UITreeRenderer`
+- `ChatHistoryEntry` discriminated union: `role: "user"` has `content`, `role: "assistant"` has `tree`
 
 ---
 
@@ -21,3 +24,14 @@ Started: 2026-02-19
 - Removed Kumo `Text` import from App.tsx (no longer needed)
 - Files changed: `src/app/App.tsx`
 - **Learnings:** ChatDemo controls already matched target layout (flex gap-2, Input flex-1). Only App.tsx shell needed restyling.
+
+## Task - ui-2
+- Added scrollable conversation history to React SPA
+- `ChatHistoryEntry` discriminated union type for user/assistant turns
+- `handleSubmit` snapshots current tree (if renderable) + user prompt into `chatHistory` before resetting
+- `ChatHistoryView` renders history: `UserBubble` (right-aligned, `bg-kumo-brand-subtle`) and `AssistantSnapshot` (rendered UITree, no `onAction`)
+- Scrollable container: `max-h-[70vh] overflow-y-auto` with `useEffect` auto-scroll on `[chatHistory, tree]`
+- `handleReset` clears `chatHistory` alongside messages/tree
+- Separator `<hr>` between history and current turn when both exist
+- Files changed: `src/app/ChatDemo.tsx`
+- **Learnings:** `structuredClone(tree)` works perfectly for UITree snapshots since it's plain data. Omitting `onAction` from `UITreeRenderer` is sufficient to make past turns non-interactive — no special prop needed.
