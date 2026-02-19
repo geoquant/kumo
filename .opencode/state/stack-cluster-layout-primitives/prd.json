@@ -34,7 +34,7 @@
         "Component uses forwardRef and sets .displayName = \"Cluster\"",
         "KUMO_CLUSTER_VARIANTS and KUMO_CLUSTER_DEFAULT_VARIANTS are exported"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "component-3",
