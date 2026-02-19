@@ -134,7 +134,7 @@
         "Test: verify action dispatch works during streaming (streaming=true)",
         "All tests pass via vitest run"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "testing-4",

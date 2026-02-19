@@ -77,3 +77,16 @@ Started: 2026-02-19
   - `src/__tests__/stateful-wrappers.test.tsx` (new) — 12 tests across 5 describe blocks: StatefulSelect (3), StatefulCheckbox (2), StatefulSwitch (2), StatefulTabs (3), StatefulCollapsible (2)
 - **Strategy**: `vi.mock("@cloudflare/kumo")` replaces kumo components with minimal test doubles that expose onChange callbacks via DOM buttons + display controlled values via `data-*` attributes. Avoids dual-React issue entirely.
 - **Learnings**: Mocking the component library is cleaner than fighting the dual-React bundling issue. Each mock renders a trigger button that fires the onChange with a predictable value, and a `data-*` attribute for asserting current state. This pattern is reusable for any test that needs to verify wrapper behavior without rendering real kumo components.
+
+## Task - testing-3
+- **Implemented**: Integration tests for streaming form with action dispatch — 6 tests across 3 describe blocks
+- **Files changed**:
+  - `src/__tests__/streaming-action-integration.test.tsx` (new) — 6 tests:
+    1. Form tree with 3 action elements: all dispatch correct ActionEvents with actionName, sourceKey, params, context
+    2. sourceKey matches UIElement key (not spy key) — verifies handler binding
+    3. Elements without action field get no onAction handler
+    4. `streaming=true`: present elements dispatch actions while missing ones render as null
+    5. `streaming=true` + rerender: newly arrived elements get action handlers on next render
+    6. `streaming=false`: shows "Missing element" error but present element actions still work
+- **Strategy**: Spy component pattern (same as ui-tree-renderer-action tests) + `triggerAction()` helper that invokes captured onAction handler by spy key. Simulates streaming by omitting elements from the tree then re-rendering with them added.
+- **Learnings**: `rerender()` from `@testing-library/react` is key for testing streaming — re-render with an updated tree that has new elements. Must clear `capturedPropsMap` before rerender to get fresh captures. The `streaming` prop only affects missing element rendering (null vs error div) — action dispatch works identically in both modes.
