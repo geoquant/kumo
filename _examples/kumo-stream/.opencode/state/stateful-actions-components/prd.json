@@ -145,7 +145,7 @@
         "All ~107 existing tests pass",
         "No new test failures in rfc6902, jsonl-parser, regression, streaming-integration, loadable-css"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "validation-1",
