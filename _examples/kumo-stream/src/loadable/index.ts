@@ -12,6 +12,7 @@
  *   CloudflareKumo.createParser()                 — JSONL streaming parser
  *   CloudflareKumo.setTheme(mode)                 — light/dark toggle
  *   CloudflareKumo.reset(containerId)             — clear state + unmount
+ *   CloudflareKumo.onAction(handler)              — subscribe to action events
  */
 
 import React from "react";
@@ -25,7 +26,9 @@ import {
 import { createJsonlParser, type JsonlParser } from "../core/jsonl-parser";
 import { UITreeRenderer } from "../core/UITreeRenderer";
 import { EMPTY_TREE, type UITree } from "../core/types";
+import type { ActionDispatch } from "../core/action-handler";
 import { ThemeWrapper } from "./theme";
+import { dispatch as dispatchAction, onAction } from "./action-dispatch";
 
 // Import kumo standalone styles so they're included in the CSS output
 import "@cloudflare/kumo/styles/standalone";
@@ -80,7 +83,11 @@ function renderContainer(containerId: string): void {
       React.createElement(
         ThemeWrapper,
         null,
-        React.createElement(UITreeRenderer, { tree, streaming: true }),
+        React.createElement(UITreeRenderer, {
+          tree,
+          streaming: true,
+          onAction: dispatchAction,
+        }),
       ),
     );
   });
@@ -106,6 +113,12 @@ export interface CloudflareKumoAPI {
   readonly setTheme: (mode: "light" | "dark") => void;
   /** Clear tree state and unmount the container. */
   readonly reset: (containerId: string) => void;
+  /**
+   * Subscribe to action events from component interactions.
+   * Returns an unsubscribe function. Actions also fire as
+   * `CustomEvent('kumo-action')` on window.
+   */
+  readonly onAction: (handler: ActionDispatch) => () => void;
 }
 
 const api: CloudflareKumoAPI = {
@@ -137,7 +150,11 @@ const api: CloudflareKumoAPI = {
         React.createElement(
           ThemeWrapper,
           null,
-          React.createElement(UITreeRenderer, { tree, streaming: false }),
+          React.createElement(UITreeRenderer, {
+            tree,
+            streaming: false,
+            onAction: dispatchAction,
+          }),
         ),
       );
     });
@@ -165,6 +182,8 @@ const api: CloudflareKumoAPI = {
       _roots.delete(containerId);
     }
   },
+
+  onAction,
 };
 
 // =============================================================================
