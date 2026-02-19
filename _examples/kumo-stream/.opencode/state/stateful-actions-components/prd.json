@@ -67,7 +67,7 @@
         "Rendering a tree with RadioGroup > RadioItem children produces working radio buttons",
         "Rendering a tree with Textarea produces a working text area with defaultValue"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-6",
