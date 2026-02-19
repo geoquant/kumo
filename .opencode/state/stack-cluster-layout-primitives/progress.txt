@@ -72,3 +72,15 @@ Started: 2026-02-19
   - `ClusterWrapAlignDemo()` — wrap (wrap/nowrap) + all align variants (start/center/baseline/stretch)
 - Uses mixed-size items to visually demonstrate alignment differences
 - **Learnings:** Cluster demos need more items than Stack to show wrapping behavior. Using `max-w-xs` on the wrap demo container forces wrapping to be visible.
+
+## Task - codegen-1
+- Ran `codegen:demos` (225 demos from 45 files, Stack: 3, Cluster: 4 extracted)
+- Ran `codegen:registry` (42 total: 39 components + 3 blocks, Stack + Cluster regenerated)
+- Verified Stack in `ai/component-registry.json`: props = gap, align, render, children, className, id, lang, title
+- Verified Cluster in `ai/component-registry.json`: props = gap, justify, align, wrap, render, children, className, id, lang, title
+- Verified `ai/schemas.ts`: `StackPropsSchema` (line 669), `ClusterPropsSchema` (line 429), both in `KumoComponentType` union and schema maps
+- Files changed (all auto-generated):
+  - `packages/kumo/ai/component-registry.json`
+  - `packages/kumo/ai/component-registry.md`
+  - `packages/kumo/ai/schemas.ts`
+- **Learnings:** `codegen:registry` in kumo already runs `codegen:demos` in docs internally as a pre-step. Running it separately first is safe (idempotent) but not strictly required. Pre-existing warnings (DatePicker, Table schema generation failures) are known issues with fallback handling — not related to Stack/Cluster.

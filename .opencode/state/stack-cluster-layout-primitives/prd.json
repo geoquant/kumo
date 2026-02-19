@@ -102,7 +102,7 @@
         "Cluster appears in ai/component-registry.json with correct props",
         "ai/schemas.ts includes Stack and Cluster Zod schemas"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "integration-1",
