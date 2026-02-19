@@ -19,6 +19,9 @@ Started: 2026-02-19
 - Anthropic SDK streaming: `client.messages.stream()` → `.on('text', delta)` / `.on('finalMessage')` / `.on('error')` / `.controller.abort()`
 - Vite env vars: `VITE_` prefix required, accessed via `import.meta.env.VITE_*`, needs `src/vite-env.d.ts` for TS
 - kumo-stream is NOT in pnpm workspace; run commands from `_examples/kumo-stream/` dir directly
+- Server runs via `tsx` for direct TS+ESM execution; separate `tsconfig.server.json` for Node types
+- `bun install` breaks `link:` deps; after install, manually restore: `ln -sfn /abs/path/to/kumo node_modules/@cloudflare/kumo`
+- SSE wire format: `data: {"type":"text","delta":"..."}\n\n` / `data: {"type":"done"}\n\n` / `data: {"type":"error","message":"..."}\n\n`
 
 ---
 
@@ -158,3 +161,18 @@ Started: 2026-02-19
 - `setTheme()` in `index.ts` already sets `data-mode` on `document.body` for portalled elements (Select dropdowns, etc.)
 - Files changed: `src/core/UITreeRenderer.tsx`, `src/loadable/theme.tsx`
 - **Learnings:** Theme ownership should be at the boundary, not inside the renderer. UITreeRenderer is a pure rendering concern; theme context (data-mode) belongs to the wrapping shell (ThemeWrapper for loadable, App.tsx for React app). This separation prevents double-nesting of kumo-root divs and makes theme switching reactive without re-mounting.
+
+## Task - cross-3
+- Created `server/index.ts`: Express SSE proxy server for cross-boundary demo
+  - POST `/api/chat` accepts `{ message, history? }` JSON body
+  - Reads `ANTHROPIC_API_KEY` from `process.env` (not `VITE_` prefixed) — key stays server-side
+  - Imports `SYSTEM_PROMPT` from `src/core/system-prompt.ts` via tsx runtime
+  - Streams Anthropic text deltas as SSE: `data: {"type":"text","delta":"..."}\n\n`
+  - Sends `data: {"type":"done"}\n\n` on completion, `data: {"type":"error","message":"..."}\n\n` on failure
+  - CORS enabled, serves `dist/loadable/` and `public/` as static files
+  - Client disconnect aborts Anthropic stream via `stream.controller.abort()`
+- Created `tsconfig.server.json`: Node-targeted TypeScript config for server code (no DOM types)
+- Updated `package.json`: added `"serve": "tsx server/index.ts"` script
+  - Added devDependencies: `express`, `cors`, `dotenv`, `tsx`, `@types/express`, `@types/cors`, `@types/node`
+- Files changed: `server/index.ts`, `tsconfig.server.json`, `package.json`, `bun.lock`
+- **Learnings:** `tsx` is the cleanest way to run TS + ESM server code — handles `.ts` imports without build step. The server imports `SYSTEM_PROMPT` directly from the shared `src/core/` module, avoiding duplication. `bun install` breaks pnpm `link:` deps; need to manually restore symlink with absolute path after install. SSE format is much simpler than kumo-provider's partial JSON parsing — JSONL patches are already line-delimited, so the server just forwards raw text deltas.
