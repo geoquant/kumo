@@ -149,3 +149,12 @@ Started: 2026-02-19
 - `pnpm build:loadable` outputs `dist/loadable/component-loadable.umd.js` (405KB) + `dist/loadable/style.css` (72KB)
 - Files changed: `src/loadable/index.ts`, `src/loadable/theme.tsx`, `vite.loadable.config.ts`
 - **Learnings:** Vite's `fileName` as function changes CSS output to package name; need explicit `cssFileName: "style"` to control it. `flushSync` is critical for cross-boundary progressive rendering — without it, React batches updates and the host page sees stale DOM. ThemeWrapper needed in loadable context since UITreeRenderer has hardcoded `data-mode="light"` — ThemeWrapper wraps it to provide reactivity.
+
+## Task - cross-2
+- Removed hardcoded `<div data-mode="light" className="kumo-root">` wrapper from `UITreeRenderer` — it now renders just the root element without imposing a theme
+- In loadable context, `ThemeWrapper` already wraps `UITreeRenderer` (set up in cross-1), so theme is controlled reactively via `kumo-theme-change` CustomEvent
+- In React app context (ChatDemo), theme is inherited from ancestor `App.tsx` which has `data-mode="light"` on its root div
+- Enhanced `ThemeWrapper` to initialise from `document.body[data-mode]` via `readBodyMode()` — handles case where `setTheme()` is called before any container is rendered
+- `setTheme()` in `index.ts` already sets `data-mode` on `document.body` for portalled elements (Select dropdowns, etc.)
+- Files changed: `src/core/UITreeRenderer.tsx`, `src/loadable/theme.tsx`
+- **Learnings:** Theme ownership should be at the boundary, not inside the renderer. UITreeRenderer is a pure rendering concern; theme context (data-mode) belongs to the wrapping shell (ThemeWrapper for loadable, App.tsx for React app). This separation prevents double-nesting of kumo-root divs and makes theme switching reactive without re-mounting.

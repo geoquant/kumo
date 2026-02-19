@@ -14,13 +14,24 @@ interface ThemeWrapperProps {
 }
 
 /**
+ * Read the current theme from document.body's data-mode attribute.
+ * Falls back to "light" if unset or unrecognised.
+ */
+function readBodyMode(): "light" | "dark" {
+  if (typeof document === "undefined") return "light";
+  const attr = document.body.getAttribute("data-mode");
+  return attr === "dark" ? "dark" : "light";
+}
+
+/**
  * Wraps children in a `<div data-mode={mode} className="kumo-root">`.
- * Defaults to "light"; reacts to `kumo-theme-change` CustomEvent.
+ * Initialises from `document.body[data-mode]` (set by `setTheme()`),
+ * then reacts to `kumo-theme-change` CustomEvent for live updates.
  */
 export function ThemeWrapper({
   children,
 }: ThemeWrapperProps): React.JSX.Element {
-  const [mode, setMode] = useState<"light" | "dark">("light");
+  const [mode, setMode] = useState<"light" | "dark">(readBodyMode);
 
   useEffect(() => {
     function handleThemeChange(e: Event): void {
