@@ -3,6 +3,7 @@ PRD: stateful-actions-components
 Started: 2026-02-19
 
 ## Codebase Patterns
+- **BRANCH: `geoquant/streaming-ui`** — ALL work for this PRD goes on this branch. Do NOT create new branches. `git checkout geoquant/streaming-ui` before any work.
 - **Stateful wrapper onAction**: `OnActionCallback = (context?: Record<string, unknown>) => void` — wrappers call `onAction?.({ value/checked/open: next })` on state change
 - **Action type**: `Action { name, params?: Record<string, DynamicValue>, confirm?, onSuccess?, onError? }` from `@cloudflare/kumo/catalog`
 - **DynamicValue resolution deferred**: params passed as-is (no path resolution in v1)
