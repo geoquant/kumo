@@ -191,3 +191,20 @@ Started: 2026-02-19
   - Minimal CSS for page chrome; dark mode styles via `body[data-mode="dark"]`
 - Files changed: `public/cross-boundary.html` (new)
 - **Learnings:** SSE parsing in vanilla JS needs manual `\n\n` splitting — no native EventSource for POST requests. The `ReadableStream` reader approach with a `sseBuffer` accumulator handles partial frames correctly. The UMD API's `applyPatch` (singular, per-op) works well for progressive rendering since each SSE frame may contain multiple JSONL lines parsed into multiple ops — applying them one at a time gives maximum visual progressiveness.
+
+## Task - cross-5
+- Verified `pnpm build:loadable` produces both `component-loadable.umd.js` (405KB) and `style.css` (72KB) to `dist/loadable/`
+- Verified `style.css` contains kumo's standalone CSS processed through Tailwind v4:
+  - 61 `light-dark()` calls for automatic dark mode (no `dark:` prefix needed in host)
+  - 8 `data-mode` selectors for theme switching via ThemeWrapper
+  - All Tailwind `@layer` declarations: properties, theme, base, utilities
+  - Kumo semantic tokens: `kumo-base`, `kumo-elevated`, `kumo-default`, `kumo-brand`, `kumo-danger`, `kumo-ring`, `kumo-line`, `kumo-success`
+  - Compiled Tailwind utility classes (flex, gap, rounded, px, py, etc.)
+  - `color-scheme` declarations for native dark mode support
+  - No unprocessed `@tailwind` or `@apply` directives
+- Wrote `src/__tests__/loadable-css.test.ts`: 11 post-build verification tests
+  - CSS: size threshold, @layer declarations, semantic tokens, light-dark(), data-mode, color-scheme, compiled utilities, no unprocessed directives
+  - JS: size threshold, CloudflareKumo global name, React bundled (createElement/useState)
+  - Tests use `describe.skipIf(!isBuilt)` to skip gracefully when `dist/` missing
+- Files changed: `src/__tests__/loadable-css.test.ts` (new)
+- **Learnings:** The standalone CSS import chain is: `index.ts` → `@cloudflare/kumo/styles/standalone` → `kumo-standalone.css` → `@import "tailwindcss"` + `@import "./kumo-binding.css"` → `theme-kumo.css` + `theme-fedramp.css`. Vite's Tailwind plugin processes these at build time, producing fully compiled CSS. The `dist/styles/kumo-standalone.css` referenced in kumo's package.json exports doesn't need to exist — Vite resolves the import through the link: dependency to source. Test globals like `beforeAll` need explicit import from vitest when tsconfig lacks vitest type references.
