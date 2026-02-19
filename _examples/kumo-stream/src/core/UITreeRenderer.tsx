@@ -226,13 +226,11 @@ export function UITreeRenderer({
   }
 
   return (
-    <div data-mode="light" className="kumo-root">
-      <RenderElement
-        elementKey={tree.root}
-        elements={tree.elements}
-        streaming={streaming}
-      />
-    </div>
+    <RenderElement
+      elementKey={tree.root}
+      elements={tree.elements}
+      streaming={streaming}
+    />
   );
 }
 
