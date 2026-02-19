@@ -75,7 +75,7 @@
         "On new message or reset, calls reset() and creates a new parser instance",
         "extractUITree import removed from primary path (or demoted to fallback only)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-2",
