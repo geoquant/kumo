@@ -1,23 +1,24 @@
 # PLAN: Kumo as First-Class AI UI Renderer
 
-**Status**: Draft
+**Status**: Draft (Revised with Strategic Analysis)
 **Author**: AI-assisted
-**Date**: 2026-02-17
+**Date**: 2026-02-19
 
 ---
 
 ## Table of Contents
 
 1. [Motivation](#motivation)
-2. [What Already Exists](#what-already-exists)
-3. [What's Missing](#whats-missing)
-4. [Original Plan](#original-plan)
-5. [Plan Review: Identified Flaws](#plan-review-identified-flaws)
-6. [Revised Plan](#revised-plan)
-7. [Implementation Details](#implementation-details)
-8. [Validation Checklist](#validation-checklist)
-9. [Agent Self-Verification Protocol](#agent-self-verification-protocol)
-10. [Agent Execution Spec](#agent-execution-spec)
+2. [Strategic Analysis: Three Approaches vs. GENERATIVE-UI.md Requirements](#strategic-analysis-three-approaches-vs-generative-uimd-requirements)
+3. [What Already Exists](#what-already-exists)
+4. [What's Missing](#whats-missing)
+5. [Original Plan](#original-plan)
+6. [Plan Review: Identified Flaws](#plan-review-identified-flaws)
+7. [Revised Plan](#revised-plan)
+8. [Implementation Details](#implementation-details)
+9. [Validation Checklist](#validation-checklist)
+10. [Agent Self-Verification Protocol](#agent-self-verification-protocol)
+11. [Agent Execution Spec](#agent-execution-spec)
 
 ---
 
@@ -53,22 +54,199 @@ demonstrates AI-generated Kumo UI, plus documentation explaining the full soluti
 
 Analysis of prior art (`_examples/`) reveals clear competitive advantages:
 
-| Dimension               | `kumo-provider`        | `a2ui-bridge`             | `mcp-ui`           | **Kumo (this plan)**                    |
-| ----------------------- | ---------------------- | ------------------------- | ------------------ | --------------------------------------- |
-| Wire format             | Ad-hoc JSON            | A2UI protocol (verbose)   | Raw HTML strings   | Flat UITree + typed patches             |
-| Token efficiency        | Medium                 | Low (literalString wraps) | N/A                | **High** (flat map, no wrappers)        |
-| Component extensibility | Monolithic switch      | Adapter factory pattern   | None               | **Registration + adapter pattern**      |
-| Streaming support       | Progressive SSE        | Batch only                | None               | **Patch-based incremental + diff**      |
-| Error isolation         | Per-component boundary | None                      | Iframe isolation   | **Per-element ErrorBoundary**           |
-| Bundle impact           | Imports all components | 77 adapters               | N/A                | **Opt-in registration, tree-shakeable** |
-| Validation              | None at runtime        | None                      | Zod on tool output | **Zod schemas from component types**    |
-| State management        | Manual wrappers        | useSyncExternalStore      | postMessage        | **useReducer + structural sharing**     |
-| Dark mode               | Manual theme toggle    | CSS variables             | Inline styles      | **Automatic via light-dark() tokens**   |
+| Dimension               | `kumo-provider`        | `a2ui-bridge`             | `json-render`          | `mcp-ui`           | **Kumo (this plan)**                    |
+| ----------------------- | ---------------------- | ------------------------- | ---------------------- | ------------------ | --------------------------------------- |
+| Wire format             | Ad-hoc JSON            | A2UI protocol (verbose)   | JSONL (RFC 6902)       | Raw HTML strings   | **JSONL UITree patches**                |
+| Token efficiency        | Medium                 | Low (literalString wraps) | High (flat map)        | N/A                | **High** (flat map, no wrappers)        |
+| Component extensibility | Monolithic switch      | Adapter factory pattern   | defineCatalog/Registry | None               | **Registration + adapter pattern**      |
+| Streaming support       | Progressive SSE        | Batch only                | JSONL streaming        | None               | **JSONL patch-based streaming + diff**  |
+| Error isolation         | Per-component boundary | None                      | Per-element boundary   | Iframe isolation   | **Per-element ErrorBoundary**           |
+| Bundle impact           | Imports all components | 77 adapters               | Opt-in components      | N/A                | **Opt-in registration, tree-shakeable** |
+| Validation              | None at runtime        | None                      | Zod schemas            | Zod on tool output | **Zod schemas from component types**    |
+| State management        | Manual wrappers        | useSyncExternalStore      | $bindState / contexts  | postMessage        | **useReducer + structural sharing**     |
+| Dark mode               | Manual theme toggle    | CSS variables             | Host CSS               | Inline styles      | **Automatic via light-dark() tokens**   |
+| Cross-boundary loading  | **YES** (UMD)          | NO                        | NO                     | Iframe             | **YES** (UMD, Phase 2)                  |
 
 **Strategic note**: `json-render` and similar third-party JSON-to-UI libraries are
 competitors. Kumo's renderer is purpose-built and must NOT depend on them. The integration
 with `component-registry.json`, `resolveProps`, `evaluateVisibility`, and Kumo's semantic
 token system is a moat that third-party solutions cannot replicate.
+
+---
+
+## Strategic Analysis: Three Approaches vs. GENERATIVE-UI.md Requirements
+
+This section evaluates three existing implementations (`kumo-provider`, `a2ui-bridge`,
+`json-render`) against the requirements in `GENERATIVE-UI.md`, and documents the strategic
+decisions that shape this plan.
+
+### The Three Approaches
+
+**1. `kumo-provider/` (initial UMD prototype)**
+
+A self-contained UMD bundle (`kumo-bundle.umd.cjs`) that embeds React + Kumo into a single
+file loadable by any HTML page:
+
+- `window.CloudflareKumo.render()` and `window.CloudflareKumo.renderFromJSON()` entry points
+- 994-line `loader.tsx` with stateful wrappers (Dialog, Select, Combobox, CommandPalette,
+  Popover, Dropdown)
+- 676-line `server.js` with Anthropic streaming + incremental JSON parsing
+- `ThemeWrapper` with `window.addEventListener('kumo-theme-change')` for cross-boundary mode
+  switching
+- `ErrorBoundary` per component
+- `flushSync` for immediate progressive rendering during streaming
+
+**2. `a2ui-bridge/` (protocol adapter layer)**
+
+A protocol-based approach: A2UI defines ~20 abstract component types + a flat component map
+\+ data model:
+
+- `packages/react-kumo/` has ~42 adapter components mapping A2UI nodes to Kumo components
+- Uses `useSyncExternalStore` for reactive updates
+- Snippet-based composition system with a system prompt builder
+- Three-way design system toggle (Mantine / ShadCN / Kumo) in the demo
+- Each adapter extracts `literalString`/`literalNumber`/`literalBoolean` from node properties
+
+**3. `json-render/` (catalog/registry renderer)**
+
+A `defineCatalog()` + `defineRegistry()` pattern: catalog describes schema, registry maps to
+React components:
+
+- JSONL-based streaming (each line is a complete JSON Patch per RFC 6902, never incomplete
+  JSON)
+- `$bindState` / `useBoundProp` for two-way state binding
+- `createSpecStreamCompiler()` for progressive streaming compilation
+- `createMixedStreamParser()` for interleaved text + JSONL patch streams
+- Per-element `ElementErrorBoundary`
+- Integrates with Vercel AI SDK's `streamObject()`
+- Validation, data-binding, custom schemas, repeat/visibility conditions
+
+### Requirements Matrix
+
+| Requirement                                   | `kumo-provider`                       | `a2ui-bridge` + Kumo              | `json-render`                           | **This plan**                                    |
+| --------------------------------------------- | ------------------------------------- | --------------------------------- | --------------------------------------- | ------------------------------------------------ |
+| Dynamic loadable UMD (`.well-known/` pattern) | **YES** — already builds UMD          | NO — assumes co-located React app | NO — ESM only, same-bundle              | **YES** — Phase 2                                |
+| Cross-boundary CSS injection                  | **YES** — `style.css` beside UMD      | NO — requires Tailwind build      | NO                                      | **YES** — Phase 2                                |
+| Discoverable `component-registry.json`        | **YES** — uses Kumo's registry        | Implicit via A2UI types           | `catalog.prompt()` but no `.well-known` | **YES** — leverages `ai/component-registry.json` |
+| Stateful component wrappers                   | **YES** — manual wrappers             | Partial — Select has state        | **YES** — `$bindState`                  | **YES** — `compound-wrappers.tsx`                |
+| Error boundaries per component                | **YES**                               | NO                                | **YES**                                 | **YES**                                          |
+| Theme/mode switching across boundaries        | **YES** — ThemeWrapper + events       | NO — relies on host CSS vars      | NO                                      | **YES** — Phase 2                                |
+| Streaming (incomplete JSON handling)          | **YES** — 676-line incremental parser | Batch only                        | **YES** — JSONL avoids problem          | **YES** — JSONL patches                          |
+| Works on third-party sites (ChatGPT, etc.)    | **YES** — the whole point             | NO — requires React app           | NO — requires React app                 | **YES** — Phase 2                                |
+
+### Key Findings
+
+**`a2ui-bridge` does NOT meet `GENERATIVE-UI.md` requirements:**
+
+1. **No cross-boundary story.** A2UI is a protocol for apps that already include the design
+   system. `GENERATIVE-UI.md`'s core requirement is injecting Kumo into sites that don't
+   bundle it. A2UI has no UMD output, no `.well-known` convention, no dynamic loading.
+2. **Protocol overhead.** A2UI wraps every value in `{ literalString: "..." }` /
+   `{ literalNumber: ... }`. This is token-wasteful for LLMs.
+3. **No streaming.** A2UI processes complete messages in batches.
+4. **Missing error boundaries.** If one Kumo adapter throws, the whole surface fails.
+
+However, A2UI's adapter pattern is genuinely good for a different use case: design-system-
+agnostic apps where you want to swap between Mantine/ShadCN/Kumo at runtime. It's a great
+abstraction layer, just not solving the `GENERATIVE-UI` problem.
+
+**`json-render` is the strongest renderer but has zero cross-boundary capability:**
+
+Its catalog/registry pattern, JSONL streaming, and `$bindState` system are well-designed.
+But it assumes the components live in the same bundle — the exact opposite of what
+`GENERATIVE-UI.md` needs. It is also a competitor; Kumo must NOT depend on it (the format
+ideas are generic and independently implementable).
+
+**`kumo-provider` is the only approach that addresses the cross-boundary requirement:**
+
+It's scrappy (994-line monolith, manual wrappers), but it's the only one that:
+
+- Builds a UMD that third-party sites can load via `<script>`
+- Has `window.CloudflareKumo.render()` / `renderFromJSON()` entry points
+- Has `ThemeWrapper` with cross-boundary event listening
+- Handles streaming via incremental JSON parsing
+- Uses `flushSync` for immediate progressive rendering
+
+### Strategic Decisions
+
+Based on this analysis, the following decisions shape this plan:
+
+1. **Both in-app renderer AND cross-boundary loadable are goals.** They are layered: the
+   loadable wraps the renderer in a UMD bundle. The renderer is the prerequisite.
+
+2. **JSONL streaming replaces incremental JSON parsing.** Instead of the 676-line
+   incremental JSON parser in `kumo-provider/server.js`, adopt JSONL (each line is a
+   complete `UITreePatch` JSON object). This is dramatically simpler and more robust.
+   The `diffUITree()` function (Step 13) remains useful for server-side generation (LLM
+   produces complete tree, server diffs and emits JSONL patches), but the client never
+   deals with incomplete JSON objects.
+
+3. **A2UI becomes an optional adapter layer (Phase 5).** It solves "design system
+   abstraction" not "cross-boundary generative UI." A thin translation layer can convert
+   A2UI `ServerToClientMessage` arrays into `UITreePatch[]`, making A2UI just another wire
+   format that produces patches. The ~42 Kumo adapters in `packages/react-kumo/` become
+   unnecessary once the renderer uses the component map directly.
+
+4. **Do not depend on `json-render` or any third-party JSON-to-UI library.** The JSONL
+   format and RFC 6902 JSON Patch are open standards. The patch types are Kumo-specific.
+   No dependency is needed or wanted.
+
+5. **Port `kumo-provider`'s cross-boundary infra in Phase 2** — UMD build, ThemeWrapper,
+   `window.CloudflareKumo` mount API. This is the only existing code that solves
+   `.well-known` + dynamic loading.
+
+### JSONL Wire Format
+
+Each line is a complete `UITreePatch` JSON object. Examples:
+
+```
+{"type":"upsertElements","elements":{"btn-1":{"type":"Button","props":{"children":"Click me"}}}}
+{"type":"appendChildren","parentKey":"root","childKeys":["btn-1"]}
+{"type":"setData","path":"/user/name","value":"Alice"}
+```
+
+The client reads line-by-line, parses each as JSON, feeds into `applyTreePatch()`. No
+incomplete JSON, no 676-line parser. For mixed text + JSONL streams (chat scenarios), the
+same fencing/heuristic approach used by `json-render`'s `createMixedStreamParser()` applies:
+lines starting with `{` are tested as patches; everything else is text.
+
+### Revised Phase Structure
+
+The original plan had: Phase 1 (Renderer) → Phase 2 (Docs Demo) → Phase 3 (Workers AI) →
+Phase 4 (Tiers 3-4). This revision inserts the cross-boundary loadable:
+
+| Phase | What                    | Depends on | Notes                                       |
+| ----- | ----------------------- | ---------- | ------------------------------------------- |
+| 1     | Core Renderer           | —          | Unchanged from original plan (Steps 1-8)    |
+| 2     | Cross-Boundary Loadable | Phase 1    | NEW: UMD build + ThemeWrapper + mount API   |
+| 3     | Docs Demo / Playground  | Phase 1    | Was Phase 2; mock data first                |
+| 4     | Workers AI Integration  | Phases 1,3 | Was Phase 3; `diffUITree` + API Worker      |
+| 5     | Component Map Tiers 3-4 | Phase 1    | Was Phase 4; complex compound components    |
+| 6     | A2UI Adapter (Optional) | Phase 1    | NEW: translates A2UI messages → UITreePatch |
+
+Phase 1 is unchanged — it remains the foundation. Phase 2 (loadable) and Phase 3 (docs demo)
+can proceed in parallel since they both depend only on Phase 1.
+
+### What to NOT Build (additions)
+
+- **Don't build the incremental JSON parser** — JSONL solves this.
+- **Don't maintain A2UI Kumo adapters separately** — They'll be replaced by the component
+  map when the renderer is complete.
+- **Don't extend `ComponentSchema` with `childrenMode`/`compoundResolution`** — No consumer
+  yet (aligned with original Flaw 7).
+
+### Open Question: System Prompt for JSONL Patches
+
+`GENERATIVE-UI.md` and all three approaches address "how does the AI know which components
+to use?" differently:
+
+- `kumo-provider/server.js` has `buildSystemPrompt()` baked into its Express route
+- `a2ui-bridge` has its snippet system with `buildSystemPrompt()`
+- `json-render` uses `catalog.prompt()`
+- Kumo's `catalog.generatePrompt()` exists but doesn't know about the JSONL patch format
+
+`catalog.generatePrompt()` needs to be updated to teach the LLM the JSONL patch format.
+This is a small but important piece — it fits in Phase 1 alongside Step 6 (catalog fixes).
 
 ---
 
@@ -316,9 +494,10 @@ there's a single consumer.
   not a standard.
 - `kumo-provider/server.js` already has working SSE streaming — that's the real prior art.
 
-**Resolution**: Skip Phase 2 entirely. Put the SSE client in `hooks.ts`. Build the A2UI
-adapter and MCP surface only when real consumers demand them. The plan's own dependency graph
-confirms Steps 7-12 are non-critical-path.
+**Resolution**: Skip the original Phase 2 (transport package) entirely. Put the SSE client
+in `hooks.ts`. Build the A2UI adapter and MCP surface only when real consumers demand them.
+The plan's own dependency graph confirms Steps 7-12 are non-critical-path. (Note: the
+revised plan's "Phase 2" is now the cross-boundary loadable, not this transport package.)
 
 ### FLAW 7: Registry Schema Extensions Have No Consumer (Severity: Low)
 
@@ -576,17 +755,24 @@ becomes a problem in tests or SSR, refactor `loadSchemas` to be instance-scoped 
 
 1. **UITree patches as canonical wire format** — A2UI/MCP adapters produce patches, not
    the other way around. The renderer understands one format.
-2. **Component map lives in `@cloudflare/kumo`** — Co-located with implementations to
+2. **JSONL as the streaming wire format** — Each line is a complete `UITreePatch` JSON
+   object. No incomplete JSON, no incremental parser. `diffUITree()` on the server
+   converts complete trees to patches; the client reads line-by-line.
+3. **Component map lives in `@cloudflare/kumo`** — Co-located with implementations to
    prevent version skew.
-3. **Registration pattern for bundle size** — Consumers opt into which components to
+4. **Registration pattern for bundle size** — Consumers opt into which components to
    include. No implicit import of all 38.
-4. **Complete trees before patches** — For the LLM integration, generate complete UITrees
-   and diff client-side. Don't ask the LLM to generate patches.
-5. **ErrorBoundary per-element** — One failed component doesn't break the rest (critical
+5. **Complete trees before patches** — For the LLM integration, generate complete UITrees
+   and diff server-side into JSONL patches. Don't ask the LLM to generate patches directly.
+6. **ErrorBoundary per-element** — One failed component doesn't break the rest (critical
    for AI-generated UI where the model might hallucinate invalid props).
-6. **No new packages until there are consumers** — Everything in Phase 1 lives in
-   `packages/kumo/`. No `kumo-agent-ui` yet.
-7. **Streaming UX is a first-class concern** — The renderer must support patterns that
+7. **No new packages until there are consumers** — Everything in Phase 1 lives in
+   `packages/kumo/`. No `kumo-agent-ui` yet. Phase 2 (cross-boundary loadable) may live
+   in a separate entry point or a thin wrapper package, but only after Phase 1 ships.
+8. **Cross-boundary is a first-class goal** — The renderer must work both in-app (React
+   import) and cross-boundary (UMD loaded via `<script>` on third-party sites). Phase 1
+   builds the renderer; Phase 2 wraps it for cross-boundary use.
+9. **Streaming UX is a first-class concern** — The renderer must support patterns that
    make AI-streaming feel responsive:
    - **Immediate rendering**: When patches arrive during streaming, consumers may need
      `flushSync` to force synchronous DOM updates rather than letting React batch them.
@@ -910,7 +1096,7 @@ export { CatalogErrorBoundary } from "./error-boundary";
   ```ts
   export type { UITreePatch } from "./react/patches";
   export { applyTreePatch, applyDataPatch } from "./react/patches";
-  export { diffUITree } from "./react/diff"; // Added in Phase 3, Step 13
+  export { diffUITree } from "./react/diff"; // Added in Phase 4, Step 13
   ```
 
 Note on the vite entry name: existing entries use flat names (`catalog`, `registry`). A
@@ -934,7 +1120,104 @@ co-located — that's legacy; don't follow that pattern for new files.
 **Tests**: Structural import tests (pattern from `tests/imports/`). Verify the export path
 resolves. Verify `pnpm --filter @cloudflare/kumo build` produces `dist/catalog/react.js`.
 
-### Phase 2: Docs Demo (`packages/kumo-docs-astro/`)
+### Phase 2: Cross-Boundary Loadable
+
+This phase wraps the Phase 1 renderer into a UMD bundle that third-party sites (ChatGPT,
+etc.) can load via `<script>`, fulfilling `GENERATIVE-UI.md`'s core cross-boundary
+requirement. This is rebuilt from `kumo-provider`'s approach on top of Phase 1's renderer.
+
+**New entry point**: `packages/kumo/src/loadable/` (or a separate `packages/kumo-loadable/`)
+
+#### Step 19: UMD Build Configuration (Medium)
+
+**File**: New vite config (or entry in existing `vite.config.ts`)
+
+A separate vite build that:
+
+1. Imports the Phase 1 renderer + all Kumo components (kitchen-sink build)
+2. Creates mount/render functions
+3. Outputs IIFE/UMD format with React bundled in → `component-loadable.umd.cjs`
+4. Outputs CSS → `stylesheet.css`
+
+```ts
+// packages/kumo/src/loadable/index.ts
+import {
+  KumoCatalogRenderer,
+  applyTreePatch,
+  useUITree,
+  createComponentMap,
+} from "../catalog/react";
+import * as KumoComponents from "../../index"; // all components
+// ... build window.CloudflareKumo API
+```
+
+**Key outputs**:
+
+- `component-loadable.umd.cjs` — React + Kumo + renderer in one file
+- `stylesheet.css` — Kumo styles for injection
+- `.well-known/` convention: `component-registry.json` (already exists),
+  `component-loadable.umd.cjs`, `stylesheet.css`
+
+#### Step 20: `window.CloudflareKumo` Mount API (Medium)
+
+**File**: `packages/kumo/src/loadable/mount.tsx`
+
+```ts
+window.CloudflareKumo = {
+  render(name: string, props: Record<string, unknown>, containerId: string): void;
+  renderFromJSON(jsonDef: any, containerId: string): void;
+  renderFromStream(url: string, containerId: string): void;
+  setTheme(mode: 'light' | 'dark'): void;
+  _roots: Map<string, ReactRoot>;
+};
+```
+
+Port from `kumo-provider/src/loader.tsx:871-994`. Key differences from the original:
+
+- Uses Phase 1's `KumoCatalogRenderer` + `createComponentMap` instead of the monolithic
+  `createKumoElement` switch
+- Uses `applyTreePatch` for streaming instead of the ad-hoc JSON walker
+- `renderFromStream` reads JSONL lines from a URL and progressively renders
+
+#### Step 21: ThemeWrapper for Cross-Boundary Mode Switching (Small)
+
+**File**: `packages/kumo/src/loadable/theme-wrapper.tsx`
+
+Port from `kumo-provider/src/loader.tsx:854-869`. Wraps rendered components in a
+`<div data-mode={mode} className="kumo-root">` and listens for
+`window.addEventListener('kumo-theme-change')` events.
+
+Also updates `document.body` attributes for portal components (Select menus, etc.) that
+render outside the wrapper:
+
+```ts
+document.body.setAttribute("data-mode", mode);
+```
+
+#### Step 22: Integration Test — Third-Party HTML Page (Small)
+
+A minimal `test.html` page that:
+
+1. Loads `component-loadable.umd.cjs` via `<script>`
+2. Loads `stylesheet.css` via `<link>`
+3. Calls `window.CloudflareKumo.renderFromJSON(...)` with a simple component tree
+4. Verifies rendering works without any build step on the host page
+
+This is a manual smoke test, not an automated CI test (UMD + real browser required).
+
+**Verification gate:**
+
+```bash
+# Build the loadable
+pnpm --filter @cloudflare/kumo build:loadable
+# Verify output exists
+ls packages/kumo/dist/loadable/component-loadable.umd.cjs
+ls packages/kumo/dist/loadable/stylesheet.css
+# Verify bundle size is reasonable (< 500KB gzipped)
+gzip -c packages/kumo/dist/loadable/component-loadable.umd.cjs | wc -c
+```
+
+### Phase 3: Docs Demo (`packages/kumo-docs-astro/`)
 
 #### Step 9: Rename + Restructure `/streaming` (Small)
 
@@ -991,7 +1274,7 @@ Initially uses mock data only. Real Workers AI integration is a separate milesto
 Astro page using `DocLayout` that embeds `<PlaygroundDemo client:load />` with minimal
 surrounding documentation explaining what's happening.
 
-### Phase 3: Workers AI Integration (Future — Separate Milestone)
+### Phase 4: Workers AI Integration (Future — Separate Milestone)
 
 This is a separate deployment, not part of the static docs site.
 
@@ -1061,7 +1344,7 @@ Update `PlaygroundDemo.tsx` to support both mock and live mode:
 - Mock mode: plays pre-recorded sequences (default, works on static site)
 - Live mode: connects to the API Worker via `useCatalogStream`
 
-### Phase 4: Component Map Tiers 3-4 (Future)
+### Phase 5: Component Map Tiers 3-4 (Future)
 
 #### Step 17: Tier 3 — Select, Dialog, Table, Popover, Dropdown, Toast
 
@@ -1082,6 +1365,41 @@ be fully representable in JSON. Evaluate on a case-by-case basis whether a JSON-
 interface makes sense or whether these should be "escape hatch" components that require
 custom resolver functions from the consumer.
 
+### Phase 6: A2UI Adapter (Optional — Future)
+
+A thin translation layer that converts A2UI `ServerToClientMessage` arrays into
+`UITreePatch[]`. This sits between the A2UI protocol and the Phase 1 renderer:
+
+```
+A2UI messages → a2uiToPatch(messages) → UITreePatch[] → applyTreePatch() → KumoCatalogRenderer
+```
+
+This means:
+
+- The ~42 Kumo adapters in `packages/react-kumo/` become unnecessary (the renderer uses
+  the component map directly)
+- A2UI becomes just another wire format that produces patches
+- The investment in understanding the A2UI protocol pays off as protocol knowledge, not as
+  maintained adapters
+
+#### Step 23: A2UI-to-Patch Translator (Medium)
+
+**File**: `packages/kumo/src/catalog/adapters/a2ui.ts` (or a separate package)
+
+```ts
+export function a2uiToPatch(messages: ServerToClientMessage[]): UITreePatch[];
+```
+
+Key translations:
+
+- `beginRendering` → `replaceTree` or `setRoot`
+- `surfaceUpdate` with component additions → `upsertElements` + `appendChildren`
+- `dataModelUpdate` → `setData`
+- `literalString` / `literalNumber` / `literalBoolean` unwrapping → plain values
+- A2UI `ComponentArrayReference.explicitList` → `children` arrays
+
+Build this only when there is a real A2UI consumer demanding Kumo rendering.
+
 ---
 
 ## Implementation Details
@@ -1093,15 +1411,15 @@ packages/kumo/src/catalog/react/
 ├── index.ts                     # Barrel export (see export contract in Step 8)
 ├── KumoCatalogRenderer.tsx      # <KumoCatalogRenderer tree data components actions />
 ├── component-map.ts             # Context-based component mapping (no global state)
-├── compound-wrappers.tsx        # Stateful wrappers for Dialog, Select, etc. (Phase 4)
+├── compound-wrappers.tsx        # Stateful wrappers for Dialog, Select, etc. (Phase 5)
 ├── patches.ts                   # UITreePatch types + applyTreePatch() + applyDataPatch()
-├── diff.ts                      # diffUITree(prev, next) → UITreePatch[] (Phase 3, Step 13)
-├── hooks.ts                     # useUITree (Phase 1), useCatalogStream (Phase 3)
+├── diff.ts                      # diffUITree(prev, next) → UITreePatch[] (Phase 4, Step 13)
+├── hooks.ts                     # useUITree (Phase 1), useCatalogStream (Phase 4)
 ├── error-boundary.tsx           # Per-element error boundary (CatalogErrorBoundary)
 ├── types.ts                     # Renderer-specific types
 └── __tests__/
     ├── patches.test.ts          # Patch application, structural sharing, edge cases
-    ├── diff.test.ts             # Tree diffing, round-trip property tests (Phase 3)
+    ├── diff.test.ts             # Tree diffing, round-trip property tests (Phase 4)
     ├── component-map.test.ts    # Resolver output verification
     ├── renderer.test.ts         # Full render cycle
     └── hooks.test.ts            # Hook state management
@@ -1118,7 +1436,30 @@ packages/kumo/package.json                 # Add ./catalog/react export
 packages/kumo/vite.config.ts               # Add catalog/react entry
 ```
 
-### File Creation Summary (Phase 2 — Docs)
+### File Creation Summary (Phase 2 — Cross-Boundary Loadable)
+
+```
+packages/kumo/src/loadable/
+├── index.ts                     # Entry point for UMD build
+├── mount.tsx                    # window.CloudflareKumo API (render, renderFromJSON, etc.)
+├── theme-wrapper.tsx            # ThemeWrapper with cross-boundary mode switching
+└── stream-reader.ts             # JSONL stream reader for renderFromStream()
+```
+
+Or, if a separate package is preferred:
+
+```
+packages/kumo-loadable/
+├── src/
+│   ├── index.ts
+│   ├── mount.tsx
+│   ├── theme-wrapper.tsx
+│   └── stream-reader.ts
+├── vite.config.ts               # UMD/IIFE build config
+└── package.json
+```
+
+### File Creation Summary (Phase 3 — Docs)
 
 ```
 packages/kumo-docs-astro/src/
@@ -1130,7 +1471,7 @@ packages/kumo-docs-astro/src/
         └── types.ts                       # Demo-specific types
 ```
 
-### File Modification Summary (Phase 2 — Docs)
+### File Modification Summary (Phase 3 — Docs)
 
 ```
 packages/kumo-docs-astro/src/components/SidebarNav.tsx  # Add nav items
@@ -1150,16 +1491,21 @@ packages/kumo-docs-astro/src/pages/streaming.astro      # Update title/framing
 | 7    | Error boundary                             | Nothing     | Small  | 1     |
 | 8    | Package exports + vite entry               | Steps 1-7   | Small  | 1     |
 | 8b   | **Changeset**                              | Step 8      | Tiny   | 1     |
-| 9    | Restructure `/streaming` + nav             | Nothing     | Small  | 2     |
-| 10   | Mock data sequences                        | Step 1      | Small  | 2     |
-| 11   | Chat demo component                        | Steps 4, 5  | Medium | 2     |
-| 12   | Playground page                            | Step 11     | Small  | 2     |
-| 13   | `diffUITree` function                      | Step 1      | Small  | 3     |
-| 14   | API Worker (Workers AI)                    | Steps 4, 13 | Large  | 3     |
-| 15   | `useCatalogStream` hook                    | Steps 5, 14 | Small  | 3     |
-| 16   | Live mode toggle                           | Step 15     | Small  | 3     |
-| 17   | Tier 3 components (6)                      | Step 4      | Large  | 4     |
-| 18   | Tier 4 components (5)                      | Step 17     | Large  | 4     |
+| 19   | UMD build configuration                    | Step 8      | Medium | 2     |
+| 20   | `window.CloudflareKumo` mount API          | Step 19     | Medium | 2     |
+| 21   | ThemeWrapper for cross-boundary            | Step 20     | Small  | 2     |
+| 22   | Integration test — third-party HTML page   | Step 21     | Small  | 2     |
+| 9    | Restructure `/streaming` + nav             | Nothing     | Small  | 3     |
+| 10   | Mock data sequences                        | Step 1      | Small  | 3     |
+| 11   | Chat demo component                        | Steps 4, 5  | Medium | 3     |
+| 12   | Playground page                            | Step 11     | Small  | 3     |
+| 13   | `diffUITree` function                      | Step 1      | Small  | 4     |
+| 14   | API Worker (Workers AI)                    | Steps 4, 13 | Large  | 4     |
+| 15   | `useCatalogStream` hook                    | Steps 5, 14 | Small  | 4     |
+| 16   | Live mode toggle                           | Step 15     | Small  | 4     |
+| 17   | Tier 3 components (6)                      | Step 4      | Large  | 5     |
+| 18   | Tier 4 components (5)                      | Step 17     | Large  | 5     |
+| 23   | A2UI-to-Patch translator                   | Step 1      | Medium | 6     |
 
 Steps 1, 2, 5, 6, 7 have no dependencies on each other and can be done in parallel.
 
@@ -1179,8 +1525,13 @@ This must happen before push. The pre-push lefthook hook will reject without it.
 - **Don't modify `ComponentSchema`** — Registry extensions with no consumer.
 - **Don't depend on Vercel AI SDK** — UITree + SSE is lighter and works on Workers.
 - **Don't copy GPL code from `a2ui-bridge`** — Take patterns only, write fresh.
-- **Don't ask the LLM to generate patches** — Have it generate complete UITrees and diff
-  client-side.
+- **Don't ask the LLM to generate patches** — Have it generate complete UITrees; diff
+  server-side into JSONL patches.
+- **Don't build the incremental JSON parser** — JSONL solves incomplete JSON. The 676-line
+  parser in `kumo-provider/server.js` is unnecessary with JSONL streaming.
+- **Don't maintain A2UI Kumo adapters separately** — They'll be replaced by the component
+  map when the renderer is complete. A2UI becomes a wire format adapter, not a rendering
+  layer.
 - **Don't import all 38 components in the component map** — Use registration pattern.
 - **Don't run** `pnpm version`, `pnpm release`, `pnpm publish:beta`,
   `pnpm release:production` — Per AGENTS.md.
@@ -1427,7 +1778,26 @@ grep -r "streaming" packages/kumo-docs-astro/src/components/SidebarNav.tsx
 # Expect: at least one match
 ```
 
-### After Step 13 (diffUITree — Phase 3)
+### After Step 22 (Cross-Boundary Loadable — Phase 2)
+
+- [ ] UMD build produces `component-loadable.umd.cjs`
+- [ ] CSS build produces `stylesheet.css`
+- [ ] `window.CloudflareKumo.renderFromJSON()` renders a simple component in test HTML
+- [ ] `window.CloudflareKumo.setTheme('dark')` switches theme across components
+- [ ] Bundle size is reasonable (< 500KB gzipped for kitchen-sink build)
+
+**Verification gate:**
+
+```bash
+pnpm --filter @cloudflare/kumo build:loadable && \
+ls packages/kumo/dist/loadable/component-loadable.umd.cjs && \
+ls packages/kumo/dist/loadable/stylesheet.css
+# Expect: all succeed, files exist
+gzip -c packages/kumo/dist/loadable/component-loadable.umd.cjs | wc -c
+# Expect: < 512000 bytes (500KB)
+```
+
+### After Step 13 (diffUITree — Phase 4)
 
 - [ ] `diffUITree(tree, tree)` returns `[]` (identical trees produce no patches)
 - [ ] `diffUITree(a, b)` patches applied to `a` produce tree equivalent to `b`
@@ -1534,7 +1904,7 @@ rg "^(export )?(let|var) " packages/kumo/src/catalog/react/ --glob '!__tests__/*
 # Expected: 0 or no output
 ```
 
-### Phase Gate (Before Starting Phase 2)
+### Phase Gate (Before Starting Phase 2 — Cross-Boundary Loadable)
 
 All Phase 1 steps must pass their individual verification gates AND:
 
@@ -1548,318 +1918,17 @@ grep -l "@cloudflare/kumo" .changeset/*.md
 # ALL must succeed
 ```
 
----
-
-## Agent Execution Spec
-
-This section is a condensed, machine-consumable reference for an AI agent executing this
-plan. It contains ONLY what's needed to implement each step — no motivation, no history.
-
-For each step: the files to create/modify, the export contract, the key requirements, and
-the verification commands. Read the detailed sections above for context on WHY.
-
-### Prerequisites
-
-```bash
-# Verify environment
-node --version    # Expect: v24.x
-pnpm --version    # Expect: >=10.21.0
-pnpm --filter @cloudflare/kumo typecheck  # Expect: exit 0 (clean baseline)
-```
-
-### Step 1: patches.ts
-
-**Create**: `packages/kumo/src/catalog/react/patches.ts`
-
-**Export contract**:
-
-```ts
-export type UITreePatch = /* 9 variants, see Revised Plan Step 1 */;
-export function applyTreePatch(prev: UITree, patch: UITreePatch): UITree;
-export function applyDataPatch(prev: DataModel, patch: UITreePatch): DataModel;
-```
-
-**Key requirements**:
-
-- Structural sharing: unchanged elements preserve `===` identity
-- `deleteElements` on parent recursively removes children
-- `deleteElements` for root throws
-- `setRoot` to nonexistent key throws
-- `appendChildren` to nonexistent childKey throws
-- `appendChildren` for childKey with existing parent throws
-- `removeChildren` for absent childKey is no-op
-- `removeChildren` leaves `children: []` not `undefined`
-- `batch`: snapshot isolation — if any sub-patch throws, return original tree
-- All functions are pure (no mutation)
-
-**Also create**: `packages/kumo/src/catalog/react/__tests__/patches.test.ts`
-
-**Verify**:
-
-```bash
-pnpm --filter @cloudflare/kumo test -- --grep "applyTreePatch\|applyDataPatch"
-pnpm --filter @cloudflare/kumo typecheck
-```
-
-### Step 2: component-map.ts
-
-**Create**: `packages/kumo/src/catalog/react/component-map.ts`
-
-**Export contract**:
-
-```ts
-export type ComponentResolver = (
-  element: UIElement,
-  resolvedProps: Record<string, unknown>,
-  children: ReactNode,
-) => ReactElement | null;
-export function createPassthroughResolver(
-  Component: ComponentType<any>,
-): ComponentResolver;
-export function createComponentMap(
-  components: Record<string, ComponentType<any>>,
-): Record<string, ComponentResolver>;
-export function mergeComponentMaps(
-  ...maps: Record<string, ComponentResolver>[]
-): Record<string, ComponentResolver>;
-```
-
-**Key requirements**:
-
-- NO module-level mutable state (no global registry)
-- `createPassthroughResolver` wraps a component with direct prop/children pass-through
-- `createComponentMap` creates resolvers for all entries using `createPassthroughResolver`
-- `mergeComponentMaps` — later maps override earlier ones
-
-**Also create**: `packages/kumo/src/catalog/react/__tests__/component-map.test.ts`
-
-**Verify**:
-
-```bash
-pnpm --filter @cloudflare/kumo test -- --grep "component-map\|createComponentMap"
-pnpm --filter @cloudflare/kumo typecheck
-```
-
-### Step 3: Tier 2 resolvers
-
-**Modify**: `packages/kumo/src/catalog/react/component-map.ts` (add resolver factories)
-
-**New exports** (added to existing file):
-
-```ts
-export function createTabsResolver(TabsComponent: ComponentType<any>): ComponentResolver;
-export function createCheckboxResolver(CheckboxComponent: /* compound */): ComponentResolver;
-export function createRadioResolver(RadioComponent: /* compound */): ComponentResolver;
-export function createBreadcrumbsResolver(BreadcrumbsComponent: /* compound */): ComponentResolver;
-export function createPaginationResolver(PaginationComponent: ComponentType<any>): ComponentResolver;
-// ... etc for Input, SensitiveInput, Grid, Collapsible, LayerCard
-```
-
-**Key requirements**:
-
-- Tabs: pass `tabs` array directly, NOT compound
-- Checkbox/Radio: convert `items` array to `.Group` + `.Item` children
-- Breadcrumbs: convert `links` array to `.Link` + `.Current`
-- Pagination: stateful wrapper managing `page` when no `setPage` provided
-
-**Verify**:
-
-```bash
-pnpm --filter @cloudflare/kumo test -- --grep "Tier 2\|Tabs\|Checkbox\|Radio\|Breadcrumbs"
-pnpm --filter @cloudflare/kumo typecheck
-```
-
-### Step 4: KumoCatalogRenderer.tsx
-
-**Create**: `packages/kumo/src/catalog/react/KumoCatalogRenderer.tsx`
-
-**Export contract**:
-
-```ts
-export interface KumoCatalogRendererProps {
-  /* see Revised Plan Step 4 */
-}
-export function KumoCatalogRenderer(
-  props: KumoCatalogRendererProps,
-): ReactElement | null;
-```
-
-**Key requirements**:
-
-- `components` prop is REQUIRED (not optional)
-- Does NOT call `initCatalog` — no async operations
-- Uses `evaluateVisibility` and `resolveProps` from `../visibility` and `../data`
-- Children precedence: `element.children` array > `props.children`
-- `React.memo` on per-element renderer using element reference identity
-- `onAction` returns `Promise<void>`; applies `onSuccess.set`/`onError.set` after resolution
-- Wraps each element in `CatalogErrorBoundary`
-- Component map passed to children via React Context
-
-**Also create**: `packages/kumo/src/catalog/react/__tests__/renderer.test.ts`
-
-**Verify**:
-
-```bash
-pnpm --filter @cloudflare/kumo test -- --grep "KumoCatalogRenderer\|renderer"
-pnpm --filter @cloudflare/kumo typecheck
-```
-
-### Step 5: hooks.ts
-
-**Create**: `packages/kumo/src/catalog/react/hooks.ts`
-
-**Export contract**:
-
-```ts
-export function useUITree(
-  initialTree?: UITree,
-  initialData?: DataModel,
-): {
-  tree: UITree;
-  data: DataModel;
-  applyPatch: (patch: UITreePatch) => void;
-  setData: (path: string, value: unknown) => void;
-  reset: () => void;
-};
-```
-
-**Key requirements**:
-
-- Uses `useReducer` internally
-- `applyPatch` calls `applyTreePatch` for tree patches, `applyDataPatch` for data patches
-
-**Also create**: `packages/kumo/src/catalog/react/__tests__/hooks.test.ts`
-
-**Verify**:
-
-```bash
-pnpm --filter @cloudflare/kumo test -- --grep "useUITree"
-pnpm --filter @cloudflare/kumo typecheck
-```
-
-### Step 6: Fix initCatalog + resolveProps + Add Catalog Tests
-
-**Modify**: `packages/kumo/src/catalog/catalog.ts` (lines 279-282)
-
-**Change**:
-
-```ts
-// FROM:
-export async function initCatalog(catalog: KumoCatalog): Promise<void> {
-  catalog.validateTree({});
-}
-// TO:
-export async function initCatalog(_catalog: KumoCatalog): Promise<void> {
-  await loadSchemas();
-}
-```
-
-**Modify**: `packages/kumo/src/catalog/data.ts`
-
-- Fix `resolveProps` to recursively resolve dynamic values inside arrays (Flaw 13)
-- Fix `resolveProps` to return the original object when no values changed (Flaw 14)
-
-**Modify**: `packages/kumo/src/catalog/catalog.test.ts`
-
-Add tests for:
-
-- `initCatalog` awaits schema loading
-- `validateTree` after init (success + failure cases)
-- `resolveProps` resolves dynamic values inside arrays
-- `resolveProps` preserves reference equality for static props
-
-**Verify**:
-
-```bash
-pnpm --filter @cloudflare/kumo test -- --grep "initCatalog\|catalog\|resolveProps"
-pnpm --filter @cloudflare/kumo typecheck
-```
-
-### Step 7: error-boundary.tsx
-
-**Create**: `packages/kumo/src/catalog/react/error-boundary.tsx`
-
-**Export contract**:
-
-```ts
-export class CatalogErrorBoundary extends React.Component<
-  {
-    children: ReactNode;
-    componentType?: string;
-    fallback?: ComponentType<{ error: Error; componentType?: string }>;
-  },
-  { hasError: boolean; error?: Error }
-> {}
-```
-
-**Key requirements**:
-
-- Class component (React requirement for error boundaries)
-- In dev: shows component type + error message
-- In prod: renders nothing (`null`)
-- Pattern reference: `_examples/kumo-provider/src/loader.tsx:813-851`
-
-**Verify**:
-
-```bash
-pnpm --filter @cloudflare/kumo typecheck
-```
-
-### Step 8: Barrel export + package config
-
-**Create**: `packages/kumo/src/catalog/react/index.ts` (see export contract above)
-**Create**: `packages/kumo/src/catalog/react/types.ts` (renderer-specific types)
-
-**Modify**:
-
-- `packages/kumo/package.json` — add `"./catalog/react"` export path
-- `packages/kumo/vite.config.ts` — add `"catalog/react"` entry
-- `packages/kumo/src/catalog/index.ts` — re-export `applyTreePatch`, `applyDataPatch`, `UITreePatch`
-
-**Verify**:
-
-```bash
-pnpm --filter @cloudflare/kumo build && \
-pnpm --filter @cloudflare/kumo typecheck && \
-pnpm --filter @cloudflare/kumo test && \
-ls packages/kumo/dist/catalog/react.js && \
-pnpm lint
-# ALL must exit 0
-
-# Verify Zod is not in the react chunk:
-rg "z\.object\|z\.string\|z\.enum\|z\.union\|z\.array" packages/kumo/dist/catalog/react.js --count
-# Expect: 0 matches
-```
-
-### Step 8b: Changeset
-
-```bash
-pnpm changeset
-# Select: @cloudflare/kumo
-# Bump: minor
-# Summary: Add catalog/react renderer — UITree patch system, component map, KumoCatalogRenderer, useUITree hook
-```
-
-**Verify**:
-
-```bash
-grep -l "@cloudflare/kumo" .changeset/*.md
-# Expect: at least one match
-```
-
-### Phase 1 Complete Gate
-
-Before moving to Phase 2, ALL of the following must pass:
-
-```bash
-pnpm --filter @cloudflare/kumo build && \
-pnpm --filter @cloudflare/kumo typecheck && \
-pnpm --filter @cloudflare/kumo test && \
-pnpm lint && \
-ls packages/kumo/dist/catalog/react.js && \
-grep -l "@cloudflare/kumo" .changeset/*.md && \
-rg "dark:" packages/kumo/src/catalog/react/ --count 2>/dev/null; echo "dark: check: $?" && \
-rg "from ['\"]@cloudflare/kumo['\"]" packages/kumo/src/catalog/react/ --glob '!__tests__/*' --count 2>/dev/null; echo "barrel import check: $?"
-```
-
 Failures at this gate block Phase 2.
+
+### Phase Gate (Before Starting Phase 3 — Docs Demo)
+
+Phase 1 must be complete. Phase 2 (loadable) is NOT required for the docs demo — the demo
+uses the renderer directly, not the UMD bundle. Phases 2 and 3 can proceed in parallel.
+
+```bash
+pnpm --filter @cloudflare/kumo build && \
+pnpm --filter @cloudflare/kumo typecheck && \
+pnpm --filter @cloudflare/kumo test && \
+pnpm lint
+# ALL must succeed
+```

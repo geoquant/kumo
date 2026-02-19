@@ -113,29 +113,48 @@ export function resolveDynamicValue<T>(
 }
 
 /**
+ * Resolve a single value, returning the original reference if unchanged.
+ */
+function resolveValue(value: unknown, dataModel: DataModel): unknown {
+  if (isDynamicPath(value)) {
+    return getByPath(dataModel, value.path);
+  }
+
+  if (Array.isArray(value)) {
+    let changed = false;
+    const resolved = value.map((item) => {
+      const resolvedItem = resolveValue(item, dataModel);
+      if (resolvedItem !== item) changed = true;
+      return resolvedItem;
+    });
+    return changed ? resolved : value;
+  }
+
+  if (typeof value === "object" && value !== null) {
+    return resolveProps(value as Record<string, unknown>, dataModel);
+  }
+
+  return value;
+}
+
+/**
  * Resolve all dynamic values in an object.
- * Recursively resolves any { path: string } references.
+ * Recursively resolves any { path: string } references, including inside arrays.
+ * Returns the original object reference when no dynamic values were resolved,
+ * enabling React.memo optimizations via reference equality.
  */
 export function resolveProps(
   props: Record<string, unknown>,
   dataModel: DataModel,
 ): Record<string, unknown> {
+  let changed = false;
   const resolved: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(props)) {
-    if (isDynamicPath(value)) {
-      resolved[key] = getByPath(dataModel, value.path);
-    } else if (
-      typeof value === "object" &&
-      value !== null &&
-      !Array.isArray(value)
-    ) {
-      // Recursively resolve nested objects
-      resolved[key] = resolveProps(value as Record<string, unknown>, dataModel);
-    } else {
-      resolved[key] = value;
-    }
+    const resolvedValue = resolveValue(value, dataModel);
+    if (resolvedValue !== value) changed = true;
+    resolved[key] = resolvedValue;
   }
 
-  return resolved;
+  return changed ? resolved : props;
 }

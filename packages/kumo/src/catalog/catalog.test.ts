@@ -100,6 +100,80 @@ describe("data utilities", () => {
         theme: "dark",
       });
     });
+
+    it("returns the same object reference when no dynamic values exist", () => {
+      const data = { user: { name: "John" } };
+      const props = { label: "Hello", variant: "primary", count: 42 };
+      const resolved = resolveProps(props, data);
+      expect(resolved).toBe(props);
+    });
+
+    it("returns a new object when dynamic values are resolved", () => {
+      const data = { user: { name: "John" } };
+      const props = { label: { path: "/user/name" }, variant: "primary" };
+      const resolved = resolveProps(props, data);
+      expect(resolved).not.toBe(props);
+      expect(resolved).toEqual({ label: "John", variant: "primary" });
+    });
+
+    it("resolves dynamic values inside arrays", () => {
+      const data = {
+        options: { first: "Option A", second: "Option B" },
+      };
+      const props = {
+        items: [{ path: "/options/first" }, { path: "/options/second" }],
+      };
+      const resolved = resolveProps(props, data);
+      expect(resolved).toEqual({
+        items: ["Option A", "Option B"],
+      });
+    });
+
+    it("resolves nested objects inside arrays", () => {
+      const data = { labels: { submit: "Go" } };
+      const props = {
+        actions: [
+          { label: { path: "/labels/submit" }, variant: "primary" },
+          { label: "Cancel", variant: "secondary" },
+        ],
+      };
+      const resolved = resolveProps(props, data);
+      expect(resolved).toEqual({
+        actions: [
+          { label: "Go", variant: "primary" },
+          { label: "Cancel", variant: "secondary" },
+        ],
+      });
+    });
+
+    it("preserves array reference when no dynamic values exist inside", () => {
+      const data = { user: { name: "John" } };
+      const items = ["static", "values", "only"];
+      const props = { items };
+      const resolved = resolveProps(props, data);
+      expect(resolved).toBe(props);
+      expect(resolved.items).toBe(items);
+    });
+
+    it("resolves deeply nested dynamic values", () => {
+      const data = { config: { color: "blue" } };
+      const props = {
+        style: { nested: { deep: { path: "/config/color" } } },
+      };
+      const resolved = resolveProps(props, data);
+      expect(resolved).toEqual({
+        style: { nested: { deep: "blue" } },
+      });
+    });
+
+    it("preserves nested object reference when no dynamic values exist", () => {
+      const data = {};
+      const nested = { a: 1, b: 2 };
+      const props = { config: nested };
+      const resolved = resolveProps(props, data);
+      expect(resolved).toBe(props);
+      expect(resolved.config).toBe(nested);
+    });
   });
 });
 
