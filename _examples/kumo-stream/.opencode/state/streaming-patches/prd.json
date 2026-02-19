@@ -47,7 +47,7 @@
         "No DataModel in the return type — data model is dropped",
         "Imports applyPatch from rfc6902.ts, not patches.ts"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "core-4",
