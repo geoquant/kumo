@@ -120,3 +120,10 @@ Started: 2026-02-19
 - All 8 tests in file pass
 - Files changed: `_examples/kumo-stream/src/__tests__/streaming-integration.test.ts`
 - **Learnings:** The test's `el()` helper creates raw UIElement objects for parser testing — component type and props aren't validated at this level. But using valid types/props is still important for test readability and as documentation of correct usage patterns.
+
+## Task - build-1
+- `pnpm --filter @cloudflare/kumo build` succeeds (library build + CSS + blocks + CLI)
+- `pnpm --filter @cloudflare/kumo typecheck` clean — zero errors
+- `pnpm typecheck` (workspace-wide): 14 pre-existing errors in kumo-docs-astro — all Phosphor `IconProps` type mismatches, unrelated to Stack/Cluster
+- No code changes needed — verification task only
+- **Learnings:** kumo-docs-astro has known Phosphor icon type errors (14 total). These predate this work and affect SearchDialog, SidebarNav, EmptyDemo, DialogDemo, FigmaPage, ResourceListDemo, and Heading components. All are `className`/`size`/`weight` prop mismatches against `IconProps`.
