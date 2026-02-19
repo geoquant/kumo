@@ -13,6 +13,7 @@ Started: 2026-02-19
 - **Hook options pattern**: `useUITree(options?: UseUITreeOptions)` — options object for extensibility. Pass-through values (like `onAction`) returned alongside state so consumers wire them to renderers.
 - **Module-level Set + test cleanup**: for pub/sub patterns with module-level state (e.g. subscriber Set), export a `_clear*()` function for test cleanup in afterEach. Vitest reuses module state across tests.
 - **Dual-React in tests**: kumo `dist/` components can't render in test env (bundled React ≠ test React). Test COMPONENT_MAP wiring by asserting no `.text-kumo-warning` (Unknown component), not by full DOM rendering.
+- **Mock kumo components for wrapper tests**: `vi.mock("@cloudflare/kumo")` with test doubles that expose onChange callbacks via trigger buttons + `data-*` attributes for state assertion. See `stateful-wrappers.test.tsx`.
 
 ---
 
@@ -69,3 +70,10 @@ Started: 2026-02-19
 - **Files changed**: None — tests already existed in `src/__tests__/action-handler.test.ts` with 6 passing tests
 - **Verification**: `vitest run` passes all 6 tests, `tsc --noEmit` clean
 - **Learnings**: Tests were written alongside implementation in functional-1 but PRD task wasn't marked passing. Always mark testing tasks when tests are written proactively.
+
+## Task - testing-2
+- **Implemented**: Unit tests for all 5 stateful wrappers with onAction integration
+- **Files changed**:
+  - `src/__tests__/stateful-wrappers.test.tsx` (new) — 12 tests across 5 describe blocks: StatefulSelect (3), StatefulCheckbox (2), StatefulSwitch (2), StatefulTabs (3), StatefulCollapsible (2)
+- **Strategy**: `vi.mock("@cloudflare/kumo")` replaces kumo components with minimal test doubles that expose onChange callbacks via DOM buttons + display controlled values via `data-*` attributes. Avoids dual-React issue entirely.
+- **Learnings**: Mocking the component library is cleaner than fighting the dual-React bundling issue. Each mock renders a trigger button that fires the onChange with a predictable value, and a `data-*` attribute for asserting current state. This pattern is reusable for any test that needs to verify wrapper behavior without rendering real kumo components.
