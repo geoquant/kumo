@@ -63,3 +63,11 @@ Started: 2026-02-19
 - **Files changed**:
   - `packages/kumo/package.json` — changed `./ai/schemas` export: `types` → `./dist/ai/schemas.d.ts`, `import` → `./dist/ai/schemas.js`
 - **Learnings**: The catalog's lazy `import("../../ai/schemas")` is unaffected by the package.json exports change — Vite resolves relative imports at build time to sibling paths within `dist/` (`import("./ai/schemas.js")`), not via Node.js package exports. The `vite-plugin-dts` generates `.d.ts` files in `dist/` mirroring the source structure, so `dist/ai/schemas.d.ts` is produced alongside `dist/ai/schemas.js` from the same entry point.
+
+## Task - infra-1
+- **Implemented**: Switched kumo-stream from bun to pnpm. Deleted `bun.lock`, changed `@cloudflare/kumo` dependency from `link:../../packages/kumo` to `workspace:*`, added `_examples/kumo-stream` to root `pnpm-workspace.yaml`. All scripts (`dev`, `build`, `test`, `build:loadable`, `typecheck`) work correctly under pnpm.
+- **Files changed**:
+  - `_examples/kumo-stream/bun.lock` — deleted
+  - `_examples/kumo-stream/package.json` — `@cloudflare/kumo` changed from `link:` to `workspace:*`
+  - `pnpm-workspace.yaml` — added `_examples/kumo-stream` to packages list
+- **Learnings**: Switching from bun `link:` to pnpm `workspace:*` is straightforward when the project already uses standard tooling (vite, tsc, vitest, tsx) with no bun-specific APIs. pnpm creates the same symlink structure (`node_modules/@cloudflare/kumo → ../../../../packages/kumo`). No script changes needed since none referenced bun directly. The `workspace:*` protocol resolves to whatever version is in the local workspace, making it more maintainable than hardcoded `link:` paths.
