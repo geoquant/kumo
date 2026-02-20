@@ -78,3 +78,9 @@ Started: 2026-02-19
 - **Files changed**:
   - `server/index.ts` — added `fs` import, `LOADABLE_DIR`/`KUMO_PKG_DIR` constants, 4 `app.get` routes for `.well-known/*`, updated startup log
 - **Learnings**: `@cloudflare/kumo` has strict `exports` — `component-registry.json` is NOT an exported subpath, so `require.resolve` fails. Use `fs.realpathSync` on the `node_modules/@cloudflare/kumo` symlink to get the real package directory, then construct paths manually. Express `res.sendFile` auto-detects Content-Type from extension (`application/javascript`, `text/css`, `application/json`). The discovery endpoint reads `package.json` version at request time (not cached) — acceptable for dev server, production would cache.
+
+## Task - wellknown-2
+- **Implemented**: Updated `cross-boundary.html` to load stylesheet and UMD bundle from `.well-known` paths instead of `/dist/loadable/`. Two-line change: `href` on `<link>` tag and `src` on `<script>` tag.
+- **Files changed**:
+  - `public/cross-boundary.html` — stylesheet `href="/dist/loadable/style.css"` → `href="/.well-known/stylesheet.css"`, script `src="/dist/loadable/component-loadable.umd.js"` → `src="/.well-known/component-loadable.umd.js"`
+- **Learnings**: Minimal integration task — the `.well-known` routes (wellknown-1) already serve the same files from `dist/loadable/`, so this is purely a path update. No functional change in behavior, just canonical URL consistency.
