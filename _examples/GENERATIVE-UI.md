@@ -29,11 +29,7 @@ A mechanism needs to exist where AI can consume a list of available components a
 Our component loader files first most important task is to import our component library into it so we have access to the individual components. No different than any other project, a simple import does the trick.
 
 ```ts
-import {
-  Badge,
-  Banner,
-  Button,
-}  from '@cloudflare/kumo';
+import { Badge, Banner, Button } from "@cloudflare/kumo";
 ```
 
 Next, we define a registry constant that maps a string to a component (e.g. “Button” \= Button). Iterate through every component you want to make usable through your loader.
@@ -44,7 +40,7 @@ const REGISTRY: Record<string, any> = {
   Banner,
   Button,
   // ...
-}
+};
 ```
 
 ### Stateless Components
@@ -73,7 +69,7 @@ const REGISTRY: Record<string, any> = {
   Button,
   // ...
   Combobox: StatefulCombobox,
-}
+};
 ```
 
 Our registry entry for stateful components changes a bit, instead of redirecting to the \`Combobox\` import from Kumo for example we instead map it to a custom implementation defined in our loadable as \`StatefulCombobox\`. Really this just tells us we’re going to handle it a bit differently but still pass it the same payload we received from the JSON response of our AI model and we’ll attach it all ourselves, as opposed to how we handled it for stateless components where we just passed it all in and it “just worked”.
@@ -81,11 +77,11 @@ Our registry entry for stateful components changes a bit, instead of redirecting
 ```ts
 const StatefulCombobox = ({ items, defaultValue, placeholder, label, ...props }: any) => {
   const [value, setValue] = useState<string | null>(defaultValue || null);
-  
+
   return (
-    <Combobox 
-      value={value} 
-      onValueChange={(v) => setValue(v as any)} 
+    <Combobox
+      value={value}
+      onValueChange={(v) => setValue(v as any)}
       items={items}
       {...props}
     >
@@ -164,4 +160,162 @@ const ThemeWrapper = ({ children, initialMode }: { children: React.ReactNode, in
 
 ## Streaming Responses
 
-Talk about how we should handle JSON being streamed back and in most cases an incomplete JSON object in flight that cannot be rendered but we should still render components as we can complete JSON structure.
+Streaming generative UI introduces a core problem: the LLM produces text token-by-token, yet the UI renderer needs complete, structured data. Sending a monolithic JSON blob only after the LLM finishes would mean the user stares at a blank screen for seconds. We need a wire format that lets us render incrementally — showing components as they are defined, not after the entire response is complete.
+
+### Wire Format: JSONL + RFC 6902 JSON Patch
+
+The solution is **JSONL** (newline-delimited JSON) where each line is a self-contained [RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902) JSON Patch operation. Each patch mutates a flat `UITree` structure:
+
+```
+{ root: "element-key", elements: { [key]: UIElement } }
+```
+
+Where each `UIElement` is:
+
+```
+{ key: string, type: string, props: object, children?: string[], parentKey?: string }
+```
+
+The LLM emits one patch per line. As each line arrives and is parsed, it produces a valid, renderable tree at every intermediate step. No partial JSON. No waiting for closing braces.
+
+#### Example: A simple card with heading and button
+
+The LLM response (raw text, one JSON object per line):
+
+```jsonl
+{"op":"add","path":"/root","value":"card-1"}
+{"op":"add","path":"/elements/card-1","value":{"key":"card-1","type":"Surface","props":{},"children":["heading-1","action-btn"]}}
+{"op":"add","path":"/elements/heading-1","value":{"key":"heading-1","type":"Text","props":{"children":"Welcome","variant":"heading2"},"parentKey":"card-1"}}
+{"op":"add","path":"/elements/action-btn","value":{"key":"action-btn","type":"Button","props":{"children":"Get Started","variant":"primary"},"parentKey":"card-1"}}
+```
+
+After line 1, the tree has a root but no elements — nothing renders yet. After line 2, the root element exists (though its children are forward-referenced). After lines 3–4, all elements are present and the full card renders. The renderer checks for missing children gracefully, so intermediate states never crash.
+
+#### Supported Operations
+
+Only three RFC 6902 operations are used (a deliberate subset):
+
+| Operation | Purpose                     | Example                                                                      |
+| --------- | --------------------------- | ---------------------------------------------------------------------------- |
+| `add`     | Set a new field or element  | `{"op":"add","path":"/elements/btn-1","value":{...}}`                        |
+| `replace` | Overwrite an existing value | `{"op":"replace","path":"/elements/btn-1/props/children","value":"Updated"}` |
+| `remove`  | Delete a field or element   | `{"op":"remove","path":"/elements/btn-1"}`                                   |
+
+Paths follow [RFC 6901](https://datatracker.ietf.org/doc/html/rfc6901) JSON Pointer syntax:
+
+- `/root` — the tree's root element key
+- `/elements/key` — a complete UIElement
+- `/elements/key/props/label` — a nested prop within an element
+- `/elements/key/children/-` — append to a children array
+
+### SSE Transport (Server → Client)
+
+When proxying through a backend (recommended for production — keeps the API key server-side), responses stream as [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-Sent_Events):
+
+```
+POST /api/chat
+Content-Type: application/json
+
+{ "message": "Show me a button", "history": [] }
+```
+
+The server streams SSE frames:
+
+```
+data: {"type":"text","delta":"{"}\n\n
+data: {"type":"text","delta":"\"op\":\"add\""}\n\n
+data: {"type":"text","delta":",\"path\":\"/root\",\"value\":\"btn-1\"}\n"}\n\n
+data: {"type":"text","delta":"{"}\n\n
+...
+data: {"type":"done"}\n\n
+```
+
+Each frame carries a `type` discriminant:
+
+| Type    | Payload               | Meaning                                  |
+| ------- | --------------------- | ---------------------------------------- |
+| `text`  | `{ delta: string }`   | A chunk of streamed text (partial JSONL) |
+| `done`  | —                     | Stream completed successfully            |
+| `error` | `{ message: string }` | Stream failed                            |
+
+Note that `delta` values are raw text fragments, not complete JSON lines. A single JSONL line may arrive across many `text` frames. This is why the client needs a streaming parser.
+
+### Client-Side Pipeline
+
+The client assembles deltas into patch operations through a three-stage pipeline:
+
+```
+SSE text deltas → JSONL Parser → RFC 6902 Applicator → UITree State → Renderer
+```
+
+#### Stage 1: JSONL Parser
+
+A stateful parser buffers incoming text chunks and emits parsed patch operations whenever a complete line (terminated by `\n`) is found:
+
+```ts
+interface JsonlParser {
+  /** Feed a text chunk. Returns parsed patch ops from any complete lines. */
+  push(chunk: string): readonly JsonPatchOp[];
+  /** Parse whatever remains in the buffer (call on stream end). */
+  flush(): readonly JsonPatchOp[];
+}
+
+const parser = createJsonlParser();
+
+// As each SSE delta arrives:
+const ops = parser.push(delta); // [] if no complete line yet, [op, ...] if lines completed
+
+// When the stream ends:
+const remaining = parser.flush(); // Parse any trailing content
+```
+
+Empty lines and markdown fences (` ``` `) are silently skipped, making the parser tolerant of minor LLM formatting deviations.
+
+#### Stage 2: Patch Application
+
+Each parsed `JsonPatchOp` is applied to the `UITree` immutably — every `applyPatch` call returns a new tree, never mutating the previous one:
+
+```ts
+import { applyPatch, type JsonPatchOp } from "./rfc6902";
+
+function applyPatches(tree: UITree, ops: readonly JsonPatchOp[]): UITree {
+  let current = tree;
+  for (const op of ops) {
+    current = applyPatch(current, op);
+  }
+  return current;
+}
+```
+
+This immutability is critical for React rendering — each new tree reference triggers a re-render, showing the latest state of the UI as it streams in.
+
+#### Stage 3: Wiring It Together
+
+In a React application, the full pipeline connects SSE → parser → state → renderer:
+
+```ts
+const { tree, applyPatches, reset } = useUITree();
+const parser = createJsonlParser();
+
+startStream(config, messages, {
+  onText: (delta) => {
+    const ops = parser.push(delta);
+    if (ops.length > 0) applyPatches(ops);
+  },
+  onDone: () => {
+    const remaining = parser.flush();
+    if (remaining.length > 0) applyPatches(remaining);
+  },
+  onError: (err) => {
+    const remaining = parser.flush(); // preserve partial UI
+    if (remaining.length > 0) applyPatches(remaining);
+  },
+});
+```
+
+Key behaviors:
+
+- **Incremental rendering**: Components appear on screen as their JSONL lines complete, not when the full response finishes.
+- **Graceful partial states**: If a parent references children that haven't arrived yet, the renderer skips them without crashing. They appear once their elements are streamed.
+- **Error resilience**: On stream failure, `flush()` parses any remaining buffer so partial UI stays visible rather than disappearing.
+- **Multi-turn conversations**: Before starting a new stream, the current tree is snapshot into conversation history and the tree is reset to empty.

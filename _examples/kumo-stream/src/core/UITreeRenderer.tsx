@@ -16,6 +16,7 @@ import {
   createClickHandler,
   type ActionDispatch,
 } from "./action-handler";
+import { validateElement, logValidationError } from "./element-validator";
 
 /** Maximum recursion depth to prevent infinite loops from circular refs. */
 const MAX_DEPTH = 50;
@@ -134,6 +135,30 @@ function RenderElement({
     return (
       <div className="text-xs text-kumo-danger">
         Missing element: {elementKey}
+      </div>
+    );
+  }
+
+  // Validate element props against Kumo schema before rendering.
+  // Invalid elements render a warning instead of crashing the tree.
+  const validation = validateElement(element);
+  if (!validation.valid) {
+    logValidationError(validation);
+    return (
+      <div
+        data-key={elementKey}
+        className="rounded border border-kumo-warning-line bg-kumo-warning-subtle p-2 text-xs text-kumo-warning"
+      >
+        Validation failed: &ldquo;{elementKey}&rdquo; ({element.type})
+        {validation.issues.length > 0 && (
+          <ul className="mt-1 list-inside list-disc">
+            {validation.issues.map((issue, i) => (
+              <li key={i}>
+                {issue.path}: {issue.message}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     );
   }
