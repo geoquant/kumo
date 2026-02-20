@@ -7,6 +7,7 @@ Started: 2026-02-20
 - Runtime capture: `UITreeRenderer` injects `onChange` for `Input` + `Textarea` to set store by `elementKey` (chain existing handler; read `event.target.value` safely)
 - submit_form runtime: `UITreeRenderer` injects `context.runtimeValues = store.snapshotTouched()` on submit button click; handler builds stable JSON payload w/ scope + guardrails
 - Prompt anti-drift: generate "Available Components" section from `@cloudflare/kumo/ai/component-registry.json` filtered by `@cloudflare/kumo/ai/schemas` + `KNOWN_TYPES`
+- URL policy: `sanitizeUrl()` allow http(s)+relative only; block other schemes + `//...`; enforce in `processActionResult` (external) + `UITreeRenderer` (Link href)
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -30,3 +31,8 @@ Started: 2026-02-20
 - Implemented generated "Available Components" prompt section derived from `@cloudflare/kumo` registry + schemas, filtered to kumo-stream supported types (incl aliases)
 - Files changed: `_examples/kumo-stream/src/core/system-prompt.ts`, `_examples/kumo-stream/src/core/system-prompt-components.ts`, `_examples/kumo-stream/src/__tests__/system-prompt-components.test.ts`, `_examples/kumo-stream/src/__tests__/action-registry.test.ts`, `_examples/kumo-stream/src/core/UITreeRenderer.tsx`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
 - Learnings: intersect registry props w/ Zod object shape keys to avoid advertising invalid props; treat `Div`/`RadioItem` as synthetic + unvalidated
+
+## Task - [security-1]
+- Implemented safe-by-default URL policy for external navigations + Link hrefs (allow http(s)+relative; block others)
+- Files changed: `_examples/kumo-stream/src/core/url-policy.ts`, `_examples/kumo-stream/src/core/process-action-result.ts`, `_examples/kumo-stream/src/core/UITreeRenderer.tsx`, `_examples/kumo-stream/src/__tests__/process-action-result.test.ts`, `_examples/kumo-stream/src/__tests__/ui-tree-renderer-action.test.tsx`, `_examples/kumo-stream/src/__tests__/url-policy.test.ts`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
+- Learnings: enforce policy at boundaries (renderer for href; action processor for external) so custom handlers inherit safety
