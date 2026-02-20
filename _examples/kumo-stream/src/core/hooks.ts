@@ -5,10 +5,14 @@
  * No DataModel — data model concerns are dropped per PRD non-goals.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { applyPatch as applyRfc6902Patch, type JsonPatchOp } from "./rfc6902";
 import { EMPTY_TREE, type UITree } from "./types";
 import type { ActionDispatch } from "./action-handler";
+import {
+  createRuntimeValueStore,
+  type RuntimeValueStore,
+} from "./runtime-value-store";
 
 // =============================================================================
 // Types
@@ -80,4 +84,17 @@ export function useUITree(options?: UseUITreeOptions): UseUITreeReturn {
   }, []);
 
   return { tree, applyPatch, applyPatches, reset, onAction: options?.onAction };
+}
+
+/** Create a per-container runtime value store; cleared on unmount. */
+export function useRuntimeValueStore(): RuntimeValueStore {
+  const store = useMemo(() => createRuntimeValueStore(), []);
+
+  useEffect(() => {
+    return () => {
+      store.clear();
+    };
+  }, [store]);
+
+  return store;
 }

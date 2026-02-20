@@ -27,6 +27,10 @@ import { createJsonlParser, type JsonlParser } from "../core/jsonl-parser";
 import { UITreeRenderer } from "../core/UITreeRenderer";
 import { EMPTY_TREE, type UITree } from "../core/types";
 import type { ActionDispatch } from "../core/action-handler";
+import {
+  createRuntimeValueStore,
+  type RuntimeValueStore,
+} from "../core/runtime-value-store";
 import { ThemeWrapper } from "./theme";
 import { dispatch as dispatchAction, onAction } from "./action-dispatch";
 
@@ -42,6 +46,9 @@ const _trees = new Map<string, UITree>();
 
 /** Per-container React root — reused across renders (never destroyed/recreated). */
 const _roots = new Map<string, Root>();
+
+/** Per-container runtime-captured values (uncontrolled inputs, touched tracking). */
+const _valueStores = new Map<string, RuntimeValueStore>();
 
 // =============================================================================
 // Internal helpers
@@ -68,6 +75,15 @@ function getOrCreateRoot(containerId: string): Root | null {
   return root;
 }
 
+function getOrCreateValueStore(containerId: string): RuntimeValueStore {
+  const existing = _valueStores.get(containerId);
+  if (existing) return existing;
+
+  const store = createRuntimeValueStore();
+  _valueStores.set(containerId, store);
+  return store;
+}
+
 /**
  * Render the current tree state for a container.
  * Uses flushSync for synchronous DOM updates during progressive rendering.
@@ -77,6 +93,7 @@ function renderContainer(containerId: string): void {
   if (!root) return;
 
   const tree = _trees.get(containerId) ?? EMPTY_TREE;
+  const runtimeValueStore = getOrCreateValueStore(containerId);
 
   flushSync(() => {
     root.render(
@@ -87,6 +104,7 @@ function renderContainer(containerId: string): void {
           tree,
           streaming: true,
           onAction: dispatchAction,
+          runtimeValueStore,
         }),
       ),
     );
@@ -145,6 +163,8 @@ const api: CloudflareKumoAPI = {
     const root = getOrCreateRoot(containerId);
     if (!root) return;
 
+    const runtimeValueStore = getOrCreateValueStore(containerId);
+
     flushSync(() => {
       root.render(
         React.createElement(
@@ -154,6 +174,7 @@ const api: CloudflareKumoAPI = {
             tree,
             streaming: false,
             onAction: dispatchAction,
+            runtimeValueStore,
           }),
         ),
       );
@@ -175,6 +196,7 @@ const api: CloudflareKumoAPI = {
 
   reset(containerId: string): void {
     _trees.delete(containerId);
+    _valueStores.delete(containerId);
 
     const root = _roots.get(containerId);
     if (root) {
