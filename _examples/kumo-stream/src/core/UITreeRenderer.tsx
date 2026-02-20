@@ -18,7 +18,10 @@ import {
 } from "./action-handler";
 import { validateElement, logValidationError } from "./element-validator";
 import type { RuntimeValueStore } from "./runtime-value-store";
-import { RuntimeValueStoreProvider } from "./runtime-value-store-context";
+import {
+  RuntimeValueStoreProvider,
+  useRuntimeValueStoreContext,
+} from "./runtime-value-store-context";
 
 /** Maximum recursion depth to prevent infinite loops from circular refs. */
 const MAX_DEPTH = 50;
@@ -32,6 +35,8 @@ const BLOCKED_PROPS = new Set(["dangerouslySetInnerHTML", "ref", "key"]);
  * onAction callback pattern used by stateful wrappers.
  */
 const ONCLICK_ACTION_TYPES = new Set(["Button", "Link"]);
+
+const RUNTIME_VALUE_CAPTURE_TYPES = new Set(["Input", "Textarea"]);
 
 // ---------------------------------------------------------------------------
 // Props
@@ -105,6 +110,30 @@ function sanitizeProps(
   return clean;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function readEventTargetValue(event: unknown): string | undefined {
+  if (!isRecord(event)) return undefined;
+  const target = event["target"];
+  if (!isRecord(target)) return undefined;
+  const value = target["value"];
+  return typeof value === "string" ? value : undefined;
+}
+
+function chainHandlers(
+  first: (event: unknown) => void,
+  second: unknown,
+): (event: unknown) => void {
+  return (event: unknown) => {
+    first(event);
+    if (typeof second === "function") {
+      second(event);
+    }
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Element Renderer
 // ---------------------------------------------------------------------------
@@ -122,6 +151,8 @@ function RenderElement({
   readonly streaming?: boolean;
   readonly onAction?: ActionDispatch;
 }): React.JSX.Element | null {
+  const runtimeValueStore = useRuntimeValueStoreContext();
+
   if (depth > MAX_DEPTH) {
     return (
       <div className="text-xs text-kumo-danger">
@@ -233,6 +264,17 @@ function RenderElement({
         onAction,
       );
     }
+  }
+
+  // Capture uncontrolled Input/Textarea values into the per-container runtime
+  // value store. Avoid controlled mode; just observe onChange.
+  if (runtimeValueStore != null && RUNTIME_VALUE_CAPTURE_TYPES.has(type)) {
+    const existingOnChange = restProps.onChange;
+    restProps.onChange = chainHandlers((event: unknown) => {
+      const value = readEventTargetValue(event);
+      if (value === undefined) return;
+      runtimeValueStore.setValue(elementKey, value);
+    }, existingOnChange);
   }
 
   // Build rendered child elements from children[] key references
