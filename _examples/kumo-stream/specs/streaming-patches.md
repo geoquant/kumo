@@ -2,7 +2,7 @@
 
 **Type:** Feature Plan
 **Effort:** L (1–2 days)
-**Status:** Ready for task breakdown
+**Status:** Implemented on `geoquant/streaming-ui`
 **Branch:** `geoquant/streaming-ui` (only)
 
 ## Problem
