@@ -45,3 +45,9 @@ Started: 2026-02-19
 - **Files changed**:
   - `public/cross-boundary.html` — replaced inline counter logic with handler registry + dispatcher + result processor (~100 lines refactored)
 - **Learnings**: HTML/UMD context lacks tree access (internal `_trees` map not exposed), so counter handlers read from DOM via `querySelector('[data-key=...]')` instead. Same ActionResult shape works cleanly in vanilla JS. The `processActionResult` in HTML directly calls `streamChat()` for message results (no ref indirection needed since there are no stale closures in vanilla JS IIFEs).
+
+## Task - action-4
+- **Implemented**: Added "Built-in Actions" subsection to system-prompt.ts with table of all 4 built-in handlers (increment, decrement, submit_form, navigate), usage examples for submit_form and navigate params, and clarification that unknown actions are logged without crash. Updated Example 4's submit button to use `submit_form` built-in with `params: { form_type: "notification_preferences" }`. Added 3 new action rules: prefer built-ins, static vs dynamic params, and context collection. Added key-points block to Example 4 explaining submit_form usage pattern.
+- **Files changed**:
+  - `src/core/system-prompt.ts` — added "Built-in Actions" subsection (~25 lines), 3 new rules, updated Example 4 submit button action + added key-points block (~5 lines)
+- **Learnings**: System prompt structure follows a pattern: section → subsections → examples → key-points. Examples should demonstrate built-in actions where possible to guide the LLM toward patterns the host actually handles. The distinction between static `params` and runtime `context` is important for LLM guidance — LLMs should provide static metadata, not try to predict runtime values.
