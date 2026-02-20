@@ -3,7 +3,7 @@
  *
  * Wires together the streaming pipeline:
  *   1. User types a prompt
- *   2. startStream() sends it to Anthropic and streams text deltas
+ *   2. POST /api/chat returns SSE frames with text deltas
  *   3. createJsonlParser() accumulates deltas into complete JSONL lines
  *   4. useUITree() applies parsed RFC 6902 patches to build the UITree
  *   5. UITreeRenderer renders the tree incrementally
@@ -15,12 +15,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import Anthropic from "@anthropic-ai/sdk";
 
 import { useRuntimeValueStore, useUITree } from "../core/hooks";
 import { createJsonlParser, type JsonlParser } from "../core/jsonl-parser";
 import type { JsonPatchOp } from "../core/rfc6902";
-import { startStream, type StreamHandle } from "../core/stream-client";
+import { createSseParser } from "../core/sse-parser";
 import { UITreeRenderer, isRenderableTree } from "../core/UITreeRenderer";
 import type { ActionEvent } from "../core/action-handler";
 import type { UITree } from "../core/types";
@@ -56,20 +55,54 @@ const PRESET_PROMPTS = [
 // Helpers
 // =============================================================================
 
-function getApiKey(): string | null {
-  const key =
-    typeof import.meta.env?.VITE_ANTHROPIC_API_KEY === "string"
-      ? import.meta.env.VITE_ANTHROPIC_API_KEY
-      : null;
-  return key && key.length > 0 ? key : null;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function getModel(): string | undefined {
-  const model =
-    typeof import.meta.env?.VITE_ANTHROPIC_MODEL === "string"
-      ? import.meta.env.VITE_ANTHROPIC_MODEL
-      : undefined;
-  return model && model.length > 0 ? model : undefined;
+type ChatSseEvent =
+  | { readonly type: "text"; readonly delta: string }
+  | { readonly type: "done" }
+  | { readonly type: "error"; readonly message: string };
+
+function parseChatSseEvent(value: unknown): ChatSseEvent | null {
+  if (!isRecord(value)) return null;
+  const type = value["type"];
+  if (type === "text" && typeof value["delta"] === "string") {
+    return { type: "text", delta: value["delta"] };
+  }
+  if (type === "done") return { type: "done" };
+  if (type === "error" && typeof value["message"] === "string") {
+    return { type: "error", message: value["message"] };
+  }
+  return null;
+}
+
+function parseSseDataLinesAsEvents(
+  dataLines: readonly string[],
+): ChatSseEvent[] {
+  const candidates = [dataLines.join("\n"), dataLines.join("")];
+  for (const candidate of candidates) {
+    try {
+      const parsed: unknown = JSON.parse(candidate);
+      const ev = parseChatSseEvent(parsed);
+      if (ev) return [ev];
+    } catch {
+      // try next
+    }
+  }
+
+  // Fallback: parse each data line independently.
+  const out: ChatSseEvent[] = [];
+  for (const line of dataLines) {
+    try {
+      const parsed: unknown = JSON.parse(line);
+      const ev = parseChatSseEvent(parsed);
+      if (ev) out.push(ev);
+    } catch {
+      // ignore
+    }
+  }
+  return out;
 }
 
 // =============================================================================
@@ -86,6 +119,11 @@ interface ErrorInfo {
 type ChatHistoryEntry =
   | { readonly role: "user"; readonly content: string }
   | { readonly role: "assistant"; readonly tree: UITree };
+
+type ChatMessage = {
+  readonly role: "user" | "assistant";
+  readonly content: string;
+};
 
 // =============================================================================
 // ChatHistory sub-components
@@ -138,7 +176,7 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState<StreamingStatus>("idle");
   const [error, setError] = useState<ErrorInfo | null>(null);
-  const [messages, setMessages] = useState<Anthropic.MessageParam[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatHistory, setChatHistory] = useState<ChatHistoryEntry[]>([]);
   const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
 
@@ -193,7 +231,7 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
 
   // Mutable refs for the parser and stream handle — not part of render state
   const parserRef = useRef<JsonlParser | null>(null);
-  const streamRef = useRef<StreamHandle | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll to bottom when history or tree changes
@@ -206,16 +244,6 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
 
   const handleSubmit = useCallback(
     (text: string) => {
-      const apiKey = getApiKey();
-      if (!apiKey) {
-        setError({
-          message:
-            "Missing VITE_ANTHROPIC_API_KEY. Add it to .env and restart the dev server.",
-        });
-        setStatus("error");
-        return;
-      }
-
       const trimmed = text.trim();
       if (trimmed === "") return;
 
@@ -245,52 +273,92 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
       parserRef.current = parser;
 
       // Build message history with new user message
-      const newMessages: Anthropic.MessageParam[] = [
+      const newMessages: ChatMessage[] = [
         ...messages,
         { role: "user" as const, content: trimmed },
       ];
 
-      const handle = startStream({ apiKey, model: getModel() }, newMessages, {
-        onText: (delta) => {
-          const ops = parser.push(delta);
-          if (ops.length > 0) {
-            applyPatches(ops);
-          }
-        },
-        onDone: () => {
-          // Flush remaining buffer
-          const remaining = parser.flush();
-          if (remaining.length > 0) {
-            applyPatches(remaining);
-          }
-          parserRef.current = null;
-          streamRef.current = null;
+      const abort = new AbortController();
+      abortRef.current = abort;
 
-          // Persist conversation history for multi-turn
+      fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed, history: newMessages }),
+        signal: abort.signal,
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            throw new Error(`Server responded with ${res.status}`);
+          }
+          if (!res.body) {
+            throw new Error("Missing response body");
+          }
+
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+
+          let sawDone = false;
+
+          const sse = createSseParser((dataLines) => {
+            const events = parseSseDataLinesAsEvents(dataLines);
+            for (const event of events) {
+              if (event.type === "text") {
+                const ops = parser.push(event.delta);
+                if (ops.length > 0) applyPatches(ops);
+                continue;
+              }
+
+              if (event.type === "error") {
+                throw new Error(event.message);
+              }
+
+              if (event.type === "done") {
+                sawDone = true;
+                return;
+              }
+            }
+          });
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            sse.push(decoder.decode(value, { stream: true }));
+            if (sawDone) break;
+          }
+
+          sse.flush();
+        })
+        .then(() => {
+          const remaining = parser.flush();
+          if (remaining.length > 0) applyPatches(remaining);
+
+          parserRef.current = null;
+          abortRef.current = null;
+
           setMessages([
             ...newMessages,
-            {
-              role: "assistant" as const,
-              content: "(UI response)",
-            },
+            { role: "assistant" as const, content: "(UI response)" },
           ]);
           setStatus("idle");
-        },
-        onError: (err) => {
+        })
+        .catch((err: unknown) => {
           // Flush what we have so partial UI remains visible
           const remaining = parser.flush();
-          if (remaining.length > 0) {
-            applyPatches(remaining);
-          }
+          if (remaining.length > 0) applyPatches(remaining);
+
           parserRef.current = null;
-          streamRef.current = null;
+          abortRef.current = null;
 
-          setError({ message: err.message });
+          if (err instanceof DOMException && err.name === "AbortError") {
+            setStatus("idle");
+            return;
+          }
+
+          const msg = err instanceof Error ? err.message : "Unknown error";
+          setError({ message: msg });
           setStatus("error");
-        },
-      });
-
-      streamRef.current = handle;
+        });
     },
     [messages, tree, reset, applyPatches, runtimeValueStore],
   );
@@ -299,9 +367,9 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
   handleSubmitRef.current = handleSubmit;
 
   const handleStop = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.abort();
-      streamRef.current = null;
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
     }
 
     // Flush partial content so it stays visible
@@ -318,9 +386,9 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
 
   const handleReset = useCallback(() => {
     // Abort any in-flight stream
-    if (streamRef.current) {
-      streamRef.current.abort();
-      streamRef.current = null;
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
     }
     parserRef.current = null;
 
