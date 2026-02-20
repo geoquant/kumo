@@ -14,6 +14,7 @@ Started: 2026-02-20
 - SSE parsing: parse line-by-line, join multi-line `data:` payloads; tolerate CRLF + chunk splits; stop reading on done/error
 - Patch batching: throttle patch application + renders to rAF (UMD: `applyPatchesBatched`; React hook: `useUITree({ batchPatches: true })`)
 - ShadowRoot embedding: UMD `configureContainer(id, { mountMode: "shadow-root" })` (or `data-kumo-mount="shadow"`) mounts React into `el.attachShadow()` and injects `/.well-known/stylesheet.css` link
+- DPU snapshots: gated `renderMode="dpu"` makes server transcode JSONL+rfc6902 stream into `<template for="kumo-ui">...</template>` snapshots for marker replacement (`<!--kumo-ui:start-->`..`<!--kumo-ui:end-->`)
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -77,3 +78,8 @@ Started: 2026-02-20
 - Implemented optional ShadowRoot mount mode for UMD containers with stylesheet link injection + cleanup on reset.
 - Files changed: `_examples/kumo-stream/src/loadable/index.ts`, `_examples/kumo-stream/src/__tests__/loadable-shadow-root.test.ts`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
 - Learnings: ShadowRoot needs explicit stylesheet link injection; keep mode configured pre-mount to avoid React root churn; use data attrs for idempotent injection/cleanup
+
+## Task - [experimental-2]
+- Implemented gated DPU mode: server streams `<template for="kumo-ui">` HTML snapshots derived from the JSONL+rfc6902 tree; cross-boundary host applies them by replacing nodes between `<!--kumo-ui:start-->` and `<!--kumo-ui:end-->`.
+- Files changed: `_examples/kumo-stream/src/core/dpu-snapshot.ts`, `_examples/kumo-stream/src/__tests__/dpu-snapshot.test.ts`, `_examples/kumo-stream/server/index.ts`, `_examples/kumo-stream/public/cross-boundary.html`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
+- Learnings: keep DPU as a pure transcode layer so the default client JSONL+UMD path stays unchanged; comment markers make a cheap, single-range replacement protocol

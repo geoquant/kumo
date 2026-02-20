@@ -145,7 +145,7 @@
         "Initial shell uses matching start/end markers",
         "Feature is gated; default JSONL+rfc6902 path is unchanged"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
