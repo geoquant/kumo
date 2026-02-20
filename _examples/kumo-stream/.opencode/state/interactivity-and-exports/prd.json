@@ -165,7 +165,7 @@
         "kumo-stream documented as reference implementation",
         "Registry hosting clarified: serve from node_modules/@cloudflare/kumo or re-host"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "validation-1",
