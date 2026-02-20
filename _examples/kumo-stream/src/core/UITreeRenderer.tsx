@@ -85,7 +85,7 @@ class ElementErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="rounded border border-kumo-danger-line bg-kumo-danger-subtle p-2 text-xs text-kumo-danger">
+        <div className="rounded border border-kumo-danger bg-kumo-danger-tint p-2 text-xs text-kumo-danger">
           Failed to render &ldquo;{this.props.elementKey}&rdquo;
           {this.state.error ? `: ${this.state.error.message}` : ""}
         </div>
@@ -209,7 +209,7 @@ function RenderElement({
     return (
       <div
         data-key={elementKey}
-        className="rounded border border-kumo-warning-line bg-kumo-warning-subtle p-2 text-xs text-kumo-warning"
+        className="rounded border border-kumo-warning bg-kumo-warning-tint p-2 text-xs text-kumo-warning"
       >
         Validation failed: &ldquo;{elementKey}&rdquo; ({element.type})
         {validation.issues.length > 0 && (
@@ -258,7 +258,7 @@ function RenderElement({
   const Comp = COMPONENT_MAP[type];
   if (!Comp) {
     return (
-      <div className="rounded border border-kumo-warning-line bg-kumo-warning-subtle p-2 text-xs text-kumo-warning">
+      <div className="rounded border border-kumo-warning bg-kumo-warning-tint p-2 text-xs text-kumo-warning">
         Unknown component: {type}
       </div>
     );

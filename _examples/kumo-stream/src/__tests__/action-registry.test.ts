@@ -3,7 +3,6 @@ import {
   BUILTIN_HANDLERS,
   createHandlerMap,
   dispatchAction,
-  type ActionResult,
 } from "../core/action-registry";
 import type { ActionEvent } from "../core/action-handler";
 import type { UITree } from "../core/types";
