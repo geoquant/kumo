@@ -97,6 +97,10 @@ export function parsePatchLine(line: string): JsonPatchOp | null {
     return null;
   }
 
+  if (op === "remove") {
+    return { op, path: obj.path };
+  }
+
   return { op, path: obj.path, value: obj.value };
 }
 
