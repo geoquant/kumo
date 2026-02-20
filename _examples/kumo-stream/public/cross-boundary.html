@@ -670,54 +670,132 @@
         function readSSEStream(body) {
           var reader = body.getReader();
           var decoder = new TextDecoder();
-          var sseBuffer = "";
+          var stopReading = false;
+
+          // Minimal SSE parser with multi-line data: support.
+          // - Handles CRLF
+          // - Handles frames split across chunks
+          // - Concatenates multiple data: lines per SSE spec ("\n" join)
+          function createSseParser(onEventData) {
+            var lineBuffer = "";
+            var dataLines = [];
+
+            function dispatch() {
+              if (dataLines.length === 0) return;
+              onEventData(dataLines);
+              dataLines = [];
+            }
+
+            function handleLine(line) {
+              if (line === "") {
+                dispatch();
+                return;
+              }
+
+              if (line.startsWith("data:")) {
+                var value = line.slice(5);
+                if (value.startsWith(" ")) value = value.slice(1);
+                dataLines.push(value);
+              }
+            }
+
+            return {
+              push: function (chunk) {
+                lineBuffer += chunk;
+
+                while (true) {
+                  var nl = lineBuffer.indexOf("\n");
+                  if (nl === -1) return;
+
+                  var rawLine = lineBuffer.slice(0, nl);
+                  lineBuffer = lineBuffer.slice(nl + 1);
+                  if (rawLine.endsWith("\r")) rawLine = rawLine.slice(0, -1);
+                  handleLine(rawLine);
+                }
+              },
+              flush: function () {
+                if (lineBuffer.length > 0) {
+                  var rawLine = lineBuffer;
+                  lineBuffer = "";
+                  if (rawLine.endsWith("\r")) rawLine = rawLine.slice(0, -1);
+                  handleLine(rawLine);
+                }
+                // Treat end-of-stream as an empty line terminator.
+                handleLine("");
+              },
+            };
+          }
+
+          function handleSseDataLines(dataLines) {
+            var candidates = [dataLines.join("\n"), dataLines.join("")];
+
+            for (var i = 0; i < candidates.length; i++) {
+              try {
+                var event = JSON.parse(candidates[i]);
+                handleParsedEvent(event);
+                return;
+              } catch (_e) {
+                // try next
+              }
+            }
+
+            // Fallback: attempt parsing each line as an independent JSON payload.
+            for (var j = 0; j < dataLines.length; j++) {
+              try {
+                var ev = JSON.parse(dataLines[j]);
+                handleParsedEvent(ev);
+              } catch (_e2) {
+                // ignore
+              }
+            }
+          }
+
+          function handleParsedEvent(event) {
+            if (event.type === "text" && typeof event.delta === "string") {
+              var ops = parser.push(event.delta);
+              if (ops.length > 0) {
+                CloudflareKumo.applyPatches(ops, CONTAINER_ID);
+              }
+              scrollConversation();
+            } else if (event.type === "done") {
+              flushParser();
+              cleanup();
+              setStatus("Done.");
+              scrollConversation();
+              stopReading = true;
+              try {
+                reader.cancel();
+              } catch (_e) {
+                // ignore
+              }
+            } else if (event.type === "error") {
+              flushParser();
+              cleanup();
+              setStatus("Error: " + (event.message || "Unknown error"));
+              stopReading = true;
+              try {
+                reader.cancel();
+              } catch (_e2) {
+                // ignore
+              }
+            }
+          }
+
+          var sse = createSseParser(handleSseDataLines);
 
           function pump() {
             return reader.read().then(function (result) {
               if (result.done) {
+                sse.flush();
                 flushParser();
                 cleanup();
                 setStatus("Done.");
                 return;
               }
 
-              sseBuffer += decoder.decode(result.value, { stream: true });
+              sse.push(decoder.decode(result.value, { stream: true }));
 
-              // Split on double-newline (SSE frame boundary)
-              var frames = sseBuffer.split("\n\n");
-              // Last element is either empty or incomplete — keep buffered
-              sseBuffer = frames.pop() || "";
-
-              for (var i = 0; i < frames.length; i++) {
-                var frame = frames[i].trim();
-                if (!frame.startsWith("data: ")) continue;
-
-                var json = frame.slice(6); // strip "data: "
-                try {
-                  var event = JSON.parse(json);
-                } catch (_e) {
-                  continue;
-                }
-
-                if (event.type === "text" && typeof event.delta === "string") {
-                  var ops = parser.push(event.delta);
-                  if (ops.length > 0) {
-                    CloudflareKumo.applyPatches(ops, CONTAINER_ID);
-                  }
-                  scrollConversation();
-                } else if (event.type === "done") {
-                  flushParser();
-                  cleanup();
-                  setStatus("Done.");
-                  scrollConversation();
-                  return;
-                } else if (event.type === "error") {
-                  flushParser();
-                  cleanup();
-                  setStatus("Error: " + (event.message || "Unknown error"));
-                  return;
-                }
-              }
+              if (stopReading) return;
 
               return pump();
             });
