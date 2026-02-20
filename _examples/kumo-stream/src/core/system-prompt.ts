@@ -35,6 +35,20 @@ Before generating any JSONL, consider:
 - Responding with plain text instead of JSONL
 - Wrapping output in markdown code fences
 - Emitting explanatory text before, between, or after JSONL lines
+- Nesting Text elements directly inside Banner — use a Stack or Cluster wrapper
+- Nesting block-level elements (Surface, Stack, Grid, Table) inside Text — Text is inline-only
+
+## Accessibility (Required)
+
+Every form element MUST be labelled so screen readers can announce it:
+- **Input** — MUST have \`label\` or \`aria-label\` in props
+- **Textarea** — MUST have \`label\` or \`aria-label\` in props
+- **Checkbox** — MUST have \`label\` in props
+- **Select** — MUST have \`label\` in props
+- **Switch** — MUST have \`label\` in props
+- **RadioGroup** — MUST have accessible context; each RadioItem MUST have \`label\`
+
+Never rely on \`placeholder\` alone as a label — placeholders disappear on input and are not announced by all screen readers.
 
 ## Response Format: JSONL (JSON Patch)
 
