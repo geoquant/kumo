@@ -180,6 +180,193 @@ describe("UITreeRenderer action injection", () => {
     expect(event.context).toEqual({ checked: true });
   });
 
+  // =========================================================================
+  // Button/Link onClick→action bridging (renderer-1)
+  // =========================================================================
+
+  it("injects onClick (not onAction) for Button type with action field", () => {
+    const dispatch = vi.fn();
+
+    // Register Spy as the Button component so we can inspect props
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const originalButton = COMPONENT_MAP.Button;
+    COMPONENT_MAP.Button = SpyComponent as React.ComponentType<any>;
+
+    try {
+      const t = mkTree("root", {
+        root: el(
+          "root",
+          "Button",
+          { "data-spy-key": "root", children: "Click me" },
+          { action: { name: "increment" } },
+        ),
+      });
+
+      render(<UITreeRenderer tree={t} onAction={dispatch} />);
+
+      const props = propsFor("root");
+      // Button should get onClick, not onAction
+      expect(props.onClick).toBeTypeOf("function");
+      expect(props.onAction).toBeUndefined();
+
+      // Invoke onClick and verify dispatch
+      const clickHandler = props.onClick as (...args: unknown[]) => void;
+      clickHandler();
+
+      expect(dispatch).toHaveBeenCalledOnce();
+      const event: ActionEvent = dispatch.mock.calls[0][0];
+      expect(event.actionName).toBe("increment");
+      expect(event.sourceKey).toBe("root");
+    } finally {
+      COMPONENT_MAP.Button = originalButton;
+    }
+  });
+
+  it("injects onClick (not onAction) for Link type with action field", () => {
+    const dispatch = vi.fn();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const originalLink = COMPONENT_MAP.Link;
+    COMPONENT_MAP.Link = SpyComponent as React.ComponentType<any>;
+
+    try {
+      const t = mkTree("root", {
+        root: el(
+          "root",
+          "Link",
+          { "data-spy-key": "root", children: "Go somewhere" },
+          { action: { name: "navigate", params: { url: "/dashboard" } } },
+        ),
+      });
+
+      render(<UITreeRenderer tree={t} onAction={dispatch} />);
+
+      const props = propsFor("root");
+      expect(props.onClick).toBeTypeOf("function");
+      expect(props.onAction).toBeUndefined();
+
+      const clickHandler = props.onClick as (...args: unknown[]) => void;
+      clickHandler();
+
+      expect(dispatch).toHaveBeenCalledOnce();
+      const event: ActionEvent = dispatch.mock.calls[0][0];
+      expect(event.actionName).toBe("navigate");
+      expect(event.sourceKey).toBe("root");
+      expect(event.params).toEqual({ url: "/dashboard" });
+    } finally {
+      COMPONENT_MAP.Link = originalLink;
+    }
+  });
+
+  it("preserves existing onClick from LLM output on Button", () => {
+    const dispatch = vi.fn();
+    const existingOnClick = vi.fn();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const originalButton = COMPONENT_MAP.Button;
+    COMPONENT_MAP.Button = SpyComponent as React.ComponentType<any>;
+
+    try {
+      const t = mkTree("root", {
+        root: el(
+          "root",
+          "Button",
+          { "data-spy-key": "root", onClick: existingOnClick },
+          { action: { name: "submit" } },
+        ),
+      });
+
+      render(<UITreeRenderer tree={t} onAction={dispatch} />);
+
+      const props = propsFor("root");
+      // onClick should be a wrapper that chains the existing handler
+      expect(props.onClick).toBeTypeOf("function");
+      expect(props.onAction).toBeUndefined();
+
+      // Invoke and verify both handlers fire
+      const clickHandler = props.onClick as (...args: unknown[]) => void;
+      const fakeEvent = { type: "click" };
+      clickHandler(fakeEvent);
+
+      expect(existingOnClick).toHaveBeenCalledOnce();
+      expect(existingOnClick).toHaveBeenCalledWith(fakeEvent);
+      expect(dispatch).toHaveBeenCalledOnce();
+    } finally {
+      COMPONENT_MAP.Button = originalButton;
+    }
+  });
+
+  it("Button action handler includes params from action definition", () => {
+    const dispatch = vi.fn();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const originalButton = COMPONENT_MAP.Button;
+    COMPONENT_MAP.Button = SpyComponent as React.ComponentType<any>;
+
+    try {
+      const t = mkTree("root", {
+        root: el(
+          "root",
+          "Button",
+          { "data-spy-key": "root", children: "Delete" },
+          { action: { name: "delete", params: { id: "42" } } },
+        ),
+      });
+
+      render(<UITreeRenderer tree={t} onAction={dispatch} />);
+
+      const clickHandler = propsFor("root").onClick as (
+        ...args: unknown[]
+      ) => void;
+      clickHandler();
+
+      expect(dispatch).toHaveBeenCalledOnce();
+      const event: ActionEvent = dispatch.mock.calls[0][0];
+      expect(event.actionName).toBe("delete");
+      expect(event.params).toEqual({ id: "42" });
+    } finally {
+      COMPONENT_MAP.Button = originalButton;
+    }
+  });
+
+  it("non-Button/Link components still receive onAction (not onClick)", () => {
+    const dispatch = vi.fn();
+    const t = mkTree("root", {
+      root: el(
+        "root",
+        "Spy",
+        { "data-spy-key": "root" },
+        { action: { name: "toggle" } },
+      ),
+    });
+
+    render(<UITreeRenderer tree={t} onAction={dispatch} />);
+
+    const props = propsFor("root");
+    expect(props.onAction).toBeTypeOf("function");
+    expect(props.onClick).toBeUndefined();
+  });
+
+  it("non-Button/Link onClick from LLM passes through unchanged", () => {
+    const dispatch = vi.fn();
+    const existingOnClick = vi.fn();
+    const t = mkTree("root", {
+      root: el(
+        "root",
+        "Spy",
+        { "data-spy-key": "root", onClick: existingOnClick },
+        { action: { name: "submit" } },
+      ),
+    });
+
+    render(<UITreeRenderer tree={t} onAction={dispatch} />);
+
+    const props = propsFor("root");
+    // For non-Button/Link, onAction is injected and onClick passes through as-is
+    expect(props.onAction).toBeTypeOf("function");
+    expect(props.onClick).toBe(existingOnClick);
+  });
+
   it("threads onAction to nested children", () => {
     const dispatch = vi.fn();
     const t = mkTree("container", {

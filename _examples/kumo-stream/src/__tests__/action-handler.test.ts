@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import {
   createActionHandler,
+  createClickHandler,
   type ActionEvent,
   type ActionDispatch,
 } from "../core/action-handler";
@@ -92,5 +93,96 @@ describe("createActionHandler", () => {
     const event: ActionEvent = dispatch.mock.calls[0][0];
     expect(event.params).toEqual({ draft: true });
     expect(event).not.toHaveProperty("context");
+  });
+});
+
+// =============================================================================
+// createClickHandler
+// =============================================================================
+
+describe("createClickHandler", () => {
+  it("dispatches ActionEvent with correct actionName and sourceKey", () => {
+    const dispatch = vi.fn<ActionDispatch>();
+    const handler = createClickHandler(action("increment"), "btn-1", dispatch);
+
+    handler();
+
+    expect(dispatch).toHaveBeenCalledOnce();
+    const event: ActionEvent = dispatch.mock.calls[0][0];
+    expect(event.actionName).toBe("increment");
+    expect(event.sourceKey).toBe("btn-1");
+  });
+
+  it("includes action.params in the event", () => {
+    const dispatch = vi.fn<ActionDispatch>();
+    const handler = createClickHandler(
+      action("navigate", { url: "/dashboard" }),
+      "link-1",
+      dispatch,
+    );
+
+    handler();
+
+    const event: ActionEvent = dispatch.mock.calls[0][0];
+    expect(event.params).toEqual({ url: "/dashboard" });
+  });
+
+  it("does not include context (click handlers have no wrapper context)", () => {
+    const dispatch = vi.fn<ActionDispatch>();
+    const handler = createClickHandler(action("submit"), "btn-2", dispatch);
+
+    handler();
+
+    const event: ActionEvent = dispatch.mock.calls[0][0];
+    expect(event).not.toHaveProperty("context");
+  });
+
+  it("chains existing onClick handler before dispatching", () => {
+    const callOrder: string[] = [];
+    const existingOnClick = vi.fn(() => callOrder.push("existing"));
+    const dispatch = vi.fn<ActionDispatch>(() => callOrder.push("dispatch"));
+
+    const handler = createClickHandler(
+      action("click"),
+      "btn-3",
+      dispatch,
+      existingOnClick,
+    );
+
+    const fakeEvent = { type: "click" };
+    handler(fakeEvent);
+
+    expect(existingOnClick).toHaveBeenCalledOnce();
+    expect(existingOnClick).toHaveBeenCalledWith(fakeEvent);
+    expect(dispatch).toHaveBeenCalledOnce();
+    expect(callOrder).toEqual(["existing", "dispatch"]);
+  });
+
+  it("works when existingOnClick is undefined", () => {
+    const dispatch = vi.fn<ActionDispatch>();
+    const handler = createClickHandler(
+      action("click"),
+      "btn-4",
+      dispatch,
+      undefined,
+    );
+
+    handler();
+
+    expect(dispatch).toHaveBeenCalledOnce();
+  });
+
+  it("ignores non-function existingOnClick", () => {
+    const dispatch = vi.fn<ActionDispatch>();
+    const handler = createClickHandler(
+      action("click"),
+      "btn-5",
+      dispatch,
+      "not-a-function",
+    );
+
+    handler();
+
+    expect(dispatch).toHaveBeenCalledOnce();
   });
 });

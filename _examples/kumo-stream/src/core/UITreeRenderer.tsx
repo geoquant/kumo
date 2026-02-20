@@ -11,13 +11,24 @@ import React, { Component } from "react";
 import type { ReactNode } from "react";
 import type { UITree, UIElement } from "./types";
 import { COMPONENT_MAP, KNOWN_TYPES } from "./component-map";
-import { createActionHandler, type ActionDispatch } from "./action-handler";
+import {
+  createActionHandler,
+  createClickHandler,
+  type ActionDispatch,
+} from "./action-handler";
 
 /** Maximum recursion depth to prevent infinite loops from circular refs. */
 const MAX_DEPTH = 50;
 
 /** Props that must never be spread onto DOM elements from LLM output. */
 const BLOCKED_PROPS = new Set(["dangerouslySetInnerHTML", "ref", "key"]);
+
+/**
+ * Component types that use onClick for action dispatch instead of onAction.
+ * These are native-event components (Button, Link) that don't implement the
+ * onAction callback pattern used by stateful wrappers.
+ */
+const ONCLICK_ACTION_TYPES = new Set(["Button", "Link"]);
 
 // ---------------------------------------------------------------------------
 // Props
@@ -175,13 +186,24 @@ function RenderElement({
   // Tag every rendered element with its key for DOM identification
   restProps["data-key"] = elementKey;
 
-  // Inject onAction handler when element declares an action field
+  // Inject action handler when element declares an action field.
+  // Button and Link use onClick (they don't have an onAction prop);
+  // all other components use the onAction callback pattern.
   if (element.action != null && onAction != null) {
-    restProps.onAction = createActionHandler(
-      element.action,
-      elementKey,
-      onAction,
-    );
+    if (ONCLICK_ACTION_TYPES.has(type)) {
+      restProps.onClick = createClickHandler(
+        element.action,
+        elementKey,
+        onAction,
+        restProps.onClick,
+      );
+    } else {
+      restProps.onAction = createActionHandler(
+        element.action,
+        elementKey,
+        onAction,
+      );
+    }
   }
 
   // Build rendered child elements from children[] key references
