@@ -1,6 +1,7 @@
 # Progress Log
 PRD: demo-polish
 Started: 2026-02-19
+**Branch: `geoquant/streaming-ui`** — all work lives here. Do NOT create a separate branch.
 
 ## Codebase Patterns
 - App shell: `src/app/App.tsx` wraps `<ChatDemo />` inside `kumo-root` div with `data-mode`
