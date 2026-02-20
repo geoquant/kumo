@@ -46,7 +46,7 @@
         "Generated prompt lists only the component types supported by kumo-stream (component-map subset + aliases)",
         "Prompt output is deterministic (snapshot test or equivalent)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "component-1",
