@@ -79,6 +79,17 @@ const VALID: ElementValidationResult = { valid: true } as const;
 export function validateElement(element: UIElement): ElementValidationResult {
   const { type, key } = element;
 
+  // In this demo, structural children are expressed via UIElement.children (string keys).
+  // Some models also emit `props.children` arrays redundantly; those fail Kumo's
+  // props schema (children expects a ReactNode-ish scalar/dynamic, not arrays).
+  const elementForValidation = (() => {
+    const props = element.props as Record<string, unknown>;
+    if (!Array.isArray(props["children"])) return element;
+    if (!Array.isArray(element.children)) return element;
+    const { children: _children, ...rest } = props;
+    return { ...element, props: rest };
+  })();
+
   // Div is a synthetic container — no Kumo schema
   if (type === "Div") return VALID;
 
@@ -88,7 +99,7 @@ export function validateElement(element: UIElement): ElementValidationResult {
     if (mapped === null) return VALID; // sub-component, no schema
 
     // Build a synthetic element with the mapped type for validateElementProps
-    const syntheticElement = { ...element, type: mapped };
+    const syntheticElement = { ...elementForValidation, type: mapped };
     return toResult(
       key,
       type,
@@ -104,7 +115,7 @@ export function validateElement(element: UIElement): ElementValidationResult {
       key,
       type,
       validateElementProps(
-        element as Parameters<typeof validateElementProps>[0],
+        elementForValidation as Parameters<typeof validateElementProps>[0],
       ),
     );
   }
