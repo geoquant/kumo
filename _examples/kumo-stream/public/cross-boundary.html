@@ -754,7 +754,7 @@
             if (event.type === "text" && typeof event.delta === "string") {
               var ops = parser.push(event.delta);
               if (ops.length > 0) {
-                CloudflareKumo.applyPatches(ops, CONTAINER_ID);
+                applyPatches(ops);
               }
               scrollConversation();
             } else if (event.type === "done") {
@@ -808,7 +808,7 @@
           if (!parser) return;
           var remaining = parser.flush();
           if (remaining.length > 0) {
-            CloudflareKumo.applyPatches(remaining, CONTAINER_ID);
+            applyPatches(remaining);
           }
           parser = null;
         }
@@ -871,8 +871,15 @@
         // Action runtime (UMD exported)
         // -----------------------------------------------------------------------
 
+        // Toggle to disable batching for debugging.
+        var BATCH_PATCHES = true;
+
         function applyPatches(patches) {
-          CloudflareKumo.applyPatches(patches, CONTAINER_ID);
+          if (BATCH_PATCHES) {
+            CloudflareKumo.applyPatchesBatched(patches, CONTAINER_ID);
+          } else {
+            CloudflareKumo.applyPatches(patches, CONTAINER_ID);
+          }
         }
 
         function sendMessage(content) {
