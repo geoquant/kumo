@@ -10,6 +10,7 @@
 import React, { Component } from "react";
 import type { ReactNode } from "react";
 import type { UITree, UIElement } from "./types";
+import { GridItem } from "@cloudflare/kumo";
 import { COMPONENT_MAP, KNOWN_TYPES } from "./component-map";
 import {
   createActionHandler,
@@ -40,6 +41,17 @@ const ONCLICK_ACTION_TYPES = new Set(["Button", "Link"]);
 const RUNTIME_VALUE_CAPTURE_TYPES = new Set(["Input", "Textarea"]);
 
 const SUBMIT_FORM_RUNTIME_VALUES_KEY = "runtimeValues";
+
+function gridItemClassNameForChild(child: UIElement | undefined): string {
+  // Base: allow grid children to shrink (prevents overflow in long labels/inputs)
+  // and ensure each logical child becomes exactly one grid cell.
+  if (!child) return "min-w-0";
+
+  // Common form pattern: an expandable/collapsible section should span full row.
+  if (child.type === "Collapsible") return "min-w-0 col-span-full";
+
+  return "min-w-0";
+}
 
 // ---------------------------------------------------------------------------
 // Props
@@ -157,15 +169,13 @@ function createSubmitFormClickHandler(
       existingOnClick(...args);
     }
 
-    const runtimeValues = runtimeValueStore.snapshotTouched();
+    const runtimeValues = runtimeValueStore.snapshotAll();
 
     dispatch({
       actionName: action?.name ?? "submit_form",
       sourceKey,
       ...(action?.params != null ? { params: action.params } : undefined),
-      ...(Object.keys(runtimeValues).length > 0
-        ? { context: { [SUBMIT_FORM_RUNTIME_VALUES_KEY]: runtimeValues } }
-        : undefined),
+      context: { [SUBMIT_FORM_RUNTIME_VALUES_KEY]: runtimeValues },
     });
   };
 }
@@ -315,6 +325,20 @@ function RenderElement({
   // Capture uncontrolled Input/Textarea values into the per-container runtime
   // value store. Avoid controlled mode; just observe onChange.
   if (runtimeValueStore != null && RUNTIME_VALUE_CAPTURE_TYPES.has(type)) {
+    const seedValue =
+      typeof restProps["value"] === "string"
+        ? restProps["value"]
+        : typeof restProps["defaultValue"] === "string"
+          ? restProps["defaultValue"]
+          : undefined;
+    if (
+      seedValue !== undefined &&
+      runtimeValueStore.getValue(elementKey) === undefined &&
+      !runtimeValueStore.isTouched(elementKey)
+    ) {
+      runtimeValueStore.setValue(elementKey, seedValue, { touched: false });
+    }
+
     const existingOnChange = restProps.onChange;
     restProps.onChange = chainHandlers((event: unknown) => {
       const value = readEventTargetValue(event);
@@ -358,7 +382,11 @@ function RenderElement({
   // Render structural children
   if (children && children.length > 0) {
     for (const childKey of children) {
-      renderedChildren.push(
+      // Avoid inserting empty grid cells during streaming when child elements
+      // haven't arrived yet.
+      if (streaming && !elements[childKey]) continue;
+
+      const childNode = (
         <RenderElement
           key={childKey}
           elementKey={childKey}
@@ -366,8 +394,21 @@ function RenderElement({
           depth={nextDepth}
           streaming={streaming}
           onAction={onAction}
-        />,
+        />
       );
+
+      if (type === "Grid") {
+        renderedChildren.push(
+          <GridItem
+            key={childKey}
+            className={gridItemClassNameForChild(elements[childKey])}
+          >
+            {childNode}
+          </GridItem>,
+        );
+      } else {
+        renderedChildren.push(childNode);
+      }
     }
   }
 
