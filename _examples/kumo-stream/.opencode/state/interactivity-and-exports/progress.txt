@@ -12,6 +12,7 @@ Started: 2026-02-19
 - **Action registry pattern**: `dispatchAction(handlers, event, tree)` → `ActionResult | null`. Handlers return discriminated union: `patch` (RFC 6902 ops), `message` (chat content), `external` (URL navigation), `none` (no-op). `createHandlerMap(custom?)` merges with BUILTIN_HANDLERS.
 - **processActionResult callbacks pattern**: `processActionResult(result, { applyPatches, sendMessage, openExternal? })`. Host provides callbacks per ActionResult variant. `openExternal` is optional (defaults to `window.open`). Use `handleSubmitRef` pattern to wire `sendMessage` to chat submission without stale closures.
 - **HTML/UMD action registry**: Same handler→result→process pattern in vanilla JS. Handlers read DOM state (no tree access), return plain objects matching ActionResult shape. `processActionResult` switches on result.type to call `CloudflareKumo.applyPatch`, `streamChat`, or `window.open`.
+- **Resolving kumo package dir**: `@cloudflare/kumo` has strict exports — non-exported files (e.g. `ai/component-registry.json`) can't be `require.resolve`d. Use `fs.realpathSync(path.join(PROJECT_ROOT, "node_modules/@cloudflare/kumo"))` to get real directory, then `path.join` for sub-files.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -71,3 +72,9 @@ Started: 2026-02-19
   - `_examples/kumo-stream/package.json` — `@cloudflare/kumo` changed from `link:` to `workspace:*`
   - `pnpm-workspace.yaml` — added `_examples/kumo-stream` to packages list
 - **Learnings**: Switching from bun `link:` to pnpm `workspace:*` is straightforward when the project already uses standard tooling (vite, tsc, vitest, tsx) with no bun-specific APIs. pnpm creates the same symlink structure (`node_modules/@cloudflare/kumo → ../../../../packages/kumo`). No script changes needed since none referenced bun directly. The `workspace:*` protocol resolves to whatever version is in the local workspace, making it more maintainable than hardcoded `link:` paths.
+
+## Task - wellknown-1
+- **Implemented**: Added `.well-known` static routes to `server/index.ts` serving 4 endpoints: UMD bundle, component registry JSON, compiled stylesheet, and a discovery metadata endpoint. Routes resolve files from `dist/loadable/` for UMD/CSS and from the `@cloudflare/kumo` package directory (via `fs.realpathSync` on the node_modules symlink) for the registry. The discovery endpoint dynamically reads the kumo package version.
+- **Files changed**:
+  - `server/index.ts` — added `fs` import, `LOADABLE_DIR`/`KUMO_PKG_DIR` constants, 4 `app.get` routes for `.well-known/*`, updated startup log
+- **Learnings**: `@cloudflare/kumo` has strict `exports` — `component-registry.json` is NOT an exported subpath, so `require.resolve` fails. Use `fs.realpathSync` on the `node_modules/@cloudflare/kumo` symlink to get the real package directory, then construct paths manually. Express `res.sendFile` auto-detects Content-Type from extension (`application/javascript`, `text/css`, `application/json`). The discovery endpoint reads `package.json` version at request time (not cached) — acceptable for dev server, production would cache.
