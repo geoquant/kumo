@@ -12,12 +12,14 @@ export function App() {
   return (
     <div
       data-mode={isDark ? "dark" : "light"}
-      className="kumo-root mx-auto max-w-[960px] p-8 px-6 md:max-w-[1400px]"
+      className="kumo-root mx-auto max-w-[960px] px-6 py-8"
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="m-0 text-xl font-semibold">kumo-stream</h1>
-          <p className="mt-1 text-[13px] opacity-60">
+          <h1 className="m-0 text-xl font-semibold text-kumo-default">
+            Kumo Streaming Demo
+          </h1>
+          <p className="mt-1 text-[13px] text-kumo-subtle">
             Streaming generative UI — JSONL patches build the interface
             incrementally.
           </p>

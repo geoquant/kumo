@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Anthropic from "@anthropic-ai/sdk";
-import { Button, Input, Text, Surface } from "@cloudflare/kumo";
+import { Button, Input } from "@cloudflare/kumo";
 
 import { useUITree } from "../core/hooks";
 import { createJsonlParser, type JsonlParser } from "../core/jsonl-parser";
@@ -93,7 +93,7 @@ function UserBubble({ content }: { readonly content: string }) {
 
 function AssistantSnapshot({ tree }: { readonly tree: UITree }) {
   return (
-    <div className="rounded-lg border border-kumo-line bg-kumo-elevated p-3 opacity-80">
+    <div className="pointer-events-none rounded-lg border border-kumo-line p-3 opacity-80">
       <UITreeRenderer tree={tree} streaming={false} />
     </div>
   );
@@ -330,97 +330,88 @@ export function ChatDemo() {
   const hasCurrentContent =
     isRenderableTree(tree) || (isStreaming && !isRenderableTree(tree));
 
+  // Status text for the dedicated status line
+  const statusText = isStreaming
+    ? "Generating UI..."
+    : error
+      ? `Error: ${error.message}`
+      : status === "idle" && isRenderableTree(tree)
+        ? "Done."
+        : null;
+
   return (
-    <div className="flex flex-col gap-4 md:flex-row">
-      {/* Left column: chat (60-65%) */}
-      <div className="flex min-w-0 flex-col gap-6 md:w-[62%]">
-        {/* Preset prompts */}
-        <div className="flex flex-wrap gap-2">
-          {PRESET_PROMPTS.map((preset) => (
-            <Button
-              key={preset}
-              variant="outline"
-              size="sm"
-              disabled={isStreaming}
-              onClick={() => handleSubmit(preset)}
-            >
-              {preset}
-            </Button>
-          ))}
-        </div>
+    <div className="flex flex-col gap-4">
+      {/* Preset prompts — pill buttons */}
+      <div className="flex flex-wrap gap-2">
+        {PRESET_PROMPTS.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            disabled={isStreaming}
+            onClick={() => handleSubmit(preset)}
+            className="rounded-full border border-kumo-line bg-kumo-base px-3.5 py-1 text-[13px] font-medium text-kumo-default transition-colors hover:border-kumo-brand hover:bg-kumo-elevated disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {preset}
+          </button>
+        ))}
+      </div>
 
-        {/* Input form */}
-        <form onSubmit={handleFormSubmit} className="flex gap-2">
-          <div className="flex-1">
-            <Input
-              value={prompt}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setPrompt(e.target.value)
-              }
-              placeholder="Describe a UI to generate..."
-              disabled={isStreaming}
-            />
-          </div>
-          {isStreaming ? (
-            <Button variant="destructive" onClick={handleStop} type="button">
-              Stop
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              type="submit"
-              disabled={prompt.trim() === ""}
-            >
-              Generate
-            </Button>
-          )}
-          <Button variant="ghost" onClick={handleReset} type="button">
-            Reset
+      {/* Controls row: input + Generate/Stop + Reset */}
+      <form onSubmit={handleFormSubmit} className="flex gap-2">
+        <div className="flex-1">
+          <Input
+            value={prompt}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setPrompt(e.target.value)
+            }
+            placeholder="Describe a UI to generate..."
+            disabled={isStreaming}
+          />
+        </div>
+        {isStreaming ? (
+          <Button variant="destructive" onClick={handleStop} type="button">
+            Stop
           </Button>
-        </form>
-
-        {/* Error display */}
-        {error && (
-          <Surface>
-            <Text variant="error">{error.message}</Text>
-          </Surface>
+        ) : (
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={prompt.trim() === ""}
+          >
+            Generate
+          </Button>
         )}
+        <Button variant="ghost" onClick={handleReset} type="button">
+          Reset
+        </Button>
+      </form>
 
-        {/* Scrollable conversation area */}
-        <div
-          ref={scrollRef}
-          className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto"
-        >
-          {/* Conversation history (past turns) */}
-          <ChatHistoryView entries={chatHistory} />
+      {/* Status line */}
+      <div className="min-h-5 text-[13px] text-kumo-subtle">{statusText}</div>
 
-          {/* Separator between history and current turn */}
-          {hasHistory && hasCurrentContent && (
-            <hr className="border-kumo-line" />
-          )}
+      {/* Scrollable conversation area */}
+      <div
+        ref={scrollRef}
+        className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto"
+      >
+        {/* Conversation history (past turns) */}
+        <ChatHistoryView entries={chatHistory} />
 
-          {/* Current streaming indicator */}
-          {isStreaming && !isRenderableTree(tree) && (
-            <Text variant="secondary" size="sm">
-              Generating UI...
-            </Text>
-          )}
+        {/* Separator between history and current turn */}
+        {hasHistory && hasCurrentContent && <hr className="border-kumo-line" />}
 
-          {/* Current turn's rendered UITree (interactive) */}
-          {isRenderableTree(tree) && (
-            <UITreeRenderer
-              tree={tree}
-              streaming={isStreaming}
-              onAction={onAction}
-            />
-          )}
-        </div>
+        {/* Current turn's rendered UITree (interactive) */}
+        {isRenderableTree(tree) && (
+          <UITreeRenderer
+            tree={tree}
+            streaming={isStreaming}
+            onAction={onAction}
+          />
+        )}
       </div>
 
-      {/* Right column: action events panel (35-40%) */}
-      <div className="md:w-[38%]">
-        <ActionPanel entries={actionLog} onClear={clearActionLog} />
-      </div>
+      {/* Action events panel — below conversation */}
+      <ActionPanel entries={actionLog} onClear={clearActionLog} />
     </div>
   );
 }
