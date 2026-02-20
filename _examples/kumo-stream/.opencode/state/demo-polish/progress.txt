@@ -100,3 +100,12 @@ Started: 2026-02-19
 - Created `src/__tests__/action-patch-bridge.test.ts` with 14 tests covering all edge cases
 - Files changed: `src/core/action-patch-bridge.ts` (new), `src/__tests__/action-patch-bridge.test.ts` (new)
 - **Learnings:** The bridge pattern (action → patch) is a clean separation: the bridge is a pure function with no side effects, making it trivially testable. `props.children` can be string or number in UIElement, so the bridge handles both. The patch path `/elements/<key>/props/children` targets the nested text content within an element.
+
+## Task - functional-4
+- Wired counter preset, onAction→actionToPatch bridge, and tree mutation into React SPA
+- Added "Build a counter" to `PRESET_PROMPTS` array
+- `handleAction` now calls `actionToPatch(event, tree)` and applies returned patch via `applyPatches`
+- Used refs (`treeRef`, `statusRef`, `applyPatchesRef`) to avoid stale closures in the stable `handleAction` callback — refs declared before `useUITree` so the callback can close over them, synced after destructuring
+- During streaming (`statusRef.current === "streaming"`), actions are logged but patches are NOT applied
+- Files changed: `src/app/ChatDemo.tsx`
+- **Learnings:** Circular dependency between `useCallback` and `useUITree` return values (handleAction needs `applyPatches` but is passed to `useUITree`) solved cleanly with refs: declare refs → create stable callback referencing refs → call hook → sync refs each render. The `applyPatches` from `useUITree` is stable (empty deps `useCallback`) so the ref assignment is safe.
