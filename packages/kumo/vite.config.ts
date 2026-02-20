@@ -212,6 +212,8 @@ export default defineConfig(({ mode }) => {
           // Shiki-powered code highlighting (separate entry to avoid bundle bloat)
           code: resolve(__dirname, "src/code/index.ts"),
           "code/server": resolve(__dirname, "src/code/server.tsx"),
+          // AI schemas entry point (Zod schemas for runtime validation of AI-generated UI trees)
+          "ai/schemas": resolve(__dirname, "ai/schemas.ts"),
         },
         formats: ["es"],
         fileName: (format, entryName) => {
@@ -228,6 +230,8 @@ export default defineConfig(({ mode }) => {
             case id === "react-dom":
             case id.startsWith("react-dom/"):
             case id === "@phosphor-icons/react":
+            case id === "zod":
+            case id.startsWith("zod/"):
               return true;
             // Externalize shiki for server entry - it should be resolved at runtime in Node.js
             // This prevents shiki from being bundled with "use client" directives
