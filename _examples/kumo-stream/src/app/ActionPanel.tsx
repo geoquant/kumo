@@ -1,11 +1,10 @@
 /**
  * ActionPanel — displays a log of action events fired by interactive
- * components in the UITree. Styled as a monospace event log with timestamps,
- * action names, source keys, and simulated POST lines.
+ * components in the UITree. Styled to match the cross-boundary.html
+ * monospace event log via cross-boundary.css classes.
  */
 
 import { useCallback, useEffect, useRef } from "react";
-import { Button } from "@cloudflare/kumo";
 import type { ActionEvent } from "../core/action-handler";
 
 // =============================================================================
@@ -40,21 +39,6 @@ function formatTimestamp(iso: string): string {
   return `${hh}:${mm}:${ss}.${ms}`;
 }
 
-/** Build a compact JSON payload for the simulated POST line */
-function buildPostPayload(event: ActionEvent): string {
-  const payload: Record<string, unknown> = {
-    action: event.actionName,
-    source: event.sourceKey,
-  };
-  if (event.params != null) {
-    payload.params = event.params;
-  }
-  if (event.context != null) {
-    payload.context = event.context;
-  }
-  return JSON.stringify(payload);
-}
-
 // =============================================================================
 // Sub-components
 // =============================================================================
@@ -63,33 +47,35 @@ function ActionLogRow({ entry }: { readonly entry: ActionLogEntry }) {
   const { event, timestamp } = entry;
   const ts = formatTimestamp(timestamp);
 
+  const detailParts: string[] = [];
+  if (event.params != null) {
+    detailParts.push(`params=${JSON.stringify(event.params)}`);
+  }
+  if (event.context != null) {
+    detailParts.push(`ctx=${JSON.stringify(event.context)}`);
+  }
+  const detailStr = detailParts.length > 0 ? ` ${detailParts.join(" ")}` : "";
+
+  const showSubmitPreview = event.actionName === "submit_form";
+  const submitPreviewBody: Record<string, unknown> = {
+    actionName: event.actionName,
+    sourceKey: event.sourceKey,
+    ...(event.params != null ? { params: event.params } : undefined),
+    ...(event.context != null ? { context: event.context } : undefined),
+  };
+
   return (
-    <div className="border-b border-kumo-line pb-2">
-      {/* Main line: timestamp + action name + source key */}
-      <div className="flex flex-wrap items-baseline gap-2">
-        <span className="text-kumo-subtle">{ts}</span>
-        <span className="font-semibold text-kumo-warning">
-          {event.actionName}
-        </span>
-        <span className="text-kumo-subtle">key={event.sourceKey}</span>
-      </div>
-
-      {/* Params/context detail (if present) */}
-      {(event.params != null || event.context != null) && (
-        <div className="mt-0.5 pl-4 text-kumo-subtle">
-          {event.params != null && (
-            <span>params={JSON.stringify(event.params)} </span>
-          )}
-          {event.context != null && (
-            <span>ctx={JSON.stringify(event.context)}</span>
-          )}
+    <div className="cb-action-log-entry">
+      <span className="cb-action-log-time">{ts}</span>
+      <span className="cb-action-log-name">{event.actionName}</span>{" "}
+      <span className="cb-action-log-source">from {event.sourceKey}</span>
+      <span className="cb-action-log-detail">{detailStr}</span>
+      {showSubmitPreview ? (
+        <div className="cb-action-log-sim">
+          {"-> POST /api/actions "}
+          {JSON.stringify(submitPreviewBody)}
         </div>
-      )}
-
-      {/* Simulated POST line */}
-      <div className="mt-0.5 pl-4 text-kumo-muted opacity-50">
-        {"->"} POST /api/actions {buildPostPayload(event)}
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -114,39 +100,17 @@ export function ActionPanel({ entries, onClear }: ActionPanelProps) {
   }, [onClear]);
 
   return (
-    <div className="flex flex-col rounded-lg border border-kumo-line overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-kumo-line bg-kumo-elevated px-3 py-2">
-        <span className="text-[13px] font-semibold text-kumo-default">
-          Action Events
-        </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleClear}
-          disabled={entries.length === 0}
-        >
+    <div className="cb-action-log-panel">
+      <div className="cb-action-log-header">
+        <span>Action Events</span>
+        <button type="button" onClick={handleClear}>
           Clear
-        </Button>
+        </button>
       </div>
-
-      {/* Log area */}
-      <div
-        ref={scrollRef}
-        className="max-h-[200px] overflow-y-auto p-3 font-mono text-xs"
-      >
-        {entries.length === 0 ? (
-          <p className="text-kumo-muted">
-            No action events yet. Interact with a generated UI to see events
-            here.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {entries.map((entry, i) => (
-              <ActionLogRow key={i} entry={entry} />
-            ))}
-          </div>
-        )}
+      <div ref={scrollRef} className="cb-action-log">
+        {entries.map((entry, i) => (
+          <ActionLogRow key={i} entry={entry} />
+        ))}
       </div>
     </div>
   );

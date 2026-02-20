@@ -14,8 +14,8 @@ import type { JsonPatchOp } from "./rfc6902";
 // Constants
 // =============================================================================
 
-/** Well-known element key for counter display text. */
-const COUNT_DISPLAY_KEY = "count-display";
+/** Default element key for counter display text (single-counter fallback). */
+const DEFAULT_COUNT_DISPLAY_KEY = "count-display";
 
 /** Actions recognized by the bridge. */
 const COUNTER_ACTIONS = new Set(["increment", "decrement"]);
@@ -27,6 +27,9 @@ const COUNTER_ACTIONS = new Set(["increment", "decrement"]);
 /**
  * Map an action event to a JSON Patch operation, if the action is recognized.
  *
+ * Supports multi-counter via `event.params.target` to identify which counter
+ * display element to update. Falls back to "count-display" for single counters.
+ *
  * @returns A replace patch for known patterns, or `null` if the action is
  *          unrecognized or the target element is missing from the tree.
  */
@@ -35,7 +38,7 @@ export function actionToPatch(
   tree: UITree,
 ): JsonPatchOp | null {
   if (COUNTER_ACTIONS.has(event.actionName)) {
-    return counterPatch(event.actionName, tree);
+    return counterPatch(event.actionName, event, tree);
   }
 
   return null;
@@ -46,14 +49,33 @@ export function actionToPatch(
 // =============================================================================
 
 /**
- * Build a replace patch that increments or decrements the count-display
+ * Resolve the target counter display key from an action event.
+ *
+ * Supports two patterns:
+ *   1. `action.params.target` — explicit target key (multi-counter)
+ *   2. Fallback to "count-display" (single-counter, backward compatible)
+ */
+function resolveCounterKey(event: ActionEvent): string {
+  const target = event.params?.target;
+  return typeof target === "string" && target.length > 0
+    ? target
+    : DEFAULT_COUNT_DISPLAY_KEY;
+}
+
+/**
+ * Build a replace patch that increments or decrements a counter display
  * element's text content by 1.
  *
- * - Missing count-display element → null
+ * - Missing target element → null
  * - Non-numeric text → treated as 0
  */
-function counterPatch(actionName: string, tree: UITree): JsonPatchOp | null {
-  const element = tree.elements[COUNT_DISPLAY_KEY];
+function counterPatch(
+  actionName: string,
+  event: ActionEvent,
+  tree: UITree,
+): JsonPatchOp | null {
+  const key = resolveCounterKey(event);
+  const element = tree.elements[key];
   if (element == null) return null;
 
   const props = element.props as Record<string, unknown>;
@@ -70,7 +92,7 @@ function counterPatch(actionName: string, tree: UITree): JsonPatchOp | null {
 
   return {
     op: "replace",
-    path: `/elements/${COUNT_DISPLAY_KEY}/props/children`,
+    path: `/elements/${key}/props/children`,
     value: String(next),
   };
 }
