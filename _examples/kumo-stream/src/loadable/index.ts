@@ -11,6 +11,8 @@
  *   CloudflareKumo.renderTree(tree, containerId)  — wholesale tree replacement
  *   CloudflareKumo.createParser()                 — JSONL streaming parser
  *   CloudflareKumo.setTheme(mode)                 — light/dark toggle
+ *   CloudflareKumo.getTree(containerId)            — read current UITree state
+ *   CloudflareKumo.subscribeTree(containerId, cb)  — subscribe to UITree changes
  *   CloudflareKumo.reset(containerId)             — clear state + unmount
  *   CloudflareKumo.onAction(handler)              — subscribe to action events
  */
@@ -49,6 +51,9 @@ const _roots = new Map<string, Root>();
 
 /** Per-container runtime-captured values (uncontrolled inputs, touched tracking). */
 const _valueStores = new Map<string, RuntimeValueStore>();
+
+/** Per-container UITree subscribers. */
+const _treeSubscribers = new Map<string, Set<(tree: UITree) => void>>();
 
 // =============================================================================
 // Internal helpers
@@ -111,6 +116,19 @@ function renderContainer(containerId: string): void {
   });
 }
 
+function notifyTree(containerId: string, tree: UITree): void {
+  const subs = _treeSubscribers.get(containerId);
+  if (!subs) return;
+
+  for (const cb of subs) {
+    try {
+      cb(tree);
+    } catch (err) {
+      console.error("[CloudflareKumo] Tree subscriber threw", err);
+    }
+  }
+}
+
 // =============================================================================
 // Public API
 // =============================================================================
@@ -129,6 +147,13 @@ export interface CloudflareKumoAPI {
   readonly createParser: () => JsonlParser;
   /** Set light/dark theme — dispatches CustomEvent and sets data-mode on body. */
   readonly setTheme: (mode: "light" | "dark") => void;
+  /** Read the current UITree state for a container. */
+  readonly getTree: (containerId: string) => UITree;
+  /** Subscribe to per-container UITree updates. Returns an unsubscribe function. */
+  readonly subscribeTree: (
+    containerId: string,
+    cb: (tree: UITree) => void,
+  ) => () => void;
   /** Clear tree state and unmount the container. */
   readonly reset: (containerId: string) => void;
   /**
@@ -144,6 +169,7 @@ const api: CloudflareKumoAPI = {
     const current = _trees.get(containerId) ?? EMPTY_TREE;
     const next = applyRfc6902Patch(current, op);
     _trees.set(containerId, next);
+    notifyTree(containerId, next);
     renderContainer(containerId);
   },
 
@@ -154,11 +180,13 @@ const api: CloudflareKumoAPI = {
       current = applyRfc6902Patch(current, op);
     }
     _trees.set(containerId, current);
+    notifyTree(containerId, current);
     renderContainer(containerId);
   },
 
   renderTree(tree: UITree, containerId: string): void {
     _trees.set(containerId, tree);
+    notifyTree(containerId, tree);
     // Non-streaming render — pass streaming=false for error rendering on missing keys
     const root = getOrCreateRoot(containerId);
     if (!root) return;
@@ -194,9 +222,30 @@ const api: CloudflareKumoAPI = {
     window.dispatchEvent(event);
   },
 
+  getTree(containerId: string): UITree {
+    return _trees.get(containerId) ?? EMPTY_TREE;
+  },
+
+  subscribeTree(containerId: string, cb: (tree: UITree) => void): () => void {
+    const existing = _treeSubscribers.get(containerId);
+    const subs = existing ?? new Set<(tree: UITree) => void>();
+    if (!existing) _treeSubscribers.set(containerId, subs);
+
+    subs.add(cb);
+    return () => {
+      const current = _treeSubscribers.get(containerId);
+      if (!current) return;
+      current.delete(cb);
+      if (current.size === 0) {
+        _treeSubscribers.delete(containerId);
+      }
+    };
+  },
+
   reset(containerId: string): void {
     _trees.delete(containerId);
     _valueStores.delete(containerId);
+    _treeSubscribers.delete(containerId);
 
     const root = _roots.get(containerId);
     if (root) {
