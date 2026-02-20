@@ -12,6 +12,7 @@ Started: 2026-02-20
 - UMD action runtime: expose `dispatchAction(event, containerId)` + `processActionResult(result, callbacks)`; host wires callbacks (applyPatches/sendMessage/openExternal)
 - Discovery manifest: build `/.well-known/generative-ui.json` via pure `buildGenerativeUiManifest()` to keep payload deterministic + testable
 - SSE parsing: parse line-by-line, join multi-line `data:` payloads; tolerate CRLF + chunk splits; stop reading on done/error
+- Patch batching: throttle patch application + renders to rAF (UMD: `applyPatchesBatched`; React hook: `useUITree({ batchPatches: true })`)
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -65,3 +66,8 @@ Started: 2026-02-20
 - Replaced cross-boundary demo SSE parsing with a spec-ish parser (multi-line `data:`, CRLF, chunk split safety) and preserved streaming patch behavior.
 - Files changed: `_examples/kumo-stream/public/cross-boundary.html`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
 - Learnings: handle SSE as a line protocol; treat blank line as event boundary; stop the reader on done/error to avoid extra work
+
+## Task - [perf-1]
+- Added optional rAF-based batching to reduce per-token render churn (UMD batched patch APIs + SPA hook batching; cross-boundary can toggle batching off for debugging).
+- Files changed: `_examples/kumo-stream/src/loadable/index.ts`, `_examples/kumo-stream/src/core/hooks.ts`, `_examples/kumo-stream/public/cross-boundary.html`, `_examples/kumo-stream/src/app/ChatDemo.tsx`, `_examples/kumo-stream/src/__tests__/loadable-batched-render.test.ts`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
+- Learnings: batch at the boundary (patch ingest) not inside renderer; keep an escape hatch for debugging

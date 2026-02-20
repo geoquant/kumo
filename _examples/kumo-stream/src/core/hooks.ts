@@ -27,6 +27,12 @@ export interface UseUITreeOptions {
    * Pass this through to UITreeRenderer's `onAction` prop.
    */
   readonly onAction?: ActionDispatch;
+
+  /**
+   * When true, patch application is throttled to one render per animation frame.
+   * This keeps fast token streams responsive.
+   */
+  readonly batchPatches?: boolean;
 }
 
 export interface UseUITreeReturn {
@@ -64,12 +70,31 @@ export interface UseUITreeReturn {
 export function useUITree(options?: UseUITreeOptions): UseUITreeReturn {
   const [tree, setTree] = useState<UITree>(EMPTY_TREE);
 
-  const applyPatch = useCallback((patch: JsonPatchOp): void => {
-    setTree((prev: UITree) => applyRfc6902Patch(prev, patch));
+  const batchPatches = options?.batchPatches ?? false;
+
+  const pendingRef = useMemo(() => {
+    return { patches: [] as JsonPatchOp[] };
+  }, []);
+  const scheduledRef = useMemo(() => {
+    return { rafId: null as number | null };
   }, []);
 
-  const applyPatches = useCallback((patches: readonly JsonPatchOp[]): void => {
+  useEffect(() => {
+    return () => {
+      if (scheduledRef.rafId != null) {
+        cancelAnimationFrame(scheduledRef.rafId);
+        scheduledRef.rafId = null;
+      }
+      pendingRef.patches = [];
+    };
+  }, [pendingRef, scheduledRef]);
+
+  const flushPending = useCallback((): void => {
+    const patches = pendingRef.patches;
+    pendingRef.patches = [];
+
     if (patches.length === 0) return;
+
     setTree((prev: UITree) => {
       let current = prev;
       for (const patch of patches) {
@@ -77,11 +102,57 @@ export function useUITree(options?: UseUITreeOptions): UseUITreeReturn {
       }
       return current;
     });
-  }, []);
+  }, [pendingRef]);
+
+  const scheduleFlush = useCallback((): void => {
+    if (scheduledRef.rafId != null) return;
+    scheduledRef.rafId = requestAnimationFrame(() => {
+      scheduledRef.rafId = null;
+      flushPending();
+    });
+  }, [flushPending, scheduledRef]);
+
+  const applyPatch = useCallback(
+    (patch: JsonPatchOp): void => {
+      if (!batchPatches) {
+        setTree((prev: UITree) => applyRfc6902Patch(prev, patch));
+        return;
+      }
+
+      pendingRef.patches.push(patch);
+      scheduleFlush();
+    },
+    [batchPatches, pendingRef, scheduleFlush],
+  );
+
+  const applyPatches = useCallback(
+    (patches: readonly JsonPatchOp[]): void => {
+      if (patches.length === 0) return;
+      if (!batchPatches) {
+        setTree((prev: UITree) => {
+          let current = prev;
+          for (const patch of patches) {
+            current = applyRfc6902Patch(current, patch);
+          }
+          return current;
+        });
+        return;
+      }
+
+      pendingRef.patches.push(...patches);
+      scheduleFlush();
+    },
+    [batchPatches, pendingRef, scheduleFlush],
+  );
 
   const reset = useCallback((): void => {
+    if (scheduledRef.rafId != null) {
+      cancelAnimationFrame(scheduledRef.rafId);
+      scheduledRef.rafId = null;
+    }
+    pendingRef.patches = [];
     setTree(EMPTY_TREE);
-  }, []);
+  }, [pendingRef, scheduledRef]);
 
   return { tree, applyPatch, applyPatches, reset, onAction: options?.onAction };
 }

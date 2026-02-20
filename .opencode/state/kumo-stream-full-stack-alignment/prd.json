@@ -112,7 +112,7 @@
         "UI remains responsive during fast token streams",
         "Batching can be disabled for debugging"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "security-1",
