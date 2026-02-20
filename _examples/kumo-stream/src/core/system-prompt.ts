@@ -244,6 +244,25 @@ User: "Create a notification preferences form"
 {"op":"add","path":"/elements/cancel-btn","value":{"key":"cancel-btn","type":"Button","props":{"children":"Cancel","variant":"ghost"},"parentKey":"actions"}}
 {"op":"add","path":"/elements/save-btn","value":{"key":"save-btn","type":"Button","props":{"children":"Save Preferences","variant":"primary"},"parentKey":"actions","action":{"name":"submit_preferences"}}}
 
+## Example 5: Stateful Counter
+
+User: "Build a counter"
+
+{"op":"add","path":"/root","value":"card"}
+{"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["card-stack"]}}
+{"op":"add","path":"/elements/card-stack","value":{"key":"card-stack","type":"Stack","props":{"gap":"lg","align":"center"},"children":["heading","count-display","button-row"],"parentKey":"card"}}
+{"op":"add","path":"/elements/heading","value":{"key":"heading","type":"Text","props":{"children":"Counter","variant":"heading2"},"parentKey":"card-stack"}}
+{"op":"add","path":"/elements/count-display","value":{"key":"count-display","type":"Text","props":{"children":"0","variant":"heading1"},"parentKey":"card-stack"}}
+{"op":"add","path":"/elements/button-row","value":{"key":"button-row","type":"Cluster","props":{"gap":"sm","justify":"center"},"children":["decrement-btn","increment-btn"],"parentKey":"card-stack"}}
+{"op":"add","path":"/elements/decrement-btn","value":{"key":"decrement-btn","type":"Button","props":{"children":"−","variant":"secondary","size":"lg"},"parentKey":"button-row","action":{"name":"decrement"}}}
+{"op":"add","path":"/elements/increment-btn","value":{"key":"increment-btn","type":"Button","props":{"children":"+","variant":"primary","size":"lg"},"parentKey":"button-row","action":{"name":"increment"}}}
+
+Key points for counters and similar stateful UIs:
+- The count display element MUST use key \`count-display\` — the host application uses this key to find and update the count via \`data-key\` attribute
+- Action names \`increment\` and \`decrement\` are recognized by the host for automatic count updates
+- The display shows the current numeric value as text content (starts at "0")
+- Buttons trigger actions; the host handles state mutations — the LLM only provides the initial UI structure
+
 ## Important
 
 - ALWAYS respond with ONLY JSONL lines. No markdown fences, no explanations, no text before or after.
