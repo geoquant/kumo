@@ -1,5 +1,7 @@
 # Stateful Wrappers, Action System, and Component Expansion
 
+**Status:** Implemented on `geoquant/streaming-ui` (spec retained for context)
+
 ## Problem
 
 kumo-stream proves streaming generative UI works — JSONL patches, cross-boundary UMD, per-element error boundaries. But generated forms are non-functional: Select doesn't hold selections, Checkbox doesn't toggle, Switch doesn't flip. Components render but can't interact. This limits kumo-stream from being the premier generative UI framework to a read-only demo.
@@ -231,7 +233,7 @@ window.dispatchEvent(
 
 ### Layer 3: Component Expansion
 
-New components to add to COMPONENT_MAP:
+New components to add to COMPONENT_MAP (done in this branch)
 
 | Component     | Stateful?        | Sub-components              | Notes                               |
 | ------------- | ---------------- | --------------------------- | ----------------------------------- |
@@ -240,6 +242,31 @@ New components to add to COMPONENT_MAP:
 | `Textarea`    | No               | None                        | Alias for `InputArea`, uncontrolled |
 | `Meter`       | Already mapped   | —                           | —                                   |
 | `Tabs`        | Yes (controlled) | Data-driven via `tabs` prop | Already mapped but needs wrapper    |
+
+Additional shipped `@cloudflare/kumo` components missing from kumo-stream
+
+Goal: expand kumo-stream's component surface area without adding brittle overlay/app-shell primitives.
+
+| Component         | Category   | Add to COMPONENT_MAP? | Notes                                                   |
+| ----------------- | ---------- | --------------------- | ------------------------------------------------------- |
+| `Code`            | Display    | Yes                   | Code blocks; common in generated UIs                    |
+| `Field`           | Input      | Yes                   | Better forms: label + help + error wrapper              |
+| `Label`           | Other      | Yes                   | Simple; pairs with inputs/Field                         |
+| `Breadcrumbs`     | Display    | Maybe                 | Niche; ok for docs-style pages                          |
+| `ClipboardText`   | Action     | Maybe                 | Copy-to-clipboard; useful for keys/snippets             |
+| `LayerCard`       | Display    | Maybe                 | Cloudflare-specific; ok as an alternate card            |
+| `Pagination`      | Navigation | Maybe                 | Useful with paged data; requires model discipline       |
+| `Tooltip`         | Overlay    | Maybe                 | Useful but hover-triggered; cross-boundary UX varies    |
+| `Popover`         | Overlay    | No (v1)               | Trigger/content relationship; more failure modes        |
+| `Dialog`          | Overlay    | No (v1)               | Modal/portal concerns; focus management; complex        |
+| `DropdownMenu`    | Overlay    | No (v1)               | Complex trigger/menu relationship                       |
+| `Combobox`        | Input      | No (v1)               | Needs dynamic options + search; hard to prompt reliably |
+| `CommandPalette`  | Navigation | No                    | App-level overlay; not a mini-app primitive             |
+| `DatePicker`      | Other      | No (v1)               | Complex widget; state/validation burden                 |
+| `DateRangePicker` | Input      | No (v1)               | More complex than DatePicker                            |
+| `MenuBar`         | Navigation | No                    | App-shell concern                                       |
+| `SensitiveInput`  | Other      | No                    | Security footgun in gen-UI (password-like flows)        |
+| `Toasty`          | Feedback   | No                    | Imperative API; not declarative-tree friendly           |
 
 **System prompt updates:**
 
