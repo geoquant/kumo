@@ -9,12 +9,13 @@
  *   5. UITreeRenderer renders the tree incrementally
  *
  * Each new message resets the tree and creates a fresh parser instance.
+ *
+ * Styled to match public/cross-boundary.html via cross-boundary.css classes.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Anthropic from "@anthropic-ai/sdk";
-import { Button, Input } from "@cloudflare/kumo";
 
 import { useUITree } from "../core/hooks";
 import { createJsonlParser, type JsonlParser } from "../core/jsonl-parser";
@@ -83,17 +84,15 @@ type ChatHistoryEntry =
 
 function UserBubble({ content }: { readonly content: string }) {
   return (
-    <div className="flex justify-end">
-      <div className="max-w-[80%] rounded-lg bg-kumo-brand-subtle px-3 py-2 text-sm text-kumo-default">
-        {content}
-      </div>
+    <div className="cb-history-user-bubble">
+      <div>{content}</div>
     </div>
   );
 }
 
 function AssistantSnapshot({ tree }: { readonly tree: UITree }) {
   return (
-    <div className="pointer-events-none rounded-lg border border-kumo-line p-3 opacity-80">
+    <div className="cb-history-assistant-snapshot">
       <UITreeRenderer tree={tree} streaming={false} />
     </div>
   );
@@ -106,7 +105,7 @@ function ChatHistoryView({
 }) {
   if (entries.length === 0) return null;
   return (
-    <div className="flex flex-col gap-4">
+    <div>
       {entries.map((entry, i) =>
         entry.role === "user" ? (
           <UserBubble key={i} content={entry.content} />
@@ -122,7 +121,11 @@ function ChatHistoryView({
 // Component
 // =============================================================================
 
-export function ChatDemo() {
+export interface ChatDemoProps {
+  readonly isDark: boolean;
+}
+
+export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState<StreamingStatus>("idle");
   const [error, setError] = useState<ErrorInfo | null>(null);
@@ -340,78 +343,75 @@ export function ChatDemo() {
         : null;
 
   return (
-    <div className="flex flex-col gap-4">
+    <>
       {/* Preset prompts — pill buttons */}
-      <div className="flex flex-wrap gap-2">
+      <div className="cb-presets">
         {PRESET_PROMPTS.map((preset) => (
           <button
             key={preset}
             type="button"
             disabled={isStreaming}
             onClick={() => handleSubmit(preset)}
-            className="rounded-full border border-kumo-line bg-kumo-base px-3.5 py-1 text-[13px] font-medium text-kumo-default transition-colors hover:border-kumo-brand hover:bg-kumo-elevated disabled:cursor-not-allowed disabled:opacity-50"
           >
             {preset}
           </button>
         ))}
       </div>
 
-      {/* Controls row: input + Generate/Stop + Reset */}
-      <form onSubmit={handleFormSubmit} className="flex gap-2">
-        <div className="flex-1">
-          <Input
-            value={prompt}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setPrompt(e.target.value)
-            }
-            placeholder="Describe a UI to generate..."
-            disabled={isStreaming}
-          />
-        </div>
-        {isStreaming ? (
-          <Button variant="destructive" onClick={handleStop} type="button">
-            Stop
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            type="submit"
-            disabled={prompt.trim() === ""}
-          >
-            Generate
-          </Button>
-        )}
-        <Button variant="ghost" onClick={handleReset} type="button">
+      {/* Controls row: input + Generate + Stop + Reset */}
+      <form onSubmit={handleFormSubmit} className="cb-controls">
+        <input
+          type="text"
+          value={prompt}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setPrompt(e.target.value)
+          }
+          placeholder="Describe a UI to generate..."
+          disabled={isStreaming}
+        />
+        <button type="submit" disabled={isStreaming} className="primary">
+          Generate
+        </button>
+        <button
+          type="button"
+          disabled={!isStreaming}
+          onClick={handleStop}
+          className="danger"
+        >
+          Stop
+        </button>
+        <button type="button" onClick={handleReset}>
           Reset
-        </Button>
+        </button>
       </form>
 
       {/* Status line */}
-      <div className="min-h-5 text-[13px] text-kumo-subtle">{statusText}</div>
+      <div className="cb-status">{statusText}</div>
 
       {/* Scrollable conversation area */}
-      <div
-        ref={scrollRef}
-        className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto"
-      >
+      <div ref={scrollRef} className="cb-conversation-area">
         {/* Conversation history (past turns) */}
         <ChatHistoryView entries={chatHistory} />
 
         {/* Separator between history and current turn */}
-        {hasHistory && hasCurrentContent && <hr className="border-kumo-line" />}
+        {hasHistory && hasCurrentContent && (
+          <hr className="cb-history-separator" />
+        )}
 
         {/* Current turn's rendered UITree (interactive) */}
-        {isRenderableTree(tree) && (
-          <UITreeRenderer
-            tree={tree}
-            streaming={isStreaming}
-            onAction={onAction}
-          />
-        )}
+        <div id="kumo-container">
+          {isRenderableTree(tree) && (
+            <UITreeRenderer
+              tree={tree}
+              streaming={isStreaming}
+              onAction={onAction}
+            />
+          )}
+        </div>
       </div>
 
       {/* Action events panel — below conversation */}
       <ActionPanel entries={actionLog} onClear={clearActionLog} />
-    </div>
+    </>
   );
 }

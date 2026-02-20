@@ -194,6 +194,7 @@
       #kumo-container {
         min-height: 100px;
         border-radius: 8px;
+        padding: 16px;
       }
 
       /* ---- Conversation history ---- */
@@ -362,6 +363,16 @@
       body[data-mode="dark"] .action-log-detail {
         color: #999;
       }
+
+      .action-log-sim {
+        margin-left: 68px;
+        opacity: 0.75;
+        color: #666;
+      }
+
+      body[data-mode="dark"] .action-log-sim {
+        color: #999;
+      }
     </style>
   </head>
   <body data-mode="light">
@@ -370,8 +381,8 @@
         <div>
           <h1>Kumo Cross-Boundary Demo</h1>
           <p>
-            Plain HTML &mdash; no React, no build step. Components rendered via
-            UMD bundle.
+            Plain HTML, no React, no build step. Components rendered via UMD
+            bundle.
           </p>
         </div>
         <button id="theme-toggle" type="button">Dark Mode</button>
@@ -515,6 +526,20 @@
           }
           var detailStr = parts.length > 0 ? " " + parts.join(" ") : "";
 
+          var sim = "";
+          if (detail.actionName === "submit_form") {
+            var body = {
+              actionName: detail.actionName,
+              sourceKey: detail.sourceKey,
+            };
+            if (detail.params) body.params = detail.params;
+            if (detail.context) body.context = detail.context;
+            sim =
+              '<div class="action-log-sim">' +
+              escapeHtml("-> POST /api/actions " + JSON.stringify(body)) +
+              "</div>";
+          }
+
           entry.innerHTML =
             '<span class="action-log-time">' +
             formatTime() +
@@ -527,7 +552,8 @@
             "</span>" +
             '<span class="action-log-detail">' +
             escapeHtml(detailStr) +
-            "</span>";
+            "</span>" +
+            sim;
 
           actionLogEl.appendChild(entry);
           actionLogEl.scrollTop = actionLogEl.scrollHeight;
@@ -771,24 +797,33 @@
         // Host processes results via processActionResult().
         // -----------------------------------------------------------------------
 
-        var COUNT_DISPLAY_KEY = "count-display";
+        var DEFAULT_COUNT_DISPLAY_KEY = "count-display";
 
-        function readCounterFromDOM() {
-          var el = document.querySelector(
-            '[data-key="' + COUNT_DISPLAY_KEY + '"]',
-          );
+        /**
+         * Resolve target counter key from action detail.
+         * Supports multi-counter via detail.params.target.
+         */
+        function resolveCounterKey(detail) {
+          var target = detail.params && detail.params.target;
+          return typeof target === "string" && target.length > 0
+            ? target
+            : DEFAULT_COUNT_DISPLAY_KEY;
+        }
+
+        function readCounterFromDOM(key) {
+          var el = document.querySelector('[data-key="' + key + '"]');
           if (!el) return null;
           var n = parseInt(el.textContent, 10);
           return isNaN(n) ? 0 : n;
         }
 
-        function counterPatchResult(nextValue) {
+        function counterPatchResult(key, nextValue) {
           return {
             type: "patch",
             patches: [
               {
                 op: "replace",
-                path: "/elements/" + COUNT_DISPLAY_KEY + "/props/children",
+                path: "/elements/" + key + "/props/children",
                 value: String(nextValue),
               },
             ],
@@ -797,16 +832,18 @@
 
         /** Built-in action handlers — same set as BUILTIN_HANDLERS in TS. */
         var ACTION_HANDLERS = {
-          increment: function (_detail) {
-            var current = readCounterFromDOM();
+          increment: function (detail) {
+            var key = resolveCounterKey(detail);
+            var current = readCounterFromDOM(key);
             if (current == null) return null;
-            return counterPatchResult(current + 1);
+            return counterPatchResult(key, current + 1);
           },
 
-          decrement: function (_detail) {
-            var current = readCounterFromDOM();
+          decrement: function (detail) {
+            var key = resolveCounterKey(detail);
+            var current = readCounterFromDOM(key);
             if (current == null) return null;
-            return counterPatchResult(current - 1);
+            return counterPatchResult(key, current - 1);
           },
 
           submit_form: function (detail) {
