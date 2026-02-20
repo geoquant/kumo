@@ -20,7 +20,9 @@ import { useUITree } from "../core/hooks";
 import { createJsonlParser, type JsonlParser } from "../core/jsonl-parser";
 import { startStream, type StreamHandle } from "../core/stream-client";
 import { UITreeRenderer, isRenderableTree } from "../core/UITreeRenderer";
+import type { ActionEvent } from "../core/action-handler";
 import type { UITree } from "../core/types";
+import { ActionPanel, type ActionLogEntry } from "./ActionPanel";
 
 // =============================================================================
 // Constants
@@ -122,8 +124,22 @@ export function ChatDemo() {
   const [error, setError] = useState<ErrorInfo | null>(null);
   const [messages, setMessages] = useState<Anthropic.MessageParam[]>([]);
   const [chatHistory, setChatHistory] = useState<ChatHistoryEntry[]>([]);
+  const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
 
-  const { tree, applyPatches, reset } = useUITree();
+  const handleAction = useCallback((event: ActionEvent) => {
+    setActionLog((prev) => [
+      ...prev,
+      { timestamp: new Date().toISOString(), event },
+    ]);
+  }, []);
+
+  const clearActionLog = useCallback(() => {
+    setActionLog([]);
+  }, []);
+
+  const { tree, applyPatches, reset, onAction } = useUITree({
+    onAction: handleAction,
+  });
 
   // Mutable refs for the parser and stream handle — not part of render state
   const parserRef = useRef<JsonlParser | null>(null);
@@ -257,6 +273,7 @@ export function ChatDemo() {
     reset();
     setMessages([]);
     setChatHistory([]);
+    setActionLog([]);
     setError(null);
     setStatus("idle");
     setPrompt("");
@@ -277,81 +294,95 @@ export function ChatDemo() {
     isRenderableTree(tree) || (isStreaming && !isRenderableTree(tree));
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Preset prompts */}
-      <div className="flex flex-wrap gap-2">
-        {PRESET_PROMPTS.map((preset) => (
-          <Button
-            key={preset}
-            variant="outline"
-            size="sm"
-            disabled={isStreaming}
-            onClick={() => handleSubmit(preset)}
-          >
-            {preset}
+    <div className="flex flex-col gap-4 md:flex-row">
+      {/* Left column: chat (60-65%) */}
+      <div className="flex min-w-0 flex-col gap-6 md:w-[62%]">
+        {/* Preset prompts */}
+        <div className="flex flex-wrap gap-2">
+          {PRESET_PROMPTS.map((preset) => (
+            <Button
+              key={preset}
+              variant="outline"
+              size="sm"
+              disabled={isStreaming}
+              onClick={() => handleSubmit(preset)}
+            >
+              {preset}
+            </Button>
+          ))}
+        </div>
+
+        {/* Input form */}
+        <form onSubmit={handleFormSubmit} className="flex gap-2">
+          <div className="flex-1">
+            <Input
+              value={prompt}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setPrompt(e.target.value)
+              }
+              placeholder="Describe a UI to generate..."
+              disabled={isStreaming}
+            />
+          </div>
+          {isStreaming ? (
+            <Button variant="destructive" onClick={handleStop} type="button">
+              Stop
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={prompt.trim() === ""}
+            >
+              Generate
+            </Button>
+          )}
+          <Button variant="ghost" onClick={handleReset} type="button">
+            Reset
           </Button>
-        ))}
+        </form>
+
+        {/* Error display */}
+        {error && (
+          <Surface>
+            <Text variant="error">{error.message}</Text>
+          </Surface>
+        )}
+
+        {/* Scrollable conversation area */}
+        <div
+          ref={scrollRef}
+          className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto"
+        >
+          {/* Conversation history (past turns) */}
+          <ChatHistoryView entries={chatHistory} />
+
+          {/* Separator between history and current turn */}
+          {hasHistory && hasCurrentContent && (
+            <hr className="border-kumo-line" />
+          )}
+
+          {/* Current streaming indicator */}
+          {isStreaming && !isRenderableTree(tree) && (
+            <Text variant="secondary" size="sm">
+              Generating UI...
+            </Text>
+          )}
+
+          {/* Current turn's rendered UITree (interactive) */}
+          {isRenderableTree(tree) && (
+            <UITreeRenderer
+              tree={tree}
+              streaming={isStreaming}
+              onAction={onAction}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Input form */}
-      <form onSubmit={handleFormSubmit} className="flex gap-2">
-        <div className="flex-1">
-          <Input
-            value={prompt}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setPrompt(e.target.value)
-            }
-            placeholder="Describe a UI to generate..."
-            disabled={isStreaming}
-          />
-        </div>
-        {isStreaming ? (
-          <Button variant="destructive" onClick={handleStop} type="button">
-            Stop
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            type="submit"
-            disabled={prompt.trim() === ""}
-          >
-            Generate
-          </Button>
-        )}
-        <Button variant="ghost" onClick={handleReset} type="button">
-          Reset
-        </Button>
-      </form>
-
-      {/* Error display */}
-      {error && (
-        <Surface>
-          <Text variant="error">{error.message}</Text>
-        </Surface>
-      )}
-
-      {/* Scrollable conversation area */}
-      <div
-        ref={scrollRef}
-        className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto"
-      >
-        {/* Conversation history (past turns) */}
-        <ChatHistoryView entries={chatHistory} />
-
-        {/* Separator between history and current turn */}
-        {hasHistory && hasCurrentContent && <hr className="border-kumo-line" />}
-
-        {/* Current streaming indicator */}
-        {isStreaming && !isRenderableTree(tree) && (
-          <Text variant="secondary" size="sm">
-            Generating UI...
-          </Text>
-        )}
-
-        {/* Current turn's rendered UITree (interactive) */}
-        {isRenderableTree(tree) && (
-          <UITreeRenderer tree={tree} streaming={isStreaming} />
-        )}
+      {/* Right column: action events panel (35-40%) */}
+      <div className="md:w-[38%]">
+        <ActionPanel entries={actionLog} onClear={clearActionLog} />
       </div>
     </div>
   );
