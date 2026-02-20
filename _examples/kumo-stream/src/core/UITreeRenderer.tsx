@@ -22,6 +22,7 @@ import {
   RuntimeValueStoreProvider,
   useRuntimeValueStoreContext,
 } from "./runtime-value-store-context";
+import { sanitizeUrl } from "./url-policy";
 
 /** Maximum recursion depth to prevent infinite loops from circular refs. */
 const MAX_DEPTH = 50;
@@ -134,6 +135,14 @@ function chainHandlers(
       second(event);
     }
   };
+}
+
+function preventDefaultIfPossible(event: unknown): void {
+  if (!isRecord(event)) return;
+  const preventDefault = event["preventDefault"];
+  if (typeof preventDefault === "function") {
+    preventDefault();
+  }
 }
 
 function createSubmitFormClickHandler(
@@ -312,6 +321,30 @@ function RenderElement({
       if (value === undefined) return;
       runtimeValueStore.setValue(elementKey, value);
     }, existingOnChange);
+  }
+
+  // Apply URL policy to Link hrefs. When blocked, strip href and prevent
+  // navigation on click (but still allow any existing onClick/action logic).
+  if (type === "Link") {
+    const href = restProps["href"];
+    if (typeof href === "string") {
+      const decision = sanitizeUrl(href);
+      if (decision.ok) {
+        restProps["href"] = decision.url;
+      } else {
+        delete restProps["href"];
+        const existingOnClick = restProps.onClick;
+        restProps.onClick = (...args: unknown[]) => {
+          preventDefaultIfPossible(args[0]);
+          console.warn(
+            `[kumo-stream] blocked Link href (${decision.reason}): ${href}`,
+          );
+          if (typeof existingOnClick === "function") {
+            existingOnClick(...args);
+          }
+        };
+      }
+    }
   }
 
   // Build rendered child elements from children[] key references
