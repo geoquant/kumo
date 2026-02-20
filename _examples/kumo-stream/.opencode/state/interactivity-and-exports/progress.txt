@@ -1,0 +1,20 @@
+# Progress Log
+PRD: interactivity-and-exports
+Started: 2026-02-19
+
+## Codebase Patterns
+- **Action injection pattern**: UITreeRenderer checks element.action + onAction prop to inject handlers. Button/Link get onClick; other components get onAction.
+- **Spy component testing**: Real kumo components error in test env (dual React). Use `SpyComponent` + `capturedPropsMap` pattern to test prop injection. Temporarily swap COMPONENT_MAP entries in try/finally blocks.
+- **createClickHandler chains existing onClick**: When injecting onClick for Button/Link, existing LLM onClick is preserved by chaining (existing fires first, then action dispatch).
+
+---
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - renderer-1
+- **Implemented**: Button/Link onClick->action bridging in UITreeRenderer. Components in `ONCLICK_ACTION_TYPES` set (Button, Link) receive `onClick` instead of `onAction` when they have an action field. Added `createClickHandler` to action-handler.ts that chains existing onClick and dispatches ActionEvent.
+- **Files changed**:
+  - `src/core/action-handler.ts` — added `createClickHandler` factory
+  - `src/core/UITreeRenderer.tsx` — added `ONCLICK_ACTION_TYPES` set, branching logic in action injection
+  - `src/__tests__/action-handler.test.ts` — 6 new tests for createClickHandler
+  - `src/__tests__/ui-tree-renderer-action.test.tsx` — 7 new tests for Button/Link onClick injection
+- **Learnings**: Real kumo components (Button, Link) can't render in test env due to dual React copies. Must use Spy pattern with COMPONENT_MAP swaps to test type-specific behavior.

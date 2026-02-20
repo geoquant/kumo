@@ -67,3 +67,37 @@ export function createActionHandler(
     dispatch(event);
   };
 }
+
+/**
+ * Creates an onClick handler for components that don't support onAction
+ * (e.g. Button, Link). Dispatches the same ActionEvent as createActionHandler
+ * but accepts any arguments (compatible with React's onClick signature)
+ * and optionally chains an existing onClick.
+ *
+ * @param action     - The Action definition from UIElement.action
+ * @param sourceKey  - The key of the element that owns this action
+ * @param dispatch   - Host callback that receives the ActionEvent
+ * @param existingOnClick - Optional existing onClick handler from LLM props
+ * @returns An onClick handler that dispatches the action event
+ */
+export function createClickHandler(
+  action: Action,
+  sourceKey: string,
+  dispatch: ActionDispatch,
+  existingOnClick?: unknown,
+): (...args: unknown[]) => void {
+  return (...args: unknown[]): void => {
+    // Chain existing onClick if it's a function (preserve LLM-specified handlers)
+    if (typeof existingOnClick === "function") {
+      (existingOnClick as (...a: unknown[]) => void)(...args);
+    }
+
+    const actionEvent: ActionEvent = {
+      actionName: action.name,
+      sourceKey,
+      ...(action.params != null ? { params: action.params } : undefined),
+    };
+
+    dispatch(actionEvent);
+  };
+}
