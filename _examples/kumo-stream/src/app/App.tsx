@@ -12,7 +12,7 @@ export function App() {
   return (
     <div
       data-mode={isDark ? "dark" : "light"}
-      className="kumo-root mx-auto max-w-[960px] p-8 px-6"
+      className="kumo-root mx-auto max-w-[960px] p-8 px-6 md:max-w-[1400px]"
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
