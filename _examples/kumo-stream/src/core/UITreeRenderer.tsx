@@ -7,7 +7,7 @@
  * individual component failures from crashing the entire tree.
  */
 
-import React, { Component } from "react";
+import React, { Component, memo, useMemo } from "react";
 import type { ReactNode } from "react";
 import type { UITree, UIElement } from "./types";
 import { GridItem } from "@cloudflare/kumo";
@@ -45,6 +45,19 @@ const SUBMIT_FORM_RUNTIME_VALUES_KEY = "runtimeValues";
 const TWO_COL_GRID_VARIANTS = new Set(["2up", "side-by-side", "2-1", "1-2"]);
 
 const FORM_ROW_CONTROL_TYPES = new Set(["Input", "Select", "Textarea"]);
+
+type ElementValidation = ReturnType<typeof validateElement>;
+
+const validationCache = new WeakMap<UIElement, ElementValidation>();
+const loggedInvalidElements = new WeakSet<UIElement>();
+
+function getElementValidation(element: UIElement): ElementValidation {
+  const cached = validationCache.get(element);
+  if (cached) return cached;
+  const result = validateElement(element);
+  validationCache.set(element, result);
+  return result;
+}
 
 function isTwoColFormRowGrid(element: UIElement | undefined): boolean {
   if (!element) return false;
@@ -305,9 +318,12 @@ function RenderElement({
 
   // Validate element props against Kumo schema before rendering.
   // Invalid elements render a warning instead of crashing the tree.
-  const validation = validateElement(element);
+  const validation = getElementValidation(element);
   if (!validation.valid) {
-    logValidationError(validation);
+    if (!loggedInvalidElements.has(element)) {
+      loggedInvalidElements.add(element);
+      logValidationError(validation);
+    }
     return (
       <div
         data-key={elementKey}
@@ -528,13 +544,16 @@ function filterDivProps(
 // Main Renderer
 // ---------------------------------------------------------------------------
 
-export function UITreeRenderer({
+function UITreeRendererImpl({
   tree,
   streaming = false,
   onAction,
   runtimeValueStore,
 }: UITreeRendererProps): React.JSX.Element | null {
-  const normalizedTree = normalizeSiblingFormRowGrids(tree);
+  const normalizedTree = useMemo(
+    () => normalizeSiblingFormRowGrids(tree),
+    [tree],
+  );
 
   if (
     !normalizedTree.root ||
@@ -554,6 +573,8 @@ export function UITreeRenderer({
     </RuntimeValueStoreProvider>
   );
 }
+
+export const UITreeRenderer = memo(UITreeRendererImpl);
 
 /** Check if a UITree has any renderable content. */
 export function isRenderableTree(tree: UITree): boolean {

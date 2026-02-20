@@ -42,7 +42,27 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 
 const PORT = parseInt(process.env.PORT ?? "3001", 10);
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-20250514";
+// Default to fastest "current" model (see Anthropic models overview).
+const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
+
+// SSE can get extremely chatty (token-level deltas). Buffering reduces write
+// frequency and client JSON parsing overhead, but can feel bursty.
+// Default is effectively "off"; opt-in via env.
+const SSE_FLUSH_MS = parseInt(process.env.SSE_FLUSH_MS ?? "0", 10);
+const SSE_MAX_BUFFER_CHARS = parseInt(
+  process.env.SSE_MAX_BUFFER_CHARS ?? "1",
+  10,
+);
+
+// DPU mode emits full HTML snapshots; optional throttle.
+const DPU_SNAPSHOT_FLUSH_MS = parseInt(
+  process.env.DPU_SNAPSHOT_FLUSH_MS ?? "0",
+  10,
+);
+
+// In dev, proxies may not surface headers until first body bytes. SSE comment
+// keepalives force an early flush so the client sees the stream immediately.
+const SSE_KEEPALIVE_MS = parseInt(process.env.SSE_KEEPALIVE_MS ?? "15000", 10);
 
 // ---------------------------------------------------------------------------
 // Anthropic client
@@ -134,7 +154,59 @@ app.post("/api/chat", async (req, res) => {
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
+  // Reduce latency for small writes.
+  res.socket?.setNoDelay(true);
+
+  // Force the first bytes out ASAP (client ignores non-`data:` lines).
+  res.write(`:\n\n`);
+
   let closed = false;
+
+  const keepaliveTimer: ReturnType<typeof setInterval> | null =
+    SSE_KEEPALIVE_MS > 0
+      ? setInterval(() => {
+          if (closed) return;
+          try {
+            res.write(`:\n\n`);
+          } catch {
+            closed = true;
+          }
+        }, SSE_KEEPALIVE_MS)
+      : null;
+
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+  let textBuffer = "";
+
+  function clearFlushTimer(): void {
+    if (flushTimer == null) return;
+    clearTimeout(flushTimer);
+    flushTimer = null;
+  }
+
+  function clearKeepaliveTimer(): void {
+    if (keepaliveTimer == null) return;
+    clearInterval(keepaliveTimer);
+  }
+
+  function flushTextBuffer(): void {
+    if (textBuffer.length === 0) return;
+    const delta = textBuffer;
+    textBuffer = "";
+    send({ type: "text", delta });
+  }
+
+  function scheduleTextFlush(): void {
+    if (SSE_FLUSH_MS <= 0) {
+      clearFlushTimer();
+      flushTextBuffer();
+      return;
+    }
+    if (flushTimer != null) return;
+    flushTimer = setTimeout(() => {
+      flushTimer = null;
+      flushTextBuffer();
+    }, SSE_FLUSH_MS);
+  }
 
   /** Send one SSE frame. Guards against writing to a closed response. */
   function send(payload: Record<string, unknown>): void {
@@ -144,6 +216,8 @@ app.post("/api/chat", async (req, res) => {
     } catch {
       // Connection already closed — ignore
       closed = true;
+      clearFlushTimer();
+      clearKeepaliveTimer();
     }
   }
 
@@ -151,6 +225,8 @@ app.post("/api/chat", async (req, res) => {
   function end(): void {
     if (closed) return;
     closed = true;
+    clearFlushTimer();
+    clearKeepaliveTimer();
     try {
       res.end();
     } catch {
@@ -180,7 +256,13 @@ app.post("/api/chat", async (req, res) => {
     const stream = client.messages.stream({
       model: MODEL,
       max_tokens: 4096,
-      system: SYSTEM_PROMPT,
+      system: [
+        {
+          type: "text",
+          text: SYSTEM_PROMPT,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
       messages,
     });
 
@@ -189,6 +271,9 @@ app.post("/api/chat", async (req, res) => {
     if (mode === "dpu") {
       const parser = createJsonlParser();
       let tree: UITree = EMPTY_TREE;
+
+      let snapshotTimer: ReturnType<typeof setTimeout> | null = null;
+      let snapshotScheduled = false;
 
       function applyOps(ops: readonly JsonPatchOp[]): void {
         for (const op of ops) {
@@ -201,28 +286,65 @@ app.post("/api/chat", async (req, res) => {
         send({ type: "template", html });
       }
 
+      function clearSnapshotTimer(): void {
+        if (snapshotTimer == null) return;
+        clearTimeout(snapshotTimer);
+        snapshotTimer = null;
+        snapshotScheduled = false;
+      }
+
+      function scheduleSnapshot(): void {
+        if (DPU_SNAPSHOT_FLUSH_MS <= 0) {
+          emitSnapshot();
+          return;
+        }
+        if (snapshotScheduled) return;
+        snapshotScheduled = true;
+        snapshotTimer = setTimeout(() => {
+          snapshotTimer = null;
+          snapshotScheduled = false;
+          emitSnapshot();
+        }, DPU_SNAPSHOT_FLUSH_MS);
+      }
+
       stream.on("text", (delta) => {
         const ops = parser.push(delta);
         if (ops.length === 0) return;
         applyOps(ops);
-        emitSnapshot();
+        scheduleSnapshot();
       });
 
       stream.on("finalMessage", () => {
+        clearSnapshotTimer();
         const remaining = parser.flush();
         if (remaining.length > 0) {
           applyOps(remaining);
-          emitSnapshot();
         }
+
+        emitSnapshot();
         send({ type: "done" });
         end();
       });
     } else {
       stream.on("text", (delta) => {
-        send({ type: "text", delta });
+        if (closed) return;
+        if (SSE_FLUSH_MS <= 0 || SSE_MAX_BUFFER_CHARS <= 1) {
+          send({ type: "text", delta });
+          return;
+        }
+
+        textBuffer += delta;
+        if (textBuffer.length >= SSE_MAX_BUFFER_CHARS) {
+          clearFlushTimer();
+          flushTextBuffer();
+          return;
+        }
+        scheduleTextFlush();
       });
 
       stream.on("finalMessage", () => {
+        clearFlushTimer();
+        flushTextBuffer();
         send({ type: "done" });
         end();
       });
@@ -235,6 +357,11 @@ app.post("/api/chat", async (req, res) => {
         err.message === "Request was aborted.";
       if (isAbort || closed) return;
       console.error("[/api/chat] Anthropic stream error:", err.message);
+
+      // Flush any buffered text so the client keeps partial output.
+      clearFlushTimer();
+      flushTextBuffer();
+
       send({ type: "error", message: err.message });
       end();
     });
@@ -246,6 +373,7 @@ app.post("/api/chat", async (req, res) => {
       if (closed) return; // Already ended normally
       console.log("[/api/chat] Client disconnected");
       closed = true;
+      clearFlushTimer();
       try {
         stream.controller.abort();
       } catch {

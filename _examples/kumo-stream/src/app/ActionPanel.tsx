@@ -4,7 +4,7 @@
  * monospace event log via cross-boundary.css classes.
  */
 
-import { useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import type { ActionEvent } from "../core/action-handler";
 
 // =============================================================================
@@ -84,7 +84,7 @@ function ActionLogRow({ entry }: { readonly entry: ActionLogEntry }) {
 // Main Component
 // =============================================================================
 
-export function ActionPanel({ entries, onClear }: ActionPanelProps) {
+function ActionPanelImpl({ entries, onClear }: ActionPanelProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll to bottom on new entries
@@ -115,3 +115,5 @@ export function ActionPanel({ entries, onClear }: ActionPanelProps) {
     </div>
   );
 }
+
+export const ActionPanel = memo(ActionPanelImpl);
