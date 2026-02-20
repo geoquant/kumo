@@ -8,6 +8,7 @@
 
 import type { ActionResult } from "./action-registry";
 import type { JsonPatchOp } from "./rfc6902";
+import { sanitizeUrl } from "./url-policy";
 
 // =============================================================================
 // Types
@@ -60,8 +61,15 @@ export function processActionResult(
       callbacks.sendMessage(result.content);
       break;
     case "external": {
+      const decision = sanitizeUrl(result.url);
+      if (!decision.ok) {
+        console.warn(
+          `[kumo-stream] blocked external URL (${decision.reason}): ${result.url}`,
+        );
+        break;
+      }
       const open = callbacks.openExternal ?? defaultOpenExternal;
-      open(result.url, result.target ?? "_blank");
+      open(decision.url, result.target ?? "_blank");
       break;
     }
     case "none":

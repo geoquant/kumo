@@ -258,6 +258,42 @@ describe("UITreeRenderer action injection", () => {
     }
   });
 
+  it("blocks unsafe Link hrefs (javascript:) by stripping href and preventing default on click", () => {
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const originalLink = COMPONENT_MAP.Link;
+    COMPONENT_MAP.Link = SpyComponent as React.ComponentType<any>;
+
+    try {
+      const t = mkTree("root", {
+        root: el("root", "Link", {
+          "data-spy-key": "root",
+          href: "javascript:alert(1)",
+          children: "Bad",
+        }),
+      });
+
+      render(<UITreeRenderer tree={t} />);
+
+      const props = propsFor("root");
+      expect(props.href).toBeUndefined();
+      expect(props.onClick).toBeTypeOf("function");
+
+      const preventDefault = vi.fn();
+      const clickHandler = props.onClick as (...args: unknown[]) => void;
+      clickHandler({ preventDefault });
+
+      expect(preventDefault).toHaveBeenCalledOnce();
+      expect(warnSpy).toHaveBeenCalledOnce();
+    } finally {
+      COMPONENT_MAP.Link = originalLink;
+      warnSpy.mockRestore();
+    }
+  });
+
   it("preserves existing onClick from LLM output on Button", () => {
     const dispatch = vi.fn();
     const existingOnClick = vi.fn();
