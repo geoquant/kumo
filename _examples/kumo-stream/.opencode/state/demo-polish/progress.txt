@@ -50,3 +50,13 @@ Started: 2026-02-19
 - `scrollConversation()` called on new patches and completion
 - Files changed: `public/cross-boundary.html`
 - **Learnings:** Server appends current `message` to the messages array after iterating `history`, so `chatHistory` must NOT include the current user message — only previous turns. Using `lastUserMessage` + deferred push pattern avoids duplication. `pointer-events: none` on snapshot divs is simpler than removing event listeners for making past turns non-interactive in vanilla JS.
+
+## Task - ui-4
+- Ported preset prompt pill buttons to HTML/UMD demo
+- CSS: `.presets` container (flex-wrap, gap-8px) between header and controls; pill buttons with `border-radius: 16px`, outline style, hover highlights border orange
+- HTML: `<div id="presets" class="presets"></div>` between header and controls
+- JS: `PRESET_PROMPTS` array matches React SPA list (7 presets); buttons created via `forEach` + `createElement`; click triggers `streamChat(text)` directly
+- `setStreaming()` updated to disable/enable all preset buttons during streaming
+- Dark mode styles applied via `body[data-mode="dark"] .presets button`
+- Files changed: `public/cross-boundary.html`
+- **Learnings:** Scoping page button styles (`.controls button`, `.header button`) was already established to avoid leaking into `#kumo-container` Tailwind classes. `.presets button` follows same pattern. Dynamic DOM creation via `forEach` + `createElement` is idiomatic for the IIFE vanilla JS style used throughout.
