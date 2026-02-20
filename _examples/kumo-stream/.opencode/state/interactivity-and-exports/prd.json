@@ -143,7 +143,7 @@
         "Streaming section documents JSONL format with line-by-line RFC 6902 patches",
         "Includes code examples showing SSE wire format and patch application"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-2",
@@ -178,7 +178,7 @@
         "Valid elements pass through with no performance overhead",
         "Tests: valid tree passes, invalid props caught, missing required props caught, rendering continues after validation failure"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-align-1",
