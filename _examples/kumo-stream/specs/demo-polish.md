@@ -1,6 +1,6 @@
 # Demo Polish: Unified UI, Chat History, Counter Preset & Action Panel
 
-**Status:** Ready for implementation
+**Status:** Implemented on `geoquant/streaming-ui`
 **Effort:** L (1–2 days)
 **Branch:** `geoquant/streaming-ui`
 
