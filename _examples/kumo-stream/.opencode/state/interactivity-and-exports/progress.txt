@@ -9,6 +9,7 @@ Started: 2026-02-19
 - **Action injection pattern**: UITreeRenderer checks element.action + onAction prop to inject handlers. Button/Link get onClick; other components get onAction.
 - **Spy component testing**: Real kumo components error in test env (dual React). Use `SpyComponent` + `capturedPropsMap` pattern to test prop injection. Temporarily swap COMPONENT_MAP entries in try/finally blocks.
 - **createClickHandler chains existing onClick**: When injecting onClick for Button/Link, existing LLM onClick is preserved by chaining (existing fires first, then action dispatch).
+- **Action registry pattern**: `dispatchAction(handlers, event, tree)` → `ActionResult | null`. Handlers return discriminated union: `patch` (RFC 6902 ops), `message` (chat content), `external` (URL navigation), `none` (no-op). `createHandlerMap(custom?)` merges with BUILTIN_HANDLERS.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -21,3 +22,10 @@ Started: 2026-02-19
   - `src/__tests__/action-handler.test.ts` — 6 new tests for createClickHandler
   - `src/__tests__/ui-tree-renderer-action.test.tsx` — 7 new tests for Button/Link onClick injection
 - **Learnings**: Real kumo components (Button, Link) can't render in test env due to dual React copies. Must use Spy pattern with COMPONENT_MAP swaps to test type-specific behavior.
+
+## Task - action-1
+- **Implemented**: Action handler registry (`src/core/action-registry.ts`) with `ActionHandlerMap` type, `ActionResult` discriminated union (patch | message | external | none), and `BUILTIN_HANDLERS` with increment, decrement, submit_form, navigate. Counter logic extracted from action-patch-bridge pattern. `createHandlerMap()` merges custom + builtin. `dispatchAction()` routes events through handler map.
+- **Files changed**:
+  - `src/core/action-registry.ts` — new file, ~200 lines
+  - `src/__tests__/action-registry.test.ts` — 31 tests covering all handlers, createHandlerMap, dispatchAction
+- **Learnings**: ActionResult union with 4 variants (patch, message, external, none) covers all known action patterns. Counter handlers return `PatchResult` with patches array (not single patch) for forward-compat with multi-patch actions. `submit_form` falls back from params→context for both static and runtime-collected form data.
