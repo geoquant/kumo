@@ -135,7 +135,6 @@ export interface ChatDemoProps {
 }
 
 export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
-  const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState<StreamingStatus>("idle");
   const [error, setError] = useState<ErrorInfo | null>(null);
   const [messages, setMessages] = useState<Anthropic.MessageParam[]>([]);
@@ -195,14 +194,55 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
   const parserRef = useRef<JsonlParser | null>(null);
   const streamRef = useRef<StreamHandle | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const promptInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Auto-scroll to bottom when history or tree changes
+  const shouldAutoScrollRef = useRef(true);
+  const scrollRafRef = useRef<number | null>(null);
+
+  const scheduleAutoScroll = useCallback(() => {
+    if (scrollRafRef.current != null) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      const el = scrollRef.current;
+      if (!el) return;
+      if (!shouldAutoScrollRef.current) return;
+      el.scrollTop = el.scrollHeight;
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current != null) {
+        cancelAnimationFrame(scrollRafRef.current);
+        scrollRafRef.current = null;
+      }
+    };
+  }, []);
+
+  // Track whether the user is at (or near) the bottom. If not, don't force-scroll.
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
-  }, [chatHistory, tree]);
+    if (!el) return;
+
+    const thresholdPx = 80;
+    const onScroll = () => {
+      const distanceFromBottom =
+        el.scrollHeight - el.scrollTop - el.clientHeight;
+      shouldAutoScrollRef.current = distanceFromBottom < thresholdPx;
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
+  // Auto-scroll to bottom when history or tree changes (throttled)
+  useEffect(() => {
+    if (!shouldAutoScrollRef.current) return;
+    scheduleAutoScroll();
+  }, [chatHistory, scheduleAutoScroll, tree]);
 
   const handleSubmit = useCallback(
     (text: string) => {
@@ -238,7 +278,9 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
       reset();
       setError(null);
       setStatus("streaming");
-      setPrompt("");
+      if (promptInputRef.current) {
+        promptInputRef.current.value = "";
+      }
 
       // Create fresh parser for this stream
       const parser = createJsonlParser();
@@ -331,15 +373,17 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
     setActionLog([]);
     setError(null);
     setStatus("idle");
-    setPrompt("");
+    if (promptInputRef.current) {
+      promptInputRef.current.value = "";
+    }
   }, [reset, runtimeValueStore]);
 
   const handleFormSubmit = useCallback(
     (e: FormEvent) => {
       e.preventDefault();
-      handleSubmit(prompt);
+      handleSubmit(promptInputRef.current ? promptInputRef.current.value : "");
     },
-    [handleSubmit, prompt],
+    [handleSubmit],
   );
 
   const isStreaming = status === "streaming";
@@ -377,10 +421,7 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
       <form onSubmit={handleFormSubmit} className="cb-controls">
         <input
           type="text"
-          value={prompt}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setPrompt(e.target.value)
-          }
+          ref={promptInputRef}
           placeholder="Describe a UI to generate..."
           disabled={isStreaming}
         />
