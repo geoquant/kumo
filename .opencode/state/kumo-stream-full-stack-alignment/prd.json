@@ -1,0 +1,175 @@
+{
+  "prdName": "kumo-stream-full-stack-alignment",
+  "tasks": [
+    {
+      "id": "functional-1",
+      "category": "functional",
+      "description": "Add per-container runtime value store keyed by elementKey with touched tracking",
+      "steps": [
+        "Value store exists and is scoped per rendered container",
+        "Can set/get values by elementKey and track touched-only fields",
+        "Reset/unmount clears store for that container"
+      ],
+      "passes": true
+    },
+    {
+      "id": "functional-2",
+      "category": "functional",
+      "description": "Capture Input and Textarea/InputArea values into the value store without making them controlled",
+      "steps": [
+        "Typing into Input captures the latest value for that elementKey",
+        "Typing into Textarea/InputArea captures the latest value for that elementKey",
+        "Untouched fields are not included in the touched-only snapshot"
+      ],
+      "passes": false
+    },
+    {
+      "id": "functional-3",
+      "category": "functional",
+      "description": "Make submit_form construct a robust payload from static params + runtime-captured values with scoping + guardrails",
+      "steps": [
+        "submit_form returns a typed payload object suitable for sending to a server",
+        "submit_form also provides a stable string serialization for chat injection/back-compat",
+        "Default scope (no formKey/fieldKeys): include only touched-only field-like controls in the container",
+        "If params.formKey is provided, payload includes only descendant field keys under that subtree",
+        "If params.fieldKeys is provided, payload includes only those keys",
+        "If multiple submit_form actions exist in a container without explicit scoping, handler returns none and logs a warning"
+      ],
+      "passes": false
+    },
+    {
+      "id": "prompt-1",
+      "category": "prompt",
+      "description": "Generate system prompt component section from @cloudflare/kumo registry/schemas and kumo-stream supported subset",
+      "steps": [
+        "Prompt generation reads from installed @cloudflare/kumo ai registry/schemas",
+        "Generated prompt lists only the component types supported by kumo-stream (component-map subset + aliases)",
+        "Prompt output is deterministic (snapshot test or equivalent)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "component-1",
+      "category": "component",
+      "description": "Expand kumo-stream component surface with low-risk shipped components (Code, Field, Label)",
+      "steps": [
+        "COMPONENT_MAP includes Code, Field, Label",
+        "Generated UIs using Code/Field/Label render without runtime errors",
+        "Prompt + validation stay in sync (no advertised props rejected by schemas)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "discovery-1",
+      "category": "discovery",
+      "description": "Expand /.well-known/generative-ui.json to advertise real capabilities (actions, patch subset, security, rendering, value-capture)",
+      "steps": [
+        "GET /.well-known/generative-ui.json includes a capabilities section",
+        "Capabilities describe submit_form defaults/guardrails/scoping and URL policy",
+        "Capabilities describe patch subset + array semantics and supported rendering modes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "umd-1",
+      "category": "umd",
+      "description": "Expose UMD tree access APIs (getTree and subscribeTree) so hosts stop scraping the DOM",
+      "steps": [
+        "UMD API exposes getTree(containerId) returning current UITree",
+        "UMD API exposes subscribeTree(containerId, cb) with an unsubscribe",
+        "Tree subscription fires on patch application"
+      ],
+      "passes": false
+    },
+    {
+      "id": "umd-2",
+      "category": "umd",
+      "description": "Export shared action runtime in UMD and update cross-boundary host to reuse it",
+      "steps": [
+        "UMD exports action registry utilities and processActionResult (or equivalent stable API)",
+        "public/cross-boundary.html no longer re-implements action registry/result processing",
+        "Cross-boundary demo continues to log actions and handle submit_form"
+      ],
+      "passes": false
+    },
+    {
+      "id": "transport-1",
+      "category": "transport",
+      "description": "Replace demo SSE parsing with a multi-line data:-aware SSE parser",
+      "steps": [
+        "Parser handles multi-line data: fields and CRLF",
+        "Parser does not break when SSE frames are split across chunks",
+        "Cross-boundary demo still streams patches correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "perf-1",
+      "category": "perf",
+      "description": "Add optional patch batching/throttling (e.g. requestAnimationFrame) to reduce flushSync churn",
+      "steps": [
+        "Fast streams do not trigger a render per patch line (batching observable in logs or instrumentation)",
+        "UI remains responsive during fast token streams",
+        "Batching can be disabled for debugging"
+      ],
+      "passes": false
+    },
+    {
+      "id": "security-1",
+      "category": "security",
+      "description": "Implement safe-by-default URL handling for navigate actions and Link hrefs",
+      "steps": [
+        "URL sanitizer allows only http(s) and relative URLs by default",
+        "javascript:, data:, file: URLs are blocked",
+        "Blocked URLs do not trigger navigation and are logged"
+      ],
+      "passes": false
+    },
+    {
+      "id": "experimental-1",
+      "category": "experimental",
+      "description": "Add optional ShadowRoot mount mode for UMD embedding with stylesheet link injection",
+      "steps": [
+        "UMD can render into ShadowRoot when enabled",
+        "ShadowRoot contains a <link rel=\"stylesheet\"> to /.well-known/stylesheet.css",
+        "Rendered UI looks equivalent to light DOM mode"
+      ],
+      "passes": false
+    },
+    {
+      "id": "experimental-2",
+      "category": "experimental",
+      "description": "Add experimental DPU mode v1: server streams root snapshot HTML templates targeting a single marker range",
+      "steps": [
+        "Server can stream <template for=\"kumo-ui\"> HTML snapshots targeting a single marker",
+        "Initial shell uses matching start/end markers",
+        "Feature is gated; default JSONL+rfc6902 path is unchanged"
+      ],
+      "passes": false
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Branch requirement: geoquant/streaming-ui only",
+      "Action model: ActionEvent -> dispatchAction -> ActionResult -> processActionResult",
+      "Wire format: JSONL lines of RFC6902 ops"
+    ],
+    "keyFiles": [
+      "_examples/kumo-stream/src/core/component-map.ts",
+      "_examples/kumo-stream/src/core/stateful-wrappers.tsx",
+      "_examples/kumo-stream/src/core/action-registry.ts",
+      "_examples/kumo-stream/src/core/process-action-result.ts",
+      "_examples/kumo-stream/src/core/system-prompt.ts",
+      "_examples/kumo-stream/src/loadable/index.ts",
+      "_examples/kumo-stream/public/cross-boundary.html",
+      "_examples/kumo-stream/server/index.ts",
+      "packages/kumo/ai/component-registry.json",
+      "packages/kumo/ai/schemas.ts"
+    ],
+    "nonGoals": [
+      "Ship features in @cloudflare/kumo package (examples only)",
+      "Per-element DPU markers in v1",
+      "Add overlay/app-shell components (Dialog/Popover/DropdownMenu/Combobox/etc.) in v1"
+    ]
+  }
+}
