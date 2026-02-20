@@ -173,10 +173,36 @@ Any component mapped to a stateful wrapper dispatches actions automatically when
 - **Tabs** — dispatches on tab change (context includes \`{ value }\`)
 - **Collapsible** — dispatches on open/close (context includes \`{ open }\`)
 
+### Built-in Actions
+
+The host application has built-in handlers for these action names:
+
+| Action Name | Trigger | Host Behavior |
+|---|---|---|
+| \`increment\` | Button click | Increments the counter display (\`count-display\` element) by 1 |
+| \`decrement\` | Button click | Decrements the counter display (\`count-display\` element) by 1 |
+| \`submit_form\` | Button click | Serializes \`params\` as key-value pairs and sends them as a chat message |
+| \`navigate\` | Button/Link click | Opens \`params.url\` in a new tab (or \`params.target\` window) |
+
+For \`submit_form\`, include field labels and values in \`params\`:
+\`\`\`
+{ "name": "submit_form", "params": { "form_type": "contact", "email": "user@example.com" } }
+\`\`\`
+
+For \`navigate\`, include the URL in \`params\`:
+\`\`\`
+{ "name": "navigate", "params": { "url": "https://dash.cloudflare.com", "target": "_blank" } }
+\`\`\`
+
+Any action name NOT in this list is a **custom action** — the host logs it to the action event panel but does not crash.
+
 ### Rules
 - Only add \`action\` to elements where the host needs to react (e.g. form submission, navigation, data mutation)
 - Not every interactive element needs an action — pure display-only controls can omit it
 - Use descriptive snake_case action names: "submit_form", "toggle_setting", "select_plan"
+- **Prefer built-in actions** when the intent matches (e.g. use \`submit_form\` for form submission instead of a custom name)
+- When using \`submit_form\`, include static form data in \`params\` — the host serializes it and sends as a chat message
+- For dynamic form data (user-typed values), the host collects \`context\` from stateful wrappers at dispatch time — you do NOT need to include runtime values in \`params\`
 
 ## Example 1: Simple Greeting
 
@@ -222,7 +248,7 @@ User: "Show me server status"
 {"op":"add","path":"/elements/memory-meter","value":{"key":"memory-meter","type":"Meter","props":{"label":"Memory","value":68,"max":100,"customValue":"68%"},"parentKey":"metrics"}}
 {"op":"add","path":"/elements/disk-meter","value":{"key":"disk-meter","type":"Meter","props":{"label":"Disk","value":31,"max":100,"customValue":"31%"},"parentKey":"metrics"}}
 
-## Example 4: Interactive Form with Actions
+## Example 4: Interactive Form with submit_form Action
 
 User: "Create a notification preferences form"
 
@@ -242,7 +268,13 @@ User: "Create a notification preferences form"
 {"op":"add","path":"/elements/notes","value":{"key":"notes","type":"Textarea","props":{"label":"Additional notes","placeholder":"Any special preferences?","defaultValue":""},"parentKey":"form-fields"}}
 {"op":"add","path":"/elements/actions","value":{"key":"actions","type":"Cluster","props":{"gap":"sm","justify":"end"},"children":["cancel-btn","save-btn"],"parentKey":"card-stack"}}
 {"op":"add","path":"/elements/cancel-btn","value":{"key":"cancel-btn","type":"Button","props":{"children":"Cancel","variant":"ghost"},"parentKey":"actions"}}
-{"op":"add","path":"/elements/save-btn","value":{"key":"save-btn","type":"Button","props":{"children":"Save Preferences","variant":"primary"},"parentKey":"actions","action":{"name":"submit_preferences"}}}
+{"op":"add","path":"/elements/save-btn","value":{"key":"save-btn","type":"Button","props":{"children":"Save Preferences","variant":"primary"},"parentKey":"actions","action":{"name":"submit_form","params":{"form_type":"notification_preferences"}}}}
+
+Key points for form submission:
+- The submit button uses the built-in \`submit_form\` action — the host serializes the form data and sends it as a chat message
+- Static metadata (like \`form_type\`) goes in \`params\` — the host includes it in the serialized output
+- Dynamic values from Select, Checkbox, and other inputs are collected automatically by the host at dispatch time via \`context\`
+- Custom action names like \`select_channel\` and \`toggle_digest\` are dispatched to the host as events — the host logs them but they don't trigger built-in behavior
 
 ## Example 5: Stateful Counter
 
