@@ -790,115 +790,15 @@
         });
 
         // -----------------------------------------------------------------------
-        // Action handler registry
-        //
-        // Mirrors the TypeScript ActionResult pattern from src/core/:
-        //   handler(detail) → { type: "patch"|"message"|"external"|"none", ... }
-        // Host processes results via processActionResult().
+        // Action runtime (UMD exported)
         // -----------------------------------------------------------------------
 
-        var DEFAULT_COUNT_DISPLAY_KEY = "count-display";
-
-        /**
-         * Resolve target counter key from action detail.
-         * Supports multi-counter via detail.params.target.
-         */
-        function resolveCounterKey(detail) {
-          var target = detail.params && detail.params.target;
-          return typeof target === "string" && target.length > 0
-            ? target
-            : DEFAULT_COUNT_DISPLAY_KEY;
+        function applyPatches(patches) {
+          CloudflareKumo.applyPatches(patches, CONTAINER_ID);
         }
 
-        function readCounterFromDOM(key) {
-          var el = document.querySelector('[data-key="' + key + '"]');
-          if (!el) return null;
-          var n = parseInt(el.textContent, 10);
-          return isNaN(n) ? 0 : n;
-        }
-
-        function counterPatchResult(key, nextValue) {
-          return {
-            type: "patch",
-            patches: [
-              {
-                op: "replace",
-                path: "/elements/" + key + "/props/children",
-                value: String(nextValue),
-              },
-            ],
-          };
-        }
-
-        /** Built-in action handlers — same set as BUILTIN_HANDLERS in TS. */
-        var ACTION_HANDLERS = {
-          increment: function (detail) {
-            var key = resolveCounterKey(detail);
-            var current = readCounterFromDOM(key);
-            if (current == null) return null;
-            return counterPatchResult(key, current + 1);
-          },
-
-          decrement: function (detail) {
-            var key = resolveCounterKey(detail);
-            var current = readCounterFromDOM(key);
-            if (current == null) return null;
-            return counterPatchResult(key, current - 1);
-          },
-
-          submit_form: function (detail) {
-            var data = detail.params || detail.context;
-            if (!data || Object.keys(data).length === 0) {
-              return { type: "none" };
-            }
-            var lines = Object.keys(data).map(function (key) {
-              return key + ": " + String(data[key]);
-            });
-            return { type: "message", content: lines.join("\n") };
-          },
-
-          navigate: function (detail) {
-            var url = detail.params && detail.params.url;
-            if (typeof url !== "string" || url.length === 0) return null;
-            var target = detail.params.target;
-            return {
-              type: "external",
-              url: url,
-              target: typeof target === "string" ? target : undefined,
-            };
-          },
-        };
-
-        /**
-         * Dispatch an action detail through the handler registry.
-         * Returns the ActionResult, or null for unregistered actions.
-         */
-        function dispatchActionResult(detail) {
-          var handler = ACTION_HANDLERS[detail.actionName];
-          if (!handler) return null;
-          return handler(detail);
-        }
-
-        /**
-         * Process an ActionResult — apply patches, send messages, or open URLs.
-         * Mirrors processActionResult() from src/core/process-action-result.ts.
-         */
-        function processActionResult(result) {
-          switch (result.type) {
-            case "patch":
-              for (var i = 0; i < result.patches.length; i++) {
-                CloudflareKumo.applyPatch(result.patches[i], CONTAINER_ID);
-              }
-              break;
-            case "message":
-              streamChat(result.content);
-              break;
-            case "external":
-              window.open(result.url, result.target || "_blank");
-              break;
-            case "none":
-              break;
-          }
+        function sendMessage(content) {
+          streamChat(content);
         }
 
         // -----------------------------------------------------------------------
@@ -912,15 +812,14 @@
           // Prevent action-driven mutations during streaming.
           if (streamingActive) return;
 
-          // Dispatch through registry
-          var result = dispatchActionResult(detail);
+          // Dispatch through shared UMD action registry (no host re-implementation)
+          var result = CloudflareKumo.dispatchAction(detail, CONTAINER_ID);
+          if (result == null) return;
 
-          if (result == null) {
-            // Unknown action — already logged above, no crash
-            return;
-          }
-
-          processActionResult(result);
+          CloudflareKumo.processActionResult(result, {
+            applyPatches: applyPatches,
+            sendMessage: sendMessage,
+          });
         });
 
         clearLogBtn.addEventListener("click", function () {

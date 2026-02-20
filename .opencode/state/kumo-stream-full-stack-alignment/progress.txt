@@ -9,6 +9,7 @@ Started: 2026-02-20
 - Prompt anti-drift: generate "Available Components" section from `@cloudflare/kumo/ai/component-registry.json` filtered by `@cloudflare/kumo/ai/schemas` + `KNOWN_TYPES`
 - URL policy: `sanitizeUrl()` allow http(s)+relative only; block other schemes + `//...`; enforce in `processActionResult` (external) + `UITreeRenderer` (Link href)
 - UMD tree observers: keep per-container subscriber Set; `notifyTree(containerId, tree)` on patch/batch/render; `reset()` clears subscribers
+- UMD action runtime: expose `dispatchAction(event, containerId)` + `processActionResult(result, callbacks)`; host wires callbacks (applyPatches/sendMessage/openExternal)
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -47,3 +48,8 @@ Started: 2026-02-20
 - Implemented UMD `getTree(containerId)` + `subscribeTree(containerId, cb)` APIs; subscriptions fire on applyPatch/applyPatches/renderTree.
 - Files changed: `_examples/kumo-stream/src/loadable/index.ts`, `_examples/kumo-stream/src/__tests__/loadable-tree-access.test.ts`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
 - Learnings: keep tree observation decoupled from DOM rendering so cross-boundary hosts can stop scraping; clear per-container subscribers in `reset()`
+
+## Task - [umd-2]
+- Implemented shared UMD action runtime exports (`createHandlerMap`, `dispatchAction`, `processActionResult`) and refactored cross-boundary demo to use them.
+- Files changed: `_examples/kumo-stream/src/loadable/index.ts`, `_examples/kumo-stream/public/cross-boundary.html`, `_examples/kumo-stream/src/__tests__/loadable-action-runtime.test.ts`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
+- Learnings: keep host-specific behavior as callbacks (apply patches, send message) so action model stays shared across SPA/UMD without duplicating registry logic
