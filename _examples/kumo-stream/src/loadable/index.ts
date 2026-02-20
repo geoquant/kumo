@@ -57,11 +57,36 @@ import "@cloudflare/kumo/styles/standalone";
 // Internal state
 // =============================================================================
 
+type MountMode = "light-dom" | "shadow-root";
+
+interface ContainerConfig {
+  readonly mountMode: MountMode;
+}
+
+type ContainerMount =
+  | {
+      readonly mountMode: "light-dom";
+      readonly hostEl: HTMLElement;
+      readonly mountEl: HTMLElement;
+    }
+  | {
+      readonly mountMode: "shadow-root";
+      readonly hostEl: HTMLElement;
+      readonly shadowRoot: ShadowRoot;
+      readonly mountEl: HTMLDivElement;
+    };
+
 /** Per-container UITree state. */
 const _trees = new Map<string, UITree>();
 
 /** Per-container React root — reused across renders (never destroyed/recreated). */
 const _roots = new Map<string, Root>();
+
+/** Per-container mount configuration (must be set before first render). */
+const _containerConfigs = new Map<string, ContainerConfig>();
+
+/** Per-container mount targets (light DOM vs ShadowRoot). */
+const _mounts = new Map<string, ContainerMount>();
 
 /** Per-container runtime-captured values (uncontrolled inputs, touched tracking). */
 const _valueStores = new Map<string, RuntimeValueStore>();
@@ -75,6 +100,87 @@ const _renderScheduled = new Map<string, number>();
 // =============================================================================
 // Internal helpers
 // =============================================================================
+
+const SHADOW_STYLESHEET_ATTR = "data-kumo-shadow-stylesheet";
+const SHADOW_MOUNT_ATTR = "data-kumo-shadow-mount";
+
+function readMountModeFromAttributes(el: HTMLElement): MountMode {
+  const attr = el.getAttribute("data-kumo-mount");
+  if (attr === "shadow" || attr === "shadow-root") return "shadow-root";
+  return "light-dom";
+}
+
+function getDesiredMountMode(
+  containerId: string,
+  hostEl: HTMLElement,
+): MountMode {
+  const configured = _containerConfigs.get(containerId);
+  if (configured) return configured.mountMode;
+  return readMountModeFromAttributes(hostEl);
+}
+
+function ensureShadowStylesheet(shadowRoot: ShadowRoot): void {
+  const existing = shadowRoot.querySelector(
+    `link[${SHADOW_STYLESHEET_ATTR}="true"]`,
+  );
+  if (existing) return;
+
+  const link = document.createElement("link");
+  link.setAttribute("rel", "stylesheet");
+  link.setAttribute("href", "/.well-known/stylesheet.css");
+  link.setAttribute(SHADOW_STYLESHEET_ATTR, "true");
+
+  const first = shadowRoot.firstChild;
+  if (first) {
+    shadowRoot.insertBefore(link, first);
+    return;
+  }
+
+  shadowRoot.append(link);
+}
+
+function ensureShadowMount(shadowRoot: ShadowRoot): HTMLDivElement {
+  const existing = shadowRoot.querySelector(`div[${SHADOW_MOUNT_ATTR}="true"]`);
+  if (existing instanceof HTMLDivElement) return existing;
+
+  const mountEl = document.createElement("div");
+  mountEl.setAttribute(SHADOW_MOUNT_ATTR, "true");
+  shadowRoot.append(mountEl);
+  return mountEl;
+}
+
+function getOrCreateMount(
+  containerId: string,
+  hostEl: HTMLElement,
+): ContainerMount {
+  const existing = _mounts.get(containerId);
+  if (existing) return existing;
+
+  const mountMode = getDesiredMountMode(containerId, hostEl);
+  if (mountMode === "shadow-root") {
+    const shadowRoot =
+      hostEl.shadowRoot ?? hostEl.attachShadow({ mode: "open" });
+    ensureShadowStylesheet(shadowRoot);
+    const mountEl = ensureShadowMount(shadowRoot);
+
+    const mount: ContainerMount = {
+      mountMode: "shadow-root",
+      hostEl,
+      shadowRoot,
+      mountEl,
+    };
+    _mounts.set(containerId, mount);
+    return mount;
+  }
+
+  const mount: ContainerMount = {
+    mountMode: "light-dom",
+    hostEl,
+    mountEl: hostEl,
+  };
+  _mounts.set(containerId, mount);
+  return mount;
+}
 
 /**
  * Get or create a React root for a container element.
@@ -92,7 +198,8 @@ function getOrCreateRoot(containerId: string): Root | null {
     return null;
   }
 
-  const root = createRoot(el);
+  const mount = getOrCreateMount(containerId, el);
+  const root = createRoot(mount.mountEl);
   _roots.set(containerId, root);
   return root;
 }
@@ -151,6 +258,11 @@ function notifyTree(containerId: string, tree: UITree): void {
 // =============================================================================
 
 export interface CloudflareKumoAPI {
+  /** Configure a container before first render (e.g. ShadowRoot mount mode). */
+  readonly configureContainer: (
+    containerId: string,
+    config: ContainerConfig,
+  ) => void;
   /** Apply a single RFC 6902 patch op and re-render the container. */
   readonly applyPatch: (op: JsonPatchOp, containerId: string) => void;
   /** Apply multiple RFC 6902 patch ops in a single render pass. */
@@ -207,6 +319,17 @@ export interface CloudflareKumoAPI {
 }
 
 const api: CloudflareKumoAPI = {
+  configureContainer(containerId: string, config: ContainerConfig): void {
+    if (_roots.has(containerId)) {
+      console.warn(
+        `[CloudflareKumo] configureContainer("${containerId}") called after mount; call reset() first to change mountMode.`,
+      );
+      return;
+    }
+
+    _containerConfigs.set(containerId, config);
+  },
+
   applyPatch(op: JsonPatchOp, containerId: string): void {
     const current = _trees.get(containerId) ?? EMPTY_TREE;
     const next = applyRfc6902Patch(current, op);
@@ -337,6 +460,17 @@ const api: CloudflareKumoAPI = {
       root.unmount();
       _roots.delete(containerId);
     }
+
+    const mount = _mounts.get(containerId);
+    if (mount?.mountMode === "shadow-root") {
+      mount.mountEl.remove();
+      const link = mount.shadowRoot.querySelector(
+        `link[${SHADOW_STYLESHEET_ATTR}="true"]`,
+      );
+      if (link) link.remove();
+    }
+
+    _mounts.delete(containerId);
   },
 
   onAction,
