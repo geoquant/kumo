@@ -21,7 +21,7 @@
         "Typing into Textarea/InputArea captures the latest value for that elementKey",
         "Untouched fields are not included in the touched-only snapshot"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-3",
