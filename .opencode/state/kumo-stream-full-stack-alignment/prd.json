@@ -68,7 +68,7 @@
         "Capabilities describe submit_form defaults/guardrails/scoping and URL policy",
         "Capabilities describe patch subset + array semantics and supported rendering modes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "umd-1",
