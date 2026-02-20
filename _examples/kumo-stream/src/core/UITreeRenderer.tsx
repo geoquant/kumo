@@ -42,15 +42,98 @@ const RUNTIME_VALUE_CAPTURE_TYPES = new Set(["Input", "Textarea"]);
 
 const SUBMIT_FORM_RUNTIME_VALUES_KEY = "runtimeValues";
 
+const TWO_COL_GRID_VARIANTS = new Set(["2up", "side-by-side", "2-1", "1-2"]);
+
+const FORM_ROW_CONTROL_TYPES = new Set(["Input", "Select", "Textarea"]);
+
+function isTwoColFormRowGrid(element: UIElement | undefined): boolean {
+  if (!element) return false;
+  if (element.type !== "Grid") return false;
+  if (!element.children || element.children.length !== 2) return false;
+
+  const props = element.props;
+  const variant = props["variant"];
+  if (variant !== undefined && typeof variant !== "string") return false;
+  if (typeof variant === "string" && !TWO_COL_GRID_VARIANTS.has(variant)) {
+    return false;
+  }
+
+  // If the model explicitly sets grid-cols via className, don't second-guess it.
+  const className = props["className"];
+  if (typeof className === "string" && /\bgrid-cols-/.test(className)) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Normalize sibling Grid row variants for form-like layouts.
+ *
+ * LLM output often emits multiple 2-col Grids for a single form section.
+ * When those rows mix variants (e.g. "side-by-side" vs "2-1"), column
+ * widths shift between rows and the form looks broken.
+ *
+ * Heuristic: within any single parent, if there are 2+ sibling 2-child Grid
+ * rows that wrap form controls and they don't share the same variant, coerce
+ * them all to `variant="2up"`.
+ */
+export function normalizeSiblingFormRowGrids(tree: UITree): UITree {
+  const elements = tree.elements;
+  let changed = false;
+  const nextElements: Record<string, UIElement> = { ...elements };
+
+  for (const parent of Object.values(elements)) {
+    if (!parent?.children || parent.children.length === 0) continue;
+
+    const rowGridKeys: string[] = [];
+    for (const childKey of parent.children) {
+      const child = elements[childKey];
+      if (!isTwoColFormRowGrid(child)) continue;
+
+      const grandChildren = child.children;
+      if (!grandChildren) continue;
+      const t1 = elements[grandChildren[0]]?.type;
+      const t2 = elements[grandChildren[1]]?.type;
+      if (!t1 || !t2) continue;
+      if (!FORM_ROW_CONTROL_TYPES.has(t1) || !FORM_ROW_CONTROL_TYPES.has(t2)) {
+        continue;
+      }
+
+      rowGridKeys.push(childKey);
+    }
+
+    if (rowGridKeys.length < 2) continue;
+
+    const variants = new Set<string>();
+    for (const key of rowGridKeys) {
+      const v = elements[key]?.props?.["variant"];
+      if (typeof v === "string") variants.add(v);
+    }
+
+    if (variants.size <= 1) continue;
+
+    for (const key of rowGridKeys) {
+      const el = elements[key];
+      if (!el) continue;
+      if (el.props["variant"] === "2up") continue;
+      nextElements[key] = { ...el, props: { ...el.props, variant: "2up" } };
+      changed = true;
+    }
+  }
+
+  return changed ? { ...tree, elements: nextElements } : tree;
+}
+
 function gridItemClassNameForChild(child: UIElement | undefined): string {
   // Base: allow grid children to shrink (prevents overflow in long labels/inputs)
   // and ensure each logical child becomes exactly one grid cell.
-  if (!child) return "min-w-0";
+  if (!child) return "min-w-0 w-full";
 
   // Common form pattern: an expandable/collapsible section should span full row.
-  if (child.type === "Collapsible") return "min-w-0 col-span-full";
+  if (child.type === "Collapsible") return "min-w-0 w-full col-span-full";
 
-  return "min-w-0";
+  return "min-w-0 w-full";
 }
 
 // ---------------------------------------------------------------------------
@@ -451,15 +534,20 @@ export function UITreeRenderer({
   onAction,
   runtimeValueStore,
 }: UITreeRendererProps): React.JSX.Element | null {
-  if (!tree.root || Object.keys(tree.elements).length === 0) {
+  const normalizedTree = normalizeSiblingFormRowGrids(tree);
+
+  if (
+    !normalizedTree.root ||
+    Object.keys(normalizedTree.elements).length === 0
+  ) {
     return null;
   }
 
   return (
     <RuntimeValueStoreProvider value={runtimeValueStore ?? null}>
       <RenderElement
-        elementKey={tree.root}
-        elements={tree.elements}
+        elementKey={normalizedTree.root}
+        elements={normalizedTree.elements}
         streaming={streaming}
         onAction={onAction}
       />

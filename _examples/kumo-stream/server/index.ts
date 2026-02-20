@@ -22,6 +22,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 import { renderTreeToDpuTemplate } from "../src/core/dpu-snapshot.js";
 import { createJsonlParser } from "../src/core/jsonl-parser.js";
+import { sanitizePatch } from "../src/core/text-sanitizer.js";
 import {
   applyPatch as applyRfc6902Patch,
   type JsonPatchOp,
@@ -191,7 +192,7 @@ app.post("/api/chat", async (req, res) => {
 
       function applyOps(ops: readonly JsonPatchOp[]): void {
         for (const op of ops) {
-          tree = applyRfc6902Patch(tree, op);
+          tree = applyRfc6902Patch(tree, sanitizePatch(op));
         }
       }
 
