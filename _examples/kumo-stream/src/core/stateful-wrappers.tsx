@@ -13,8 +13,9 @@
  *  4. Is drop-in compatible with COMPONENT_MAP (same interface)
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Checkbox, Collapsible, Select, Switch, Tabs } from "@cloudflare/kumo";
+import { useRuntimeValueStoreContext } from "./runtime-value-store-context";
 
 // =============================================================================
 // Shared types
@@ -42,12 +43,25 @@ export function StatefulSelect({
   children,
   ...props
 }: StatefulSelectProps): React.JSX.Element {
+  const runtimeValueStore = useRuntimeValueStoreContext();
+  const elementKey =
+    typeof props["data-key"] === "string" ? props["data-key"] : null;
   const [value, setValue] = useState<unknown>(
     controlledValue ?? defaultValue ?? null,
   );
 
+  useEffect(() => {
+    if (!runtimeValueStore || !elementKey) return;
+    if (runtimeValueStore.getValue(elementKey) !== undefined) return;
+    if (runtimeValueStore.isTouched(elementKey)) return;
+    runtimeValueStore.setValue(elementKey, value, { touched: false });
+  }, [runtimeValueStore, elementKey, value]);
+
   function handleChange(next: unknown): void {
     setValue(next);
+    if (runtimeValueStore && elementKey) {
+      runtimeValueStore.setValue(elementKey, next);
+    }
     onAction?.({ value: next });
   }
 
@@ -79,12 +93,25 @@ export function StatefulCheckbox({
   onAction,
   ...props
 }: StatefulCheckboxProps): React.JSX.Element {
+  const runtimeValueStore = useRuntimeValueStoreContext();
+  const elementKey =
+    typeof props["data-key"] === "string" ? props["data-key"] : null;
   const [checked, setChecked] = useState<boolean>(
     controlledChecked ?? defaultChecked ?? false,
   );
 
+  useEffect(() => {
+    if (!runtimeValueStore || !elementKey) return;
+    if (runtimeValueStore.getValue(elementKey) !== undefined) return;
+    if (runtimeValueStore.isTouched(elementKey)) return;
+    runtimeValueStore.setValue(elementKey, checked, { touched: false });
+  }, [runtimeValueStore, elementKey, checked]);
+
   function handleChange(next: boolean): void {
     setChecked(next);
+    if (runtimeValueStore && elementKey) {
+      runtimeValueStore.setValue(elementKey, next);
+    }
     onAction?.({ checked: next });
   }
 
@@ -111,12 +138,25 @@ export function StatefulSwitch({
   onAction,
   ...props
 }: StatefulSwitchProps): React.JSX.Element {
+  const runtimeValueStore = useRuntimeValueStoreContext();
+  const elementKey =
+    typeof props["data-key"] === "string" ? props["data-key"] : null;
   const [checked, setChecked] = useState<boolean>(
     controlledChecked ?? defaultChecked ?? false,
   );
 
+  useEffect(() => {
+    if (!runtimeValueStore || !elementKey) return;
+    if (runtimeValueStore.getValue(elementKey) !== undefined) return;
+    if (runtimeValueStore.isTouched(elementKey)) return;
+    runtimeValueStore.setValue(elementKey, checked, { touched: false });
+  }, [runtimeValueStore, elementKey, checked]);
+
   function handleChange(next: boolean): void {
     setChecked(next);
+    if (runtimeValueStore && elementKey) {
+      runtimeValueStore.setValue(elementKey, next);
+    }
     onAction?.({ checked: next });
   }
 
@@ -151,12 +191,25 @@ export function StatefulTabs({
   onAction,
   ...props
 }: StatefulTabsProps): React.JSX.Element {
+  const runtimeValueStore = useRuntimeValueStoreContext();
+  const elementKey =
+    typeof props["data-key"] === "string" ? props["data-key"] : null;
   const initial =
     controlledValue ?? selectedValue ?? defaultValue ?? tabs?.[0]?.value ?? "";
   const [value, setValue] = useState<string>(initial);
 
+  useEffect(() => {
+    if (!runtimeValueStore || !elementKey) return;
+    if (runtimeValueStore.getValue(elementKey) !== undefined) return;
+    if (runtimeValueStore.isTouched(elementKey)) return;
+    runtimeValueStore.setValue(elementKey, value, { touched: false });
+  }, [runtimeValueStore, elementKey, value]);
+
   function handleChange(next: string): void {
     setValue(next);
+    if (runtimeValueStore && elementKey) {
+      runtimeValueStore.setValue(elementKey, next);
+    }
     onAction?.({ value: next });
   }
 
@@ -192,12 +245,25 @@ export function StatefulCollapsible({
   children,
   ...props
 }: StatefulCollapsibleProps): React.JSX.Element {
+  const runtimeValueStore = useRuntimeValueStoreContext();
+  const elementKey =
+    typeof props["data-key"] === "string" ? props["data-key"] : null;
   const [open, setOpen] = useState<boolean>(
     controlledOpen ?? defaultOpen ?? false,
   );
 
+  useEffect(() => {
+    if (!runtimeValueStore || !elementKey) return;
+    if (runtimeValueStore.getValue(elementKey) !== undefined) return;
+    if (runtimeValueStore.isTouched(elementKey)) return;
+    runtimeValueStore.setValue(elementKey, open, { touched: false });
+  }, [runtimeValueStore, elementKey, open]);
+
   function handleChange(next: boolean): void {
     setOpen(next);
+    if (runtimeValueStore && elementKey) {
+      runtimeValueStore.setValue(elementKey, next);
+    }
     onAction?.({ open: next });
   }
 
