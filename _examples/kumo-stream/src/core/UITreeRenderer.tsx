@@ -137,6 +137,7 @@ function RenderElement({
     return (
       <ElementErrorBoundary elementKey={elementKey}>
         <div
+          data-key={elementKey}
           className={typeof className === "string" ? className : undefined}
           // Only pass through style, id, and data-* attributes
           {...filterDivProps(rest)}
@@ -170,6 +171,9 @@ function RenderElement({
   // while also having structural children[] array for nested elements.
   const safeProps = sanitizeProps(props as Record<string, unknown>);
   const { children: propsChildren, ...restProps } = safeProps;
+
+  // Tag every rendered element with its key for DOM identification
+  restProps["data-key"] = elementKey;
 
   // Inject onAction handler when element declares an action field
   if (element.action != null && onAction != null) {
