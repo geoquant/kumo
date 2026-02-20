@@ -97,7 +97,7 @@
         "Example uses key 'count-display' for count text element",
         "LLM generates correct counter UI when given counter preset (test 3+ generations)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-3",
