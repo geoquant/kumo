@@ -42,8 +42,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 
 const PORT = parseInt(process.env.PORT ?? "3001", 10);
-// Default to fastest "current" model (see Anthropic models overview).
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
+const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
 
 // SSE can get extremely chatty (token-level deltas). Buffering reduces write
 // frequency and client JSON parsing overhead, but can feel bursty.
