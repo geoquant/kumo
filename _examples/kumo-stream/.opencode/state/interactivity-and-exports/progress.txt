@@ -51,3 +51,9 @@ Started: 2026-02-19
 - **Files changed**:
   - `src/core/system-prompt.ts` — added "Built-in Actions" subsection (~25 lines), 3 new rules, updated Example 4 submit button action + added key-points block (~5 lines)
 - **Learnings**: System prompt structure follows a pattern: section → subsections → examples → key-points. Examples should demonstrate built-in actions where possible to guide the LLM toward patterns the host actually handles. The distinction between static `params` and runtime `context` is important for LLM guidance — LLMs should provide static metadata, not try to predict runtime values.
+
+## Task - export-1
+- **Implemented**: Added `ai/schemas` as a Vite entry point in `packages/kumo/vite.config.ts` so the build produces `dist/ai/schemas.js` (stable, non-hashed). Added `zod` (and `zod/` subpath) to the Rollup externals function so zod is not bundled — correct since it's an optional peer dependency.
+- **Files changed**:
+  - `packages/kumo/vite.config.ts` — added `"ai/schemas"` entry pointing to `ai/schemas.ts`, added zod to external function's switch cases
+- **Learnings**: Vite entry keys like `"ai/schemas"` produce `dist/ai/schemas.js` matching the key path. The `fileName` callback `(format, entryName) => \`${entryName}.js\`` ensures stable output names. Zod must be externalized since it's an optional peer dep — bundling it would bloat the output and conflict with consumers' own zod version. The `"use client"` banner is added to all chunks including ai/schemas — harmless for non-React consumers.
