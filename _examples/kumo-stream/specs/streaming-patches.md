@@ -3,6 +3,7 @@
 **Type:** Feature Plan
 **Effort:** L (1–2 days)
 **Status:** Ready for task breakdown
+**Branch:** `geoquant/streaming-ui` (only)
 
 ## Problem
 
@@ -16,6 +17,7 @@ Components stream in progressively — root Surface first, then children one-by-
 
 ## Constraints
 
+- Work only on `geoquant/streaming-ui` branch.
 - **No backend.** Browser calls Anthropic directly. No Cloudflare Worker.
 - **Example app only.** Lives in `_examples/kumo-stream/`. Nothing ships in `@cloudflare/kumo`.
 - **Keep Anthropic SDK** for auth/streaming. Hook into its `onText` callback.

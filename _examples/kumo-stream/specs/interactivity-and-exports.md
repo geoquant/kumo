@@ -3,6 +3,7 @@
 **Status:** Ready for implementation
 **Effort:** L (1-2 days)
 **Type:** Feature plan + bug fixes + package enhancement
+**Branch:** `geoquant/streaming-ui` (only)
 
 ## Problem Definition
 
@@ -36,6 +37,7 @@ toward shipping generative UI in kumo proper.
 
 ## Constraints
 
+- Work only on `geoquant/streaming-ui` branch.
 - No changes to Kumo's `Button` component API (fix in kumo-stream renderer layer)
 - `component-registry.json` and `schemas.ts` already ship in the npm package — just fix the export path
 - `.well-known` implementation in kumo-stream's Express server only (not kumo main package yet)

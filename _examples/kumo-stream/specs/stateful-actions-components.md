@@ -84,8 +84,12 @@ Wrappers for components that are controlled-only or need state for usability:
 
 Components that DON'T need wrappers (uncontrolled works):
 
-- `Input` — native `defaultValue` works
-- `InputArea`/`Textarea` — native `defaultValue` works
+- `Input` — native `defaultValue` works (but value capture is still needed for `submit_form`)
+- `InputArea`/`Textarea` — native `defaultValue` works (but value capture is still needed for `submit_form`)
+
+Value capture note (v1)
+
+- `submit_form` should default to collecting touched-only field values (avoid sending unrelated defaults).
 - `Radio.Group` — has `defaultValue`
 - `Checkbox.Group` — has `defaultValue`
 
