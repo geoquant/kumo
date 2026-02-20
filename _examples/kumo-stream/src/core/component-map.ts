@@ -68,6 +68,61 @@ const GenerativeSurface = forwardRef(function GenerativeSurface(
 });
 GenerativeSurface.displayName = "GenerativeSurface";
 
+function readClassName(props: Record<string, unknown>): string | undefined {
+  const value = props["className"];
+  return typeof value === "string" ? value : undefined;
+}
+
+function stripClassName(
+  props: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...props };
+  delete out["className"];
+  return out;
+}
+
+const GenerativeInput = forwardRef(function GenerativeInput(
+  props: Record<string, unknown>,
+  ref: React.Ref<HTMLInputElement>,
+) {
+  return React.createElement(Input, {
+    ref,
+    className: cn("w-full", readClassName(props)),
+    ...stripClassName(props),
+  });
+});
+GenerativeInput.displayName = "GenerativeInput";
+
+const GenerativeInputArea = forwardRef(function GenerativeInputArea(
+  props: Record<string, unknown>,
+  ref: React.Ref<HTMLTextAreaElement>,
+) {
+  return React.createElement(InputArea, {
+    ref,
+    className: cn("w-full", readClassName(props)),
+    ...stripClassName(props),
+  });
+});
+GenerativeInputArea.displayName = "GenerativeInputArea";
+
+function GenerativeSelect(props: Record<string, unknown>) {
+  const passthrough = stripClassName(props);
+  const label = passthrough["label"];
+  const hideLabel = passthrough["hideLabel"];
+
+  // Kumo Select defaults `hideLabel=true` (sr-only). In generative forms,
+  // the model typically provides `label` but not `hideLabel`, which makes
+  // fields look unlabeled and breaks layout expectations.
+  const shouldDefaultShowLabel =
+    label != null && typeof hideLabel !== "boolean";
+
+  return React.createElement(StatefulSelect, {
+    className: cn("w-full", readClassName(props)),
+    ...passthrough,
+    ...(shouldDefaultShowLabel ? { hideLabel: false } : null),
+  });
+}
+
 /**
  * Map of UITree type strings -> React components.
  *
@@ -92,9 +147,9 @@ export const COMPONENT_MAP: Record<string, AnyComponent> = {
 
   // Interactive (stateful wrappers for controlled-only components)
   Button: Button as AnyComponent,
-  Input: Input as AnyComponent,
+  Input: GenerativeInput as AnyComponent,
   Checkbox: StatefulCheckbox as AnyComponent,
-  Select: StatefulSelect as AnyComponent,
+  Select: GenerativeSelect as AnyComponent,
   SelectOption: StatefulSelect.Option as AnyComponent,
   Switch: StatefulSwitch as AnyComponent,
   Tabs: StatefulTabs as AnyComponent,
@@ -103,7 +158,7 @@ export const COMPONENT_MAP: Record<string, AnyComponent> = {
   // Interactive (uncontrolled — no wrapper needed)
   RadioGroup: Radio.Group as AnyComponent,
   RadioItem: Radio.Item as AnyComponent,
-  Textarea: InputArea as AnyComponent,
+  Textarea: GenerativeInputArea as AnyComponent,
 
   // Data display
   Table: Table as AnyComponent,
