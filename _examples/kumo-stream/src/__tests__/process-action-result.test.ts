@@ -143,6 +143,19 @@ describe("processActionResult — external", () => {
     expect(openSpy).toHaveBeenCalledWith("https://example.com", "_blank");
     openSpy.mockRestore();
   });
+
+  it("blocks disallowed schemes (javascript:) and logs", () => {
+    const cbs = createCallbacks();
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+
+    processActionResult({ type: "external", url: "javascript:alert(1)" }, cbs);
+
+    expect(cbs.openExternal).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledOnce();
+    warnSpy.mockRestore();
+  });
 });
 
 // =============================================================================
