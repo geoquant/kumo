@@ -35,7 +35,7 @@
         "If params.fieldKeys is provided, payload includes only those keys",
         "If multiple submit_form actions exist in a container without explicit scoping, handler returns none and logs a warning"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "prompt-1",

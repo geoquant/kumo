@@ -5,6 +5,7 @@ Started: 2026-02-20
 ## Codebase Patterns
 - Runtime values: per-container `RuntimeValueStore` + React context provider in `UITreeRenderer` (UMD uses per-container Map; SPA uses `useRuntimeValueStore()`)
 - Runtime capture: `UITreeRenderer` injects `onChange` for `Input` + `Textarea` to set store by `elementKey` (chain existing handler; read `event.target.value` safely)
+- submit_form runtime: `UITreeRenderer` injects `context.runtimeValues = store.snapshotTouched()` on submit button click; handler builds stable JSON payload w/ scope + guardrails
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -18,3 +19,8 @@ Started: 2026-02-20
 - Implemented runtime capture for `Input` + `Textarea` via `onChange` injection in `UITreeRenderer` (no controlled state)
 - Files changed: `_examples/kumo-stream/src/core/UITreeRenderer.tsx`, `_examples/kumo-stream/src/__tests__/runtime-value-capture.test.tsx`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
 - Learnings: keep capture logic in renderer so it works with any component-map impl; always chain existing handlers to avoid breaking host overrides
+
+## Task - [functional-3]
+- Implemented submit_form payload builder: merges static params + runtime-captured field values; supports `formKey` subtree scope + `fieldKeys` allowlist; ambiguity fail-closed
+- Files changed: `_examples/kumo-stream/src/core/action-registry.ts`, `_examples/kumo-stream/src/core/UITreeRenderer.tsx`, `_examples/kumo-stream/src/__tests__/action-registry.test.ts`, `_examples/kumo-stream/src/__tests__/process-action-result.test.ts`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
+- Learnings: keep runtime values out of UITree (avoid rerender churn); inject snapshot into submit_form click event context (`runtimeValues`) for portable UMD/SPA semantics
