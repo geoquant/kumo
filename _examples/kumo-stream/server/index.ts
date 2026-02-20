@@ -16,6 +16,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "node:path";
+import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -64,6 +65,54 @@ app.use(
 
 // Serve static HTML pages (cross-boundary demo lives here)
 app.use(express.static(path.join(PROJECT_ROOT, "public")));
+
+// ---------------------------------------------------------------------------
+// .well-known routes — canonical discovery endpoints for generative UI assets
+// ---------------------------------------------------------------------------
+
+const LOADABLE_DIR = path.join(PROJECT_ROOT, "dist/loadable");
+
+/**
+ * Resolve the @cloudflare/kumo package directory from node_modules.
+ * Works for both pnpm workspace symlinks and regular installs.
+ */
+const KUMO_PKG_DIR = fs.realpathSync(
+  path.join(PROJECT_ROOT, "node_modules/@cloudflare/kumo"),
+);
+
+app.get("/.well-known/component-loadable.umd.js", (_req, res) => {
+  res.sendFile(path.join(LOADABLE_DIR, "component-loadable.umd.js"));
+});
+
+app.get("/.well-known/stylesheet.css", (_req, res) => {
+  res.sendFile(path.join(LOADABLE_DIR, "style.css"));
+});
+
+app.get("/.well-known/component-registry.json", (_req, res) => {
+  res.sendFile(path.join(KUMO_PKG_DIR, "ai/component-registry.json"));
+});
+
+app.get("/.well-known/generative-ui.json", (_req, res) => {
+  const kumoVersion = JSON.parse(
+    fs.readFileSync(path.join(KUMO_PKG_DIR, "package.json"), "utf8"),
+  ).version as string;
+
+  res.json({
+    version: "1.0.0",
+    kumoVersion,
+    paths: {
+      umdBundle: "/.well-known/component-loadable.umd.js",
+      stylesheet: "/.well-known/stylesheet.css",
+      componentRegistry: "/.well-known/component-registry.json",
+    },
+    streaming: {
+      endpoint: "/api/chat",
+      format: "sse",
+      wireFormat: "jsonl",
+      patchFormat: "rfc6902",
+    },
+  });
+});
 
 // ---------------------------------------------------------------------------
 // POST /api/chat — SSE streaming endpoint
@@ -205,4 +254,7 @@ app.listen(PORT, () => {
     `Cross-boundary demo: http://localhost:${PORT}/cross-boundary.html`,
   );
   console.log(`Serving UMD bundle from: dist/loadable/`);
+  console.log(
+    `Discovery endpoint: http://localhost:${PORT}/.well-known/generative-ui.json`,
+  );
 });
