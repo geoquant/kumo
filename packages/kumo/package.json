@@ -356,8 +356,8 @@
       "import": "./dist/catalog.js"
     },
     "./ai/schemas": {
-      "types": "./ai/schemas.ts",
-      "import": "./ai/schemas.ts"
+      "types": "./dist/ai/schemas.d.ts",
+      "import": "./dist/ai/schemas.js"
     },
     "./registry/component-registry.json": "./ai/component-registry.json",
     "./registry/component-registry.md": "./ai/component-registry.md",
