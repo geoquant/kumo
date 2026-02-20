@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "serve": "tsx server/index.ts"
+    "serve": "vite build --config vite.loadable.config.ts && tsx server/index.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
