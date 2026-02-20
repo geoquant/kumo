@@ -101,7 +101,7 @@
         "Parser does not break when SSE frames are split across chunks",
         "Cross-boundary demo still streams patches correctly"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "perf-1",
