@@ -168,6 +168,8 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
 
   const { tree, applyPatches, reset, onAction } = useUITree({
     onAction: handleAction,
+    // Streaming patch batches keep React responsive during fast token streams.
+    batchPatches: true,
   });
 
   // Keep refs in sync with latest values

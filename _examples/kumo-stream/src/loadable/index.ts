@@ -8,6 +8,8 @@
  * API:
  *   CloudflareKumo.applyPatch(op, containerId)   — apply one patch, re-render
  *   CloudflareKumo.applyPatches(ops, containerId) — batch patches, one render
+ *   CloudflareKumo.applyPatchBatched(op, containerId)   — apply patch, batch render (rAF)
+ *   CloudflareKumo.applyPatchesBatched(ops, containerId) — apply patches, batch render (rAF)
  *   CloudflareKumo.renderTree(tree, containerId)  — wholesale tree replacement
  *   CloudflareKumo.createParser()                 — JSONL streaming parser
  *   CloudflareKumo.setTheme(mode)                 — light/dark toggle
@@ -66,6 +68,9 @@ const _valueStores = new Map<string, RuntimeValueStore>();
 
 /** Per-container UITree subscribers. */
 const _treeSubscribers = new Map<string, Set<(tree: UITree) => void>>();
+
+/** Per-container rAF render scheduling (for optional batching). */
+const _renderScheduled = new Map<string, number>();
 
 // =============================================================================
 // Internal helpers
@@ -153,6 +158,13 @@ export interface CloudflareKumoAPI {
     ops: readonly JsonPatchOp[],
     containerId: string,
   ) => void;
+  /** Apply a single patch op and batch rendering via requestAnimationFrame. */
+  readonly applyPatchBatched: (op: JsonPatchOp, containerId: string) => void;
+  /** Apply multiple patch ops and batch rendering via requestAnimationFrame. */
+  readonly applyPatchesBatched: (
+    ops: readonly JsonPatchOp[],
+    containerId: string,
+  ) => void;
   /** Replace the entire tree wholesale (non-streaming use case). */
   readonly renderTree: (tree: UITree, containerId: string) => void;
   /** Create a new JSONL streaming parser instance. */
@@ -203,6 +215,23 @@ const api: CloudflareKumoAPI = {
     renderContainer(containerId);
   },
 
+  applyPatchBatched(op: JsonPatchOp, containerId: string): void {
+    const current = _trees.get(containerId) ?? EMPTY_TREE;
+    const next = applyRfc6902Patch(current, op);
+    _trees.set(containerId, next);
+    notifyTree(containerId, next);
+
+    const scheduled = _renderScheduled.get(containerId);
+    if (scheduled) return;
+
+    const rafId = requestAnimationFrame(() => {
+      _renderScheduled.delete(containerId);
+      renderContainer(containerId);
+    });
+
+    _renderScheduled.set(containerId, rafId);
+  },
+
   applyPatches(ops: readonly JsonPatchOp[], containerId: string): void {
     if (ops.length === 0) return;
     let current = _trees.get(containerId) ?? EMPTY_TREE;
@@ -212,6 +241,26 @@ const api: CloudflareKumoAPI = {
     _trees.set(containerId, current);
     notifyTree(containerId, current);
     renderContainer(containerId);
+  },
+
+  applyPatchesBatched(ops: readonly JsonPatchOp[], containerId: string): void {
+    if (ops.length === 0) return;
+    let current = _trees.get(containerId) ?? EMPTY_TREE;
+    for (const op of ops) {
+      current = applyRfc6902Patch(current, op);
+    }
+    _trees.set(containerId, current);
+    notifyTree(containerId, current);
+
+    const scheduled = _renderScheduled.get(containerId);
+    if (scheduled) return;
+
+    const rafId = requestAnimationFrame(() => {
+      _renderScheduled.delete(containerId);
+      renderContainer(containerId);
+    });
+
+    _renderScheduled.set(containerId, rafId);
   },
 
   renderTree(tree: UITree, containerId: string): void {
@@ -276,6 +325,12 @@ const api: CloudflareKumoAPI = {
     _trees.delete(containerId);
     _valueStores.delete(containerId);
     _treeSubscribers.delete(containerId);
+
+    const scheduled = _renderScheduled.get(containerId);
+    if (scheduled != null) {
+      cancelAnimationFrame(scheduled);
+      _renderScheduled.delete(containerId);
+    }
 
     const root = _roots.get(containerId);
     if (root) {
