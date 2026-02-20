@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 
 import { SYSTEM_PROMPT } from "../src/core/system-prompt.js";
+import { buildGenerativeUiManifest } from "../src/core/generative-ui-manifest.js";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -97,21 +98,7 @@ app.get("/.well-known/generative-ui.json", (_req, res) => {
     fs.readFileSync(path.join(KUMO_PKG_DIR, "package.json"), "utf8"),
   ).version as string;
 
-  res.json({
-    version: "1.0.0",
-    kumoVersion,
-    paths: {
-      umdBundle: "/.well-known/component-loadable.umd.js",
-      stylesheet: "/.well-known/stylesheet.css",
-      componentRegistry: "/.well-known/component-registry.json",
-    },
-    streaming: {
-      endpoint: "/api/chat",
-      format: "sse",
-      wireFormat: "jsonl",
-      patchFormat: "rfc6902",
-    },
-  });
+  res.json(buildGenerativeUiManifest({ kumoVersion }));
 });
 
 // ---------------------------------------------------------------------------
