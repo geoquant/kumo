@@ -125,7 +125,7 @@
         "Clicking + increments, clicking - decrements",
         "Actions during streaming logged but patches not applied"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-5",
