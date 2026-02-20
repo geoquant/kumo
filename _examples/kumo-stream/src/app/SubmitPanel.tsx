@@ -4,7 +4,7 @@
  * Mirrors the Action Events card styling so React + HTML/UMD look identical.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { UITree, UIElement } from "../core/types";
 import type { RuntimeValueStore } from "../core/runtime-value-store";
 
@@ -33,7 +33,7 @@ function safeJson(value: unknown): string {
   }
 }
 
-export function SubmitPanel({ tree, runtimeValueStore }: SubmitPanelProps) {
+function SubmitPanelImpl({ tree, runtimeValueStore }: SubmitPanelProps) {
   const submit = useMemo(() => findSubmitAction(tree), [tree]);
 
   const [runtimeValues, setRuntimeValues] = useState<
@@ -88,3 +88,5 @@ export function SubmitPanel({ tree, runtimeValueStore }: SubmitPanelProps) {
     </div>
   );
 }
+
+export const SubmitPanel = memo(SubmitPanelImpl);
