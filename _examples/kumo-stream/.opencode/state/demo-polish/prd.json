@@ -1,5 +1,6 @@
 {
   "prdName": "demo-polish",
+  "branch": "geoquant/streaming-ui",
   "tasks": [
     {
       "id": "ui-1",
