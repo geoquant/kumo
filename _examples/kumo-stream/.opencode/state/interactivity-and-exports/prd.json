@@ -97,7 +97,7 @@
         "pnpm build:loadable produces dist/loadable/ correctly",
         "No bun references remain in package.json scripts"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "wellknown-1",
