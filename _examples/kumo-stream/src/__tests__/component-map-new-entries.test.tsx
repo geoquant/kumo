@@ -47,6 +47,18 @@ describe("KNOWN_TYPES", () => {
   it("includes Collapsible", () => {
     expect(KNOWN_TYPES.has("Collapsible")).toBe(true);
   });
+
+  it("includes Code", () => {
+    expect(KNOWN_TYPES.has("Code")).toBe(true);
+  });
+
+  it("includes Field", () => {
+    expect(KNOWN_TYPES.has("Field")).toBe(true);
+  });
+
+  it("includes Label", () => {
+    expect(KNOWN_TYPES.has("Label")).toBe(true);
+  });
 });
 
 // =============================================================================
@@ -70,6 +82,18 @@ describe("COMPONENT_MAP entries", () => {
     expect(COMPONENT_MAP.Collapsible).toBeDefined();
     // StatefulCollapsible is a plain function, not a forwardRef
     expect(typeof COMPONENT_MAP.Collapsible).toBe("function");
+  });
+
+  it("Code maps to a defined component", () => {
+    expect(COMPONENT_MAP.Code).toBeDefined();
+  });
+
+  it("Field maps to a defined component", () => {
+    expect(COMPONENT_MAP.Field).toBeDefined();
+  });
+
+  it("Label maps to a defined component", () => {
+    expect(COMPONENT_MAP.Label).toBeDefined();
   });
 });
 
@@ -111,6 +135,21 @@ describe("UITreeRenderer: Textarea", () => {
         defaultValue: "hello world",
         placeholder: "Type here...",
       }),
+    });
+
+    const { container } = render(<UITreeRenderer tree={tree} />);
+
+    // Should NOT have "Unknown component" warning — type is recognized
+    const unknownWarning = container.querySelector(".text-kumo-warning");
+    expect(unknownWarning).toBeNull();
+  });
+});
+
+describe("UITreeRenderer: Field", () => {
+  it("resolves Field type (no 'Unknown component' error)", () => {
+    const tree = mkTree("field", {
+      field: el("field", "Field", { label: "Name" }, ["input"]),
+      input: el("input", "Input", { label: "Name" }),
     });
 
     const { container } = render(<UITreeRenderer tree={tree} />);
