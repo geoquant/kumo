@@ -105,6 +105,34 @@ const GenerativeInputArea = forwardRef(function GenerativeInputArea(
 });
 GenerativeInputArea.displayName = "GenerativeInputArea";
 
+const GenerativeCloudflareLogo = forwardRef(function GenerativeCloudflareLogo(
+  props: Record<string, unknown>,
+  ref: React.Ref<SVGSVGElement>,
+) {
+  const variant = props["variant"];
+  const isGlyph = variant === "glyph";
+
+  const width = props["width"];
+  const height = props["height"];
+  const hasWidth = typeof width === "number" || typeof width === "string";
+  const hasHeight = typeof height === "number" || typeof height === "string";
+
+  const defaultSizeProps: Record<string, unknown> =
+    hasWidth || hasHeight
+      ? {}
+      : isGlyph
+        ? { width: 72, height: 32 }
+        : { width: 180, height: 60 };
+
+  return React.createElement(CloudflareLogo, {
+    ref,
+    className: cn(readClassName(props)),
+    ...defaultSizeProps,
+    ...stripClassName(props),
+  });
+});
+GenerativeCloudflareLogo.displayName = "GenerativeCloudflareLogo";
+
 function GenerativeSelect(props: Record<string, unknown>) {
   const passthrough = stripClassName(props);
   const label = passthrough["label"];
@@ -185,7 +213,7 @@ export const COMPONENT_MAP: Record<string, AnyComponent> = {
   Empty: Empty as AnyComponent,
 
   // Brand
-  CloudflareLogo: CloudflareLogo as AnyComponent,
+  CloudflareLogo: GenerativeCloudflareLogo as AnyComponent,
 };
 
 /** Set of all registered component type names. */
