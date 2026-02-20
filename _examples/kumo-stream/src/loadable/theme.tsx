@@ -13,6 +13,19 @@ interface ThemeWrapperProps {
   readonly children: ReactNode;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readModeFromEvent(e: Event): "light" | "dark" | null {
+  if (!(e instanceof CustomEvent)) return null;
+  const detail: unknown = e.detail;
+  if (!isRecord(detail)) return null;
+
+  const mode = detail["mode"];
+  return mode === "light" || mode === "dark" ? mode : null;
+}
+
 /**
  * Read the current theme from document.body's data-mode attribute.
  * Falls back to "light" if unset or unrecognised.
@@ -35,13 +48,21 @@ export function ThemeWrapper({
 
   useEffect(() => {
     function handleThemeChange(e: Event): void {
-      const detail = (e as CustomEvent<{ mode: "light" | "dark" }>).detail;
-      setMode(detail.mode);
+      const next = readModeFromEvent(e);
+      if (!next) return;
+      setMode(next);
     }
 
-    window.addEventListener("kumo-theme-change", handleThemeChange);
-    return () =>
-      window.removeEventListener("kumo-theme-change", handleThemeChange);
+    const events = ["kumo-theme-change", "theme-change"] as const;
+    for (const name of events) {
+      window.addEventListener(name, handleThemeChange);
+    }
+
+    return () => {
+      for (const name of events) {
+        window.removeEventListener(name, handleThemeChange);
+      }
+    };
   }, []);
 
   return (

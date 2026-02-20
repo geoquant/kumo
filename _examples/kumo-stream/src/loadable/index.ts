@@ -434,8 +434,12 @@ const api: CloudflareKumoAPI = {
     document.body.setAttribute("data-mode", mode);
 
     // 2. Dispatch CustomEvent for ThemeWrapper listeners
-    const event = new CustomEvent("kumo-theme-change", { detail: { mode } });
-    window.dispatchEvent(event);
+    // Canonical: kumo-theme-change
+    window.dispatchEvent(
+      new CustomEvent("kumo-theme-change", { detail: { mode } }),
+    );
+    // Compat: theme-change (legacy/event-name drift)
+    window.dispatchEvent(new CustomEvent("theme-change", { detail: { mode } }));
   },
 
   getTree(containerId: string): UITree {
