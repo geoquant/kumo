@@ -111,7 +111,7 @@
         "Handles missing count-display element gracefully (returns null)",
         "Handles non-numeric text gracefully (defaults to 0)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-4",
