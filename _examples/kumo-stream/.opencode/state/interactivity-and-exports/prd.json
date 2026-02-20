@@ -84,7 +84,7 @@
         "Catalog's lazy schema loading still works",
         "Build passes, existing tests pass"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "infra-1",
