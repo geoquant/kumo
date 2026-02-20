@@ -90,7 +90,7 @@
         "public/cross-boundary.html no longer re-implements action registry/result processing",
         "Cross-boundary demo continues to log actions and handle submit_form"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "transport-1",
