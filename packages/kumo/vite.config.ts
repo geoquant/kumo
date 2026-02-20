@@ -239,6 +239,8 @@ export default defineConfig(({ mode }) => {
             case id === "react-dom":
             case id.startsWith("react-dom/"):
             case id === "@phosphor-icons/react":
+            case id === "zod":
+            case id.startsWith("zod/"):
               return true;
             // Externalize shiki for server entry - it should be resolved at runtime in Node.js
             // This prevents shiki from being bundled with "use client" directives
