@@ -22,6 +22,7 @@ import {
   Cluster,
   Code,
   Empty,
+  Field,
   Grid,
   Input,
   InputArea,
@@ -86,6 +87,7 @@ export const COMPONENT_MAP: Record<string, AnyComponent> = {
   Badge: Badge as AnyComponent,
   Banner: Banner as AnyComponent,
   Code: Code as AnyComponent,
+  Field: Field as AnyComponent,
   Label: Label as AnyComponent,
 
   // Interactive (stateful wrappers for controlled-only components)
