@@ -60,7 +60,7 @@
         "System prompt includes generic action usage guidelines",
         "Existing counter action example preserved"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "export-1",
