@@ -9,6 +9,7 @@ Started: 2026-02-19
 - Kumo `Button` with `variant="outline" size="sm"` for chrome controls (dark mode toggle)
 - Plain HTML (`h1`, `p`) for non-interactive text; Kumo `Text` only in component rendering
 - ChatDemo controls: `flex gap-2` form, Input `flex-1`, action buttons inline
+- Action event wiring: `useUITree({ onAction })` → return `onAction` → pass to `UITreeRenderer onAction={onAction}`; handler creates `ActionLogEntry` with ISO timestamp
 - Pre-existing lint false positives: `UITreeRenderer.tsx` lines 65/162 (semantic tokens misdetected as raw colors)
 - UITree is plain data (`{ root: string, elements: Record<string, UIElement> }`), safe to `structuredClone` for snapshots
 - `AssistantSnapshot` renders read-only past turns by omitting `onAction` from `UITreeRenderer`
@@ -61,3 +62,13 @@ Started: 2026-02-19
 - Dark mode styles applied via `body[data-mode="dark"] .presets button`
 - Files changed: `public/cross-boundary.html`
 - **Learnings:** Scoping page button styles (`.controls button`, `.header button`) was already established to avoid leaking into `#kumo-container` Tailwind classes. `.presets button` follows same pattern. Dynamic DOM creation via `forEach` + `createElement` is idiomatic for the IIFE vanilla JS style used throughout.
+
+## Task - ui-5
+- Added ActionPanel component and 2-column layout to React SPA
+- New file `src/app/ActionPanel.tsx`: standalone component with `ActionLogEntry` type, `ActionLogRow` sub-component, monospace log area, auto-scroll, clear button, empty state
+- Each log entry: `HH:MM:SS.mmm` timestamp + orange action name (`text-kumo-warning`) + source key + params/context detail + faded simulated `-> POST /api/actions {...}` line
+- `ChatDemo.tsx`: added `actionLog` state + `handleAction` callback wired through `useUITree({ onAction })` → `UITreeRenderer onAction={onAction}`; `handleReset` and `clearActionLog` both clear the log
+- 2-column layout: `flex-col md:flex-row`, left `md:w-[62%]` (chat), right `md:w-[38%]` (action panel); stacks vertically below md breakpoint
+- App.tsx container widened to `md:max-w-[1400px]` (was 960px only) for 2-column space
+- Files changed: `src/app/ActionPanel.tsx` (new), `src/app/ChatDemo.tsx`, `src/app/App.tsx`
+- **Learnings:** `useUITree` already has `onAction` pass-through plumbing — just provide `{ onAction }` in options and thread `onAction` from the return to `UITreeRenderer`. `text-kumo-warning` is the semantic token for orange/amber text (used for action names).
