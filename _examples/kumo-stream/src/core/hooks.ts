@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { applyPatch as applyRfc6902Patch, type JsonPatchOp } from "./rfc6902";
 import { EMPTY_TREE, type UITree } from "./types";
 import type { ActionDispatch } from "./action-handler";
+import { sanitizePatch } from "./text-sanitizer";
 import {
   createRuntimeValueStore,
   type RuntimeValueStore,
@@ -114,12 +115,13 @@ export function useUITree(options?: UseUITreeOptions): UseUITreeReturn {
 
   const applyPatch = useCallback(
     (patch: JsonPatchOp): void => {
+      const sanitized = sanitizePatch(patch);
       if (!batchPatches) {
-        setTree((prev: UITree) => applyRfc6902Patch(prev, patch));
+        setTree((prev: UITree) => applyRfc6902Patch(prev, sanitized));
         return;
       }
 
-      pendingRef.patches.push(patch);
+      pendingRef.patches.push(sanitized);
       scheduleFlush();
     },
     [batchPatches, pendingRef, scheduleFlush],
@@ -128,10 +130,13 @@ export function useUITree(options?: UseUITreeOptions): UseUITreeReturn {
   const applyPatches = useCallback(
     (patches: readonly JsonPatchOp[]): void => {
       if (patches.length === 0) return;
+
+      const sanitized = patches.map(sanitizePatch);
+
       if (!batchPatches) {
         setTree((prev: UITree) => {
           let current = prev;
-          for (const patch of patches) {
+          for (const patch of sanitized) {
             current = applyRfc6902Patch(current, patch);
           }
           return current;
@@ -139,7 +144,7 @@ export function useUITree(options?: UseUITreeOptions): UseUITreeReturn {
         return;
       }
 
-      pendingRef.patches.push(...patches);
+      pendingRef.patches.push(...sanitized);
       scheduleFlush();
     },
     [batchPatches, pendingRef, scheduleFlush],
