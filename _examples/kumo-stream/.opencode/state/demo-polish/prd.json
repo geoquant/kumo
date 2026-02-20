@@ -85,7 +85,7 @@
         "Attribute visible in DOM inspector",
         "HTML page can locate elements via document.querySelector('[data-key=\"count-display\"]')"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-2",

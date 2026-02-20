@@ -72,3 +72,11 @@ Started: 2026-02-19
 - App.tsx container widened to `md:max-w-[1400px]` (was 960px only) for 2-column space
 - Files changed: `src/app/ActionPanel.tsx` (new), `src/app/ChatDemo.tsx`, `src/app/App.tsx`
 - **Learnings:** `useUITree` already has `onAction` pass-through plumbing — just provide `{ onAction }` in options and thread `onAction` from the return to `UITreeRenderer`. `text-kumo-warning` is the semantic token for orange/amber text (used for action names).
+
+## Task - functional-1
+- Added `data-key={elementKey}` to all rendered elements in UITreeRenderer
+- Div path: `data-key` set directly on native `<div>` element (before `filterDivProps` spread)
+- Kumo component path: `data-key` added to `restProps` (spread onto `<Comp>`) — forwarded through forwardRef
+- Enables `document.querySelector('[data-key="count-display"]')` for DOM identification
+- Files changed: `src/core/UITreeRenderer.tsx`
+- **Learnings:** `data-*` attributes pass through both `sanitizeProps` and `filterDivProps` unfiltered. Kumo forwardRef components forward unknown HTML attributes to the DOM root, so `data-key` in restProps works without wrapper divs.
