@@ -56,7 +56,7 @@
         "Pills disabled during streaming, re-enabled after",
         "Same list as React SPA presets"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-5",
