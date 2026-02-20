@@ -11,10 +11,12 @@
  * catch any runtime mismatches.
  */
 
+import React, { forwardRef } from "react";
 import {
   Badge,
   Banner,
   Button,
+  CloudflareLogo,
   Cluster,
   Empty,
   Grid,
@@ -29,6 +31,7 @@ import {
   Table,
   Text,
 } from "@cloudflare/kumo";
+import { cn } from "@cloudflare/kumo/utils";
 import {
   StatefulCheckbox,
   StatefulCollapsible,
@@ -41,6 +44,26 @@ import {
 type AnyComponent = React.ComponentType<any>;
 
 /**
+ * Surface wrapper that adds default padding and border-radius.
+ *
+ * The base Surface component ships with no padding or radius by design
+ * (consumers add them via className). In generative UI the LLM rarely
+ * includes those classes, so we bake in sensible card defaults here.
+ */
+const GenerativeSurface = forwardRef(function GenerativeSurface(
+  props: Record<string, unknown>,
+  ref: React.Ref<HTMLDivElement>,
+) {
+  const { className, ...rest } = props;
+  return React.createElement(Surface, {
+    ref,
+    className: cn("rounded-lg p-6", className as string),
+    ...rest,
+  });
+});
+GenerativeSurface.displayName = "GenerativeSurface";
+
+/**
  * Map of UITree type strings -> React components.
  *
  * Keys must match the `type` field in UIElement objects from the LLM.
@@ -49,7 +72,7 @@ type AnyComponent = React.ComponentType<any>;
  */
 export const COMPONENT_MAP: Record<string, AnyComponent> = {
   // Layout
-  Surface: Surface as AnyComponent,
+  Surface: GenerativeSurface as AnyComponent,
   Grid: Grid as AnyComponent,
   Stack: Stack as AnyComponent,
   Cluster: Cluster as AnyComponent,
@@ -90,6 +113,9 @@ export const COMPONENT_MAP: Record<string, AnyComponent> = {
   // Feedback
   Loader: Loader as AnyComponent,
   Empty: Empty as AnyComponent,
+
+  // Brand
+  CloudflareLogo: CloudflareLogo as AnyComponent,
 };
 
 /** Set of all registered component type names. */

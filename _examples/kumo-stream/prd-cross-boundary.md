@@ -1,6 +1,7 @@
 # PRD: Cross-Boundary Generative UI
 
 **Date:** 2026-02-19
+**Branch:** `geoquant/streaming-ui` (only)
 
 ---
 

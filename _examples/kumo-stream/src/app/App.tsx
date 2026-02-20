@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import { Button } from "@cloudflare/kumo";
 import { ChatDemo } from "./ChatDemo";
+import "./cross-boundary.css";
 
 export function App() {
   const [isDark, setIsDark] = useState(false);
@@ -10,25 +10,19 @@ export function App() {
   }, []);
 
   return (
-    <div
-      data-mode={isDark ? "dark" : "light"}
-      className="kumo-root mx-auto max-w-[960px] px-6 py-8"
-    >
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="m-0 text-xl font-semibold text-kumo-default">
-            Kumo Streaming Demo
-          </h1>
-          <p className="mt-1 text-[13px] text-kumo-subtle">
-            Streaming generative UI — JSONL patches build the interface
-            incrementally.
-          </p>
+    <div data-mode={isDark ? "dark" : "light"} className="cb-page kumo-root">
+      <div className="cb-page-inner">
+        <div className="cb-header">
+          <div>
+            <h1>Kumo Streaming Demo</h1>
+            <p> React SPA. Streaming generative UI via JSONL patches.</p>
+          </div>
+          <button type="button" onClick={toggleTheme}>
+            {isDark ? "Light Mode" : "Dark Mode"}
+          </button>
         </div>
-        <Button variant="outline" size="sm" onClick={toggleTheme}>
-          {isDark ? "Light Mode" : "Dark Mode"}
-        </Button>
+        <ChatDemo isDark={isDark} />
       </div>
-      <ChatDemo />
     </div>
   );
 }
