@@ -453,6 +453,7 @@
           "Display a pricing comparison table",
           "Create a user profile settings page",
           "Show an analytics overview",
+          "Build a counter",
         ];
 
         // -----------------------------------------------------------------------
@@ -764,7 +765,23 @@
         // -----------------------------------------------------------------------
 
         window.addEventListener("kumo-action", function (e) {
-          appendActionLog(e.detail);
+          var detail = e.detail;
+          appendActionLog(detail);
+
+          // Counter actions: update count-display element inline
+          if (
+            detail.actionName === "increment" ||
+            detail.actionName === "decrement"
+          ) {
+            var countEl = document.querySelector('[data-key="count-display"]');
+            if (countEl) {
+              var current = parseInt(countEl.textContent, 10);
+              if (isNaN(current)) current = 0;
+              countEl.textContent = String(
+                detail.actionName === "increment" ? current + 1 : current - 1,
+              );
+            }
+          }
         });
 
         clearLogBtn.addEventListener("click", function () {
