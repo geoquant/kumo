@@ -27,6 +27,7 @@ import type { UITree } from "../core/types";
 import { BUILTIN_HANDLERS, dispatchAction } from "../core/action-registry";
 import { processActionResult } from "../core/process-action-result";
 import { ActionPanel, type ActionLogEntry } from "./ActionPanel";
+import { SubmitPanel } from "./SubmitPanel";
 
 // =============================================================================
 // Constants
@@ -417,8 +418,11 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
         </div>
       </div>
 
-      {/* Action events panel — below conversation */}
-      <ActionPanel entries={actionLog} onClear={clearActionLog} />
+      {/* Action + submit panels */}
+      <div className="cb-panels-row">
+        <ActionPanel entries={actionLog} onClear={clearActionLog} />
+        <SubmitPanel tree={tree} runtimeValueStore={runtimeValueStore} />
+      </div>
     </>
   );
 }
