@@ -11,18 +11,77 @@ The challenge here becomes the inability for ChatGPT to include every component 
 Proposals could help standardize how products can make their UI’s discoverable and perhaps one version could include specific files living at the domain in a \`.well-known\` folder structure.
 
 ```
-/.well-known/component-loadable.umd.cjs // or .mjs
-/.well-known/component-registry.json
-/.well-known/stylesheet.css
+/.well-known/component-loadable.umd.js   # UMD bundle (React + components, battery-included)
+/.well-known/component-registry.json     # Component API schema for AI consumption
+/.well-known/stylesheet.css              # Compiled CSS (themes, tokens, component styles)
+/.well-known/generative-ui.json          # Discovery metadata (version, paths, streaming config)
 ```
 
-Three files that come to mind immediately include a JSON structure that AI can parse to understand what components are made available with which props, and a stylesheet that might likely need to be injected alongside the components, and a CJS file that loads the components into the browser to be consumed.
+Four files make generative UI discoverable:
 
-For Kumo in particular I made a version of our loadable that essentially creates a lightweight React application (importing React and Kumo libraries) and then with a \`vite build\` command have it output our \`component-loadable.umd.cjs\` that can be imported then by other websites. Even if a website is written in plain HTML without a framework associated to it at all, our loadable file is battery-included with what it requires to render.
+- **component-loadable.umd.js** — A self-contained UMD bundle that includes React, the component library, and all stateful wrappers. Any website can load this via a `<script>` tag, even plain HTML with no framework.
+- **component-registry.json** — A JSON schema describing available components, their props, and types. AI models consume this to understand what they can generate.
+- **stylesheet.css** — Compiled CSS for all components, including semantic design tokens, theme support, and light/dark mode via `light-dark()` custom properties.
+- **generative-ui.json** — A discovery metadata endpoint returning the library version, paths to the other three files, and streaming configuration (endpoint, wire format, patch format).
+
+The discovery endpoint returns structured metadata:
+
+```json
+{
+  "version": "1.0.0",
+  "kumoVersion": "0.59.0",
+  "paths": {
+    "umdBundle": "/.well-known/component-loadable.umd.js",
+    "stylesheet": "/.well-known/stylesheet.css",
+    "componentRegistry": "/.well-known/component-registry.json"
+  },
+  "streaming": {
+    "endpoint": "/api/chat",
+    "format": "sse",
+    "wireFormat": "jsonl",
+    "patchFormat": "rfc6902"
+  }
+}
+```
+
+### Registry Hosting
+
+The component registry (`component-registry.json`) ships inside the `@cloudflare/kumo` npm package at `ai/component-registry.json`. To serve it from `.well-known`, you have two options:
+
+1. **Serve from node_modules** — Resolve the installed package directory and serve the file directly. This keeps the registry in sync with the installed library version automatically.
+
+```ts
+import fs from "node:fs";
+import path from "node:path";
+
+// Resolve the real package dir (works with pnpm symlinks and regular installs)
+const KUMO_PKG_DIR = fs.realpathSync(
+  path.join(PROJECT_ROOT, "node_modules/@cloudflare/kumo"),
+);
+
+app.get("/.well-known/component-registry.json", (_req, res) => {
+  res.sendFile(path.join(KUMO_PKG_DIR, "ai/component-registry.json"));
+});
+```
+
+Note: `@cloudflare/kumo` has strict package exports, so `require.resolve("@cloudflare/kumo/ai/component-registry.json")` will fail. Use `fs.realpathSync` on the `node_modules` path instead.
+
+2. **Re-host a copy** — Copy the registry file into your static assets at build time. This avoids runtime filesystem access but requires a build step to keep it in sync.
+
+### Reference Implementation
+
+The `kumo-stream` example app (`_examples/kumo-stream/`) is the reference implementation for the `.well-known` convention. It demonstrates:
+
+- Serving all four `.well-known` endpoints from an Express server (`server/index.ts`)
+- Building the UMD loadable bundle via Vite (`vite.loadable.config.ts`)
+- Consuming the loadable in a plain HTML page (`public/cross-boundary.html`)
+- The full streaming pipeline: SSE → JSONL → RFC 6902 patches → rendered UI
+
+For Kumo in particular, the loadable creates a lightweight React application (importing React and Kumo libraries) and then with a `vite build` command outputs a `component-loadable.umd.js` that can be loaded by other websites. Even if a website is written in plain HTML without a framework, the loadable file is battery-included with what it requires to render.
 
 ## Component Response
 
-A mechanism needs to exist where AI can consume a list of available components and be capable of responding with a data structure that we can then return UI components from. For example if I were to prompt “Show me a button inside a LayerCard” my expectations would be that AI could construct some JSON structure that would be passable to my \`component-loadable.umd.cjs\` file and within my loadable I could deconstruct that JSON and know precisely how to render my components.
+A mechanism needs to exist where AI can consume a list of available components and be capable of responding with a data structure that we can then return UI components from. For example if I were to prompt “Show me a button inside a LayerCard” my expectations would be that AI could construct some JSON structure that would be passable to my \`component-loadable.umd.js\` file and within my loadable I could deconstruct that JSON and know precisely how to render my components.
 
 ### Internal Registry
 
