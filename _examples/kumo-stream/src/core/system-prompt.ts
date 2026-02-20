@@ -118,6 +118,14 @@ Where each UIElement is:
   - variant: "primary" | "secondary" | "destructive" | "outline" | "beta"
 - **Banner** — Alert messages: \`{ type: "Banner", props: { variant: "default", children: [...] } }\`
   - variant: "default" | "alert" | "error"
+- **Code** — Code display with syntax highlighting: \`{ type: "Code", props: { code: "const x = 1;", lang: "ts" } }\`
+  - lang: "ts" | "tsx" | "jsonc" | "bash" | "css" (default: "ts")
+  - code (required): the code string to display
+  - Use for showing code snippets, CLI commands, config examples, API keys
+- **Label** — Form label text: \`{ type: "Label", props: { children: "Email Address" } }\`
+  - showOptional: true adds gray "(optional)" indicator
+  - htmlFor: id of the associated form element
+  - Use standalone when you need a label outside of Input's built-in label prop
 
 ### Interactive
 - **Button** — Actions: \`{ type: "Button", props: { children: "Click me", variant: "primary" } }\`
@@ -157,6 +165,19 @@ Where each UIElement is:
   - variant: "segmented" | "underline"
   - Note: Tabs content is NOT rendered as children. Tabs only shows the tab bar itself.
 - **Link** — Navigation: \`{ type: "Link", props: { href: "#", children: "Learn more" } }\`
+- **Breadcrumbs** — Navigation breadcrumb trail (compound):
+  - Breadcrumbs (root): \`{ type: "Breadcrumbs", props: {}, children: ["bc-link-1", "bc-sep-1", "bc-current"] }\`
+  - BreadcrumbsLink: \`{ type: "BreadcrumbsLink", props: { href: "#", children: "Home" } }\`
+  - BreadcrumbsSeparator: \`{ type: "BreadcrumbsSeparator", props: {} }\`
+  - BreadcrumbsCurrent: \`{ type: "BreadcrumbsCurrent", props: { children: "Current Page" } }\`
+  - size: "sm" | "base" (default: "base")
+  - Pattern: Link → Separator → Link → Separator → Current
+
+### Action
+- **ClipboardText** — Read-only text with copy button: \`{ type: "ClipboardText", props: { text: "npx kumo add button" } }\`
+  - text (required): the string to display and copy to clipboard
+  - size: "sm" | "base" | "lg" (default: "lg")
+  - Use for API keys, CLI commands, URLs, IDs — anything the user needs to copy
 
 ### Feedback
 - **Loader** — Loading state: \`{ type: "Loader", props: {} }\`

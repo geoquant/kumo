@@ -15,13 +15,17 @@ import React, { forwardRef } from "react";
 import {
   Badge,
   Banner,
+  Breadcrumbs,
   Button,
+  ClipboardText,
   CloudflareLogo,
   Cluster,
+  Code,
   Empty,
   Grid,
   Input,
   InputArea,
+  Label,
   Link,
   Loader,
   Meter,
@@ -81,6 +85,8 @@ export const COMPONENT_MAP: Record<string, AnyComponent> = {
   Text: Text as AnyComponent,
   Badge: Badge as AnyComponent,
   Banner: Banner as AnyComponent,
+  Code: Code as AnyComponent,
+  Label: Label as AnyComponent,
 
   // Interactive (stateful wrappers for controlled-only components)
   Button: Button as AnyComponent,
@@ -109,6 +115,13 @@ export const COMPONENT_MAP: Record<string, AnyComponent> = {
 
   // Navigation
   Link: Link as AnyComponent,
+  Breadcrumbs: Breadcrumbs as AnyComponent,
+  BreadcrumbsLink: Breadcrumbs.Link as AnyComponent,
+  BreadcrumbsCurrent: Breadcrumbs.Current as AnyComponent,
+  BreadcrumbsSeparator: Breadcrumbs.Separator as AnyComponent,
+
+  // Action
+  ClipboardText: ClipboardText as AnyComponent,
 
   // Feedback
   Loader: Loader as AnyComponent,

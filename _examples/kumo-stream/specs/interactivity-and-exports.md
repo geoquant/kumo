@@ -1,6 +1,6 @@
 # Spec: kumo-stream Interactivity, Exports, and .well-known Convention
 
-**Status:** Ready for implementation
+**Status:** Implemented on `geoquant/streaming-ui`
 **Effort:** L (1-2 days)
 **Type:** Feature plan + bug fixes + package enhancement
 **Branch:** `geoquant/streaming-ui` (only)
