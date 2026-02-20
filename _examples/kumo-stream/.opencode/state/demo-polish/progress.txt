@@ -80,3 +80,13 @@ Started: 2026-02-19
 - Enables `document.querySelector('[data-key="count-display"]')` for DOM identification
 - Files changed: `src/core/UITreeRenderer.tsx`
 - **Learnings:** `data-*` attributes pass through both `sanitizeProps` and `filterDivProps` unfiltered. Kumo forwardRef components forward unknown HTML attributes to the DOM root, so `data-key` in restProps works without wrapper divs.
+
+## Task - functional-2
+- Added Example 5 — Stateful Counter to system prompt (8 JSONL patch lines)
+- Structure: Surface → Stack (centered) → heading + `count-display` (heading1) + Cluster (button row)
+- Decrement button: `action: { name: "decrement" }`, variant "secondary"
+- Increment button: `action: { name: "increment" }`, variant "primary"
+- Count display uses key `count-display` (matches data-key from functional-1)
+- Added "Key points" guidance section telling LLM that `count-display` key and `increment`/`decrement` action names are required for host-side state management
+- Files changed: `src/core/system-prompt.ts`
+- **Learnings:** System prompt examples follow a consistent pattern: `## Example N: Title` → `User: "prompt"` → raw JSONL lines. The "Key points" note section is a useful addition to steer the LLM toward specific key names/action names that the host application depends on.
