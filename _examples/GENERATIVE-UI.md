@@ -176,7 +176,7 @@ To prevent crashing out and causing the remaining stream of components from rend
 </ErrorBoundary>
 ```
 
-In my code base you can find a class in the \`loadable.tsx\` file named \`ErrorBoundary\` as well that includes more details on its implementation.
+In `kumo-stream`, per-element error isolation is implemented inside `UITreeRenderer` via an internal `ElementErrorBoundary` (`_examples/kumo-stream/src/core/UITreeRenderer.tsx`).
 
 ## Component Styles
 
@@ -187,7 +187,7 @@ Many component libraries support themes and modes. Modes are often defined as �
 For a component to adhere to a specific mode (light or dark) it is commonly wrapped in a root tag that has an attribute applied to it, such as \`data-mode=”light”\` which signals to all children components within it to adhere to that treatment. Since our loadable does not own the entire DOM, instead only the components we return to be rendered, we must wrap each of those components in a div element that applies the correct tag and theme to it.
 
 ```ts
-<ThemeWrapper initialMode="light">
+<ThemeWrapper>
   <Component {...props}>
     {children}
   </Component>
@@ -195,17 +195,24 @@ For a component to adhere to a specific mode (light or dark) it is commonly wrap
 
 ```
 
-But that’s not enough. We need to support theme changing on a website. If a user were to toggle between light and dark mode and these wrapped components did not change that would not be desirable. Now our ThemeWrapper component needs to attach some logic to the window to listen to changes, but here is one of those moments where we would prefer if there was some standardized event that could be emitted from websites so our loader knows how to listen by default. An alternative to predefining an event name such as “model-change”, and/or “theme-change”, is to also allow for the client to pass in the value loadables should listen for in the event of a mode change – explicitly tell loadables what the value they should listen for is.
+But that’s not enough. We need to support theme changing on a website. If a user were to toggle between light and dark mode and these wrapped components did not change that would not be desirable. The loadable `ThemeWrapper` listens for a canonical `kumo-theme-change` CustomEvent with payload `{ mode: "light" | "dark" }`, and also supports `theme-change` as a compatibility alias.
 
 ```ts
-const ThemeWrapper = ({ children, initialMode }: { children: React.ReactNode, initialMode: 'light' | 'dark' }) => {
-  const [mode, setMode] = useState(initialMode);
+const readBodyMode = (): 'light' | 'dark' =>
+  document.body.getAttribute('data-mode') === 'dark' ? 'dark' : 'light';
 
-  // Attach a listener to the window so the HTML site can trigger a change
+const ThemeWrapper = ({ children }: { children: React.ReactNode }) => {
+  const [mode, setMode] = useState<'light' | 'dark'>(readBodyMode());
+
+  // Attach a listener to the window so the host page can trigger a change
   useEffect(() => {
     const handleThemeChange = (e: any) => setMode(e.detail.mode);
+    window.addEventListener('kumo-theme-change', handleThemeChange);
     window.addEventListener('theme-change', handleThemeChange);
-    return () => window.removeEventListener('theme-change', handleThemeChange);
+    return () => {
+      window.removeEventListener('kumo-theme-change', handleThemeChange);
+      window.removeEventListener('theme-change', handleThemeChange);
+    };
   }, []);
 
   return (
