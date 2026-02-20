@@ -129,4 +129,77 @@ describe("UMD tree access API", () => {
 
     api.reset(containerId);
   });
+
+  it("sanitizes patch values for applyPatch/applyPatches (including batched variants)", () => {
+    const containerId = makeContainerId();
+    mountContainer(containerId);
+
+    api.renderTree(
+      {
+        root: "root",
+        elements: {
+          root: { key: "root", type: "Div", props: {} },
+        },
+      },
+      containerId,
+    );
+
+    api.applyPatch(
+      {
+        op: "replace",
+        path: "/elements/root/props/children",
+        value: "⚡ Hello",
+      },
+      containerId,
+    );
+
+    expect(api.getTree(containerId).elements.root?.props).toMatchObject({
+      children: "Hello",
+    });
+
+    api.applyPatches(
+      [
+        {
+          op: "replace",
+          path: "/elements/root/props/title",
+          value: "🛡️ Secure",
+        },
+      ],
+      containerId,
+    );
+
+    expect(api.getTree(containerId).elements.root?.props).toMatchObject({
+      title: "Secure",
+    });
+
+    api.applyPatchBatched(
+      {
+        op: "replace",
+        path: "/elements/root/props/subtitle",
+        value: "✅ Done",
+      },
+      containerId,
+    );
+
+    expect(api.getTree(containerId).elements.root?.props).toMatchObject({
+      subtitle: "Done",
+    });
+
+    api.applyPatchesBatched(
+      [
+        {
+          op: "replace",
+          path: "/elements/root/props/footer",
+          value: "🔥 Hot",
+        },
+      ],
+      containerId,
+    );
+
+    expect(api.getTree(containerId).elements.root?.props).toMatchObject({
+      footer: "Hot",
+    });
+
+    api.reset(containerId);
+  });
 });

@@ -31,6 +31,7 @@ import {
   applyPatch as applyRfc6902Patch,
   type JsonPatchOp,
 } from "../core/rfc6902";
+import { sanitizePatch } from "../core/text-sanitizer";
 import { createJsonlParser, type JsonlParser } from "../core/jsonl-parser";
 import { UITreeRenderer } from "../core/UITreeRenderer";
 import { EMPTY_TREE, type UITree } from "../core/types";
@@ -345,7 +346,7 @@ const api: CloudflareKumoAPI = {
 
   applyPatch(op: JsonPatchOp, containerId: string): void {
     const current = _trees.get(containerId) ?? EMPTY_TREE;
-    const next = applyRfc6902Patch(current, op);
+    const next = applyRfc6902Patch(current, sanitizePatch(op));
     _trees.set(containerId, next);
     notifyTree(containerId, next);
     renderContainer(containerId);
@@ -353,7 +354,7 @@ const api: CloudflareKumoAPI = {
 
   applyPatchBatched(op: JsonPatchOp, containerId: string): void {
     const current = _trees.get(containerId) ?? EMPTY_TREE;
-    const next = applyRfc6902Patch(current, op);
+    const next = applyRfc6902Patch(current, sanitizePatch(op));
     _trees.set(containerId, next);
     notifyTree(containerId, next);
 
@@ -372,7 +373,7 @@ const api: CloudflareKumoAPI = {
     if (ops.length === 0) return;
     let current = _trees.get(containerId) ?? EMPTY_TREE;
     for (const op of ops) {
-      current = applyRfc6902Patch(current, op);
+      current = applyRfc6902Patch(current, sanitizePatch(op));
     }
     _trees.set(containerId, current);
     notifyTree(containerId, current);
@@ -383,7 +384,7 @@ const api: CloudflareKumoAPI = {
     if (ops.length === 0) return;
     let current = _trees.get(containerId) ?? EMPTY_TREE;
     for (const op of ops) {
-      current = applyRfc6902Patch(current, op);
+      current = applyRfc6902Patch(current, sanitizePatch(op));
     }
     _trees.set(containerId, current);
     notifyTree(containerId, current);
