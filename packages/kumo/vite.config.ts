@@ -205,6 +205,8 @@ export default defineConfig(({ mode }) => {
           registry: resolve(__dirname, "src/registry/index.ts"),
           // Catalog module entry point (runtime validation, JSON UI rendering)
           catalog: resolve(__dirname, "src/catalog/index.ts"),
+          // AI schemas entry point (Zod schemas for runtime validation of AI-generated UI trees)
+          "ai/schemas": resolve(__dirname, "ai/schemas.ts"),
         },
         formats: ["es"],
         fileName: (format, entryName) => {
@@ -221,6 +223,8 @@ export default defineConfig(({ mode }) => {
             case id === "react-dom":
             case id.startsWith("react-dom/"):
             case id === "@phosphor-icons/react":
+            case id === "zod":
+            case id.startsWith("zod/"):
               return true;
             default:
               // Bundle all node_modules dependencies (don't externalize them)

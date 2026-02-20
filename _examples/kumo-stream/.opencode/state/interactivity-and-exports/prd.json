@@ -72,7 +72,7 @@
         "dist/ai/schemas.js is a stable (non-hashed) output file",
         "zod added to externals in vite config"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "export-2",
