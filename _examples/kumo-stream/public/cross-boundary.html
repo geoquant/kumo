@@ -409,7 +409,10 @@
       <div id="status" class="status"></div>
       <div id="conversation-area">
         <div id="chat-history"></div>
-        <div id="kumo-container"></div>
+        <div id="kumo-container">
+          <!--kumo-ui:start-->
+          <!--kumo-ui:end-->
+        </div>
       </div>
 
       <div class="action-log-panel">
@@ -435,6 +438,11 @@
         "use strict";
 
         var CONTAINER_ID = "kumo-container";
+        var DPU_TEMPLATE_FOR = "kumo-ui";
+        var DPU_MODE =
+          new URLSearchParams(window.location.search).get("renderMode") ===
+            "dpu" ||
+          new URLSearchParams(window.location.search).get("dpu") === "1";
 
         // -----------------------------------------------------------------------
         // DOM refs
@@ -566,6 +574,67 @@
         }
 
         // -----------------------------------------------------------------------
+        // DPU mode (experimental): apply <template for="kumo-ui"> snapshots
+        // -----------------------------------------------------------------------
+
+        function findCommentMarker(container, value) {
+          var nodes = container.childNodes;
+          for (var i = 0; i < nodes.length; i++) {
+            var node = nodes[i];
+            if (node && node.nodeType === 8 && node.nodeValue === value) {
+              return node;
+            }
+          }
+          return null;
+        }
+
+        function ensureDpuMarkers() {
+          var container = document.getElementById(CONTAINER_ID);
+          if (!container) return null;
+
+          var start = findCommentMarker(container, "kumo-ui:start");
+          var end = findCommentMarker(container, "kumo-ui:end");
+          if (start && end) {
+            return { container: container, start: start, end: end };
+          }
+
+          container.innerHTML = "";
+          start = document.createComment("kumo-ui:start");
+          end = document.createComment("kumo-ui:end");
+          container.appendChild(start);
+          container.appendChild(end);
+          return { container: container, start: start, end: end };
+        }
+
+        function replaceBetweenMarkers(fragment) {
+          var markers = ensureDpuMarkers();
+          if (!markers) return;
+
+          var node = markers.start.nextSibling;
+          while (node && node !== markers.end) {
+            var next = node.nextSibling;
+            node.remove();
+            node = next;
+          }
+
+          markers.container.insertBefore(fragment, markers.end);
+        }
+
+        function applyDpuTemplate(templateHtml) {
+          if (typeof templateHtml !== "string") return;
+
+          var wrapper = document.createElement("template");
+          wrapper.innerHTML = templateHtml;
+
+          var tpl = wrapper.content.querySelector(
+            'template[for="' + DPU_TEMPLATE_FOR + '"]',
+          );
+          if (!tpl) return;
+
+          replaceBetweenMarkers(tpl.content.cloneNode(true));
+        }
+
+        // -----------------------------------------------------------------------
         // Conversation history
         // -----------------------------------------------------------------------
 
@@ -637,7 +706,12 @@
 
           // Reset previous state
           CloudflareKumo.reset(CONTAINER_ID);
-          parser = CloudflareKumo.createParser();
+          if (DPU_MODE) {
+            parser = null;
+            ensureDpuMarkers();
+          } else {
+            parser = CloudflareKumo.createParser();
+          }
           setStatus("Generating UI...");
           setStreaming(true);
           scrollConversation();
@@ -647,7 +721,11 @@
           fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: message, history: chatHistory }),
+            body: JSON.stringify({
+              message: message,
+              history: chatHistory,
+              renderMode: DPU_MODE ? "dpu" : "jsonl",
+            }),
             signal: abortController.signal,
           })
             .then(function (res) {
@@ -752,10 +830,17 @@
 
           function handleParsedEvent(event) {
             if (event.type === "text" && typeof event.delta === "string") {
+              if (DPU_MODE) return;
               var ops = parser.push(event.delta);
               if (ops.length > 0) {
                 applyPatches(ops);
               }
+              scrollConversation();
+            } else if (
+              event.type === "template" &&
+              typeof event.html === "string"
+            ) {
+              applyDpuTemplate(event.html);
               scrollConversation();
             } else if (event.type === "done") {
               flushParser();
@@ -852,6 +937,7 @@
           }
           parser = null;
           CloudflareKumo.reset(CONTAINER_ID);
+          ensureDpuMarkers();
           chatHistory = [];
           lastUserMessage = "";
           chatHistoryEl.innerHTML = "";

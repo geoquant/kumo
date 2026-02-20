@@ -20,6 +20,14 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 
+import { renderTreeToDpuTemplate } from "../src/core/dpu-snapshot.js";
+import { createJsonlParser } from "../src/core/jsonl-parser.js";
+import {
+  applyPatch as applyRfc6902Patch,
+  type JsonPatchOp,
+} from "../src/core/rfc6902.js";
+import { EMPTY_TREE, type UITree } from "../src/core/types.js";
+
 import { SYSTEM_PROMPT } from "../src/core/system-prompt.js";
 import { buildGenerativeUiManifest } from "../src/core/generative-ui-manifest.js";
 
@@ -108,10 +116,11 @@ app.get("/.well-known/generative-ui.json", (_req, res) => {
 interface ChatRequestBody {
   readonly message: string;
   readonly history?: ReadonlyArray<{ role: string; content: string }>;
+  readonly renderMode?: "jsonl" | "dpu";
 }
 
 app.post("/api/chat", async (req, res) => {
-  const { message, history } = req.body as ChatRequestBody;
+  const { message, history, renderMode } = req.body as ChatRequestBody;
 
   if (!message || typeof message !== "string" || message.trim().length === 0) {
     res.status(400).json({ error: "Missing or empty 'message' field" });
@@ -174,14 +183,49 @@ app.post("/api/chat", async (req, res) => {
       messages,
     });
 
-    stream.on("text", (delta) => {
-      send({ type: "text", delta });
-    });
+    const mode = renderMode === "dpu" ? "dpu" : "jsonl";
 
-    stream.on("finalMessage", () => {
-      send({ type: "done" });
-      end();
-    });
+    if (mode === "dpu") {
+      const parser = createJsonlParser();
+      let tree: UITree = EMPTY_TREE;
+
+      function applyOps(ops: readonly JsonPatchOp[]): void {
+        for (const op of ops) {
+          tree = applyRfc6902Patch(tree, op);
+        }
+      }
+
+      function emitSnapshot(): void {
+        const html = renderTreeToDpuTemplate(tree, { mode: "light" });
+        send({ type: "template", html });
+      }
+
+      stream.on("text", (delta) => {
+        const ops = parser.push(delta);
+        if (ops.length === 0) return;
+        applyOps(ops);
+        emitSnapshot();
+      });
+
+      stream.on("finalMessage", () => {
+        const remaining = parser.flush();
+        if (remaining.length > 0) {
+          applyOps(remaining);
+          emitSnapshot();
+        }
+        send({ type: "done" });
+        end();
+      });
+    } else {
+      stream.on("text", (delta) => {
+        send({ type: "text", delta });
+      });
+
+      stream.on("finalMessage", () => {
+        send({ type: "done" });
+        end();
+      });
+    }
 
     stream.on("error", (err) => {
       // Ignore abort errors — expected when the client disconnects
