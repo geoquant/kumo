@@ -43,7 +43,7 @@
         "history array sent with each /api/chat request (multi-turn works)",
         "Reset clears history and history DOM"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-4",

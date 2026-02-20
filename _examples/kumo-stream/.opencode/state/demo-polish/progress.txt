@@ -12,6 +12,8 @@ Started: 2026-02-19
 - UITree is plain data (`{ root: string, elements: Record<string, UIElement> }`), safe to `structuredClone` for snapshots
 - `AssistantSnapshot` renders read-only past turns by omitting `onAction` from `UITreeRenderer`
 - `ChatHistoryEntry` discriminated union: `role: "user"` has `content`, `role: "assistant"` has `tree`
+- HTML/UMD history: deferred-push pattern — current user message tracked via `lastUserMessage`, archived to `chatHistory` on next turn (avoids duplication with server's `message` field)
+- `pointer-events: none` on `.history-assistant-snapshot` to disable interaction in vanilla JS history
 
 ---
 
@@ -35,3 +37,16 @@ Started: 2026-02-19
 - Separator `<hr>` between history and current turn when both exist
 - Files changed: `src/app/ChatDemo.tsx`
 - **Learnings:** `structuredClone(tree)` works perfectly for UITree snapshots since it's plain data. Omitting `onAction` from `UITreeRenderer` is sufficient to make past turns non-interactive — no special prop needed.
+
+## Task - ui-3
+- Added scrollable conversation history + multi-turn to HTML/UMD demo
+- New DOM structure: `#conversation-area` wraps `#chat-history` + `#kumo-container` with `max-height: 70vh; overflow-y: auto`
+- `snapshotToHistory(msg)` archives previous turn's user+assistant pair into both DOM and `chatHistory` array
+- User bubbles: `history-user-bubble` (right-aligned, orange-tinted bg); Assistant: `history-assistant-snapshot` (border, `pointer-events: none` for non-interactive)
+- History separator `<hr>` between past turns and active container
+- `chatHistory` array sent with each `/api/chat` request via `history` field for multi-turn
+- Deferred history tracking: current user message tracked via `lastUserMessage`, pushed to `chatHistory` on *next* turn to avoid duplication (server already appends current `message`)
+- Reset clears both `chatHistory = []` and `chatHistoryEl.innerHTML = ""`
+- `scrollConversation()` called on new patches and completion
+- Files changed: `public/cross-boundary.html`
+- **Learnings:** Server appends current `message` to the messages array after iterating `history`, so `chatHistory` must NOT include the current user message — only previous turns. Using `lastUserMessage` + deferred push pattern avoids duplication. `pointer-events: none` on snapshot divs is simpler than removing event listeners for making past turns non-interactive in vanilla JS.
