@@ -133,7 +133,7 @@
         "System prompt includes rule: never nest block-level elements inside Text",
         "Counter preset example has proper labels on any form elements"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-1",
