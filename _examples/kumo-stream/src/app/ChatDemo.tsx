@@ -17,7 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Anthropic from "@anthropic-ai/sdk";
 
-import { useUITree } from "../core/hooks";
+import { useRuntimeValueStore, useUITree } from "../core/hooks";
 import { createJsonlParser, type JsonlParser } from "../core/jsonl-parser";
 import type { JsonPatchOp } from "../core/rfc6902";
 import { startStream, type StreamHandle } from "../core/stream-client";
@@ -133,6 +133,8 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
   const [chatHistory, setChatHistory] = useState<ChatHistoryEntry[]>([]);
   const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
 
+  const runtimeValueStore = useRuntimeValueStore();
+
   // Refs for values needed inside handleAction without stale closures.
   // Declared before useUITree so the onAction callback can close over them.
   const treeRef = useRef<UITree>({ root: "", elements: {} });
@@ -221,6 +223,7 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
       ]);
 
       // Reset UI for new message
+      runtimeValueStore.clear();
       reset();
       setError(null);
       setStatus("streaming");
@@ -278,7 +281,7 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
 
       streamRef.current = handle;
     },
-    [messages, tree, reset, applyPatches],
+    [messages, tree, reset, applyPatches, runtimeValueStore],
   );
 
   // Sync handleSubmitRef so handleAction (defined above) can call it
@@ -310,6 +313,7 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
     }
     parserRef.current = null;
 
+    runtimeValueStore.clear();
     reset();
     setMessages([]);
     setChatHistory([]);
@@ -317,7 +321,7 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
     setError(null);
     setStatus("idle");
     setPrompt("");
-  }, [reset]);
+  }, [reset, runtimeValueStore]);
 
   const handleFormSubmit = useCallback(
     (e: FormEvent) => {
@@ -405,6 +409,7 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
               tree={tree}
               streaming={isStreaming}
               onAction={onAction}
+              runtimeValueStore={runtimeValueStore}
             />
           )}
         </div>

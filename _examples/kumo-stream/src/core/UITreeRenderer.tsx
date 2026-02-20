@@ -17,6 +17,8 @@ import {
   type ActionDispatch,
 } from "./action-handler";
 import { validateElement, logValidationError } from "./element-validator";
+import type { RuntimeValueStore } from "./runtime-value-store";
+import { RuntimeValueStoreProvider } from "./runtime-value-store-context";
 
 /** Maximum recursion depth to prevent infinite loops from circular refs. */
 const MAX_DEPTH = 50;
@@ -50,6 +52,8 @@ interface UITreeRendererProps {
    * sourceKey, params, and context.
    */
   readonly onAction?: ActionDispatch;
+  /** Per-container runtime value store (captures uncontrolled input values). */
+  readonly runtimeValueStore?: RuntimeValueStore;
 }
 
 // ---------------------------------------------------------------------------
@@ -292,18 +296,21 @@ export function UITreeRenderer({
   tree,
   streaming = false,
   onAction,
+  runtimeValueStore,
 }: UITreeRendererProps): React.JSX.Element | null {
   if (!tree.root || Object.keys(tree.elements).length === 0) {
     return null;
   }
 
   return (
-    <RenderElement
-      elementKey={tree.root}
-      elements={tree.elements}
-      streaming={streaming}
-      onAction={onAction}
-    />
+    <RuntimeValueStoreProvider value={runtimeValueStore ?? null}>
+      <RenderElement
+        elementKey={tree.root}
+        elements={tree.elements}
+        streaming={streaming}
+        onAction={onAction}
+      />
+    </RuntimeValueStoreProvider>
   );
 }
 
