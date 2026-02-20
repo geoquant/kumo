@@ -49,7 +49,7 @@
         "Form-submit actions trigger streamChat with form data",
         "Unknown actions logged to action event panel without crash"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "action-4",
