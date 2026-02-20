@@ -256,6 +256,7 @@ describe("applyPatch: hardened path semantics", () => {
       "/elements/__proto__/x",
       "/elements/constructor/x",
       "/elements/prototype/x",
+      "/elements/card/props/__proto__/x",
     ];
 
     for (const path of paths) {
@@ -290,11 +291,15 @@ describe("applyPatch: hardened path semantics", () => {
   });
 
   it("treats disallowed top-level paths as no-ops", () => {
-    const path = "/not-allowed";
+    const paths = ["/not-allowed", "/not-allowed/child"];
 
-    expect(applyPatch(TREE, { op: "add", path, value: "x" })).toEqual(TREE);
-    expect(applyPatch(TREE, { op: "replace", path, value: "x" })).toEqual(TREE);
-    expect(applyPatch(TREE, { op: "remove", path })).toEqual(TREE);
+    for (const path of paths) {
+      expect(applyPatch(TREE, { op: "add", path, value: "x" })).toEqual(TREE);
+      expect(applyPatch(TREE, { op: "replace", path, value: "x" })).toEqual(
+        TREE,
+      );
+      expect(applyPatch(TREE, { op: "remove", path })).toEqual(TREE);
+    }
   });
 
   it("treats ops targeting /elements itself as no-ops", () => {
