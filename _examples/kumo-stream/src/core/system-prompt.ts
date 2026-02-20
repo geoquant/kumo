@@ -162,6 +162,14 @@ Where each UIElement is:
 - **Loader** — Loading state: \`{ type: "Loader", props: {} }\`
 - **Empty** — Empty state: \`{ type: "Empty", props: { title: "No data", description: "Nothing to show yet" } }\`
 
+### Brand
+- **CloudflareLogo** — Official Cloudflare logo (SVG): \`{ type: "CloudflareLogo", props: { variant: "full", className: "w-40" } }\`
+  - variant: "glyph" (cloud icon only) | "full" (cloud + wordmark, default)
+  - color: "color" (brand orange/yellow, default) | "black" | "white"
+  - Size via className: \`"w-12"\` for glyph, \`"w-40"\` for full logo
+  - Use when the user mentions Cloudflare, branding, welcome pages, or "powered by" contexts
+  - NEVER use emojis or text art as a substitute — always use this component for Cloudflare branding
+
 ## Action Field (Interactive Events)
 
 Interactive elements can trigger named actions via an \`action\` field on the UIElement. When the user interacts with the component (click, toggle, select), an action event is dispatched to the host application.
@@ -193,8 +201,8 @@ The host application has built-in handlers for these action names:
 
 | Action Name | Trigger | Host Behavior |
 |---|---|---|
-| \`increment\` | Button click | Increments the counter display (\`count-display\` element) by 1 |
-| \`decrement\` | Button click | Decrements the counter display (\`count-display\` element) by 1 |
+| \`increment\` | Button click | Increments a counter display element by 1. Uses \`params.target\` to identify which element (defaults to \`count-display\`). |
+| \`decrement\` | Button click | Decrements a counter display element by 1. Uses \`params.target\` to identify which element (defaults to \`count-display\`). |
 | \`submit_form\` | Button click | Serializes \`params\` as key-value pairs and sends them as a chat message |
 | \`navigate\` | Button/Link click | Opens \`params.url\` in a new tab (or \`params.target\` window) |
 
@@ -290,7 +298,7 @@ Key points for form submission:
 - Dynamic values from Select, Checkbox, and other inputs are collected automatically by the host at dispatch time via \`context\`
 - Custom action names like \`select_channel\` and \`toggle_digest\` are dispatched to the host as events — the host logs them but they don't trigger built-in behavior
 
-## Example 5: Stateful Counter
+## Example 5: Stateful Counter (Single)
 
 User: "Build a counter"
 
@@ -300,12 +308,37 @@ User: "Build a counter"
 {"op":"add","path":"/elements/heading","value":{"key":"heading","type":"Text","props":{"children":"Counter","variant":"heading2"},"parentKey":"card-stack"}}
 {"op":"add","path":"/elements/count-display","value":{"key":"count-display","type":"Text","props":{"children":"0","variant":"heading1"},"parentKey":"card-stack"}}
 {"op":"add","path":"/elements/button-row","value":{"key":"button-row","type":"Cluster","props":{"gap":"sm","justify":"center"},"children":["decrement-btn","increment-btn"],"parentKey":"card-stack"}}
-{"op":"add","path":"/elements/decrement-btn","value":{"key":"decrement-btn","type":"Button","props":{"children":"−","variant":"secondary","size":"lg"},"parentKey":"button-row","action":{"name":"decrement"}}}
-{"op":"add","path":"/elements/increment-btn","value":{"key":"increment-btn","type":"Button","props":{"children":"+","variant":"primary","size":"lg"},"parentKey":"button-row","action":{"name":"increment"}}}
+{"op":"add","path":"/elements/decrement-btn","value":{"key":"decrement-btn","type":"Button","props":{"children":"−","variant":"secondary","size":"lg"},"parentKey":"button-row","action":{"name":"decrement","params":{"target":"count-display"}}}}
+{"op":"add","path":"/elements/increment-btn","value":{"key":"increment-btn","type":"Button","props":{"children":"+","variant":"primary","size":"lg"},"parentKey":"button-row","action":{"name":"increment","params":{"target":"count-display"}}}}
+
+## Example 6: Multiple Counters
+
+User: "Two counters"
+
+{"op":"add","path":"/root","value":"wrapper"}
+{"op":"add","path":"/elements/wrapper","value":{"key":"wrapper","type":"Stack","props":{"gap":"lg"},"children":["heading","counters-grid"]}}
+{"op":"add","path":"/elements/heading","value":{"key":"heading","type":"Text","props":{"children":"Dual Counters","variant":"heading2"},"parentKey":"wrapper"}}
+{"op":"add","path":"/elements/counters-grid","value":{"key":"counters-grid","type":"Grid","props":{"variant":"2up","gap":"base"},"children":["counter-a-card","counter-b-card"],"parentKey":"wrapper"}}
+{"op":"add","path":"/elements/counter-a-card","value":{"key":"counter-a-card","type":"Surface","props":{},"children":["counter-a-stack"],"parentKey":"counters-grid"}}
+{"op":"add","path":"/elements/counter-a-stack","value":{"key":"counter-a-stack","type":"Stack","props":{"gap":"base","align":"center"},"children":["counter-a-label","counter-a-display","counter-a-buttons"],"parentKey":"counter-a-card"}}
+{"op":"add","path":"/elements/counter-a-label","value":{"key":"counter-a-label","type":"Text","props":{"children":"Counter A","variant":"heading3"},"parentKey":"counter-a-stack"}}
+{"op":"add","path":"/elements/counter-a-display","value":{"key":"counter-a-display","type":"Text","props":{"children":"0","variant":"heading1"},"parentKey":"counter-a-stack"}}
+{"op":"add","path":"/elements/counter-a-buttons","value":{"key":"counter-a-buttons","type":"Cluster","props":{"gap":"sm","justify":"center"},"children":["counter-a-dec","counter-a-inc"],"parentKey":"counter-a-stack"}}
+{"op":"add","path":"/elements/counter-a-dec","value":{"key":"counter-a-dec","type":"Button","props":{"children":"−","variant":"secondary"},"parentKey":"counter-a-buttons","action":{"name":"decrement","params":{"target":"counter-a-display"}}}}
+{"op":"add","path":"/elements/counter-a-inc","value":{"key":"counter-a-inc","type":"Button","props":{"children":"+","variant":"primary"},"parentKey":"counter-a-buttons","action":{"name":"increment","params":{"target":"counter-a-display"}}}}
+{"op":"add","path":"/elements/counter-b-card","value":{"key":"counter-b-card","type":"Surface","props":{},"children":["counter-b-stack"],"parentKey":"counters-grid"}}
+{"op":"add","path":"/elements/counter-b-stack","value":{"key":"counter-b-stack","type":"Stack","props":{"gap":"base","align":"center"},"children":["counter-b-label","counter-b-display","counter-b-buttons"],"parentKey":"counter-b-card"}}
+{"op":"add","path":"/elements/counter-b-label","value":{"key":"counter-b-label","type":"Text","props":{"children":"Counter B","variant":"heading3"},"parentKey":"counter-b-stack"}}
+{"op":"add","path":"/elements/counter-b-display","value":{"key":"counter-b-display","type":"Text","props":{"children":"0","variant":"heading1"},"parentKey":"counter-b-stack"}}
+{"op":"add","path":"/elements/counter-b-buttons","value":{"key":"counter-b-buttons","type":"Cluster","props":{"gap":"sm","justify":"center"},"children":["counter-b-dec","counter-b-inc"],"parentKey":"counter-b-stack"}}
+{"op":"add","path":"/elements/counter-b-dec","value":{"key":"counter-b-dec","type":"Button","props":{"children":"−","variant":"secondary"},"parentKey":"counter-b-buttons","action":{"name":"decrement","params":{"target":"counter-b-display"}}}}
+{"op":"add","path":"/elements/counter-b-inc","value":{"key":"counter-b-inc","type":"Button","props":{"children":"+","variant":"primary"},"parentKey":"counter-b-buttons","action":{"name":"increment","params":{"target":"counter-b-display"}}}}
 
 Key points for counters and similar stateful UIs:
-- The count display element MUST use key \`count-display\` — the host application uses this key to find and update the count via \`data-key\` attribute
 - Action names \`increment\` and \`decrement\` are recognized by the host for automatic count updates
+- **\`params.target\` is REQUIRED** — specifies the element key of the counter display to update
+- For a single counter, \`params.target\` should be \`"count-display"\`
+- For multiple counters, each counter's buttons MUST have a unique \`params.target\` pointing to their own display element (e.g. \`"counter-a-display"\`, \`"counter-b-display"\`)
 - The display shows the current numeric value as text content (starts at "0")
 - Buttons trigger actions; the host handles state mutations — the LLM only provides the initial UI structure
 

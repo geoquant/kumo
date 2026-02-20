@@ -427,7 +427,7 @@ For the increment button above, the event would be:
 { actionName: "increment", sourceKey: "inc-btn" }
 ```
 
-For a form submission, the LLM might declare static params:
+For a form submission, the LLM should declare only static params:
 
 ```jsonl
 {
@@ -458,6 +458,15 @@ Producing:
 
 The distinction between `params` (static, declared by the LLM) and `context` (runtime, collected from component state like input values) is deliberate — the LLM provides metadata about the action, the host collects runtime state.
 
+In kumo-stream, `submit_form` is intended to submit runtime-collected field values without the LLM copying user-entered data into `params`.
+
+Scoping note (v1)
+
+- If `submit_form.params` includes `formKey` or `fieldKeys`, the host collects just that scope.
+- Otherwise (default): the host may collect runtime-captured field values for the current container. This is optimized for the “single mini-app surface” demo case.
+- Guardrails (recommended): collect only field-like controls and default to touched-only (user has interacted at least once).
+- Ambiguity: if multiple `submit_form` actions exist and no explicit scoping is provided, the host should fail closed (treat as `none`) and log a warning.
+
 ### Component Bridging
 
 Different component types dispatch actions differently:
@@ -484,12 +493,12 @@ Each handler receives the event and the current UITree (for reading state), and 
 
 Built-in handlers cover common patterns:
 
-| Action        | Handler                                                         | Effect           |
-| ------------- | --------------------------------------------------------------- | ---------------- |
-| `increment`   | Reads counter display, returns `replace` patch with count + 1   | `PatchResult`    |
-| `decrement`   | Reads counter display, returns `replace` patch with count − 1   | `PatchResult`    |
-| `submit_form` | Serializes `params` (or `context`) into a human-readable string | `MessageResult`  |
-| `navigate`    | Reads `url` and `target` from `params`                          | `ExternalResult` |
+| Action        | Handler                                                                                                        | Effect           |
+| ------------- | -------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `increment`   | Reads counter display, returns `replace` patch with count + 1                                                  | `PatchResult`    |
+| `decrement`   | Reads counter display, returns `replace` patch with count − 1                                                  | `PatchResult`    |
+| `submit_form` | Serializes static `params` + runtime-captured field values into a submission payload (often sent as a message) | `MessageResult`  |
+| `navigate`    | Reads `url` and `target` from `params`                                                                         | `ExternalResult` |
 
 Custom handlers can be merged with built-ins, with custom taking precedence:
 

@@ -76,15 +76,29 @@ export type ActionHandlerMap = Record<string, ActionHandler>;
 // Built-in handlers
 // =============================================================================
 
-/** Well-known element key for counter display text. */
-const COUNT_DISPLAY_KEY = "count-display";
+/** Default element key for counter display text (single-counter fallback). */
+const DEFAULT_COUNT_DISPLAY_KEY = "count-display";
 
 /**
- * Read the current numeric value from the counter display element.
- * Returns 0 for missing elements, non-numeric text, or null/undefined children.
+ * Resolve the target counter display key from an action event.
+ *
+ * Supports two patterns:
+ *   1. `action.params.target` — explicit target key (multi-counter)
+ *   2. Fallback to "count-display" (single-counter, backward compatible)
  */
-function readCounterValue(tree: UITree): number | null {
-  const element = tree.elements[COUNT_DISPLAY_KEY];
+function resolveCounterKey(event: ActionEvent): string {
+  const target = event.params?.target;
+  return typeof target === "string" && target.length > 0
+    ? target
+    : DEFAULT_COUNT_DISPLAY_KEY;
+}
+
+/**
+ * Read the current numeric value from a counter display element.
+ * Returns 0 for non-numeric text, or null for missing elements.
+ */
+function readCounterValue(tree: UITree, key: string): number | null {
+  const element = tree.elements[key];
   if (element == null) return null;
 
   const props = element.props as Record<string, unknown>;
@@ -101,44 +115,42 @@ function readCounterValue(tree: UITree): number | null {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
-/** Increment the counter display by 1. */
-function handleIncrement(
-  _event: ActionEvent,
-  tree: UITree,
-): ActionResult | null {
-  const current = readCounterValue(tree);
-  if (current == null) return null;
-
+/** Build a patch result that sets the counter display to a new value. */
+function counterPatchResult(key: string, nextValue: number): PatchResult {
   return {
     type: "patch",
     patches: [
       {
         op: "replace",
-        path: `/elements/${COUNT_DISPLAY_KEY}/props/children`,
-        value: String(current + 1),
+        path: `/elements/${key}/props/children`,
+        value: String(nextValue),
       },
     ],
   };
 }
 
-/** Decrement the counter display by 1. */
-function handleDecrement(
-  _event: ActionEvent,
+/** Increment the counter display by 1. */
+function handleIncrement(
+  event: ActionEvent,
   tree: UITree,
 ): ActionResult | null {
-  const current = readCounterValue(tree);
+  const key = resolveCounterKey(event);
+  const current = readCounterValue(tree, key);
   if (current == null) return null;
 
-  return {
-    type: "patch",
-    patches: [
-      {
-        op: "replace",
-        path: `/elements/${COUNT_DISPLAY_KEY}/props/children`,
-        value: String(current - 1),
-      },
-    ],
-  };
+  return counterPatchResult(key, current + 1);
+}
+
+/** Decrement the counter display by 1. */
+function handleDecrement(
+  event: ActionEvent,
+  tree: UITree,
+): ActionResult | null {
+  const key = resolveCounterKey(event);
+  const current = readCounterValue(tree, key);
+  if (current == null) return null;
+
+  return counterPatchResult(key, current - 1);
 }
 
 /**
