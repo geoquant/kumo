@@ -18,10 +18,12 @@ import { Button, Input, Text, Surface } from "@cloudflare/kumo";
 
 import { useUITree } from "../core/hooks";
 import { createJsonlParser, type JsonlParser } from "../core/jsonl-parser";
+import type { JsonPatchOp } from "../core/rfc6902";
 import { startStream, type StreamHandle } from "../core/stream-client";
 import { UITreeRenderer, isRenderableTree } from "../core/UITreeRenderer";
 import type { ActionEvent } from "../core/action-handler";
 import type { UITree } from "../core/types";
+import { actionToPatch } from "../core/action-patch-bridge";
 import { ActionPanel, type ActionLogEntry } from "./ActionPanel";
 
 // =============================================================================
@@ -36,6 +38,7 @@ const PRESET_PROMPTS = [
   "Display a pricing comparison table",
   "Create a user profile settings page",
   "Show an analytics overview",
+  "Build a counter",
 ] as const;
 
 // =============================================================================
@@ -126,20 +129,43 @@ export function ChatDemo() {
   const [chatHistory, setChatHistory] = useState<ChatHistoryEntry[]>([]);
   const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
 
+  // Refs for values needed inside handleAction without stale closures.
+  // Declared before useUITree so the onAction callback can close over them.
+  const treeRef = useRef<UITree>({ root: "", elements: {} });
+  const statusRef = useRef<StreamingStatus>(status);
+  const applyPatchesRef = useRef<(patches: readonly JsonPatchOp[]) => void>(
+    () => {},
+  );
+
   const handleAction = useCallback((event: ActionEvent) => {
+    // Always log the action
     setActionLog((prev) => [
       ...prev,
       { timestamp: new Date().toISOString(), event },
     ]);
-  }, []);
 
-  const clearActionLog = useCallback(() => {
-    setActionLog([]);
+    // During streaming, log but don't apply patches
+    if (statusRef.current === "streaming") return;
+
+    // Attempt to map action → patch for known interactions
+    const patch = actionToPatch(event, treeRef.current);
+    if (patch != null) {
+      applyPatchesRef.current([patch]);
+    }
   }, []);
 
   const { tree, applyPatches, reset, onAction } = useUITree({
     onAction: handleAction,
   });
+
+  // Keep refs in sync with latest values
+  treeRef.current = tree;
+  statusRef.current = status;
+  applyPatchesRef.current = applyPatches;
+
+  const clearActionLog = useCallback(() => {
+    setActionLog([]);
+  }, []);
 
   // Mutable refs for the parser and stream handle — not part of render state
   const parserRef = useRef<JsonlParser | null>(null);
