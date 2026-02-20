@@ -114,10 +114,10 @@ export function ActionPanel({ entries, onClear }: ActionPanelProps) {
   }, [onClear]);
 
   return (
-    <div className="flex h-full flex-col rounded-lg border border-kumo-line bg-kumo-elevated">
+    <div className="flex flex-col rounded-lg border border-kumo-line overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-kumo-line px-3 py-2">
-        <span className="text-sm font-semibold text-kumo-default">
+      <div className="flex items-center justify-between border-b border-kumo-line bg-kumo-elevated px-3 py-2">
+        <span className="text-[13px] font-semibold text-kumo-default">
           Action Events
         </span>
         <Button
@@ -133,7 +133,7 @@ export function ActionPanel({ entries, onClear }: ActionPanelProps) {
       {/* Log area */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-3 font-mono text-xs"
+        className="max-h-[200px] overflow-y-auto p-3 font-mono text-xs"
       >
         {entries.length === 0 ? (
           <p className="text-kumo-muted">
