@@ -144,7 +144,6 @@
     border-color 0.15s;
 }
 
-.cb-page[data-mode="dark"] .cb-controls button,
 .cb-page[data-mode="dark"] .cb-header button {
   background: #2a2a2a;
   border-color: #444;
@@ -156,7 +155,6 @@
   background: #f0f0f0;
 }
 
-.cb-page[data-mode="dark"] .cb-controls button:hover:not(:disabled),
 .cb-page[data-mode="dark"] .cb-header button:hover:not(:disabled) {
   background: #3a3a3a;
 }
