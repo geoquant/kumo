@@ -54,6 +54,48 @@
         opacity: 0.6;
       }
 
+      .presets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .presets button {
+        padding: 4px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid #ccc;
+        border-radius: 16px;
+        cursor: pointer;
+        background: #fff;
+        color: #1a1a1a;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+      }
+
+      body[data-mode="dark"] .presets button {
+        background: #2a2a2a;
+        border-color: #444;
+        color: #f5f5f5;
+      }
+
+      .presets button:hover:not(:disabled) {
+        background: #f0f0f0;
+        border-color: #f6821f;
+      }
+
+      body[data-mode="dark"] .presets button:hover:not(:disabled) {
+        background: #3a3a3a;
+        border-color: #f6821f;
+      }
+
+      .presets button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
       .controls {
         display: flex;
         gap: 8px;
@@ -335,6 +377,8 @@
         <button id="theme-toggle" type="button">Dark Mode</button>
       </div>
 
+      <div id="presets" class="presets"></div>
+
       <div class="controls">
         <input
           id="prompt-input"
@@ -395,6 +439,21 @@
         var clearLogBtn = document.getElementById("clear-log-btn");
         var chatHistoryEl = document.getElementById("chat-history");
         var conversationArea = document.getElementById("conversation-area");
+        var presetsEl = document.getElementById("presets");
+
+        // -----------------------------------------------------------------------
+        // Preset prompts (same list as React SPA)
+        // -----------------------------------------------------------------------
+
+        var PRESET_PROMPTS = [
+          "Welcome the user to Cloudflare",
+          "Create a DNS record editor",
+          "Show a server status dashboard",
+          "Build a support ticket form",
+          "Display a pricing comparison table",
+          "Create a user profile settings page",
+          "Show an analytics overview",
+        ];
 
         // -----------------------------------------------------------------------
         // State
@@ -420,6 +479,10 @@
           promptInput.disabled = active;
           generateBtn.disabled = active;
           stopBtn.disabled = !active;
+          var presetBtns = presetsEl.querySelectorAll("button");
+          for (var i = 0; i < presetBtns.length; i++) {
+            presetBtns[i].disabled = active;
+          }
         }
 
         function formatTime() {
@@ -706,6 +769,20 @@
 
         clearLogBtn.addEventListener("click", function () {
           actionLogEl.innerHTML = "";
+        });
+
+        // -----------------------------------------------------------------------
+        // Preset prompt pills
+        // -----------------------------------------------------------------------
+
+        PRESET_PROMPTS.forEach(function (text) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = text;
+          btn.addEventListener("click", function () {
+            streamChat(text);
+          });
+          presetsEl.appendChild(btn);
         });
       })();
     </script>
