@@ -84,3 +84,9 @@ Started: 2026-02-19
 - **Files changed**:
   - `public/cross-boundary.html` — stylesheet `href="/dist/loadable/style.css"` → `href="/.well-known/stylesheet.css"`, script `src="/dist/loadable/component-loadable.umd.js"` → `src="/.well-known/component-loadable.umd.js"`
 - **Learnings**: Minimal integration task — the `.well-known` routes (wellknown-1) already serve the same files from `dist/loadable/`, so this is purely a path update. No functional change in behavior, just canonical URL consistency.
+
+## Task - a11y-1
+- **Implemented**: Added `## Accessibility (Required)` section to system-prompt.ts with mandatory label rules for all form elements (Input, Textarea, Checkbox, Select, Switch, RadioGroup/RadioItem). Added two DOM nesting anti-patterns to the existing anti-patterns list: no Text directly inside Banner, no block-level elements inside Text. Verified all existing examples (2, 4, 5) already comply — all Input/Select/Checkbox/Textarea elements have `label` props.
+- **Files changed**:
+  - `src/core/system-prompt.ts` — added 2 anti-pattern bullet points + new `## Accessibility (Required)` section (~10 lines) between Anti-Patterns and Response Format sections
+- **Learnings**: System prompt structure: new top-level sections go between existing sections by importance. A11y rules belong as a dedicated section (not buried in Rules) since LLMs weight section-level headings more heavily. The counter example (Example 5) has no form elements, so no label changes needed. All existing form examples already had proper labels — the rules codify what was already best practice in the examples.
