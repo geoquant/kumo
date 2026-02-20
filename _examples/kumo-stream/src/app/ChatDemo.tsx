@@ -105,6 +105,14 @@ function parseSseDataLinesAsEvents(
   return out;
 }
 
+function toUserFacingNetworkErrorMessage(err: unknown): string | null {
+  // fetch() network failures surface as TypeError (message varies by browser)
+  if (err instanceof TypeError) {
+    return "Server unreachable. Start `pnpm -C _examples/kumo-stream serve` (localhost:3001).";
+  }
+  return null;
+}
+
 // =============================================================================
 // State types
 // =============================================================================
@@ -355,7 +363,9 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
             return;
           }
 
-          const msg = err instanceof Error ? err.message : "Unknown error";
+          const msg =
+            toUserFacingNetworkErrorMessage(err) ??
+            (err instanceof Error ? err.message : "Unknown error");
           setError({ message: msg });
           setStatus("error");
         });
