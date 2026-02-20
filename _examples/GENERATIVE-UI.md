@@ -319,3 +319,191 @@ Key behaviors:
 - **Graceful partial states**: If a parent references children that haven't arrived yet, the renderer skips them without crashing. They appear once their elements are streamed.
 - **Error resilience**: On stream failure, `flush()` parses any remaining buffer so partial UI stays visible rather than disappearing.
 - **Multi-turn conversations**: Before starting a new stream, the current tree is snapshot into conversation history and the tree is reset to empty.
+
+## Action System
+
+Streaming UI gets components on screen, but users need to _interact_ with them. A counter button should increment, a form should submit, a link should navigate. The action system bridges the gap between LLM-declared intent ("this button increments a counter") and host-executed side effects (actually changing the count).
+
+### ActionEvent
+
+When the LLM generates a UIElement, it can include an `action` field declaring what should happen on interaction:
+
+```jsonl
+{
+  "op": "add",
+  "path": "/elements/inc-btn",
+  "value": {
+    "key": "inc-btn",
+    "type": "Button",
+    "props": {
+      "children": "+",
+      "variant": "primary"
+    },
+    "action": {
+      "name": "increment"
+    },
+    "parentKey": "counter-controls"
+  }
+}
+```
+
+When the user clicks that button, the renderer produces an `ActionEvent`:
+
+```ts
+interface ActionEvent {
+  /** Name of the action (from the element's action.name) */
+  actionName: string;
+  /** Key of the UIElement that triggered it */
+  sourceKey: string;
+  /** Static params declared on the action definition */
+  params?: Record<string, unknown>;
+  /** Runtime context from the component (e.g. { value, checked }) */
+  context?: Record<string, unknown>;
+}
+```
+
+For the increment button above, the event would be:
+
+```ts
+{ actionName: "increment", sourceKey: "inc-btn" }
+```
+
+For a form submission, the LLM might declare static params:
+
+```jsonl
+{
+  "op": "add",
+  "path": "/elements/submit-btn",
+  "value": {
+    "key": "submit-btn",
+    "type": "Button",
+    "props": {
+      "children": "Submit"
+    },
+    "action": {
+      "name": "submit_form",
+      "params": {
+        "form_type": "contact"
+      }
+    },
+    "parentKey": "form-wrapper"
+  }
+}
+```
+
+Producing:
+
+```ts
+{ actionName: "submit_form", sourceKey: "submit-btn", params: { form_type: "contact" } }
+```
+
+The distinction between `params` (static, declared by the LLM) and `context` (runtime, collected from component state like input values) is deliberate — the LLM provides metadata about the action, the host collects runtime state.
+
+### Component Bridging
+
+Different component types dispatch actions differently:
+
+- **Button, Link** — receive an injected `onClick` handler. These components don't have a native `onAction` prop, so the renderer translates the action into a click handler. If the LLM also specified an `onClick`, both are chained (existing fires first).
+- **All other components** — receive an `onAction` prop that stateful wrappers call with runtime context. For example, a counter wrapper calls `onAction({ value: currentCount })`.
+
+The renderer handles this transparently — consumers only need to provide an `onAction` callback to `UITreeRenderer`:
+
+```tsx
+<UITreeRenderer tree={tree} streaming={isStreaming} onAction={handleAction} />
+```
+
+### Handler Registry
+
+The host processes ActionEvents through a **handler registry** — a map of action names to handler functions:
+
+```ts
+type ActionHandler = (event: ActionEvent, tree: UITree) => ActionResult | null;
+type ActionHandlerMap = Record<string, ActionHandler>;
+```
+
+Each handler receives the event and the current UITree (for reading state), and returns an `ActionResult` describing the effect. Returning `null` means the handler can't process the event (e.g. a counter handler when the counter element is missing).
+
+Built-in handlers cover common patterns:
+
+| Action        | Handler                                                         | Effect           |
+| ------------- | --------------------------------------------------------------- | ---------------- |
+| `increment`   | Reads counter display, returns `replace` patch with count + 1   | `PatchResult`    |
+| `decrement`   | Reads counter display, returns `replace` patch with count − 1   | `PatchResult`    |
+| `submit_form` | Serializes `params` (or `context`) into a human-readable string | `MessageResult`  |
+| `navigate`    | Reads `url` and `target` from `params`                          | `ExternalResult` |
+
+Custom handlers can be merged with built-ins, with custom taking precedence:
+
+```ts
+import { createHandlerMap, BUILTIN_HANDLERS } from "./action-registry";
+
+const handlers = createHandlerMap({
+  my_custom_action: (event, tree) => {
+    return { type: "message", content: `Custom: ${event.actionName}` };
+  },
+});
+```
+
+Dispatching routes an event through the map:
+
+```ts
+import { dispatchAction } from "./action-registry";
+
+const result = dispatchAction(handlers, event, tree);
+// result is ActionResult | null (null = unregistered action)
+```
+
+### ActionResult
+
+The `ActionResult` is a discriminated union on the `type` field. It describes _what should happen_, not _how_ — keeping handlers pure and testable:
+
+```ts
+type ActionResult =
+  | { type: "patch"; patches: readonly JsonPatchOp[] } // mutate the UITree
+  | { type: "message"; content: string } // send as chat message
+  | { type: "external"; url: string; target?: string } // open a URL
+  | { type: "none" }; // handled, no visible effect
+```
+
+| Type       | Effect                                                             | Example                                                                          |
+| ---------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `patch`    | Apply RFC 6902 patches to the UITree — same mechanism as streaming | Counter increment: `replace /elements/count-display/props/children` with `"6"`   |
+| `message`  | Inject content as a new user message in the chat                   | Form submission: serialize fields into `"name: Alice\nemail: alice@example.com"` |
+| `external` | Open a URL, typically in a new tab                                 | Navigation: `window.open("https://example.com", "_blank")`                       |
+| `none`     | No-op — the action was recognized but produced no effect           | Empty form submission (no data to send)                                          |
+
+### Processing Results
+
+The host provides callbacks for each result type. A standalone processor dispatches to the right callback based on `result.type`:
+
+```ts
+import { processActionResult } from "./process-action-result";
+
+processActionResult(result, {
+  applyPatches: (patches) => {
+    /* apply to UITree state */
+  },
+  sendMessage: (content) => {
+    /* inject as chat message */
+  },
+  openExternal: (url, target) => {
+    /* window.open or router.push */
+  }, // optional
+});
+```
+
+If `openExternal` is not provided, it defaults to `window.open(url, target)`. This makes the processor reusable across different host environments (React SPA, plain HTML, server-side).
+
+### Full Flow
+
+Putting it all together, the action lifecycle is:
+
+```
+LLM declares action on UIElement
+  → User interacts with component
+  → Renderer creates ActionEvent
+  → dispatchAction(handlers, event, tree) → ActionResult | null
+  → processActionResult(result, callbacks) → side effect
+```
+
+Unknown actions (no matching handler) return `null` from `dispatchAction`. The host should log these but never crash — new action names can be added to the LLM's vocabulary before handler code catches up.

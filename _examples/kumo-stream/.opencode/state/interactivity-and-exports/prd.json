@@ -154,7 +154,7 @@
         "Documents host dispatch pattern with handler registry",
         "Shows ActionResult types and their effects"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-3",
