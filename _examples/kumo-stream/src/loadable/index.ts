@@ -14,7 +14,9 @@
  *   CloudflareKumo.createParser()                 — JSONL streaming parser
  *   CloudflareKumo.setTheme(mode)                 — light/dark toggle
  *   CloudflareKumo.getTree(containerId)            — read current UITree state
+ *   CloudflareKumo.getRuntimeValues(containerId)   — read current runtime-captured values
  *   CloudflareKumo.subscribeTree(containerId, cb)  — subscribe to UITree changes
+ *   CloudflareKumo.subscribeRuntimeValues(containerId, cb) — subscribe to runtime values
  *   CloudflareKumo.dispatchAction(event, containerId) — dispatch action registry
  *   CloudflareKumo.processActionResult(result, callbacks) — host side effects
  *   CloudflareKumo.reset(containerId)             — clear state + unmount
@@ -285,6 +287,17 @@ export interface CloudflareKumoAPI {
   readonly setTheme: (mode: "light" | "dark") => void;
   /** Read the current UITree state for a container. */
   readonly getTree: (containerId: string) => UITree;
+
+  /** Read current runtime-captured values for a container. */
+  readonly getRuntimeValues: (
+    containerId: string,
+  ) => Readonly<Record<string, unknown>>;
+
+  /** Subscribe to runtime-captured value updates. Returns unsubscribe. */
+  readonly subscribeRuntimeValues: (
+    containerId: string,
+    cb: (values: Readonly<Record<string, unknown>>) => void,
+  ) => () => void;
   /** Subscribe to per-container UITree updates. Returns an unsubscribe function. */
   readonly subscribeTree: (
     containerId: string,
@@ -428,6 +441,22 @@ const api: CloudflareKumoAPI = {
     return _trees.get(containerId) ?? EMPTY_TREE;
   },
 
+  getRuntimeValues(containerId: string): Readonly<Record<string, unknown>> {
+    return getOrCreateValueStore(containerId).snapshotAll();
+  },
+
+  subscribeRuntimeValues(
+    containerId: string,
+    cb: (values: Readonly<Record<string, unknown>>) => void,
+  ): () => void {
+    const store = getOrCreateValueStore(containerId);
+    const notify = () => {
+      cb(store.snapshotAll());
+    };
+    notify();
+    return store.subscribe(notify);
+  },
+
   subscribeTree(containerId: string, cb: (tree: UITree) => void): () => void {
     const existing = _treeSubscribers.get(containerId);
     const subs = existing ?? new Set<(tree: UITree) => void>();
@@ -445,9 +474,11 @@ const api: CloudflareKumoAPI = {
   },
 
   reset(containerId: string): void {
-    _trees.delete(containerId);
-    _valueStores.delete(containerId);
-    _treeSubscribers.delete(containerId);
+    _trees.set(containerId, EMPTY_TREE);
+    notifyTree(containerId, EMPTY_TREE);
+
+    const store = _valueStores.get(containerId);
+    if (store) store.clear();
 
     const scheduled = _renderScheduled.get(containerId);
     if (scheduled != null) {
