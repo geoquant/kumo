@@ -179,6 +179,23 @@
         "Tests: valid tree passes, invalid props caught, missing required props caught, rendering continues after validation failure"
       ],
       "passes": false
+    },
+    {
+      "id": "ui-align-1",
+      "category": "ui",
+      "description": "Align React SPA (ChatDemo.tsx) layout to match the HTML/UMD cross-boundary.html design. The React app should adopt the same single-column, centered page layout with header, dark mode toggle, status text, and action log panel below the conversation area — matching the polished look of the HTML version.",
+      "steps": [
+        "Single-column layout: remove 2-column flex split, use max-w-[960px] mx-auto centered page",
+        "Header: add page title ('Kumo Streaming Demo') and subtitle, with dark mode toggle button top-right",
+        "Dark mode toggle: implement light/dark theme switching via data-mode attribute on a wrapper element",
+        "Preset pills: style as rounded pill buttons (border-radius full, smaller text) matching HTML version",
+        "Controls row: input + Generate/Stop/Reset buttons in a single horizontal row matching HTML styling",
+        "Status text: add 'Generating UI...' / 'Done.' / 'Error: ...' status line above conversation area",
+        "Action log panel: move below conversation area (not side-by-side), match HTML panel styling with header bar and monospace log",
+        "Conversation area: scrollable with max-height, user bubbles right-aligned, assistant snapshots with border",
+        "Overall visual parity with cross-boundary.html verified by side-by-side comparison"
+      ],
+      "passes": false
     }
   ],
   "context": {
