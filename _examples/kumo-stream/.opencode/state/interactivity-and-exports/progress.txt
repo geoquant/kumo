@@ -57,3 +57,9 @@ Started: 2026-02-19
 - **Files changed**:
   - `packages/kumo/vite.config.ts` — added `"ai/schemas"` entry pointing to `ai/schemas.ts`, added zod to external function's switch cases
 - **Learnings**: Vite entry keys like `"ai/schemas"` produce `dist/ai/schemas.js` matching the key path. The `fileName` callback `(format, entryName) => \`${entryName}.js\`` ensures stable output names. Zod must be externalized since it's an optional peer dep — bundling it would bloat the output and conflict with consumers' own zod version. The `"use client"` banner is added to all chunks including ai/schemas — harmless for non-React consumers.
+
+## Task - export-2
+- **Implemented**: Updated `packages/kumo/package.json` `./ai/schemas` export to point at compiled dist output (`dist/ai/schemas.js` + `dist/ai/schemas.d.ts`) instead of raw `.ts` source. This enables consumers to `import { ButtonSchema } from '@cloudflare/kumo/ai/schemas'` without needing a TypeScript loader.
+- **Files changed**:
+  - `packages/kumo/package.json` — changed `./ai/schemas` export: `types` → `./dist/ai/schemas.d.ts`, `import` → `./dist/ai/schemas.js`
+- **Learnings**: The catalog's lazy `import("../../ai/schemas")` is unaffected by the package.json exports change — Vite resolves relative imports at build time to sibling paths within `dist/` (`import("./ai/schemas.js")`), not via Node.js package exports. The `vite-plugin-dts` generates `.d.ts` files in `dist/` mirroring the source structure, so `dist/ai/schemas.d.ts` is produced alongside `dist/ai/schemas.js` from the same entry point.
