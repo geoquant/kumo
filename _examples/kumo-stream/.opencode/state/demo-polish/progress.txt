@@ -109,3 +109,13 @@ Started: 2026-02-19
 - During streaming (`statusRef.current === "streaming"`), actions are logged but patches are NOT applied
 - Files changed: `src/app/ChatDemo.tsx`
 - **Learnings:** Circular dependency between `useCallback` and `useUITree` return values (handleAction needs `applyPatches` but is passed to `useUITree`) solved cleanly with refs: declare refs → create stable callback referencing refs → call hook → sync refs each render. The `applyPatches` from `useUITree` is stable (empty deps `useCallback`) so the ref assignment is safe.
+
+## Task - functional-5
+- Wired counter preset pill and inline DOM manipulation for count updates in HTML/UMD
+- Added "Build a counter" to `PRESET_PROMPTS` array (syncs with React SPA list from functional-4)
+- Extended `kumo-action` event listener: checks `detail.actionName` for `increment`/`decrement`
+- Finds count element via `document.querySelector('[data-key="count-display"]')`
+- Parses `textContent` as integer (`parseInt`), defaults `NaN` to 0, updates to `current ± 1`
+- Action still logged to action panel via existing `appendActionLog(detail)` call (runs first)
+- Files changed: `public/cross-boundary.html`
+- **Learnings:** The vanilla JS counter manipulation mirrors `action-patch-bridge.ts` logic but operates directly on the DOM instead of through the patch engine. The UMD bundle's `UITreeRenderer` renders `data-key` attributes (from functional-1), so `querySelector` works without any UMD-side changes. The approach is intentionally imperative — no abstraction needed for this single use case in the vanilla demo.

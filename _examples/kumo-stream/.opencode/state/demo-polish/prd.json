@@ -138,7 +138,7 @@
         "Parses textContent as integer, updates to current +/- 1",
         "Action still logged to action panel"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
