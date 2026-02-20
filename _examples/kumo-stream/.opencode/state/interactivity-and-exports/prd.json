@@ -109,7 +109,7 @@
         "GET /.well-known/stylesheet.css returns the compiled CSS",
         "GET /.well-known/generative-ui.json returns discovery metadata with version, paths, and streaming info"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "wellknown-2",
