@@ -38,7 +38,7 @@
         "Unknown actions are logged but don't crash",
         "Tests: message dispatch, form collection"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "action-3",

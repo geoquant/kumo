@@ -10,6 +10,7 @@ Started: 2026-02-19
 - **Spy component testing**: Real kumo components error in test env (dual React). Use `SpyComponent` + `capturedPropsMap` pattern to test prop injection. Temporarily swap COMPONENT_MAP entries in try/finally blocks.
 - **createClickHandler chains existing onClick**: When injecting onClick for Button/Link, existing LLM onClick is preserved by chaining (existing fires first, then action dispatch).
 - **Action registry pattern**: `dispatchAction(handlers, event, tree)` → `ActionResult | null`. Handlers return discriminated union: `patch` (RFC 6902 ops), `message` (chat content), `external` (URL navigation), `none` (no-op). `createHandlerMap(custom?)` merges with BUILTIN_HANDLERS.
+- **processActionResult callbacks pattern**: `processActionResult(result, { applyPatches, sendMessage, openExternal? })`. Host provides callbacks per ActionResult variant. `openExternal` is optional (defaults to `window.open`). Use `handleSubmitRef` pattern to wire `sendMessage` to chat submission without stale closures.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -29,3 +30,11 @@ Started: 2026-02-19
   - `src/core/action-registry.ts` — new file, ~200 lines
   - `src/__tests__/action-registry.test.ts` — 31 tests covering all handlers, createHandlerMap, dispatchAction
 - **Learnings**: ActionResult union with 4 variants (patch, message, external, none) covers all known action patterns. Counter handlers return `PatchResult` with patches array (not single patch) for forward-compat with multi-patch actions. `submit_form` falls back from params→context for both static and runtime-collected form data.
+
+## Task - action-2
+- **Implemented**: Wired ChatDemo.tsx to use action registry instead of hardcoded `actionToPatch` bridge. `handleAction` now calls `dispatchAction(BUILTIN_HANDLERS, event, tree)` and processes the result via `processActionResult`. Extracted `processActionResult` to `src/core/process-action-result.ts` as a standalone, testable module with `ActionResultCallbacks` interface for host-provided side effects.
+- **Files changed**:
+  - `src/app/ChatDemo.tsx` — replaced `actionToPatch` import with `dispatchAction`/`BUILTIN_HANDLERS` from registry + `processActionResult`. Added `handleSubmitRef` for message dispatch from action results.
+  - `src/core/process-action-result.ts` — new file: `processActionResult(result, callbacks)` dispatches on result.type to applyPatches/sendMessage/openExternal/none.
+  - `src/__tests__/process-action-result.test.ts` — 12 tests: unit tests per result type + integration tests (registry→processor end-to-end).
+- **Learnings**: Callbacks-object pattern (`ActionResultCallbacks`) is cleaner than positional args for processActionResult — extensible, self-documenting, and the `openExternal` callback can be optional with window.open fallback. The `handleSubmitRef` pattern keeps handleAction stable (no deps array changes) while allowing message dispatch to flow through the full submit pipeline.
