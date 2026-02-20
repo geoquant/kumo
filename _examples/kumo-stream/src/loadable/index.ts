@@ -13,6 +13,8 @@
  *   CloudflareKumo.setTheme(mode)                 — light/dark toggle
  *   CloudflareKumo.getTree(containerId)            — read current UITree state
  *   CloudflareKumo.subscribeTree(containerId, cb)  — subscribe to UITree changes
+ *   CloudflareKumo.dispatchAction(event, containerId) — dispatch action registry
+ *   CloudflareKumo.processActionResult(result, callbacks) — host side effects
  *   CloudflareKumo.reset(containerId)             — clear state + unmount
  *   CloudflareKumo.onAction(handler)              — subscribe to action events
  */
@@ -28,13 +30,23 @@ import {
 import { createJsonlParser, type JsonlParser } from "../core/jsonl-parser";
 import { UITreeRenderer } from "../core/UITreeRenderer";
 import { EMPTY_TREE, type UITree } from "../core/types";
-import type { ActionDispatch } from "../core/action-handler";
+import type { ActionDispatch, ActionEvent } from "../core/action-handler";
 import {
   createRuntimeValueStore,
   type RuntimeValueStore,
 } from "../core/runtime-value-store";
 import { ThemeWrapper } from "./theme";
 import { dispatch as dispatchAction, onAction } from "./action-dispatch";
+import {
+  createHandlerMap as createHandlerMapFromRegistry,
+  dispatchAction as dispatchActionFromRegistry,
+  type ActionHandlerMap,
+  type ActionResult,
+} from "../core/action-registry";
+import {
+  processActionResult as processActionResultFromCore,
+  type ActionResultCallbacks,
+} from "../core/process-action-result";
 
 // Import kumo standalone styles so they're included in the CSS output
 import "@cloudflare/kumo/styles/standalone";
@@ -162,6 +174,24 @@ export interface CloudflareKumoAPI {
    * `CustomEvent('kumo-action')` on window.
    */
   readonly onAction: (handler: ActionDispatch) => () => void;
+
+  /** Create a merged handler map (built-ins + custom). */
+  readonly createHandlerMap: (
+    custom?: Readonly<ActionHandlerMap>,
+  ) => Readonly<ActionHandlerMap>;
+
+  /** Dispatch an ActionEvent against the current per-container UITree. */
+  readonly dispatchAction: (
+    event: ActionEvent,
+    containerId: string,
+    customHandlers?: Readonly<ActionHandlerMap>,
+  ) => ActionResult | null;
+
+  /** Process an ActionResult by dispatching host callbacks. */
+  readonly processActionResult: (
+    result: ActionResult,
+    callbacks: ActionResultCallbacks,
+  ) => void;
 }
 
 const api: CloudflareKumoAPI = {
@@ -255,6 +285,29 @@ const api: CloudflareKumoAPI = {
   },
 
   onAction,
+
+  createHandlerMap(
+    custom?: Readonly<ActionHandlerMap>,
+  ): Readonly<ActionHandlerMap> {
+    return createHandlerMapFromRegistry(custom);
+  },
+
+  dispatchAction(
+    event: ActionEvent,
+    containerId: string,
+    customHandlers?: Readonly<ActionHandlerMap>,
+  ): ActionResult | null {
+    const tree = _trees.get(containerId) ?? EMPTY_TREE;
+    const handlers = createHandlerMapFromRegistry(customHandlers);
+    return dispatchActionFromRegistry(handlers, event, tree);
+  },
+
+  processActionResult(
+    result: ActionResult,
+    callbacks: ActionResultCallbacks,
+  ): void {
+    processActionResultFromCore(result, callbacks);
+  },
 };
 
 // =============================================================================
