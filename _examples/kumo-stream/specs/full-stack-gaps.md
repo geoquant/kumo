@@ -66,6 +66,24 @@ Acceptance
 - Prompt output is deterministic and matches the validated component set.
 - No prompt mentions props/types that schemas reject.
 
+## Phase 2.1: Component surface expansion (shipped in @cloudflare/kumo)
+
+Problem
+
+- kumo-stream's COMPONENT_MAP is intentionally small. Missing components limit the kinds of believable mini-apps the model can build.
+
+Plan
+
+- Expand COMPONENT_MAP with low-risk, declarative primitives first:
+  - Add: `Code`, `Field`, `Label`
+  - Consider: `Breadcrumbs`, `ClipboardText`, `LayerCard`, `Pagination`, `Tooltip`
+- Defer overlay/app-shell/high-complexity components (Dialog/Popover/DropdownMenu/Combobox/etc.) until we have stronger action/value-capture + capability signaling.
+
+Acceptance
+
+- New components render without host-specific wiring.
+- Prompt + validation are updated in lockstep (derived from registry/schemas).
+
 ## Phase 3: Expand `/.well-known/generative-ui.json` capabilities
 
 Plan
