@@ -11,6 +11,7 @@ Started: 2026-02-20
 - UMD tree observers: keep per-container subscriber Set; `notifyTree(containerId, tree)` on patch/batch/render; `reset()` clears subscribers
 - UMD action runtime: expose `dispatchAction(event, containerId)` + `processActionResult(result, callbacks)`; host wires callbacks (applyPatches/sendMessage/openExternal)
 - Discovery manifest: build `/.well-known/generative-ui.json` via pure `buildGenerativeUiManifest()` to keep payload deterministic + testable
+- SSE parsing: parse line-by-line, join multi-line `data:` payloads; tolerate CRLF + chunk splits; stop reading on done/error
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -59,3 +60,8 @@ Started: 2026-02-20
 - Expanded `/.well-known/generative-ui.json` to include explicit capabilities (actions, submit_form scoping/guardrails, URL policy, patch subset + array semantics, rendering modes, value capture).
 - Files changed: `_examples/kumo-stream/src/core/generative-ui-manifest.ts`, `_examples/kumo-stream/server/index.ts`, `_examples/kumo-stream/src/__tests__/generative-ui-manifest.test.ts`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
 - Learnings: publish discovery as data-first contract; keep it pure + unit-tested so hosts can trust advertised semantics
+
+## Task - [transport-1]
+- Replaced cross-boundary demo SSE parsing with a spec-ish parser (multi-line `data:`, CRLF, chunk split safety) and preserved streaming patch behavior.
+- Files changed: `_examples/kumo-stream/public/cross-boundary.html`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
+- Learnings: handle SSE as a line protocol; treat blank line as event boundary; stop the reader on done/error to avoid extra work
