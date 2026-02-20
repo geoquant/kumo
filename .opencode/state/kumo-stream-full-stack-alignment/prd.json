@@ -134,7 +134,7 @@
         "ShadowRoot contains a <link rel=\"stylesheet\"> to /.well-known/stylesheet.css",
         "Rendered UI looks equivalent to light DOM mode"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "experimental-2",
