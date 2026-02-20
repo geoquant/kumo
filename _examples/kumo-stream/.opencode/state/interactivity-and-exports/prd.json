@@ -120,7 +120,7 @@
         "cross-boundary.html script src points to /.well-known/component-loadable.umd.js",
         "Page renders correctly with .well-known paths"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "a11y-1",
