@@ -764,6 +764,107 @@
         });
 
         // -----------------------------------------------------------------------
+        // Action handler registry
+        //
+        // Mirrors the TypeScript ActionResult pattern from src/core/:
+        //   handler(detail) → { type: "patch"|"message"|"external"|"none", ... }
+        // Host processes results via processActionResult().
+        // -----------------------------------------------------------------------
+
+        var COUNT_DISPLAY_KEY = "count-display";
+
+        function readCounterFromDOM() {
+          var el = document.querySelector(
+            '[data-key="' + COUNT_DISPLAY_KEY + '"]',
+          );
+          if (!el) return null;
+          var n = parseInt(el.textContent, 10);
+          return isNaN(n) ? 0 : n;
+        }
+
+        function counterPatchResult(nextValue) {
+          return {
+            type: "patch",
+            patches: [
+              {
+                op: "replace",
+                path: "/elements/" + COUNT_DISPLAY_KEY + "/props/children",
+                value: String(nextValue),
+              },
+            ],
+          };
+        }
+
+        /** Built-in action handlers — same set as BUILTIN_HANDLERS in TS. */
+        var ACTION_HANDLERS = {
+          increment: function (_detail) {
+            var current = readCounterFromDOM();
+            if (current == null) return null;
+            return counterPatchResult(current + 1);
+          },
+
+          decrement: function (_detail) {
+            var current = readCounterFromDOM();
+            if (current == null) return null;
+            return counterPatchResult(current - 1);
+          },
+
+          submit_form: function (detail) {
+            var data = detail.params || detail.context;
+            if (!data || Object.keys(data).length === 0) {
+              return { type: "none" };
+            }
+            var lines = Object.keys(data).map(function (key) {
+              return key + ": " + String(data[key]);
+            });
+            return { type: "message", content: lines.join("\n") };
+          },
+
+          navigate: function (detail) {
+            var url = detail.params && detail.params.url;
+            if (typeof url !== "string" || url.length === 0) return null;
+            var target = detail.params.target;
+            return {
+              type: "external",
+              url: url,
+              target: typeof target === "string" ? target : undefined,
+            };
+          },
+        };
+
+        /**
+         * Dispatch an action detail through the handler registry.
+         * Returns the ActionResult, or null for unregistered actions.
+         */
+        function dispatchActionResult(detail) {
+          var handler = ACTION_HANDLERS[detail.actionName];
+          if (!handler) return null;
+          return handler(detail);
+        }
+
+        /**
+         * Process an ActionResult — apply patches, send messages, or open URLs.
+         * Mirrors processActionResult() from src/core/process-action-result.ts.
+         */
+        function processActionResult(result) {
+          switch (result.type) {
+            case "patch":
+              for (var i = 0; i < result.patches.length; i++) {
+                CloudflareKumo.applyPatch(result.patches[i], CONTAINER_ID);
+              }
+              break;
+            case "message":
+              streamChat(result.content);
+              break;
+            case "external":
+              window.open(result.url, result.target || "_blank");
+              break;
+            case "none":
+              break;
+          }
+        }
+
+        // -----------------------------------------------------------------------
         // Action event log
         // -----------------------------------------------------------------------
 
@@ -774,27 +875,15 @@
           // Prevent action-driven mutations during streaming.
           if (streamingActive) return;
 
-          // Counter actions: update count-display element inline
-          if (
-            detail.actionName === "increment" ||
-            detail.actionName === "decrement"
-          ) {
-            var countEl = document.querySelector('[data-key="count-display"]');
-            if (countEl) {
-              var current = parseInt(countEl.textContent, 10);
-              if (isNaN(current)) current = 0;
-              var next =
-                detail.actionName === "increment" ? current + 1 : current - 1;
-              CloudflareKumo.applyPatch(
-                {
-                  op: "replace",
-                  path: "/elements/count-display/props/children",
-                  value: String(next),
-                },
-                CONTAINER_ID,
-              );
-            }
+          // Dispatch through registry
+          var result = dispatchActionResult(detail);
+
+          if (result == null) {
+            // Unknown action — already logged above, no crash
+            return;
           }
+
+          processActionResult(result);
         });
 
         clearLogBtn.addEventListener("click", function () {
