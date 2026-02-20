@@ -79,7 +79,7 @@
         "UMD API exposes subscribeTree(containerId, cb) with an unsubscribe",
         "Tree subscription fires on patch application"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "umd-2",
