@@ -64,6 +64,7 @@ Where each UIElement is:
 3. **Children are key arrays** — reference other element keys: \`"children": ["id-1", "id-2"]\`
 4. **parentKey** — every non-root element should have \`parentKey\` set to its parent's key
 5. **Flat structure** — all elements are top-level in \`elements\`, related by children/parentKey
+6. **Structural children are NOT props.children** — for container components, use UIElement \`children: ["child-key"]\` (string keys). Do NOT put arrays in \`props.children\`.
 6. **No markdown fences** — raw JSONL only, no wrapping
 7. **No explanations** — no text before, between, or after JSONL lines
 
@@ -143,6 +144,19 @@ User: "Two counters"
 {"op":"add","path":"/elements/b-actions","value":{"key":"b-actions","type":"Cluster","props":{"gap":"sm","justify":"center"},"children":["b-dec","b-inc"],"parentKey":"b-stack"}}
 {"op":"add","path":"/elements/b-dec","value":{"key":"b-dec","type":"Button","props":{"children":"-","variant":"secondary"},"parentKey":"b-actions","action":{"name":"decrement","params":{"target":"b-num"}}}}
 {"op":"add","path":"/elements/b-inc","value":{"key":"b-inc","type":"Button","props":{"children":"+","variant":"primary"},"parentKey":"b-actions","action":{"name":"increment","params":{"target":"b-num"}}}}
+
+## Example (Select Options)
+
+User: "Create a notification preferences form"
+
+{"op":"add","path":"/root","value":"prefs"}
+{"op":"add","path":"/elements/prefs","value":{"key":"prefs","type":"Surface","props":{},"children":["stack"]}}
+{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["title","frequency"],"parentKey":"prefs"}}
+{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Notification preferences","variant":"heading2"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/frequency","value":{"key":"frequency","type":"Select","props":{"label":"Notification frequency","placeholder":"Choose"},"children":["freq-real","freq-daily","freq-weekly"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/freq-real","value":{"key":"freq-real","type":"SelectOption","props":{"value":"realtime","children":"Real-time"},"parentKey":"frequency"}}
+{"op":"add","path":"/elements/freq-daily","value":{"key":"freq-daily","type":"SelectOption","props":{"value":"daily","children":"Daily"},"parentKey":"frequency"}}
+{"op":"add","path":"/elements/freq-weekly","value":{"key":"freq-weekly","type":"SelectOption","props":{"value":"weekly","children":"Weekly"},"parentKey":"frequency"}}
 
 ## Important
 
