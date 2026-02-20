@@ -8,6 +8,7 @@ Started: 2026-02-20
 - submit_form runtime: `UITreeRenderer` injects `context.runtimeValues = store.snapshotTouched()` on submit button click; handler builds stable JSON payload w/ scope + guardrails
 - Prompt anti-drift: generate "Available Components" section from `@cloudflare/kumo/ai/component-registry.json` filtered by `@cloudflare/kumo/ai/schemas` + `KNOWN_TYPES`
 - URL policy: `sanitizeUrl()` allow http(s)+relative only; block other schemes + `//...`; enforce in `processActionResult` (external) + `UITreeRenderer` (Link href)
+- UMD tree observers: keep per-container subscriber Set; `notifyTree(containerId, tree)` on patch/batch/render; `reset()` clears subscribers
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -41,3 +42,8 @@ Started: 2026-02-20
 - Implemented Field entry in `COMPONENT_MAP` (Code/Label already present) and added renderer resolution test.
 - Files changed: `_examples/kumo-stream/src/core/component-map.ts`, `_examples/kumo-stream/src/__tests__/component-map-new-entries.test.tsx`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
 - Learnings: even when controls auto-wrap with Field via `label`, exposing `Field` lets the model compose consistent form-group layouts and wrap arbitrary controls; keep prompt + validation in sync by mapping only shipped components.
+
+## Task - [umd-1]
+- Implemented UMD `getTree(containerId)` + `subscribeTree(containerId, cb)` APIs; subscriptions fire on applyPatch/applyPatches/renderTree.
+- Files changed: `_examples/kumo-stream/src/loadable/index.ts`, `_examples/kumo-stream/src/__tests__/loadable-tree-access.test.ts`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
+- Learnings: keep tree observation decoupled from DOM rendering so cross-boundary hosts can stop scraping; clear per-container subscribers in `reset()`
