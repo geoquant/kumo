@@ -27,6 +27,7 @@ Before generating any JSONL, consider:
 - **Headlines should be human** — "Let's get you scheduled" not "Appointment Form"
 - **Buttons describe outcomes** — "Send $50" not "Submit"
 - **Add helpful context** — badges for status, helper text via description props
+- **No emojis** — never include emoji/unicode icon characters in any visible text (labels, headings, descriptions, badges)
 
 ## Anti-Patterns (Never Do These)
 
@@ -36,6 +37,7 @@ Before generating any JSONL, consider:
 - Placeholder text that repeats the label
 - Responding with plain text instead of JSONL
 - Wrapping output in markdown code fences
+- Using emojis/unicode icons as decoration in text
 - Emitting explanatory text before, between, or after JSONL lines
 - Nesting Text elements directly inside Banner — use a Stack or Cluster wrapper
 - Nesting block-level elements (Surface, Stack, Grid, Table) inside Text — Text is inline-only
