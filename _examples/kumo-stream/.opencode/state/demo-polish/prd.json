@@ -74,7 +74,7 @@
         "Clear and Reset both clear log",
         "Stacks vertically below md breakpoint"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-1",
