@@ -154,6 +154,60 @@
         border-radius: 8px;
       }
 
+      /* ---- Conversation history ---- */
+
+      #conversation-area {
+        max-height: 70vh;
+        overflow-y: auto;
+      }
+
+      #chat-history:empty {
+        display: none;
+      }
+
+      .history-separator {
+        border: none;
+        border-top: 1px solid #ddd;
+        margin: 12px 0;
+      }
+
+      body[data-mode="dark"] .history-separator {
+        border-top-color: #444;
+      }
+
+      .history-user-bubble {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 8px;
+      }
+
+      .history-user-bubble > div {
+        max-width: 80%;
+        padding: 6px 12px;
+        font-size: 14px;
+        border-radius: 8px;
+        background: rgba(246, 130, 31, 0.12);
+        color: #1a1a1a;
+      }
+
+      body[data-mode="dark"] .history-user-bubble > div {
+        background: rgba(246, 130, 31, 0.2);
+        color: #f5f5f5;
+      }
+
+      .history-assistant-snapshot {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 8px;
+        opacity: 0.8;
+        pointer-events: none;
+      }
+
+      body[data-mode="dark"] .history-assistant-snapshot {
+        border-color: #444;
+      }
+
       /* ---- Action event log panel ---- */
 
       .action-log-panel {
@@ -298,7 +352,10 @@
       </div>
 
       <div id="status" class="status"></div>
-      <div id="kumo-container"></div>
+      <div id="conversation-area">
+        <div id="chat-history"></div>
+        <div id="kumo-container"></div>
+      </div>
 
       <div class="action-log-panel">
         <div class="action-log-header">
@@ -336,6 +393,8 @@
         var statusEl = document.getElementById("status");
         var actionLogEl = document.getElementById("action-log");
         var clearLogBtn = document.getElementById("clear-log-btn");
+        var chatHistoryEl = document.getElementById("chat-history");
+        var conversationArea = document.getElementById("conversation-area");
 
         // -----------------------------------------------------------------------
         // State
@@ -344,6 +403,10 @@
         var abortController = null;
         var parser = null;
         var isDark = false;
+        /** Conversation history for multi-turn API requests. */
+        var chatHistory = [];
+        /** The last user prompt, used to label history entries. */
+        var lastUserMessage = "";
 
         // -----------------------------------------------------------------------
         // Helpers
@@ -410,22 +473,88 @@
         }
 
         // -----------------------------------------------------------------------
+        // Conversation history
+        // -----------------------------------------------------------------------
+
+        /** Snapshot current kumo-container content + user message into history DOM.
+         *  Also tracks the *previous* turn's user+assistant pair in the API history
+         *  array. The *current* user message is sent via the `message` field in the
+         *  fetch body, so we must not duplicate it into `chatHistory` here. */
+        function snapshotToHistory(userMessage) {
+          var container = document.getElementById(CONTAINER_ID);
+          var hasContent = container && container.innerHTML.trim().length > 0;
+
+          // Archive the previous turn's user message if we have one
+          if (lastUserMessage) {
+            chatHistory.push({ role: "user", content: lastUserMessage });
+          }
+
+          // Append assistant snapshot if there's rendered content
+          if (hasContent) {
+            var snapshot = document.createElement("div");
+            snapshot.className = "history-assistant-snapshot";
+            snapshot.innerHTML = container.innerHTML;
+            chatHistoryEl.appendChild(snapshot);
+
+            // Track in API history array
+            chatHistory.push({
+              role: "assistant",
+              content: "(UI response)",
+            });
+          }
+
+          // Append user bubble to DOM (visual only — not pushed to chatHistory)
+          var bubble = document.createElement("div");
+          bubble.className = "history-user-bubble";
+          var inner = document.createElement("div");
+          inner.textContent = userMessage;
+          bubble.appendChild(inner);
+          chatHistoryEl.appendChild(bubble);
+        }
+
+        /** Scroll conversation area to bottom. */
+        function scrollConversation() {
+          if (conversationArea) {
+            conversationArea.scrollTop = conversationArea.scrollHeight;
+          }
+        }
+
+        /** Add a separator between history and current turn if history exists. */
+        function addHistorySeparator() {
+          // Remove existing separator
+          var existing = chatHistoryEl.querySelector(".history-separator");
+          if (existing) existing.remove();
+
+          if (chatHistoryEl.children.length > 0) {
+            var hr = document.createElement("hr");
+            hr.className = "history-separator";
+            chatHistoryEl.appendChild(hr);
+          }
+        }
+
+        // -----------------------------------------------------------------------
         // SSE stream reader
         // -----------------------------------------------------------------------
 
         function streamChat(message) {
+          // Snapshot current content into history before resetting
+          snapshotToHistory(message);
+          addHistorySeparator();
+          lastUserMessage = message;
+
           // Reset previous state
           CloudflareKumo.reset(CONTAINER_ID);
           parser = CloudflareKumo.createParser();
           setStatus("Generating UI...");
           setStreaming(true);
+          scrollConversation();
 
           abortController = new AbortController();
 
           fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: message }),
+            body: JSON.stringify({ message: message, history: chatHistory }),
             signal: abortController.signal,
           })
             .then(function (res) {
@@ -482,10 +611,12 @@
                   for (var j = 0; j < ops.length; j++) {
                     CloudflareKumo.applyPatch(ops[j], CONTAINER_ID);
                   }
+                  scrollConversation();
                 } else if (event.type === "done") {
                   flushParser();
                   cleanup();
                   setStatus("Done.");
+                  scrollConversation();
                   return;
                 } else if (event.type === "error") {
                   flushParser();
@@ -550,6 +681,9 @@
           }
           parser = null;
           CloudflareKumo.reset(CONTAINER_ID);
+          chatHistory = [];
+          lastUserMessage = "";
+          chatHistoryEl.innerHTML = "";
           setStreaming(false);
           setStatus("");
           promptInput.value = "";
