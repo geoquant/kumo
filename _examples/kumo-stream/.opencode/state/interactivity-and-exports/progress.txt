@@ -11,6 +11,7 @@ Started: 2026-02-19
 - **createClickHandler chains existing onClick**: When injecting onClick for Button/Link, existing LLM onClick is preserved by chaining (existing fires first, then action dispatch).
 - **Action registry pattern**: `dispatchAction(handlers, event, tree)` → `ActionResult | null`. Handlers return discriminated union: `patch` (RFC 6902 ops), `message` (chat content), `external` (URL navigation), `none` (no-op). `createHandlerMap(custom?)` merges with BUILTIN_HANDLERS.
 - **processActionResult callbacks pattern**: `processActionResult(result, { applyPatches, sendMessage, openExternal? })`. Host provides callbacks per ActionResult variant. `openExternal` is optional (defaults to `window.open`). Use `handleSubmitRef` pattern to wire `sendMessage` to chat submission without stale closures.
+- **HTML/UMD action registry**: Same handler→result→process pattern in vanilla JS. Handlers read DOM state (no tree access), return plain objects matching ActionResult shape. `processActionResult` switches on result.type to call `CloudflareKumo.applyPatch`, `streamChat`, or `window.open`.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -38,3 +39,9 @@ Started: 2026-02-19
   - `src/core/process-action-result.ts` — new file: `processActionResult(result, callbacks)` dispatches on result.type to applyPatches/sendMessage/openExternal/none.
   - `src/__tests__/process-action-result.test.ts` — 12 tests: unit tests per result type + integration tests (registry→processor end-to-end).
 - **Learnings**: Callbacks-object pattern (`ActionResultCallbacks`) is cleaner than positional args for processActionResult — extensible, self-documenting, and the `openExternal` callback can be optional with window.open fallback. The `handleSubmitRef` pattern keeps handleAction stable (no deps array changes) while allowing message dispatch to flow through the full submit pipeline.
+
+## Task - action-3
+- **Implemented**: Replaced hardcoded counter action handling in cross-boundary.html with registry pattern mirroring the TypeScript `action-registry.ts` + `process-action-result.ts`. Added `ACTION_HANDLERS` map (increment, decrement, submit_form, navigate), `dispatchActionResult()` for handler lookup, and `processActionResult()` for result processing. Counter actions produce patch results, form-submit triggers `streamChat()`, navigate opens URLs, unknown actions are logged but don't crash.
+- **Files changed**:
+  - `public/cross-boundary.html` — replaced inline counter logic with handler registry + dispatcher + result processor (~100 lines refactored)
+- **Learnings**: HTML/UMD context lacks tree access (internal `_trees` map not exposed), so counter handlers read from DOM via `querySelector('[data-key=...]')` instead. Same ActionResult shape works cleanly in vanilla JS. The `processActionResult` in HTML directly calls `streamChat()` for message results (no ref indirection needed since there are no stale closures in vanilla JS IIFEs).
