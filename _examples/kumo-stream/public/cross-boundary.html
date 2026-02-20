@@ -141,7 +141,6 @@
           border-color 0.15s;
       }
 
-      body[data-mode="dark"] .controls button,
       body[data-mode="dark"] .header button {
         background: #2a2a2a;
         border-color: #444;
@@ -153,7 +152,6 @@
         background: #f0f0f0;
       }
 
-      body[data-mode="dark"] .controls button:hover:not(:disabled),
       body[data-mode="dark"] .header button:hover:not(:disabled) {
         background: #3a3a3a;
       }
@@ -521,14 +519,22 @@
         // -----------------------------------------------------------------------
 
         var PRESET_PROMPTS = [
-          "Welcome the user to Cloudflare",
-          "Create a DNS record editor",
-          "Show a server status dashboard",
-          "Build a support ticket form",
-          "Display a pricing comparison table",
-          "Create a user profile settings page",
-          "Show an analytics overview",
-          "Build a counter",
+          {
+            label: "Welcome",
+            prompt: "Welcome the user to Cloudflare",
+          },
+          {
+            label: "Form",
+            prompt: "Create a notification preferences form",
+          },
+          {
+            label: "Counters",
+            prompt: "Two counters",
+          },
+          {
+            label: "Table",
+            prompt: "Display a pricing comparison table",
+          },
         ];
 
         // -----------------------------------------------------------------------
@@ -1143,12 +1149,12 @@
         // Preset prompt pills
         // -----------------------------------------------------------------------
 
-        PRESET_PROMPTS.forEach(function (text) {
+        PRESET_PROMPTS.forEach(function (preset) {
           var btn = document.createElement("button");
           btn.type = "button";
-          btn.textContent = text;
+          btn.textContent = preset.label;
           btn.addEventListener("click", function () {
-            streamChat(text);
+            streamChat(preset.prompt);
           });
           presetsEl.appendChild(btn);
         });
