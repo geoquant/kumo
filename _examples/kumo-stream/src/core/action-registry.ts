@@ -28,6 +28,8 @@ export interface PatchResult {
 export interface MessageResult {
   readonly type: "message";
   readonly content: string;
+  /** Optional structured payload (e.g. submit_form submission body). */
+  readonly payload?: SubmitFormPayload;
 }
 
 /** Trigger an external side effect (e.g. window.open, navigation). */
@@ -51,6 +53,24 @@ export type ActionResult =
   | MessageResult
   | ExternalResult
   | NoneResult;
+
+// =============================================================================
+// submit_form payload
+// =============================================================================
+
+export interface SubmitFormPayload {
+  readonly actionName: "submit_form";
+  readonly sourceKey: string;
+  /** Static metadata declared by the LLM (scoping keys removed). */
+  readonly params: Readonly<Record<string, unknown>>;
+  /** Runtime-captured field values (touched-only, field-like, scope-filtered). */
+  readonly fields: Readonly<Record<string, unknown>>;
+  /** Optional scoping used to select included fields. */
+  readonly scope?: {
+    readonly formKey?: string;
+    readonly fieldKeys?: readonly string[];
+  };
+}
 
 // =============================================================================
 // Handler type
@@ -78,6 +98,117 @@ export type ActionHandlerMap = Record<string, ActionHandler>;
 
 /** Default element key for counter display text (single-counter fallback). */
 const DEFAULT_COUNT_DISPLAY_KEY = "count-display";
+
+const SUBMIT_FORM_FIELD_TYPES = new Set([
+  "Input",
+  "Textarea",
+  "InputArea",
+  "Select",
+  "Checkbox",
+  "Switch",
+  "Radio",
+]);
+
+const SUBMIT_FORM_RUNTIME_VALUES_KEY = "runtimeValues";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function sortedRecord(
+  input: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> {
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(input).sort()) {
+    out[key] = input[key];
+  }
+  return out;
+}
+
+function parseStringArray(value: unknown): readonly string[] | null {
+  if (!Array.isArray(value)) return null;
+  const out: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string" || item.length === 0) continue;
+    out.push(item);
+  }
+  const unique = [...new Set(out)].sort();
+  return unique.length > 0 ? unique : null;
+}
+
+function parseSubmitFormScope(params?: Readonly<Record<string, unknown>>): {
+  readonly formKey?: string;
+  readonly fieldKeys?: readonly string[];
+} {
+  const formKeyRaw = params?.formKey;
+  const formKey =
+    typeof formKeyRaw === "string" && formKeyRaw.length > 0
+      ? formKeyRaw
+      : undefined;
+
+  const fieldKeys = parseStringArray(params?.fieldKeys) ?? undefined;
+
+  return {
+    ...(formKey != null ? { formKey } : undefined),
+    ...(fieldKeys != null ? { fieldKeys } : undefined),
+  };
+}
+
+function stripSubmitFormScopeKeys(
+  params?: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> {
+  if (params == null) return {};
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "formKey" || key === "fieldKeys") continue;
+    if (value === undefined) continue;
+    out[key] = value;
+  }
+  return sortedRecord(out);
+}
+
+function countSubmitFormActions(tree: UITree): number {
+  let count = 0;
+  for (const el of Object.values(tree.elements)) {
+    if (el?.action?.name === "submit_form") count += 1;
+  }
+  return count;
+}
+
+function collectDescendantKeys(tree: UITree, rootKey: string): Set<string> {
+  const root = tree.elements[rootKey];
+  if (root == null) return new Set();
+
+  const visited = new Set<string>();
+  const stack: string[] = [rootKey];
+
+  while (stack.length > 0) {
+    const key = stack.pop();
+    if (key == null) continue;
+    if (visited.has(key)) continue;
+    visited.add(key);
+
+    const el = tree.elements[key];
+    if (el?.children == null) continue;
+    for (const childKey of el.children) {
+      if (typeof childKey === "string" && childKey.length > 0) {
+        stack.push(childKey);
+      }
+    }
+  }
+
+  return visited;
+}
+
+function readRuntimeValuesFromEventContext(
+  context?: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> {
+  if (context == null) return {};
+  const v = context[SUBMIT_FORM_RUNTIME_VALUES_KEY];
+  if (isRecord(v)) return v;
+  // Back-compat: some callers may pass the field map directly as context.
+  return context;
+}
 
 /**
  * Resolve the target counter display key from an action event.
@@ -162,20 +293,56 @@ function handleDecrement(
  */
 function handleSubmitForm(
   event: ActionEvent,
-  _tree: UITree,
+  tree: UITree,
 ): ActionResult | null {
-  const data = event.params ?? event.context;
-  if (data == null || Object.keys(data).length === 0) {
+  const scope = parseSubmitFormScope(event.params);
+  const hasExplicitScope = scope.formKey != null || scope.fieldKeys != null;
+
+  if (!hasExplicitScope && countSubmitFormActions(tree) > 1) {
+    console.warn(
+      "[kumo-stream] submit_form ambiguous: multiple submit_form actions in container; add params.formKey or params.fieldKeys",
+    );
     return { type: "none" };
   }
 
-  const lines = Object.entries(data).map(
-    ([key, value]) => `${key}: ${String(value)}`,
-  );
+  const params = stripSubmitFormScopeKeys(event.params);
+  const runtimeValues = readRuntimeValuesFromEventContext(event.context);
+
+  const scopeSet =
+    scope.fieldKeys != null
+      ? new Set(scope.fieldKeys)
+      : scope.formKey != null
+        ? collectDescendantKeys(tree, scope.formKey)
+        : null;
+
+  const fieldsOut: Record<string, unknown> = {};
+  for (const [elementKey, value] of Object.entries(runtimeValues)) {
+    if (value === undefined) continue;
+    if (scopeSet != null && !scopeSet.has(elementKey)) continue;
+    const el = tree.elements[elementKey];
+    if (el == null) continue;
+    if (!SUBMIT_FORM_FIELD_TYPES.has(el.type)) continue;
+    fieldsOut[elementKey] = value;
+  }
+
+  const fields = sortedRecord(fieldsOut);
+
+  if (Object.keys(params).length === 0 && Object.keys(fields).length === 0) {
+    return { type: "none" };
+  }
+
+  const payload: SubmitFormPayload = {
+    actionName: "submit_form",
+    sourceKey: event.sourceKey,
+    params,
+    fields,
+    ...(hasExplicitScope ? { scope } : undefined),
+  };
 
   return {
     type: "message",
-    content: lines.join("\n"),
+    content: JSON.stringify(payload),
+    payload,
   };
 }
 

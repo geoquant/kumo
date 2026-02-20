@@ -38,6 +38,8 @@ const ONCLICK_ACTION_TYPES = new Set(["Button", "Link"]);
 
 const RUNTIME_VALUE_CAPTURE_TYPES = new Set(["Input", "Textarea"]);
 
+const SUBMIT_FORM_RUNTIME_VALUES_KEY = "runtimeValues";
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -131,6 +133,31 @@ function chainHandlers(
     if (typeof second === "function") {
       second(event);
     }
+  };
+}
+
+function createSubmitFormClickHandler(
+  action: UIElement["action"],
+  sourceKey: string,
+  dispatch: ActionDispatch,
+  runtimeValueStore: RuntimeValueStore,
+  existingOnClick?: unknown,
+): (...args: unknown[]) => void {
+  return (...args: unknown[]) => {
+    if (typeof existingOnClick === "function") {
+      existingOnClick(...args);
+    }
+
+    const runtimeValues = runtimeValueStore.snapshotTouched();
+
+    dispatch({
+      actionName: action?.name ?? "submit_form",
+      sourceKey,
+      ...(action?.params != null ? { params: action.params } : undefined),
+      ...(Object.keys(runtimeValues).length > 0
+        ? { context: { [SUBMIT_FORM_RUNTIME_VALUES_KEY]: runtimeValues } }
+        : undefined),
+    });
   };
 }
 
@@ -251,12 +278,22 @@ function RenderElement({
   // all other components use the onAction callback pattern.
   if (element.action != null && onAction != null) {
     if (ONCLICK_ACTION_TYPES.has(type)) {
-      restProps.onClick = createClickHandler(
-        element.action,
-        elementKey,
-        onAction,
-        restProps.onClick,
-      );
+      if (element.action.name === "submit_form" && runtimeValueStore != null) {
+        restProps.onClick = createSubmitFormClickHandler(
+          element.action,
+          elementKey,
+          onAction,
+          runtimeValueStore,
+          restProps.onClick,
+        );
+      } else {
+        restProps.onClick = createClickHandler(
+          element.action,
+          elementKey,
+          onAction,
+          restProps.onClick,
+        );
+      }
     } else {
       restProps.onAction = createActionHandler(
         element.action,

@@ -220,7 +220,9 @@ describe("integration: dispatchAction → processActionResult", () => {
     expect(result).not.toBeNull();
     processActionResult(result!, cbs);
 
-    expect(cbs.sendMessage).toHaveBeenCalledWith("name: Bob");
+    expect(cbs.sendMessage).toHaveBeenCalledWith(
+      '{"actionName":"submit_form","sourceKey":"form-btn","params":{"name":"Bob"},"fields":{}}',
+    );
   });
 
   it("unknown action returns null — no processing needed", () => {
