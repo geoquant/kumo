@@ -2,6 +2,9 @@
 PRD: interactivity-and-exports
 Started: 2026-02-19
 
+## CRITICAL RULES
+- **Branch**: ALL commits go on `geoquant/streaming-ui`. NEVER create new branches. `git checkout geoquant/streaming-ui` before any work.
+
 ## Codebase Patterns
 - **Action injection pattern**: UITreeRenderer checks element.action + onAction prop to inject handlers. Button/Link get onClick; other components get onAction.
 - **Spy component testing**: Real kumo components error in test env (dual React). Use `SpyComponent` + `capturedPropsMap` pattern to test prop injection. Temporarily swap COMPONENT_MAP entries in try/finally blocks.
