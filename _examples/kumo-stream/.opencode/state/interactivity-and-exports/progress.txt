@@ -90,3 +90,9 @@ Started: 2026-02-19
 - **Files changed**:
   - `src/core/system-prompt.ts` — added 2 anti-pattern bullet points + new `## Accessibility (Required)` section (~10 lines) between Anti-Patterns and Response Format sections
 - **Learnings**: System prompt structure: new top-level sections go between existing sections by importance. A11y rules belong as a dedicated section (not buried in Rules) since LLMs weight section-level headings more heavily. The counter example (Example 5) has no form elements, so no label changes needed. All existing form examples already had proper labels — the rules codify what was already best practice in the examples.
+
+## Task - docs-1
+- **Implemented**: Replaced placeholder "Streaming Responses" section in GENERATIVE-UI.md with comprehensive documentation covering: JSONL + RFC 6902 wire format, UITree target schema, concrete JSONL examples, supported operations table with RFC 6901 JSON Pointer paths, SSE transport section (server→client with frame types), and three-stage client pipeline (JSONL parser → patch application → React wiring). Includes code examples for parser interface, immutable patch application, and full React integration pattern.
+- **Files changed**:
+  - `_examples/GENERATIVE-UI.md` — replaced 2-line placeholder with ~120 lines of structured documentation
+- **Learnings**: The streaming architecture has three clean separation boundaries worth documenting separately: (1) SSE transport (server concern — frame types, content-type headers), (2) JSONL parsing (text→structured — buffering, line splitting, tolerance of markdown fences), (3) patch application (structured→state — immutable tree updates). Each maps to a distinct module in the codebase (server/index.ts, jsonl-parser.ts, rfc6902.ts). Key behaviors to document: incremental rendering, graceful partial states (missing children don't crash), error resilience (flush preserves partial UI).
