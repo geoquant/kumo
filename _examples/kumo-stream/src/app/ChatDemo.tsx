@@ -23,7 +23,8 @@ import { startStream, type StreamHandle } from "../core/stream-client";
 import { UITreeRenderer, isRenderableTree } from "../core/UITreeRenderer";
 import type { ActionEvent } from "../core/action-handler";
 import type { UITree } from "../core/types";
-import { actionToPatch } from "../core/action-patch-bridge";
+import { BUILTIN_HANDLERS, dispatchAction } from "../core/action-registry";
+import { processActionResult } from "../core/process-action-result";
 import { ActionPanel, type ActionLogEntry } from "./ActionPanel";
 
 // =============================================================================
@@ -136,6 +137,7 @@ export function ChatDemo() {
   const applyPatchesRef = useRef<(patches: readonly JsonPatchOp[]) => void>(
     () => {},
   );
+  const handleSubmitRef = useRef<(text: string) => void>(() => {});
 
   const handleAction = useCallback((event: ActionEvent) => {
     // Always log the action
@@ -144,14 +146,19 @@ export function ChatDemo() {
       { timestamp: new Date().toISOString(), event },
     ]);
 
-    // During streaming, log but don't apply patches
+    // During streaming, log but don't apply patches or process results
     if (statusRef.current === "streaming") return;
 
-    // Attempt to map action → patch for known interactions
-    const patch = actionToPatch(event, treeRef.current);
-    if (patch != null) {
-      applyPatchesRef.current([patch]);
-    }
+    // Dispatch through registry → typed ActionResult
+    const result = dispatchAction(BUILTIN_HANDLERS, event, treeRef.current);
+
+    // null = unregistered action; already logged above, nothing else to do
+    if (result == null) return;
+
+    processActionResult(result, {
+      applyPatches: applyPatchesRef.current,
+      sendMessage: handleSubmitRef.current,
+    });
   }, []);
 
   const { tree, applyPatches, reset, onAction } = useUITree({
@@ -159,6 +166,7 @@ export function ChatDemo() {
   });
 
   // Keep refs in sync with latest values
+  // (handleSubmitRef is synced below after handleSubmit is defined)
   treeRef.current = tree;
   statusRef.current = status;
   applyPatchesRef.current = applyPatches;
@@ -269,6 +277,9 @@ export function ChatDemo() {
     },
     [messages, tree, reset, applyPatches],
   );
+
+  // Sync handleSubmitRef so handleAction (defined above) can call it
+  handleSubmitRef.current = handleSubmit;
 
   const handleStop = useCallback(() => {
     if (streamRef.current) {
