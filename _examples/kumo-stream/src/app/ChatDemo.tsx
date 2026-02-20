@@ -34,14 +34,22 @@ import { SubmitPanel } from "./SubmitPanel";
 // =============================================================================
 
 const PRESET_PROMPTS = [
-  "Welcome the user to Cloudflare",
-  "Create a DNS record editor",
-  "Show a server status dashboard",
-  "Build a support ticket form",
-  "Display a pricing comparison table",
-  "Create a user profile settings page",
-  "Show an analytics overview",
-  "Build a counter",
+  {
+    label: "Welcome",
+    prompt: "Welcome the user to Cloudflare",
+  },
+  {
+    label: "Form",
+    prompt: "Create a notification preferences form",
+  },
+  {
+    label: "Counters",
+    prompt: "Two counters",
+  },
+  {
+    label: "Table",
+    prompt: "Display a pricing comparison table",
+  },
 ] as const;
 
 // =============================================================================
@@ -355,12 +363,12 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
       <div className="cb-presets">
         {PRESET_PROMPTS.map((preset) => (
           <button
-            key={preset}
+            key={preset.label}
             type="button"
             disabled={isStreaming}
-            onClick={() => handleSubmit(preset)}
+            onClick={() => handleSubmit(preset.prompt)}
           >
-            {preset}
+            {preset.label}
           </button>
         ))}
       </div>
