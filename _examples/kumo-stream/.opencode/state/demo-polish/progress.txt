@@ -90,3 +90,13 @@ Started: 2026-02-19
 - Added "Key points" guidance section telling LLM that `count-display` key and `increment`/`decrement` action names are required for host-side state management
 - Files changed: `src/core/system-prompt.ts`
 - **Learnings:** System prompt examples follow a consistent pattern: `## Example N: Title` → `User: "prompt"` → raw JSONL lines. The "Key points" note section is a useful addition to steer the LLM toward specific key names/action names that the host application depends on.
+
+## Task - functional-3
+- Created `src/core/action-patch-bridge.ts` with `actionToPatch(event, tree)` → `JsonPatchOp | null`
+- Recognizes `increment`/`decrement` actions via `COUNTER_ACTIONS` Set
+- Looks up `count-display` element in tree, parses `props.children` as integer
+- Returns `{ op: "replace", path: "/elements/count-display/props/children", value: String(next) }`
+- Graceful fallbacks: missing element → null, non-numeric text → defaults to 0, number type children → stringified
+- Created `src/__tests__/action-patch-bridge.test.ts` with 14 tests covering all edge cases
+- Files changed: `src/core/action-patch-bridge.ts` (new), `src/__tests__/action-patch-bridge.test.ts` (new)
+- **Learnings:** The bridge pattern (action → patch) is a clean separation: the bridge is a pure function with no side effects, making it trivially testable. `props.children` can be string or number in UIElement, so the bridge handles both. The patch path `/elements/<key>/props/children` targets the nested text content within an element.
