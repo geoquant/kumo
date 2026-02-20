@@ -222,6 +222,7 @@ describe("applyPatch: edge cases", () => {
     const result = applyPatch(EMPTY, patch);
     // "/" with empty segment → no segments → shallow copy
     expect(result).not.toBe(EMPTY);
+    expect(result).toEqual(EMPTY);
   });
 
   it("handles deeply nested nonexistent path for remove gracefully", () => {
@@ -238,6 +239,74 @@ describe("applyPatch: edge cases", () => {
     // Should not throw
     const result = applyPatch(prev, patch);
     expect(result.elements["card"]).toBeDefined();
+  });
+});
+
+describe("applyPatch: hardened path semantics", () => {
+  const TREE: UITree = {
+    root: "card",
+    elements: {
+      card: el("card", "Surface", {}, ["text"]),
+      text: el("text", "Text", { children: "hi" }),
+    },
+  };
+
+  it("treats blocked segments as no-ops (tree preserved)", () => {
+    const paths = [
+      "/elements/__proto__/x",
+      "/elements/constructor/x",
+      "/elements/prototype/x",
+    ];
+
+    for (const path of paths) {
+      const r1 = applyPatch(TREE, { op: "add", path, value: "x" });
+      expect(r1).not.toBe(TREE);
+      expect(r1).toEqual(TREE);
+
+      const r2 = applyPatch(TREE, { op: "replace", path, value: "x" });
+      expect(r2).not.toBe(TREE);
+      expect(r2).toEqual(TREE);
+
+      const r3 = applyPatch(TREE, { op: "remove", path });
+      expect(r3).not.toBe(TREE);
+      expect(r3).toEqual(TREE);
+    }
+  });
+
+  it("treats '' and '/' as no-ops for remove/replace (tree preserved)", () => {
+    for (const path of ["", "/"]) {
+      const r1 = applyPatch(TREE, { op: "remove", path });
+      expect(r1).not.toBe(TREE);
+      expect(r1).toEqual(TREE);
+
+      const r2 = applyPatch(TREE, {
+        op: "replace",
+        path,
+        value: { root: "wiped", elements: {} },
+      });
+      expect(r2).not.toBe(TREE);
+      expect(r2).toEqual(TREE);
+    }
+  });
+
+  it("treats disallowed top-level paths as no-ops", () => {
+    const path = "/not-allowed";
+
+    expect(applyPatch(TREE, { op: "add", path, value: "x" })).toEqual(TREE);
+    expect(applyPatch(TREE, { op: "replace", path, value: "x" })).toEqual(TREE);
+    expect(applyPatch(TREE, { op: "remove", path })).toEqual(TREE);
+  });
+
+  it("treats ops targeting /elements itself as no-ops", () => {
+    const path = "/elements";
+
+    expect(
+      applyPatch(TREE, { op: "add", path, value: { hacked: true } }),
+    ).toEqual(TREE);
+    expect(
+      applyPatch(TREE, { op: "replace", path, value: { hacked: true } }),
+    ).toEqual(TREE);
+    expect(applyPatch(TREE, { op: "remove", path })).toEqual(TREE);
   });
 });
 

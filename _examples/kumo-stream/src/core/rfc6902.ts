@@ -146,7 +146,8 @@ function applyAdd(spec: UITree, segments: string[], value: unknown): UITree {
     return addToElements(spec, rest, value);
   }
 
-  return { ...spec, [first as string]: value };
+  // Disallowed top-level paths are treated as no-ops.
+  return { ...spec };
 }
 
 function addToElements(
@@ -155,7 +156,8 @@ function addToElements(
   value: unknown,
 ): UITree {
   if (segments.length === 0) {
-    return { ...spec, elements: value as UITree["elements"] };
+    // Never allow replacing the entire elements map.
+    return { ...spec };
   }
 
   const [key, ...rest] = segments;
@@ -231,7 +233,8 @@ function applyReplace(
   value: unknown,
 ): UITree {
   if (segments.length === 0) {
-    return value as UITree;
+    // Root-level replace would allow wiping/replacing the whole tree.
+    return { ...spec };
   }
 
   const [first, ...rest] = segments;
@@ -244,7 +247,8 @@ function applyReplace(
     return replaceInElements(spec, rest, value);
   }
 
-  return { ...spec, [first as string]: value };
+  // Disallowed top-level paths are treated as no-ops.
+  return { ...spec };
 }
 
 function replaceInElements(
@@ -253,7 +257,8 @@ function replaceInElements(
   value: unknown,
 ): UITree {
   if (segments.length === 0) {
-    return { ...spec, elements: value as UITree["elements"] };
+    // Never allow replacing the entire elements map.
+    return { ...spec };
   }
 
   const [key, ...rest] = segments;
@@ -306,7 +311,8 @@ function replaceNestedValue(
 
 function applyRemove(spec: UITree, segments: string[]): UITree {
   if (segments.length === 0) {
-    return { root: "", elements: {} };
+    // Root-level remove would allow wiping the whole tree.
+    return { ...spec };
   }
 
   const [first, ...rest] = segments;
@@ -319,16 +325,14 @@ function applyRemove(spec: UITree, segments: string[]): UITree {
     return removeFromElements(spec, rest);
   }
 
-  if (!((first as string) in spec)) return { ...spec };
-
-  const copy = { ...spec };
-  delete (copy as AnyRecord)[first as string];
-  return copy;
+  // Disallowed top-level paths are treated as no-ops.
+  return { ...spec };
 }
 
 function removeFromElements(spec: UITree, segments: string[]): UITree {
   if (segments.length === 0) {
-    return { ...spec, elements: {} };
+    // Never allow removing the entire elements map.
+    return { ...spec };
   }
 
   const [key, ...rest] = segments;
