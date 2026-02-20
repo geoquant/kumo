@@ -195,7 +195,7 @@
         "Conversation area: scrollable with max-height, user bubbles right-aligned, assistant snapshots with border",
         "Overall visual parity with cross-boundary.html verified by side-by-side comparison"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
