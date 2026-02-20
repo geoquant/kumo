@@ -4,6 +4,7 @@ Started: 2026-02-20
 
 ## Codebase Patterns
 - Runtime values: per-container `RuntimeValueStore` + React context provider in `UITreeRenderer` (UMD uses per-container Map; SPA uses `useRuntimeValueStore()`)
+- Runtime capture: `UITreeRenderer` injects `onChange` for `Input` + `Textarea` to set store by `elementKey` (chain existing handler; read `event.target.value` safely)
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -12,3 +13,8 @@ Started: 2026-02-20
 - Implemented per-container runtime value store w/ touched tracking + clear-on-reset
 - Files changed: `_examples/kumo-stream/src/core/runtime-value-store.ts`, `_examples/kumo-stream/src/core/runtime-value-store-context.tsx`, `_examples/kumo-stream/src/core/hooks.ts`, `_examples/kumo-stream/src/core/UITreeRenderer.tsx`, `_examples/kumo-stream/src/app/ChatDemo.tsx`, `_examples/kumo-stream/src/loadable/index.ts`, `_examples/kumo-stream/src/__tests__/runtime-value-store.test.ts`
 - Learnings: keep store lifetime tied to container (UMD: `containerId` Map; React: hook + unmount cleanup)
+
+## Task - [functional-2]
+- Implemented runtime capture for `Input` + `Textarea` via `onChange` injection in `UITreeRenderer` (no controlled state)
+- Files changed: `_examples/kumo-stream/src/core/UITreeRenderer.tsx`, `_examples/kumo-stream/src/__tests__/runtime-value-capture.test.tsx`, `.opencode/state/kumo-stream-full-stack-alignment/prd.json`, `.opencode/state/kumo-stream-full-stack-alignment/progress.txt`
+- Learnings: keep capture logic in renderer so it works with any component-map impl; always chain existing handlers to avoid breaking host overrides
