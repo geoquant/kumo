@@ -16,6 +16,35 @@ export interface SseParser {
   readonly flush: () => void;
 }
 
+/**
+ * Parse one SSE event's collected `data:` lines into JSON payload(s).
+ *
+ * Strategies:
+ * - join with "\n" (SSE spec concatenation)
+ * - join with "" (tolerate emitters that split JSON across lines)
+ * - fallback to parsing each line independently
+ */
+export function parseSseDataLinesJson(dataLines: readonly string[]): unknown[] {
+  const candidates = [dataLines.join("\n"), dataLines.join("")];
+  for (const candidate of candidates) {
+    try {
+      return [JSON.parse(candidate) as unknown];
+    } catch {
+      // try next
+    }
+  }
+
+  const out: unknown[] = [];
+  for (const line of dataLines) {
+    try {
+      out.push(JSON.parse(line) as unknown);
+    } catch {
+      // ignore
+    }
+  }
+  return out;
+}
+
 export function createSseParser(
   onDataLines: (dataLines: readonly string[]) => void,
 ): SseParser {

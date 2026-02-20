@@ -19,7 +19,7 @@ import type { FormEvent } from "react";
 import { useRuntimeValueStore, useUITree } from "../core/hooks";
 import { createJsonlParser, type JsonlParser } from "../core/jsonl-parser";
 import type { JsonPatchOp } from "../core/rfc6902";
-import { createSseParser } from "../core/sse-parser";
+import { createSseParser, parseSseDataLinesJson } from "../core/sse-parser";
 import { UITreeRenderer, isRenderableTree } from "../core/UITreeRenderer";
 import type { ActionEvent } from "../core/action-handler";
 import type { UITree } from "../core/types";
@@ -75,34 +75,6 @@ function parseChatSseEvent(value: unknown): ChatSseEvent | null {
     return { type: "error", message: value["message"] };
   }
   return null;
-}
-
-function parseSseDataLinesAsEvents(
-  dataLines: readonly string[],
-): ChatSseEvent[] {
-  const candidates = [dataLines.join("\n"), dataLines.join("")];
-  for (const candidate of candidates) {
-    try {
-      const parsed: unknown = JSON.parse(candidate);
-      const ev = parseChatSseEvent(parsed);
-      if (ev) return [ev];
-    } catch {
-      // try next
-    }
-  }
-
-  // Fallback: parse each data line independently.
-  const out: ChatSseEvent[] = [];
-  for (const line of dataLines) {
-    try {
-      const parsed: unknown = JSON.parse(line);
-      const ev = parseChatSseEvent(parsed);
-      if (ev) out.push(ev);
-    } catch {
-      // ignore
-    }
-  }
-  return out;
 }
 
 function toUserFacingNetworkErrorMessage(err: unknown): string | null {
@@ -309,8 +281,10 @@ export function ChatDemo({ isDark: _isDark }: ChatDemoProps) {
           let sawDone = false;
 
           const sse = createSseParser((dataLines) => {
-            const events = parseSseDataLinesAsEvents(dataLines);
-            for (const event of events) {
+            for (const payload of parseSseDataLinesJson(dataLines)) {
+              const event = parseChatSseEvent(payload);
+              if (!event) continue;
+
               if (event.type === "text") {
                 const ops = parser.push(event.delta);
                 if (ops.length > 0) applyPatches(ops);
