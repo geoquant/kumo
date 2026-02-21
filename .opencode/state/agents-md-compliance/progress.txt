@@ -58,3 +58,11 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 - Deleted all 5 .bak files (AGENTS.md.bak, packages/kumo/AGENTS.md.bak, packages/kumo-docs-astro/AGENTS.md.bak, packages/kumo-figma/AGENTS.md.bak, ci/AGENTS.md.bak)
 - Files changed: packages/kumo/AGENTS.md (15 lines added), 5 .bak files deleted
 - **Learnings:** Selective merge is better than wholesale restore. The .bak had 129 lines with some opinionated observations (DateRangePicker duplication, catalog race condition) that aren't appropriate for AGENTS.md. Final: 95 lines — above the 80-line guideline but justified by the regression prevention mandate.
+
+## Task - docs-7
+- Created INCIDENTS.md at repo root (31 lines)
+- Framed as UI component library (not edge infra); explains no direct production traffic
+- "Production-Adjacent Surfaces" table covers: npm package, docs site (kumo-ui.com), VR detection, CSS contract, browser compat
+- No historical incidents; incident template with date, severity, summary, root cause, resolution, prevention
+- Files created: INCIDENTS.md
+- **Learnings:** VR is referenced as prevention mechanism in the table rather than a separate section — more natural since it's one of several CI-based protections alongside CSS contract and browser compat tests.

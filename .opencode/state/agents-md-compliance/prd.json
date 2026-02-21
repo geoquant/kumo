@@ -81,7 +81,7 @@
         "References VR gate as prevention mechanism",
         "Cross-references docs site deployment as production-adjacent surface"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-8",
