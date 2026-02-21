@@ -30,3 +30,15 @@ Started: 2026-02-20
   - Vite's `build.target` is separate from `rollupOptions` — it controls esbuild's syntax lowering
   - ES2022 adds: top-level await, class fields, private methods, RegExp /d, Error.cause, Object.hasOwn, Array.at
   - Build succeeds cleanly with es2022, no syntax incompatibilities in current source
+
+## Task - compat-2
+- Created post-build browser compat test at `packages/kumo/tests/build/browser-compat.test.ts`
+- Scans all 134 dist JS files for 8 banned ES2023+/ES2024 API patterns
+- Includes KNOWN_EXCEPTIONS escape hatch with required justification
+- Sanity-checks dist has >50 JS files to catch build structure changes
+- Files changed: `packages/kumo/tests/build/browser-compat.test.ts` (new)
+- **Learnings:**
+  - `.with()` pattern needs careful regex — `(?:[\])]|\w)\.with\(\s*\d` avoids false positives from `startsWith(`, `endsWith(`, etc.
+  - Current dist (134 JS files) is clean — zero banned APIs
+  - `structuredClone` needs `\b` word boundary to avoid matching variable names containing the substring
+  - Recursive file walk needed since dist has nested dirs (components/, primitives/, etc.)

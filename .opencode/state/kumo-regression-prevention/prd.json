@@ -37,7 +37,7 @@
         "Run pnpm --filter @cloudflare/kumo build && pnpm --filter @cloudflare/kumo test -- tests/build — all pass",
         "Temporarily add toSorted() call in a component, rebuild, re-run — test fails"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "lint-1",
