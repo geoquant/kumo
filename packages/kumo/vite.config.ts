@@ -234,7 +234,7 @@ export default defineConfig(({ mode }) => {
           // Add "use client" directive to all output chunks.
           // preserveModules is false, so Rollup can't preserve per-file directives.
           // Instead, we inject the directive via banner on all output chunks.
-          banner: (_chunk) => {
+          banner: () => {
             // RSC apps need this directive on all components that use hooks/events
             return '"use client";\n';
           },

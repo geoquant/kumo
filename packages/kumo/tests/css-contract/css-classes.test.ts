@@ -3,8 +3,7 @@ import { existsSync, readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const distStylesDir = join(__dirname, "../../dist/styles");
 const isBuilt = existsSync(join(distStylesDir, "kumo-standalone.css"));
@@ -95,6 +94,9 @@ const CSS_CLASS_MANIFEST: ReadonlyArray<{
  *
  * Does NOT match partial names — e.g. searching for "float" won't
  * match ".floating" because we require a word boundary after the name.
+ *
+ * Assumes compiled CSS has comments stripped (Tailwind's default). A class
+ * name appearing only in a CSS comment would be a false positive.
  */
 function classExistsInCss(css: string, className: string): boolean {
   // Escape regex special characters in class name
@@ -150,7 +152,12 @@ describe.skipIf(!isBuilt)("CSS Class Contract (Post-Build)", () => {
 
   describe("manifest completeness", () => {
     it("should cover all non-prefixed utility classes in kumo-binding.css", () => {
-      // Read the source kumo-binding.css and extract class selectors
+      // Read the source kumo-binding.css and extract class selectors.
+      // NOTE: This checks the *source* file, but the contract test above checks
+      // *compiled* output. If a class exists in source but is unused by any
+      // component, Tailwind may tree-shake it — causing this check to demand a
+      // manifest entry that the contract test would then fail on. All classes in
+      // kumo-binding.css must be referenced by at least one component to survive.
       const bindingSrc = readFileSync(
         join(__dirname, "../../src/styles/kumo-binding.css"),
         "utf-8",
@@ -166,8 +173,6 @@ describe.skipIf(!isBuilt)("CSS Class Contract (Post-Build)", () => {
 
       while ((match = classPattern.exec(bindingSrc)) !== null) {
         const cls = match[1];
-        // Skip pseudo-element artifacts and Tailwind internals
-        if (cls.startsWith("rdp-")) continue;
         foundClasses.add(cls);
       }
 

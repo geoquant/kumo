@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import { join, dirname, relative } from "path";
 import { fileURLToPath } from "url";
 import ts from "typescript";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const componentsDir = join(__dirname, "../../src/components");
+const blocksDir = join(__dirname, "../../src/blocks");
 
 /**
  * Tailwind Class Conflict Lint
@@ -30,6 +30,17 @@ const componentsDir = join(__dirname, "../../src/components");
  * Each pair represents two Tailwind classes that set the same CSS property
  * to different values. If both appear in the same cn() call (outside of
  * mutually-exclusive conditional branches), it's a conflict.
+ *
+ * This list is intentionally narrow to minimize false positives. It covers
+ * the highest-risk conflicts that are hard to spot in code review (overflow,
+ * display, visibility). Expand as real bugs are found.
+ *
+ * Candidates for future expansion:
+ *   - position: relative vs absolute vs fixed vs sticky
+ *   - text-align: text-left vs text-center vs text-right
+ *   - flex-direction: flex-row vs flex-col
+ *   - align-items: items-start vs items-center vs items-end
+ *   - justify-content: justify-start vs justify-center vs justify-between
  */
 const CONFLICT_PAIRS: ReadonlyArray<readonly [string, string]> = [
   // overflow conflicts — overflow-hidden cancels overflow-y-auto, etc.
@@ -110,9 +121,18 @@ function extractUnconditionalClasses(node: ts.Node): string[] {
   }
 
   // Ternary: cond ? whenTrue : whenFalse
-  // Both branches are mutually exclusive — skip entirely.
-  // This avoids false positives like: cond ? "overflow-visible" : "overflow-hidden"
+  // Genuinely mutually exclusive branches — skip both to avoid false positives.
+  // Exception: when one branch is "" (empty string), the other is effectively
+  // conditional (like `cond && "classes"`), so we extract it.
+  // e.g. cn("overflow-y-auto", cond ? "overflow-hidden" : "") — the "overflow-hidden"
+  // can co-occur with "overflow-y-auto" and should be checked for conflicts.
   if (ts.isConditionalExpression(node)) {
+    const trueIsEmpty =
+      ts.isStringLiteral(node.whenTrue) && node.whenTrue.text.trim() === "";
+    const falseIsEmpty =
+      ts.isStringLiteral(node.whenFalse) && node.whenFalse.text.trim() === "";
+    if (falseIsEmpty) return extractUnconditionalClasses(node.whenTrue);
+    if (trueIsEmpty) return extractUnconditionalClasses(node.whenFalse);
     return [];
   }
 
@@ -124,6 +144,28 @@ function extractUnconditionalClasses(node: ts.Node): string[] {
     node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
   ) {
     return extractUnconditionalClasses(node.right);
+  }
+
+  // Object literal: cn({ "class-a": condition, "class-b": true })
+  // All property name strings are extracted — they co-occur when their conditions
+  // are true. This is conservative (two keys with mutually exclusive conditions
+  // will still be flagged), matching how we treat `&&` expressions.
+  if (ts.isObjectLiteralExpression(node)) {
+    const classes: string[] = [];
+    for (const prop of node.properties) {
+      if (ts.isPropertyAssignment(prop)) {
+        let key: string | undefined;
+        if (ts.isStringLiteral(prop.name)) {
+          key = prop.name.text;
+        } else if (ts.isIdentifier(prop.name)) {
+          key = prop.name.text;
+        }
+        if (key) {
+          classes.push(...key.split(/\s+/).filter(Boolean));
+        }
+      }
+    }
+    return classes;
   }
 
   // Parenthesized expression: (expr) — unwrap
@@ -207,9 +249,18 @@ function findConflicts(location: CnCallInfo): Conflict[] {
   return conflicts;
 }
 
+/** Collect tsx files from all scanned directories */
+function collectAllTsxFiles(): string[] {
+  const files = collectTsxFiles(componentsDir);
+  if (existsSync(blocksDir)) {
+    files.push(...collectTsxFiles(blocksDir));
+  }
+  return files;
+}
+
 describe("Tailwind Class Conflict Lint", () => {
   it("should not have conflicting Tailwind classes in cn() calls", () => {
-    const tsxFiles = collectTsxFiles(componentsDir);
+    const tsxFiles = collectAllTsxFiles();
     expect(tsxFiles.length).toBeGreaterThan(0);
 
     const allConflicts: Conflict[] = [];
@@ -250,8 +301,8 @@ describe("Tailwind Class Conflict Lint", () => {
   });
 
   it("should scan a meaningful number of component files", () => {
-    const tsxFiles = collectTsxFiles(componentsDir);
-    // Sanity check: should have many .tsx component files
+    const tsxFiles = collectAllTsxFiles();
+    // Sanity check: should have many .tsx component + block files
     expect(tsxFiles.length).toBeGreaterThan(20);
   });
 });

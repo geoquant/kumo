@@ -4,7 +4,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
 
 concurrency:
@@ -168,12 +168,19 @@ jobs:
               });
             }
 
+  # Visual regression is a detection tool, not a correctness gate.
+  # It posts a PR comment with before/after/diff screenshots so reviewers
+  # can see visual changes, but it never blocks merges. Intentional visual
+  # changes (new components, updated styling) are expected and valid.
   visual-regression:
     name: Visual Regression
     needs: docs-deploy
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository && needs.docs-deploy.outputs.preview_url }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -203,42 +210,3 @@ jobs:
           name: visual-regression-screenshots
           path: ci/visual-regression/screenshots/
           retention-days: 7
-
-  # Gate job for branch protection. Always runs so GitHub reports a status.
-  # "Visual Regression Check" should be the required status check name.
-  #
-  # Pass when: VR passed, VR was skipped (no visual changes / fork PR),
-  #            or PR has the "visual-change-approved" label.
-  # Fail when: VR failed AND label is absent.
-  visual-regression-check:
-    name: Visual Regression Check
-    needs: [visual-regression]
-    if: always()
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - name: Evaluate result
-        env:
-          VR_RESULT: ${{ needs.visual-regression.result }}
-          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'visual-change-approved') }}
-        run: |
-          echo "Visual Regression result: $VR_RESULT"
-          echo "Has visual-change-approved label: $HAS_LABEL"
-
-          if [[ "$VR_RESULT" == "success" || "$VR_RESULT" == "skipped" ]]; then
-            echo "Visual regression result: $VR_RESULT — passing gate."
-            exit 0
-          fi
-
-          if [[ "$VR_RESULT" == "cancelled" ]]; then
-            echo "::warning title=Visual Regression Cancelled::Visual regression was cancelled — treating as pass."
-            exit 0
-          fi
-
-          if [[ "$HAS_LABEL" == "true" ]]; then
-            echo "::warning title=Visual Regression Bypassed::PR has 'visual-change-approved' label — visual regression failure overridden."
-            exit 0
-          fi
-
-          echo "::error title=Visual Regression Failed::Visual regression detected changes exceeding threshold. Add the 'visual-change-approved' label and re-run this check to bypass."
-          exit 1

@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import pixelmatch from "pixelmatch";
@@ -21,8 +21,10 @@ const SCREENSHOTS_DIR = "ci/visual-regression/screenshots";
 const API_KEY = process.env.SCREENSHOT_API_KEY ?? "";
 
 /**
- * Maximum allowed pixel diff percentage before the script fails.
- * Any screenshot exceeding this threshold causes a non-zero exit.
+ * Pixel diff percentage threshold for reporting visual changes.
+ * Screenshots exceeding this threshold are logged as warnings
+ * and annotated in GitHub Actions, but do not cause a non-zero exit.
+ * VR is a detection tool — intentional visual changes are expected.
  */
 const DIFF_THRESHOLD_PERCENT = 0.5;
 
@@ -84,27 +86,46 @@ function ghAnnotation(
       (c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`,
     ) ?? "";
   const titleSuffix = safeTitle ? ` title=${safeTitle}` : "";
-  console.log(`::${level}${titleSuffix}::${message}`);
+  // Percent-encode special characters per the GH Actions workflow command spec.
+  // % must be encoded first to avoid double-encoding.
+  const safeMessage = message.replace(
+    /[%\n\r]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`,
+  );
+  console.log(`::${level}${titleSuffix}::${safeMessage}`);
 }
 
-/** Check if an error indicates the screenshot worker is unreachable. */
+/**
+ * Check if an error indicates the screenshot worker is unreachable.
+ *
+ * String-matching is inherently fragile — error messages may change across
+ * Node.js / undici versions. The patterns below match the known error formats
+ * from Node 24's undici fetch and our own `captureScreenshots` throw format
+ * ("Worker request failed: {status} - {body}"). Update if error formats change.
+ */
 function isWorkerUnreachable(error: unknown): boolean {
   const msg = error instanceof Error ? error.message : String(error);
   return (
     msg.includes("fetch failed") ||
     msg.includes("ECONNREFUSED") ||
+    msg.includes("ECONNRESET") ||
     msg.includes("ENOTFOUND") ||
+    msg.includes("ETIMEDOUT") ||
+    msg.includes("EHOSTUNREACH") ||
     msg.includes("UND_ERR_CONNECT_TIMEOUT") ||
-    /Worker request failed: 50[234]\b/.test(msg)
+    // Match 5xx server errors from the worker (500–504)
+    /Worker request failed: 50[0-4]\b/.test(msg)
   );
 }
 
 function getChangedFiles(): string[] | null {
   try {
     const base = process.env.GITHUB_BASE_REF || "main";
-    const output = execSync(`git diff --name-only origin/${base}...HEAD`, {
-      encoding: "utf-8",
-    });
+    const output = execFileSync(
+      "git",
+      ["diff", "--name-only", `origin/${base}...HEAD`],
+      { encoding: "utf-8" },
+    );
     return output.trim().split("\n").filter(Boolean);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -133,6 +154,8 @@ async function uploadImageToGitHub(
   }
 
   const [owner, repoName] = repo.split("/");
+  // TODO: Clean up old vr-screenshots-{pr}-* branches for the same PR
+  // to avoid accumulating orphan branches with binary PNGs over time.
   const branch = `vr-screenshots-${prNumber}-${runId}`;
   const path = `screenshots/${filename}`;
 
@@ -534,6 +557,13 @@ async function postPRComment(body: string): Promise<void> {
     },
   );
 
+  if (!commentsResponse.ok) {
+    console.warn(
+      `Failed to list PR comments: ${commentsResponse.status} ${await commentsResponse.text()}`,
+    );
+    return;
+  }
+
   const comments = (await commentsResponse.json()) as Array<{
     id: number;
     body?: string;
@@ -546,7 +576,7 @@ async function postPRComment(body: string): Promise<void> {
 
   const method = existingComment ? "PATCH" : "POST";
 
-  await fetch(url, {
+  const commentResponse = await fetch(url, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -555,6 +585,13 @@ async function postPRComment(body: string): Promise<void> {
     },
     body: JSON.stringify({ body }),
   });
+
+  if (!commentResponse.ok) {
+    console.warn(
+      `Failed to ${existingComment ? "update" : "create"} PR comment: ${commentResponse.status} ${await commentResponse.text()}`,
+    );
+    return;
+  }
 
   console.log(`PR comment ${existingComment ? "updated" : "created"}`);
 }
@@ -733,29 +770,30 @@ async function main(): Promise<void> {
   const report = generateMarkdownReport(comparisons);
   await postPRComment(report);
 
-  // Fail if any screenshot exceeds the diff threshold
+  // Report screenshots exceeding the diff threshold (informational only).
+  // VR is a detection tool — intentional visual changes are expected.
+  // The PR comment above is the primary output for reviewer awareness.
   const exceedingThreshold = comparisons.filter(
     (c) => c.changed && c.diffPercent > DIFF_THRESHOLD_PERCENT,
   );
 
   if (exceedingThreshold.length > 0) {
-    console.error(
+    console.log(
       `\n${exceedingThreshold.length} screenshot(s) exceed ${DIFF_THRESHOLD_PERCENT}% diff threshold:`,
     );
     for (const c of exceedingThreshold) {
-      console.error(`  - ${c.name}: ${c.diffPercent}%`);
+      console.log(`  - ${c.name}: ${c.diffPercent}%`);
     }
     ghAnnotation(
-      "error",
-      `${exceedingThreshold.length} screenshot(s) exceed ${DIFF_THRESHOLD_PERCENT}% threshold`,
-      "Visual Regression Failed",
+      "warning",
+      `${exceedingThreshold.length} screenshot(s) exceed ${DIFF_THRESHOLD_PERCENT}% threshold — review the PR comment for details`,
+      "Visual Changes Detected",
     );
-    throw new Error(
-      `${exceedingThreshold.length} screenshot(s) exceed ${DIFF_THRESHOLD_PERCENT}% diff threshold`,
+  } else {
+    console.log(
+      `\nAll screenshots within ${DIFF_THRESHOLD_PERCENT}% threshold.`,
     );
   }
-
-  console.log(`\nAll screenshots within ${DIFF_THRESHOLD_PERCENT}% threshold.`);
 }
 
 main().catch((error) => {

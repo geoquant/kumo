@@ -3,8 +3,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "fs";
 import { join, dirname, relative } from "path";
 import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const distDir = join(__dirname, "../../dist");
 const isBuilt = existsSync(join(distDir, "index.js"));
@@ -80,8 +79,11 @@ const BANNED_APIS: readonly BannedAPI[] = [
     since: "ES2023",
   },
   // ES2023 Array.prototype.with() — immutable index replacement
-  // Match `.with(` preceded by ] or ) or word char (likely array/call context)
-  // but NOT "startsWith(", "endsWith(", "replaceWith(" etc.
+  // Best-effort heuristic: matches `.with(` preceded by ] or ) or word char
+  // (likely array/call context) followed by a digit literal.
+  // Known limitations:
+  //   - False negatives: misses `arr.with(idx, val)` where idx is a variable
+  //   - False positives: may match non-Array `.with(0` on other objects
   {
     name: "Array.prototype.with()",
     pattern: /(?:[\])]|\w)\.with\(\s*\d/,
