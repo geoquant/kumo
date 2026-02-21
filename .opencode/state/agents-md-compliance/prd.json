@@ -164,7 +164,7 @@
         "README.md contains a reference/link to ARCHITECTURE.md",
         "README.md contains a reference/link to INCIDENTS.md"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {

@@ -123,3 +123,9 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 - Used `sed` not `grep -P` for macOS compatibility (BSD grep lacks -P flag)
 - Files changed: lefthook.yml (12 lines added)
 - **Learnings:** macOS ships BSD grep which lacks `-P` (Perl regex). Use `sed -n 's/.../\1/p'` for portable capture groups. Lefthook `run: |` YAML block scalar supports multi-line shell scripts inline — no need for a separate script file for simple checks.
+
+## Task - docs-9
+- Added ARCHITECTURE.md and INCIDENTS.md references to README.md Documentation section
+- Two new bullet points with links and brief descriptions alongside existing Live Docs and AGENTS.md entries
+- Files changed: README.md (2 lines added)
+- **Learnings:** None — straightforward doc link addition.

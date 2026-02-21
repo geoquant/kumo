@@ -89,6 +89,8 @@ pnpm --filter @cloudflare/kumo new-component
 
 - **Live Docs**: [kumo-ui.com](https://kumo-ui.com)
 - **AI/Agent Guide**: [AGENTS.md](./AGENTS.md)
+- **Architecture**: [ARCHITECTURE.md](./ARCHITECTURE.md) — monorepo structure, codegen pipeline, theming, CI
+- **Incidents**: [INCIDENTS.md](./INCIDENTS.md) — incident log and prevention mechanisms
 
 ## License
 
