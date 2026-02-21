@@ -363,6 +363,10 @@
       "types": "./dist/src/catalog/index.d.ts",
       "import": "./dist/catalog.js"
     },
+    "./streaming": {
+      "types": "./dist/src/streaming/index.d.ts",
+      "import": "./dist/streaming.js"
+    },
     "./ai/schemas": {
       "types": "./dist/ai/schemas.d.ts",
       "import": "./dist/ai/schemas.js"
