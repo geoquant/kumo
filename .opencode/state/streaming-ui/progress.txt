@@ -13,6 +13,8 @@ Started: 2026-02-21
 - Action types (ActionEvent, ActionDispatch) split into `action-types.ts` for lightweight import by hooks; full action system (factories, registry) in streaming-3
 - oxlint enforces `Array#toSorted()` over `Array#sort()` — always use immutable array methods
 - New module export pattern: vite entry `name: resolve(__dirname, "src/name/index.ts")` → package.json `"./name": { "types": "./dist/src/name/index.d.ts", "import": "./dist/name.js" }`
+- Defensive JSON parsing: registry JSON types are untrustworthy at module boundaries — use `isRecord()` guards, not type assertions
+- oxlint `no-base-to-string`: `String(unknownValue)` fails lint — type-narrow to string/number/boolean first, fall back to `JSON.stringify`
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -77,3 +79,22 @@ Started: 2026-02-21
 - Fixed duplicate rule #6 from original source (now numbered 1-8 correctly)
 - Model-agnostic: no provider-specific instructions
 - **Learnings:** System prompt sections decomposed into module-level constants for readability; `componentsSection` is injected rather than imported (avoids coupling to prompt builder that doesn't exist yet in catalog)
+
+## Task - prompt-2
+- Created `packages/kumo/src/catalog/prompt-builder.ts` with `buildComponentDocs()` function
+- Ported from `kumo-stream/src/core/system-prompt-components.ts` with key decoupling:
+  - Source depends on `KNOWN_TYPES` (generative module) + `ComponentPropsSchemas` (zod) — tightly coupled
+  - Prompt builder takes raw `registryJson` as input — no dependency on generative or zod schemas
+  - Prop filtering uses registry JSON directly instead of cross-referencing zod schemas
+- Prop filtering: skips className, id, lang, title, on*, set*, aria-* prefixes
+- Prop scoring: required (+3) > enum (+2) > interesting names (+1); props with score ≤0 excluded
+- Top 10 props per component (configurable via `maxPropsPerComponent`)
+- 9 category groups: Layout, Content, Interactive, Data Display, Navigation, Action, Feedback, Brand, Other
+- Sub-component types: SelectOption, BreadcrumbsLink/Current/Separator, TableHeader/Head/Body/Row/Cell/Footer
+- Type aliases: Textarea→InputArea, RadioGroup→Radio
+- Synthetic types: Div (generic container), RadioItem (radio option)
+- Optional `components` filter for subset output
+- Exported `buildComponentDocs` and `PromptBuilderOptions` from catalog barrel
+- Fixed `no-base-to-string` lint error: handle `prop.default` serialization for non-primitive types via `JSON.stringify`
+- Files changed: `prompt-builder.ts` (new), `index.ts` (barrel update)
+- **Learnings:** oxlint `no-base-to-string` catches `String(unknownValue)` — always type-narrow before stringifying; decoupling from `ComponentPropsSchemas`/zod means the prompt builder works without async schema loading
