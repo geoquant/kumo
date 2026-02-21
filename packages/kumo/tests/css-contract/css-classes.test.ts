@@ -138,7 +138,7 @@ describe.skipIf(!isBuilt)("CSS Class Contract (Post-Build)", () => {
             `\n`,
             `\n  If this class was intentionally removed:`,
             `\n    1. Remove it from CSS_CLASS_MANIFEST in this test`,
-            `\n    2. Create a changeset with a minor version bump`,
+            `\n    2. Create a changeset with a major version bump (breaking change)`,
             `\n  If this is unexpected:`,
             `\n    Check that ${entry.source}.css still defines .${entry.className}`,
           );

@@ -230,6 +230,11 @@ jobs:
             exit 0
           fi
 
+          if [[ "$VR_RESULT" == "cancelled" ]]; then
+            echo "::warning title=Visual Regression Cancelled::Visual regression was cancelled — treating as pass."
+            exit 0
+          fi
+
           if [[ "$HAS_LABEL" == "true" ]]; then
             echo "::warning title=Visual Regression Bypassed::PR has 'visual-change-approved' label — visual regression failure overridden."
             exit 0

@@ -98,6 +98,17 @@ const BANNED_APIS: readonly BannedAPI[] = [
     pattern: /\bArray\.fromAsync\(/,
     since: "ES2024",
   },
+  // ES2024 grouping methods
+  {
+    name: "Object.groupBy()",
+    pattern: /\bObject\.groupBy\(/,
+    since: "ES2024",
+  },
+  {
+    name: "Map.groupBy()",
+    pattern: /\bMap\.groupBy\(/,
+    since: "ES2024",
+  },
 ] as const;
 
 /**

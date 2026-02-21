@@ -77,8 +77,12 @@ function ghAnnotation(
   title?: string,
 ): void {
   // GitHub Actions workflow command properties are comma-separated.
-  // Titles must not contain commas or newlines.
-  const safeTitle = title?.replace(/[,\n\r]/g, ";") ?? "";
+  // Special characters must be percent-encoded per GH Actions spec.
+  const safeTitle =
+    title?.replace(
+      /[%\n\r,:=]/g,
+      (c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`,
+    ) ?? "";
   const titleSuffix = safeTitle ? ` title=${safeTitle}` : "";
   console.log(`::${level}${titleSuffix}::${message}`);
 }
@@ -91,7 +95,7 @@ function isWorkerUnreachable(error: unknown): boolean {
     msg.includes("ECONNREFUSED") ||
     msg.includes("ENOTFOUND") ||
     msg.includes("UND_ERR_CONNECT_TIMEOUT") ||
-    /Worker request failed: 5\d{2}\b/.test(msg)
+    /Worker request failed: 50[234]\b/.test(msg)
   );
 }
 
@@ -653,6 +657,13 @@ async function main(): Promise<void> {
         "warning",
         `Screenshot worker unreachable — visual regression skipped. ${msg}`,
         "Visual Regression Skipped",
+      );
+      // Post a PR comment so reviewers know VR was skipped
+      await postPRComment(
+        "## Visual Regression: Skipped\n\n" +
+          "> **Screenshot worker was unreachable.** Visual regression comparison could not run.\n" +
+          `> Error: ${msg}\n\n` +
+          "This does not indicate a problem with your PR. The check will pass to avoid blocking merges on infrastructure issues.",
       );
       return;
     }
