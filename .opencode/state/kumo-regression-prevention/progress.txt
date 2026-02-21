@@ -1,0 +1,23 @@
+# Progress Log
+PRD: kumo-regression-prevention
+Started: 2026-02-20
+
+## Codebase Patterns
+- **Post-build test guard**: `const isBuilt = existsSync(join(distDir, "file.js")); describe.skipIf(!isBuilt)(...)`
+- **Test discovery**: vitest.config.ts includes `tests/**/*.{test,spec}.ts` in unit project
+- **CSS build pipeline**: vite build -> css-build.ts copies raw CSS + compiles kumo-standalone.css via @tailwindcss/cli
+- **Dist CSS paths**: `dist/styles/kumo.css` (raw), `dist/styles/kumo-binding.css` (raw), `dist/styles/kumo-standalone.css` (compiled)
+- **Build deps issue**: `motion` package needed `pnpm install` after being added to package.json (flow component)
+
+---
+
+## Task - contract-1
+- Implemented CSS class contract test at `packages/kumo/tests/css-contract/css-classes.test.ts`
+- Test scans `dist/styles/kumo-standalone.css` (compiled output) for all 9 public class selectors
+- Includes manifest completeness check that verifies kumo-binding.css classes are all documented
+- Files changed: `packages/kumo/tests/css-contract/css-classes.test.ts` (new)
+- **Learnings:**
+  - kumo-standalone.css is minified to ~1 line, regex matching works fine
+  - The `classExistsInCss` helper uses word-boundary-like regex to avoid partial matches (e.g. `.float` not matching `.floating`)
+  - All 9 classes from kumo-binding.css survive Tailwind v4 compilation
+  - Pre-existing build failure: `motion/react` import in flow/diagram.tsx requires `pnpm install` after fresh clone
