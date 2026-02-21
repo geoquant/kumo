@@ -435,6 +435,7 @@
     "esbuild": "0.27.2",
     "eslint": "catalog:",
     "eslint-plugin-jsx-a11y": "catalog:",
+    "eslint-plugin-tailwindcss": "4.0.0-beta.0",
     "glob": "13.0.0",
     "happy-dom": "catalog:",
     "oxlint": "catalog:",
