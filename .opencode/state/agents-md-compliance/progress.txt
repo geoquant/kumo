@@ -35,3 +35,10 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 - Confirmed: correct counts — 38 components (line 29), 38 primitives (line 139), 44+ demos (line 33), 3 blocks (line 30)
 - Confirmed: no content duplication — root delegates detail to child files, child files cross-reference root
 - **Learnings:** Duplication check pattern: root should summarize + delegate via "See child AGENTS.md"; child should have "Parent: See root AGENTS.md". Counts in both are OK if contextual (root in WHERE TO LOOK, child in STRUCTURE).
+
+## Task - docs-4
+- Verification-only task — no file changes needed
+- Confirmed: packages/kumo/AGENTS.md line 16 lists `ai` in CLI commands, line 40 in WHERE TO LOOK table
+- Confirmed: packages/kumo/AGENTS.md line 12 shows correct "38 UI components"
+- Cross-verified: `ai.ts` exists in `src/command-line/commands/`, 38 component dirs exist
+- **Learnings:** kumo/lint/ has 5 rule files (not 6) — `kumo-plugin.js` is the plugin entry, not a rule. Root AGENTS.md "6 custom JS rules" counts all files including plugin; kumo AGENTS.md "5 custom oxlint rules" counts only rules. Both accurate in their context.

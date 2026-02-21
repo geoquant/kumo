@@ -44,7 +44,7 @@
         "packages/kumo/AGENTS.md documents CLI ai command",
         "packages/kumo/AGENTS.md has correct component count (38)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-5",
