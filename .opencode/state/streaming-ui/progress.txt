@@ -57,3 +57,13 @@ Started: 2026-02-21
 - Build produces `dist/streaming.js` (JS) and `dist/src/streaming/index.d.ts` (types)
 - All 177 export path validation tests pass including new streaming export
 - **Learnings:** Top-level module export pattern: vite entry `name: resolve(__dirname, "src/name/index.ts")` + package.json `"./name": { "types": "./dist/src/name/index.d.ts", "import": "./dist/name.js" }`
+
+## Task - streaming-5
+- Ported 9 streaming engine test files to `packages/kumo/tests/streaming/`
+- Files: `rfc6902.test.ts`, `jsonl-parser.test.ts`, `action-handler.test.ts`, `action-registry.test.ts`, `process-action-result.test.ts`, `runtime-value-store.test.ts`, `url-policy.test.ts`, `text-sanitizer.test.ts`, `streaming-integration.test.ts`
+- 116 tests across 9 files, all passing on first run
+- Import path changes: `../core/X` → `@/streaming/X` (vitest alias)
+- Action types imported from `@/streaming/action-types` (not `action-handler`) to match module split
+- Zero new dependencies added to package.json
+- Typecheck and lint pass cleanly (no new warnings)
+- **Learnings:** Test files use vitest `@/` alias not tsconfig paths; tsconfig excludes `**/*.test.ts` so LSP "cannot find module" errors are expected and harmless
