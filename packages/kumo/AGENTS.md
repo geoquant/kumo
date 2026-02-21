@@ -105,7 +105,7 @@ Output: ai/component-registry.{json,md} + ai/schemas.ts
 | Browser compat     | `tests/build/browser-compat.test.ts`     | No ES2023+ runtime APIs in dist output            | After build (`pnpm build && pnpm test -- tests/build`)        |
 | Tailwind conflicts | `tests/lint/tailwind-conflicts.test.ts`  | No conflicting Tailwind class pairs in cn() calls | Any time (`pnpm test -- tests/lint/tailwind-conflicts`)       |
 
-- **css-contract**: Manifest in test file is source of truth for public classes. Adding/removing classes requires manifest update. Removing requires changeset with minor bump.
+- **css-contract**: Manifest in test file is source of truth for public classes. Adding/removing classes requires manifest update. Removing requires changeset with major bump (breaking change).
 - **browser-compat**: Banned API list covers ES2023+ runtime methods (toSorted, findLast, structuredClone, etc.). Add exceptions with `KNOWN_EXCEPTIONS` + justification.
 - **tailwind-conflicts**: AST-based (TypeScript compiler API). Understands ternary branches (mutually exclusive classes are OK). Add conflict pairs to `CONFLICT_PAIRS` array.
 

@@ -54,12 +54,15 @@ interface CnCallInfo {
   /** 1-based line number of the cn() call */
   line: number;
   /**
-   * Classes that unconditionally co-occur. This is the "always present"
-   * set — classes from unconditional string args plus from `&&` expressions
-   * (which may or may not be present, but ARE present together when the
-   * condition is truthy). Ternary branches are kept separate.
+   * Classes that can co-occur within this cn() call. Includes:
+   * - Unconditional string literal args (always present)
+   * - Right-hand side of `&&` expressions (present when condition is truthy)
+   *
+   * Excludes ternary branches (mutually exclusive at runtime).
+   * Note: two classes behind different `&&` guards with mutually exclusive
+   * conditions will still be flagged — data-flow analysis is out of scope.
    */
-  unconditionalClasses: string[];
+  coOccurringClasses: string[];
 }
 
 interface Conflict {
@@ -171,7 +174,7 @@ function findCnCalls(sourceFile: ts.SourceFile): CnCallInfo[] {
         calls.push({
           file: relPath,
           line: line + 1, // 1-based
-          unconditionalClasses: allClasses,
+          coOccurringClasses: allClasses,
         });
       }
     }
@@ -188,7 +191,7 @@ function findCnCalls(sourceFile: ts.SourceFile): CnCallInfo[] {
  */
 function findConflicts(location: CnCallInfo): Conflict[] {
   const conflicts: Conflict[] = [];
-  const classSet = new Set(location.unconditionalClasses);
+  const classSet = new Set(location.coOccurringClasses);
 
   for (const [classA, classB] of CONFLICT_PAIRS) {
     if (classSet.has(classA) && classSet.has(classB)) {
@@ -243,8 +246,6 @@ describe("Tailwind Class Conflict Lint", () => {
       );
     }
 
-    // NOTE: This test is expected to REPORT the combobox conflict until
-    // lint-2 fixes it. Once lint-2 is complete, this should pass clean.
     expect(allConflicts).toEqual([]);
   });
 

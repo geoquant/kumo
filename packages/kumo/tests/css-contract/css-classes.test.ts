@@ -33,7 +33,7 @@ const isBuilt = existsSync(join(distStylesDir, "kumo-standalone.css"));
  * To remove a class:
  *   1. Remove the entry from this array
  *   2. Remove the class definition from source CSS
- *   3. Create a changeset (`pnpm changeset`) with at minimum a minor version bump
+ *   3. Create a changeset (`pnpm changeset`) with a major version bump
  *      — removing a public class is a breaking change for consumers
  */
 const CSS_CLASS_MANIFEST: ReadonlyArray<{

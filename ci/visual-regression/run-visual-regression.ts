@@ -76,8 +76,10 @@ function ghAnnotation(
   message: string,
   title?: string,
 ): void {
-  const titleSuffix = title ? ` title=${title}` : "";
-  // GitHub Actions interprets ::warning:: and ::error:: prefixed lines
+  // GitHub Actions workflow command properties are comma-separated.
+  // Titles must not contain commas or newlines.
+  const safeTitle = title?.replace(/[,\n\r]/g, ";") ?? "";
+  const titleSuffix = safeTitle ? ` title=${safeTitle}` : "";
   console.log(`::${level}${titleSuffix}::${message}`);
 }
 
@@ -89,7 +91,7 @@ function isWorkerUnreachable(error: unknown): boolean {
     msg.includes("ECONNREFUSED") ||
     msg.includes("ENOTFOUND") ||
     msg.includes("UND_ERR_CONNECT_TIMEOUT") ||
-    msg.includes("Worker request failed: 5")
+    /Worker request failed: 5\d{2}\b/.test(msg)
   );
 }
 
@@ -737,7 +739,9 @@ async function main(): Promise<void> {
       `${exceedingThreshold.length} screenshot(s) exceed ${DIFF_THRESHOLD_PERCENT}% threshold`,
       "Visual Regression Failed",
     );
-    process.exit(1);
+    throw new Error(
+      `${exceedingThreshold.length} screenshot(s) exceed ${DIFF_THRESHOLD_PERCENT}% diff threshold`,
+    );
   }
 
   console.log(`\nAll screenshots within ${DIFF_THRESHOLD_PERCENT}% threshold.`);

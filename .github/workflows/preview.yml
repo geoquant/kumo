@@ -226,7 +226,7 @@ jobs:
           echo "Has visual-change-approved label: $HAS_LABEL"
 
           if [[ "$VR_RESULT" == "success" || "$VR_RESULT" == "skipped" ]]; then
-            echo "Visual regression passed or was skipped."
+            echo "Visual regression result: $VR_RESULT — passing gate."
             exit 0
           fi
 
@@ -235,5 +235,5 @@ jobs:
             exit 0
           fi
 
-          echo "::error title=Visual Regression Failed::Visual regression detected changes exceeding threshold. Add the 'visual-change-approved' label to bypass."
+          echo "::error title=Visual Regression Failed::Visual regression detected changes exceeding threshold. Add the 'visual-change-approved' label and re-run this check to bypass."
           exit 1

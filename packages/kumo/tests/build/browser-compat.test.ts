@@ -46,6 +46,11 @@ interface BannedAPI {
  * APIs banned from dist output. Each pattern is tested against every line
  * of every JS file in dist/. Patterns should match the minified form —
  * esbuild preserves method names but may remove whitespace.
+ *
+ * This list is NOT exhaustive — it covers the most commonly encountered
+ * ES2023+ runtime APIs. Notable omissions: Object.groupBy, Map.groupBy,
+ * Promise.withResolvers, Set.prototype.{difference,intersection,union}.
+ * Extend as needed when new APIs are encountered in the wild.
  */
 const BANNED_APIS: readonly BannedAPI[] = [
   // ES2023 Array methods (immutable alternatives)
@@ -151,15 +156,15 @@ describe.skipIf(!isBuilt)("Browser Compatibility (Post-Build)", () => {
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         for (const banned of BANNED_APIS) {
-          if (banned.pattern.test(line)) {
+          const match = banned.pattern.exec(line);
+          if (match) {
             // Check if this is a known exception
             const isException = KNOWN_EXCEPTIONS.some(
               (ex) => relPath.includes(ex.file) && ex.api === banned.name,
             );
             if (!isException) {
               // Extract a snippet around the match for diagnostics
-              const match = banned.pattern.exec(line);
-              const matchIndex = match?.index ?? 0;
+              const matchIndex = match.index;
               const start = Math.max(0, matchIndex - 30);
               const end = Math.min(line.length, matchIndex + 50);
               const snippet = line.slice(start, end).trim();

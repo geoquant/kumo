@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => {
       rebuildSignalPlugin(),
     ],
     build: {
-      // Explicit ES2022 target to prevent Vite from downleveling to ES2020 default.
+      // Explicit ES2022 target — pins syntax downleveling independent of Vite version defaults.
       // ES2022 includes: top-level await, class fields, private methods, RegExp /d,
       // Error.cause, Object.hasOwn, Array.at — all widely supported since mid-2022.
       // This does NOT include ES2023+ APIs (toSorted, findLast, etc.) which are
@@ -231,11 +231,11 @@ export default defineConfig(({ mode }) => {
           preserveModules: false,
           // Hoist "use client" directives to the top of chunks
           hoistTransitiveImports: false,
-          // Add "use client" directive to all output chunks
-          // This is necessary because rollup-plugin-preserve-directives only works with preserveModules: true
+          // Add "use client" directive to all output chunks.
+          // preserveModules is false, so Rollup can't preserve per-file directives.
+          // Instead, we inject the directive via banner on all output chunks.
           banner: (_chunk) => {
-            // Add "use client" to all chunks since this is a client-side component library
-            // RSC apps will need this directive on all components that use hooks/events
+            // RSC apps need this directive on all components that use hooks/events
             return '"use client";\n';
           },
           // Manual chunks for better code splitting
