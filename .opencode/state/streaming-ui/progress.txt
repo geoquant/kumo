@@ -1,0 +1,21 @@
+# Progress Log
+PRD: streaming-ui
+Started: 2026-02-21
+
+## Codebase Patterns
+- Intra-package imports use relative paths (e.g., `../catalog/types`), not `@cloudflare/kumo/catalog`
+- New module directories need: types.ts, implementation files, index.ts barrel
+- Build wiring (vite.config.ts entry + package.json exports) is a separate task from source creation
+- Pre-existing test failures: stack/cluster/ai-schemas dist files missing (stale build)
+- `AnyRecord` pattern used to bridge UIElement (no index signature) with dynamic path traversal
+
+---
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - streaming-1
+- Ported JSONL parser, RFC 6902 engine, and types to `packages/kumo/src/streaming/`
+- Files: `types.ts`, `rfc6902.ts`, `jsonl-parser.ts`, `index.ts`
+- Types re-export from `../catalog/types` (UITree, UIElement, Action, etc.)
+- Added EMPTY_TREE and EMPTY_DATA constants
+- Barrel exports all public API: createJsonlParser, applyPatch, parsePatchLine + types
+- **Learnings:** Source is a direct port with only import path changes; `toRecord`/`toElement` casts are necessary because UIElement lacks index signature

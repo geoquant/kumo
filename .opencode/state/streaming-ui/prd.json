@@ -1,0 +1,363 @@
+{
+  "prdName": "streaming-ui",
+  "branch": "geoquant/streaming-ui",
+  "branchPolicy": "CRITICAL: All work MUST happen on geoquant/streaming-ui. Do NOT create new branches.",
+  "tasks": [
+    {
+      "id": "streaming-1",
+      "category": "library",
+      "description": "Port JSONL parser and RFC 6902 engine to @cloudflare/kumo/streaming",
+      "steps": [
+        "Create packages/kumo/src/streaming/ directory",
+        "Port jsonl-parser.ts from _examples/kumo-stream/src/core/jsonl-parser.ts",
+        "Port rfc6902.ts from _examples/kumo-stream/src/core/rfc6902.ts",
+        "Port types.ts with re-exports from catalog (UITree, UIElement, Action)",
+        "Verify: import { createJSONLParser } from '@cloudflare/kumo/streaming' resolves",
+        "Verify: parser.push(chunk) returns JsonPatchOp[], skips unparseable lines",
+        "Verify: applyPatch(tree, op) is immutable for add/replace/remove"
+      ],
+      "passes": true
+    },
+    {
+      "id": "streaming-2",
+      "category": "library",
+      "description": "Port useUITree hook and runtime value store to @cloudflare/kumo/streaming",
+      "steps": [
+        "Port hooks.ts (useUITree) from kumo-stream/src/core/hooks.ts",
+        "Port runtime-value-store.ts from kumo-stream/src/core/runtime-value-store.ts",
+        "Port runtime-value-store-context.tsx from kumo-stream/src/core/runtime-value-store-context.tsx",
+        "Verify: useUITree() manages UITree state, applies patches via functional setState",
+        "Verify: runtime value store captures form values per container",
+        "Verify: tree-shakeable — importing createJSONLParser alone doesn't pull React"
+      ],
+      "passes": false
+    },
+    {
+      "id": "streaming-3",
+      "category": "library",
+      "description": "Port action system to @cloudflare/kumo/streaming",
+      "steps": [
+        "Port action-handler.ts (ActionEvent, createActionHandler, createClickHandler)",
+        "Port action-registry.ts (ActionHandlerMap, builtins: submit_form, navigate, increment, decrement)",
+        "Port process-action-result.ts (ActionResult union → side effects)",
+        "Port url-policy.ts (allowlist http/https/relative)",
+        "Port text-sanitizer.ts (strip leading emoji)",
+        "Verify: action handlers are pure/testable",
+        "Verify: URL policy blocks javascript:/data:/file: schemes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "streaming-4",
+      "category": "build",
+      "description": "Wire @cloudflare/kumo/streaming into build pipeline and package exports",
+      "steps": [
+        "Create src/streaming/index.ts barrel export",
+        "Add streaming entry to packages/kumo/vite.config.ts entry map",
+        "Add './streaming' export path to packages/kumo/package.json",
+        "Verify: pnpm --filter @cloudflare/kumo build succeeds",
+        "Verify: dist/streaming.js exists in build output",
+        "Verify: TypeScript types emit correctly (dist/src/streaming/index.d.ts)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "streaming-5",
+      "category": "testing",
+      "description": "Port streaming engine tests from kumo-stream",
+      "steps": [
+        "Port rfc6902.test.ts to packages/kumo/tests/streaming/",
+        "Port jsonl-parser.test.ts",
+        "Port action-handler.test.ts, action-registry.test.ts, process-action-result.test.ts",
+        "Port runtime-value-store.test.ts",
+        "Port url-policy.test.ts, text-sanitizer.test.ts",
+        "Port streaming-integration.test.ts",
+        "Verify: pnpm --filter @cloudflare/kumo test passes all ported tests",
+        "Verify: zero new dependencies added to kumo"
+      ],
+      "passes": false
+    },
+    {
+      "id": "prompt-1",
+      "category": "library",
+      "description": "Port system prompt template to catalog module",
+      "steps": [
+        "Create packages/kumo/src/catalog/system-prompt.ts from kumo-stream/src/core/system-prompt.ts",
+        "Template includes JSONL/RFC6902 format instructions, UITree schema, emission strategy",
+        "Template includes action system docs (submit_form, navigate, increment, decrement)",
+        "Template includes design rules (accessibility, semantic grouping, no emoji)",
+        "Template includes 2+ working examples (counter UI, form)",
+        "Verify: system prompt is model-agnostic (no provider-specific instructions)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "prompt-2",
+      "category": "library",
+      "description": "Port prompt builder with prop scoring/filtering/grouping",
+      "steps": [
+        "Create packages/kumo/src/catalog/prompt-builder.ts from kumo-stream/src/core/system-prompt-components.ts",
+        "Prop filtering: skip className, id, on*, set*, aria-* prefixes",
+        "Prop scoring: required > enum > interesting names (children, variant, size, gap, label)",
+        "Top 10 props per component shown",
+        "Category grouping: Layout, Content, Interactive, Data Display, Navigation, Action, Feedback",
+        "Sub-component documentation: Select.Option, Table.Row, Breadcrumbs.Link etc.",
+        "Type aliasing: Textarea→InputArea, RadioGroup→Radio.Group",
+        "Verify: prompt builder produces categorized, scored component docs"
+      ],
+      "passes": false
+    },
+    {
+      "id": "prompt-3",
+      "category": "library",
+      "description": "Replace generatePrompt() in catalog.ts with rich implementation",
+      "steps": [
+        "Update catalog.ts generatePrompt() to use system-prompt.ts + prompt-builder.ts",
+        "Add options parameter: { format?, maxPropsPerComponent?, includeExamples?, components? }",
+        "Verify: catalog.generatePrompt() returns prompt with all props, grouped by category",
+        "Verify: generatePrompt({ components: ['Button', 'Input'] }) returns subset",
+        "Verify: full prompt < 15K tokens",
+        "Verify: no-args call still works (backwards compatible)",
+        "Verify: existing catalog tests still pass"
+      ],
+      "passes": false
+    },
+    {
+      "id": "generative-1",
+      "category": "library",
+      "description": "Create generative map codegen script",
+      "steps": [
+        "Create scripts/component-registry/generative-map-generator.ts",
+        "Input: component-registry.json + STATEFUL_WRAPPER_CONFIG + GENERATIVE_DEFAULTS",
+        "Output: src/generative/component-map.ts with COMPONENT_MAP and KNOWN_TYPES",
+        "Output: src/generative/stateful-wrappers.tsx with StatefulSelect, StatefulCheckbox, StatefulSwitch, StatefulTabs, StatefulCollapsible",
+        "Direct mappings: type→Component for simple components",
+        "Sub-component flattening: TableHeader→Table.Header, BreadcrumbsLink→Breadcrumbs.Link",
+        "Type aliases: Textarea→InputArea, RadioGroup→Radio.Group",
+        "Verify: pnpm codegen:registry generates both files",
+        "Verify: component map has entries for all 37+ registry components"
+      ],
+      "passes": false
+    },
+    {
+      "id": "generative-2",
+      "category": "library",
+      "description": "Port UITreeRenderer and element validator to @cloudflare/kumo/generative",
+      "steps": [
+        "Port UITreeRenderer.tsx from kumo-stream/src/core/UITreeRenderer.tsx",
+        "Port element-validator.ts from kumo-stream/src/core/element-validator.ts",
+        "Create generative-wrappers.tsx: Surface→rounded-lg p-6, Input→w-full, InputArea→w-full, CloudflareLogo→default dims",
+        "Create src/generative/index.ts barrel export",
+        "Verify: UITreeRenderer renders valid UITree with all component types",
+        "Verify: element validator catches invalid props, renders warning box (no crash)",
+        "Verify: import { UITreeRenderer, COMPONENT_MAP } from '@cloudflare/kumo/generative' resolves"
+      ],
+      "passes": false
+    },
+    {
+      "id": "generative-3",
+      "category": "build",
+      "description": "Wire @cloudflare/kumo/generative into build pipeline",
+      "steps": [
+        "Add generative entry to packages/kumo/vite.config.ts",
+        "Add './generative' export path to packages/kumo/package.json",
+        "Verify: pnpm --filter @cloudflare/kumo build succeeds",
+        "Verify: dist/generative.js exists with UITreeRenderer + COMPONENT_MAP"
+      ],
+      "passes": false
+    },
+    {
+      "id": "generative-4",
+      "category": "testing",
+      "description": "Create drift detection test for generative component map",
+      "steps": [
+        "Create packages/kumo/tests/generative/drift-detection.test.ts",
+        "Test: every registry component has a map entry (EXCLUDED_COMPONENTS for intentional gaps)",
+        "Test: every map entry references a real React component",
+        "Test: stateful wrappers exist for all controlled-only components",
+        "Test: no stale entries in map that aren't in registry",
+        "Test: excluded components have documented reasons",
+        "Add codegen staleness check: fail if generated files differ from checked-in",
+        "Verify: pnpm --filter @cloudflare/kumo test passes drift tests"
+      ],
+      "passes": false
+    },
+    {
+      "id": "generative-5",
+      "category": "testing",
+      "description": "Port generative rendering tests from kumo-stream",
+      "steps": [
+        "Port element-validator.test.ts, element-validation-rendering.test.tsx",
+        "Port stateful-wrappers.test.tsx",
+        "Port ui-tree-renderer-action.test.tsx, streaming-action-integration.test.tsx",
+        "Port use-ui-tree-on-action.test.tsx, runtime-value-capture.test.tsx",
+        "Port layout-normalization.test.tsx, component-map-new-entries.test.tsx",
+        "Verify: all ported tests pass in kumo vitest environment"
+      ],
+      "passes": false
+    },
+    {
+      "id": "loadable-1",
+      "category": "library",
+      "description": "Port UMD loadable entry point to @cloudflare/kumo/loadable",
+      "steps": [
+        "Create packages/kumo/src/loadable/ directory",
+        "Port index.ts from kumo-stream/src/loadable/index.ts (window.CloudflareKumo API)",
+        "Port action-dispatch.ts from kumo-stream/src/loadable/action-dispatch.ts",
+        "Port theme.tsx from kumo-stream/src/loadable/theme.tsx",
+        "Update imports to reference ../streaming/ and ../generative/ instead of ../core/",
+        "Verify: all methods (applyPatch, createParser, renderTree, setTheme, etc.) reference new paths"
+      ],
+      "passes": false
+    },
+    {
+      "id": "loadable-2",
+      "category": "build",
+      "description": "Create UMD Vite build config and package exports",
+      "steps": [
+        "Create packages/kumo/vite.loadable.config.ts (UMD format, React bundled, Tailwind)",
+        "Add build:loadable script to packages/kumo/package.json",
+        "Add './loadable/kumo-loadable.umd.js' and './loadable/style.css' to package.json exports",
+        "Verify: pnpm --filter @cloudflare/kumo build:loadable succeeds",
+        "Verify: dist/loadable/kumo-loadable.umd.js exists",
+        "Verify: dist/loadable/style.css exists with all component styles",
+        "Verify: bundle < 500KB gzipped"
+      ],
+      "passes": false
+    },
+    {
+      "id": "loadable-3",
+      "category": "testing",
+      "description": "Port UMD bundle tests from kumo-stream",
+      "steps": [
+        "Port loadable-shadow-root.test.ts",
+        "Port loadable-batched-render.test.ts",
+        "Port loadable-action-runtime.test.ts",
+        "Port loadable-tree-access.test.ts",
+        "Port loadable-css.test.ts",
+        "Verify: <script> tag exposes window.CloudflareKumo",
+        "Verify: CloudflareKumo.setTheme('dark') toggles theme",
+        "Verify: shadow DOM mount mode works"
+      ],
+      "passes": false
+    },
+    {
+      "id": "docs-1",
+      "category": "infra",
+      "description": "Add Cloudflare SSR adapter and Workers AI binding to docs site",
+      "steps": [
+        "Install @astrojs/cloudflare@^12.2.1",
+        "Add adapter: cloudflare() to astro.config.mjs",
+        "Add ai binding to wrangler.jsonc: { binding: 'AI' }",
+        "Add rate_limits binding: { binding: 'CHAT_RATE_LIMIT', namespace_id: '1001', simple: { limit: 20, period: 60 } }",
+        "Add env.d.ts type declarations for AI and CHAT_RATE_LIMIT bindings",
+        "Verify: pnpm --filter @cloudflare/kumo-docs-astro build succeeds",
+        "Verify: existing static pages still render correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "docs-2",
+      "category": "api",
+      "description": "Create /api/chat SSE streaming endpoint",
+      "steps": [
+        "Create src/pages/api/chat.ts with export const prerender = false",
+        "Access AI binding via locals.runtime.env (Astro 5 pattern)",
+        "Rate limit: 20 req/min per IP via CHAT_RATE_LIMIT binding",
+        "Generate system prompt via createKumoCatalog() + generatePrompt()",
+        "Stream from Workers AI @cf/zai-org/glm-4.7-flash with stream: true",
+        "Return SSE response with text/event-stream content-type",
+        "Verify: POST /api/chat returns streaming SSE response",
+        "Verify: rate limit returns 429 after 20 requests",
+        "Verify: graceful error response if Workers AI unavailable"
+      ],
+      "passes": false
+    },
+    {
+      "id": "docs-3",
+      "category": "ui",
+      "description": "Build StreamingDemo React component for docs site",
+      "steps": [
+        "Create src/components/demos/StreamingDemo.tsx",
+        "Chat input with message history display",
+        "Uses @cloudflare/kumo/streaming (useUITree, createJSONLParser)",
+        "Uses @cloudflare/kumo/generative (UITreeRenderer, COMPONENT_MAP)",
+        "Fetches from /api/chat via fetch + ReadableStream SSE parsing",
+        "Preset prompt pills: 'Show me a user card', 'Build a settings form'",
+        "Theme-aware: respects docs site light/dark toggle",
+        "Verify: demo renders Kumo components from AI responses",
+        "Verify: works in both light and dark mode",
+        "Verify: graceful degradation if AI unavailable (error message, not crash)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "docs-4",
+      "category": "ui",
+      "description": "Update /streaming page with live demo and new docs sections",
+      "steps": [
+        "Update src/pages/streaming.astro with StreamingDemo at top (client:load)",
+        "Add Quick Start section: minimal code to get streaming UI working",
+        "Add UMD/HTML section: copy-pasteable <script> tag example",
+        "Add Component Map section: auto-generated reference of all mapped components",
+        "Add System Prompt section: how generatePrompt() works, customization",
+        "Add Action System section: how actions work in generative UI",
+        "Keep existing catalog documentation (data binding, visibility, validation)",
+        "Add 'Streaming UI' to SidebarNav.tsx staticPages array",
+        "Verify: streaming page renders with live demo",
+        "Verify: 'Streaming UI' appears in sidebar navigation"
+      ],
+      "passes": false
+    },
+    {
+      "id": "release-1",
+      "category": "release",
+      "description": "Create changeset and verify full build",
+      "steps": [
+        "Create one changeset for @cloudflare/kumo (minor version bump)",
+        "Verify: pnpm --filter @cloudflare/kumo build succeeds",
+        "Verify: pnpm --filter @cloudflare/kumo build:loadable succeeds",
+        "Verify: pnpm --filter @cloudflare/kumo test passes all tests (including drift detection)",
+        "Verify: pnpm --filter @cloudflare/kumo typecheck passes",
+        "Verify: pnpm --filter @cloudflare/kumo-docs-astro build succeeds",
+        "Verify: pnpm lint passes"
+      ],
+      "passes": false
+    }
+  ],
+  "context": {
+    "branch": "geoquant/streaming-ui — ALL work on this branch, NO new branches",
+    "patterns": [
+      "Component registry codegen: packages/kumo/scripts/component-registry/",
+      "Figma drift detection: packages/kumo-figma/src/generators/drift-detection.test.ts",
+      "Catalog module: packages/kumo/src/catalog/",
+      "Package export pattern: packages/kumo/package.json exports map",
+      "Kumo-stream source: _examples/kumo-stream/src/core/",
+      "Kumo-stream loadable: _examples/kumo-stream/src/loadable/",
+      "Astro 5 binding access: Astro.locals.runtime.env (NOT cloudflare:workers)"
+    ],
+    "keyFiles": [
+      "_examples/kumo-stream/src/core/",
+      "_examples/kumo-stream/src/loadable/",
+      "_examples/kumo-stream/src/core/system-prompt.ts",
+      "_examples/kumo-stream/src/core/system-prompt-components.ts",
+      "packages/kumo/src/catalog/catalog.ts",
+      "packages/kumo/scripts/component-registry/",
+      "packages/kumo/vite.config.ts",
+      "packages/kumo/package.json",
+      "packages/kumo-docs-astro/astro.config.mjs",
+      "packages/kumo-docs-astro/wrangler.jsonc",
+      "packages/kumo-docs-astro/src/pages/streaming.astro",
+      "packages/kumo-docs-astro/src/components/SidebarNav.tsx",
+      "packages/kumo-figma/src/generators/drift-detection.test.ts"
+    ],
+    "nonGoals": [
+      "DPU (Declarative Partial Updates) mode — deferred to v2",
+      "Multi-model testing harness",
+      "Turnstile / auth for docs chat",
+      "Component-level code splitting in UMD",
+      "Astro 6 upgrade",
+      "Custom action handlers in docs demo"
+    ]
+  }
+}
