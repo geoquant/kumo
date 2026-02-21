@@ -52,3 +52,7 @@ coverage/
 
 # OpenCode
 .opencode/plans/
+.opencode/state/
+
+# Specs/PRDs (planning artifacts — not shipped)
+specs/

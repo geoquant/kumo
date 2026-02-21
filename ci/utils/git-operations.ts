@@ -1,4 +1,4 @@
-import { execSync, execFileSync } from "child_process";
+import { execFileSync } from "child_process";
 
 /**
  * Git operations utility for CI scripts
@@ -24,23 +24,23 @@ export interface ChangedFilesOptions {
 export function getGitRefs(): GitRefs {
   // GitHub Actions provides these environment variables
   const baseRef = process.env.GITHUB_BASE_REF;
-  const headRef = process.env.GITHUB_HEAD_REF || process.env.GITHUB_SHA || "HEAD";
+  const headRef =
+    process.env.GITHUB_HEAD_REF || process.env.GITHUB_SHA || "HEAD";
 
   // If baseRef exists (PR context), verify it's available
   if (baseRef) {
     try {
       // Fetch the base branch for comparison
-      execSync(`git fetch origin ${baseRef}:refs/remotes/origin/${baseRef}`, {
-        encoding: "utf8",
-        stdio: "pipe",
-      });
+      execFileSync(
+        "git",
+        ["fetch", "origin", `${baseRef}:refs/remotes/origin/${baseRef}`],
+        { encoding: "utf8", stdio: "pipe" },
+      );
       const fallbackRef = `origin/${baseRef}`;
       console.log(`Using base ref: ${fallbackRef}`);
       return { baseRef: fallbackRef, headRef };
     } catch (error) {
-      console.warn(
-        `  Could not fetch base branch ${baseRef}: ${error}`,
-      );
+      console.warn(`  Could not fetch base branch ${baseRef}: ${error}`);
     }
   }
 
@@ -49,7 +49,7 @@ export function getGitRefs(): GitRefs {
   if (!process.env.CI && !process.env.GITHUB_ACTIONS) {
     // First verify origin/main exists
     try {
-      execSync("git rev-parse --verify origin/main", {
+      execFileSync("git", ["rev-parse", "--verify", "origin/main"], {
         encoding: "utf8",
         stdio: "pipe",
       });
@@ -63,10 +63,11 @@ export function getGitRefs(): GitRefs {
 
     // Try to find merge-base
     try {
-      const mergeBase = execSync("git merge-base origin/main HEAD", {
-        encoding: "utf8",
-        stdio: "pipe",
-      }).trim();
+      const mergeBase = execFileSync(
+        "git",
+        ["merge-base", "origin/main", "HEAD"],
+        { encoding: "utf8", stdio: "pipe" },
+      ).trim();
       console.log(
         `Using local fallback ref (merge-base): ${mergeBase.slice(0, 8)}`,
       );
@@ -92,16 +93,15 @@ export function getChangedFiles(
     const { baseRef, headRef } = getGitRefs();
 
     if (!baseRef) {
-      console.warn(
-        "  Warning: Could not determine base ref for file changes",
-      );
+      console.warn("  Warning: Could not determine base ref for file changes");
       return null;
     }
 
     // Use two-dot diff for shallow clones (no merge base needed)
     // Two dots compares the tips directly: baseRef..headRef
-    const changedFiles = execSync(
-      `git diff --name-only ${baseRef}..${headRef}`,
+    const changedFiles = execFileSync(
+      "git",
+      ["diff", "--name-only", `${baseRef}..${headRef}`],
       {
         encoding: "utf8",
         cwd: options.cwd || process.cwd(),
@@ -223,12 +223,8 @@ export function logPullRequestContext(): void {
   } else if (process.env.GITHUB_EVENT_NAME === "pull_request_target") {
     console.log("Detected PR context: Pull request target event");
   } else if (process.env.GITHUB_PR_NUMBER) {
-    console.log(
-      `Detected PR context: PR #${process.env.GITHUB_PR_NUMBER}`,
-    );
+    console.log(`Detected PR context: PR #${process.env.GITHUB_PR_NUMBER}`);
   } else if (process.env.CI_FORCE_PR_VALIDATION === "true") {
     console.log("Detected PR context: Manual validation override");
   }
 }
-
-
