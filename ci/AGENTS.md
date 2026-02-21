@@ -30,14 +30,14 @@ ci/
 
 ## WHERE TO LOOK
 
-| Task                 | Location                                   | Notes                                                   |
-| -------------------- | ------------------------------------------ | ------------------------------------------------------- |
-| Changeset validation | `scripts/validate-kumo-changeset.ts`       | Used by lefthook pre-push AND CI                        |
-| PR comment system    | `reporters/` + `scripts/post-pr-report.ts` | Artifact bus via `ci/reports/*.json`                    |
-| Beta release         | `versioning/publish-beta.sh`               | Calls version-beta.sh internally                        |
-| Production release   | `versioning/release-production.sh`         | Creates release branch + PR                             |
-| Git operations       | `utils/git-operations.ts`                  | Dual-mode: GitHub Actions env vars / local `merge-base` |
-| VR gate              | `.github/workflows/pullrequest.yml`        | Visual regression check; bypass via `skip-vr` label     |
+| Task                 | Location                                   | Notes                                                             |
+| -------------------- | ------------------------------------------ | ----------------------------------------------------------------- |
+| Changeset validation | `scripts/validate-kumo-changeset.ts`       | Used by lefthook pre-push AND CI                                  |
+| PR comment system    | `reporters/` + `scripts/post-pr-report.ts` | Artifact bus via `ci/reports/*.json`                              |
+| Beta release         | `versioning/publish-beta.sh`               | Calls version-beta.sh internally                                  |
+| Production release   | `versioning/release-production.sh`         | Creates release branch + PR                                       |
+| Git operations       | `utils/git-operations.ts`                  | Dual-mode: GitHub Actions env vars / local `merge-base`           |
+| VR detection         | `.github/workflows/preview.yml`            | Visual regression screenshots (informational, never blocks merge) |
 
 ## CONVENTIONS
 

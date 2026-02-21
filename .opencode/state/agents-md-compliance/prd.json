@@ -54,7 +54,7 @@
         "ci/AGENTS.md documents VR gate CI job",
         "packages/kumo-docs-astro/AGENTS.md has correct demo/block/component page counts"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-6",
