@@ -23,7 +23,7 @@
         "All subdirectory AGENTS.md files are 30-80 lines each",
         "index-knowledge scoring evaluated lint/, .github/, packages/kumo/scripts/, _examples/ for new AGENTS.md"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-3",

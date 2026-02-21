@@ -1,6 +1,6 @@
 # KUMO KNOWLEDGE BASE
 
-**Generated:** 2026-02-09 | **Commit:** d10c711 | **Branch:** rozenmd/agents-init
+**Generated:** 2026-02-21 | **Commit:** 95ae646 | **Branch:** geoquant/kumo-regression-prevention
 
 ## OVERVIEW
 
@@ -15,8 +15,9 @@ kumo/
 │   ├── kumo-docs-astro/       # Astro docs site → see packages/kumo-docs-astro/AGENTS.md
 │   └── kumo-figma/            # Figma plugin → see packages/kumo-figma/AGENTS.md
 ├── ci/                        # CI/CD scripts → see ci/AGENTS.md
-├── lint/                      # Custom oxlint rules (shared by kumo + docs)
+├── lint/                      # 6 custom oxlint rules (shared by kumo + docs)
 ├── .changeset/                # Changeset files
+├── .github/workflows/         # 6 GitHub Actions workflows (see CI section)
 └── lefthook.yml               # Pre-push changeset validation
 ```
 
@@ -25,13 +26,25 @@ kumo/
 | Task                 | Location                                         | Notes                                                    |
 | -------------------- | ------------------------------------------------ | -------------------------------------------------------- |
 | Component API        | `packages/kumo/ai/component-registry.{json,md}`  | Source of truth. Query with `jq` or CLI                  |
-| Component source     | `packages/kumo/src/components/{name}/{name}.tsx` | Standard pattern                                         |
-| Blocks (installable) | `packages/kumo/src/blocks/`                      | NOT library exports; installed via CLI                   |
+| Component source     | `packages/kumo/src/components/{name}/{name}.tsx` | 38 components, standard pattern                          |
+| Blocks (installable) | `packages/kumo/src/blocks/`                      | 3 blocks; NOT library exports; installed via CLI         |
 | Semantic tokens      | `packages/kumo/src/styles/theme-kumo.css`        | AUTO-GENERATED; edit `scripts/theme-generator/config.ts` |
 | Custom lint rules    | `lint/` and `packages/kumo/lint/`                | Two copies; package copy adds `no-deprecated-props`      |
-| Demo examples        | `packages/kumo-docs-astro/src/components/demos/` | Feed into registry codegen                               |
+| Demo examples        | `packages/kumo-docs-astro/src/components/demos/` | 44 demos + 2 non-demo; feed into registry codegen        |
 | CI scripts           | `ci/`                                            | Reporter system, versioning, deployment                  |
 | Figma generators     | `packages/kumo-figma/src/generators/`            | 35+ component generators                                 |
+| GitHub Actions       | `.github/workflows/`                             | 6 workflows (see CI section below)                       |
+
+## CI WORKFLOWS
+
+| Workflow       | File                 | Trigger           | Purpose                                   |
+| -------------- | -------------------- | ----------------- | ----------------------------------------- |
+| Reviewer       | `reviewer.yml`       | `/review` comment | AI code review via bonk agent (Opus 4.6)  |
+| Bonk           | `bonk.yml`           | Workflow dispatch | Generic AI agent runner                   |
+| Pull Request   | `pullrequest.yml`    | PR events         | Build, test, lint, changeset validation   |
+| Preview        | `preview.yml`        | PR events         | Beta publish + docs preview deployment    |
+| Preview Deploy | `preview-deploy.yml` | Workflow call     | Docs preview via wrangler versions upload |
+| Release        | `release.yml`        | Push to main      | Production publish + docs deploy          |
 
 ## CONVENTIONS
 
@@ -109,7 +122,7 @@ Cross-package dependency: registry codegen requires docs demo metadata. Run `cod
 | TypeScript | 5.9.2     | Via pnpm catalog                       |
 | Vite       | 7.1.7     | Library mode (kumo), dev server (docs) |
 | Tailwind   | 4.1.17    | v4 with `light-dark()` tokens          |
-| oxlint     | 1.42.0    | Primary linter + 5 custom JS rules     |
+| oxlint     | 1.42.0    | Primary linter + 6 custom JS rules     |
 | Vitest     | 3.2.4     | happy-dom env, v8 coverage             |
 | Changesets | latest    | Version management                     |
 | Astro      | latest    | Docs framework                         |
@@ -123,9 +136,9 @@ Cross-package dependency: registry codegen requires docs demo metadata. Run `cod
 ## NOTES
 
 - `ai/component-registry.json`, `ai/schemas.ts` are auto-generated but committed to git (shipped in npm package)
-- `src/primitives/` (37 files) are auto-generated Base UI re-exports
+- `src/primitives/` (38 files) are auto-generated Base UI re-exports
 - Blocks in `src/blocks/` are NOT exported from package index; installed via CLI `kumo add`
 - `src/catalog/` is a runtime JSON-UI rendering module (separate concern from component library)
-- No GitHub Actions workflows checked into repo; CI scripts exist but orchestration is external
+- 6 GitHub Actions workflows checked in at `.github/workflows/`; CI scripts in `ci/` are called by them
 - Dual linter: oxlint (fast, custom rules) + ESLint (7 jsx-a11y rules only)
 - `PLOP_INJECT_EXPORT` and `PLOP_INJECT_COMPONENT_ENTRY` markers in source for scaffolding

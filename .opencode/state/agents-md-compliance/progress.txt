@@ -7,6 +7,10 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 <!-- Consolidate reusable patterns here -->
 - AGENTS.md locations: root, packages/kumo, packages/kumo-docs-astro, packages/kumo-figma, ci/
 - All 5 files present as of task start
+- Accurate counts: 38 components, 38 primitives, 44 demos + 2 non-demo, 3 blocks, 6 workflows, 6 lint rules
+- Docs: 37 component pages, 3 block pages
+- CLI commands: ls, doc, add, blocks, init, migrate, ai (7 total)
+- Scoring candidates evaluated: lint/ (6 files, skip), .github/ (7 files, skip), kumo/scripts/ (20 files, child of existing), _examples/ (3 example projects, skip)
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -16,3 +20,11 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 - Files: AGENTS.md.bak, packages/kumo/AGENTS.md.bak, packages/kumo-docs-astro/AGENTS.md.bak, packages/kumo-figma/AGENTS.md.bak, ci/AGENTS.md.bak
 - Verified: md5 checksums match originals, line counts confirmed (131, 129, 95, 105, 90)
 - **Learnings:** All AGENTS.md files are in expected locations per root AGENTS.md STRUCTURE section
+
+## Task - docs-2
+- Regenerated all 5 AGENTS.md files with corrected counts and current date/commit
+- Key fixes: 35→38 components, 37→38 primitives, added 6 workflows section, added `ai` CLI command, 5→6 lint rules, added demo/block/page counts
+- Root: 144 lines. Subdirs: 80, 69, 69, 70 lines (all within limits)
+- Scoring: evaluated lint/, .github/, kumo/scripts/, _examples/ — none met threshold for new AGENTS.md
+- Files changed: AGENTS.md, packages/kumo/AGENTS.md, packages/kumo-docs-astro/AGENTS.md, packages/kumo-figma/AGENTS.md, ci/AGENTS.md
+- **Learnings:** Previous root AGENTS.md incorrectly stated "No GitHub Actions workflows checked into repo" — 6 exist at .github/workflows/. ci/AGENTS.md also incorrectly said "No workflow YAML checked in". Both stale claims fixed.
