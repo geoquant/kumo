@@ -261,7 +261,7 @@ const CheckboxBase = forwardRef<HTMLButtonElement, CheckboxProps>(
         disabled={disabled}
         onCheckedChange={handleCheckedChange}
         className={cn(
-          "flex h-4 w-4 items-center justify-center rounded-sm border-0 bg-kumo-base ring",
+          "bg-kumo-base flex h-4 w-4 items-center justify-center rounded-sm border-0 ring",
           variant === "error" ? "ring-kumo-danger" : "ring-kumo-line",
           !disabled && "hover:ring-kumo-ring focus-visible:ring-kumo-ring",
           "data-[checked]:bg-kumo-contrast data-[checked]:ring-kumo-contrast data-[indeterminate]:bg-kumo-contrast data-[indeterminate]:ring-kumo-contrast",
@@ -271,7 +271,7 @@ const CheckboxBase = forwardRef<HTMLButtonElement, CheckboxProps>(
         {...props}
       >
         <BaseCheckbox.Indicator
-          className="flex items-center justify-center text-kumo-inverse"
+          className="text-kumo-inverse flex items-center justify-center"
           render={(renderProps, state) => {
             const Icon = state.indeterminate ? MinusIcon : CheckIcon;
             return (
@@ -363,7 +363,7 @@ const CheckboxItem = forwardRef<HTMLButtonElement, CheckboxItemProps>(
           disabled={disabled}
           onCheckedChange={handleCheckedChange}
           className={cn(
-            "peer flex h-4 w-4 items-center justify-center rounded-sm border-0 bg-kumo-base ring",
+            "peer bg-kumo-base flex h-4 w-4 items-center justify-center rounded-sm border-0 ring",
             variant === "error" ? "ring-kumo-danger" : "ring-kumo-line",
             !disabled &&
               "group-hover:ring-kumo-ring hover:ring-kumo-ring focus-visible:ring-kumo-ring",
@@ -371,7 +371,7 @@ const CheckboxItem = forwardRef<HTMLButtonElement, CheckboxItemProps>(
           )}
         >
           <BaseCheckbox.Indicator
-            className="flex items-center justify-center text-kumo-inverse"
+            className="text-kumo-inverse flex items-center justify-center"
             render={(props, state) => {
               const Icon = state.indeterminate ? MinusIcon : CheckIcon;
               return (
@@ -384,7 +384,7 @@ const CheckboxItem = forwardRef<HTMLButtonElement, CheckboxItemProps>(
             }}
           />
         </BaseCheckbox.Root>
-        <span className="text-base font-medium text-kumo-default">{label}</span>
+        <span className="text-kumo-default text-base font-medium">{label}</span>
       </label>
     );
   },
@@ -417,17 +417,17 @@ function CheckboxGroup({
       >
         <Fieldset.Root
           className={cn(
-            "flex flex-col gap-4 rounded-lg border border-kumo-line p-4",
+            "border-kumo-line flex flex-col gap-4 rounded-lg border p-4",
             className,
           )}
         >
-          <Fieldset.Legend className="text-lg font-medium text-kumo-default">
+          <Fieldset.Legend className="text-kumo-default text-lg font-medium">
             {legend}
           </Fieldset.Legend>
           <div className="flex flex-col gap-2">{children}</div>
-          {error && <p className="text-sm text-kumo-danger">{error}</p>}
+          {error && <p className="text-kumo-danger text-sm">{error}</p>}
           {description && (
-            <p className="text-sm text-kumo-subtle">{description}</p>
+            <p className="text-kumo-subtle text-sm">{description}</p>
           )}
         </Fieldset.Root>
       </BaseCheckboxGroup>

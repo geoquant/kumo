@@ -122,7 +122,7 @@ export function Pagination({
 
   return (
     <div className="flex items-center justify-between gap-2">
-      <div className="grow text-sm text-kumo-strong">{getPaginationText()}</div>
+      <div className="text-kumo-strong grow text-sm">{getPaginationText()}</div>
       <div>
         <InputGroup focusMode="individual">
           {controls === "full" && (

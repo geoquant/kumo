@@ -7,11 +7,11 @@ import {
   Table,
 } from "@cloudflare/kumo";
 import {
-  DotsThree,
-  EnvelopeSimple,
-  Eye,
-  PencilSimple,
-  Trash,
+  DotsThreeIcon,
+  EnvelopeSimpleIcon,
+  EyeIcon,
+  PencilSimpleIcon,
+  TrashIcon,
 } from "@phosphor-icons/react";
 
 // Sample data for demos
@@ -301,7 +301,7 @@ export function TableFullDemo() {
                 />
                 <Table.Cell>
                   <div className="flex items-center gap-2">
-                    <EnvelopeSimple size={16} />
+                    <EnvelopeSimpleIcon size={16} />
                     <span className="truncate">{row.subject}</span>
                     {row.tags && (
                       <div className="ml-2 inline-flex gap-1">
@@ -328,17 +328,17 @@ export function TableFullDemo() {
                           shape="square"
                           aria-label="More options"
                         >
-                          <DotsThree weight="bold" size={16} />
+                          <DotsThreeIcon weight="bold" size={16} />
                         </Button>
                       }
                     />
                     <DropdownMenu.Content>
-                      <DropdownMenu.Item icon={Eye}>View</DropdownMenu.Item>
-                      <DropdownMenu.Item icon={PencilSimple}>
+                      <DropdownMenu.Item icon={EyeIcon}>View</DropdownMenu.Item>
+                      <DropdownMenu.Item icon={PencilSimpleIcon}>
                         Edit
                       </DropdownMenu.Item>
                       <DropdownMenu.Separator />
-                      <DropdownMenu.Item icon={Trash} variant="danger">
+                      <DropdownMenu.Item icon={TrashIcon} variant="danger">
                         Delete
                       </DropdownMenu.Item>
                     </DropdownMenu.Content>

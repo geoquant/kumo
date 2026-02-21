@@ -330,7 +330,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
           autoComplete={autoComplete}
           tabIndex={isMaskedWithValue ? -1 : 0}
           className={cn(
-            "w-full border-0 bg-transparent p-0 text-kumo-default ring-0 outline-none placeholder:text-kumo-subtle disabled:cursor-not-allowed disabled:text-kumo-subtle",
+            "text-kumo-default placeholder:text-kumo-subtle disabled:text-kumo-subtle w-full border-0 bg-transparent p-0 ring-0 outline-none disabled:cursor-not-allowed",
             size === "xs" && "pr-5",
             size === "sm" && "pr-6",
             size === "base" && "pr-8",
@@ -378,7 +378,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
               ••••••••
             </span>
             {isMaskedWithValue && !disabled && (
-              <span className="invisible absolute left-0 top-0 whitespace-nowrap text-kumo-subtle group-focus-within/container:visible group-hover/mask:visible">
+              <span className="text-kumo-subtle invisible absolute top-0 left-0 whitespace-nowrap group-focus-within/container:visible group-hover/mask:visible">
                 Click to reveal
               </span>
             )}
@@ -393,7 +393,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
           aria-label={mode === "revealed" ? "Hide value" : "Reveal value"}
           tabIndex={showEyeButton ? 0 : -1}
           className={cn(
-            "absolute top-1/2 right-0 -translate-y-1/2 cursor-pointer text-kumo-subtle outline-none hover:text-kumo-default focus:text-kumo-default",
+            "text-kumo-subtle hover:text-kumo-default focus:text-kumo-default absolute top-1/2 right-0 -translate-y-1/2 cursor-pointer outline-none",
             // Match right padding from inputVariants
             size === "xs" && "right-1.5",
             size === "sm" && "right-2",
@@ -418,7 +418,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
             onKeyDown={(e) => e.stopPropagation()}
             aria-label={copied ? "Copied" : "Copy to clipboard"}
             className={cn(
-              "absolute -top-px right-2 -translate-y-full cursor-pointer rounded-t-md bg-kumo-brand px-2 py-0.5 text-xs text-white opacity-0 transition-opacity group-focus-within/container:opacity-100 group-hover/container:opacity-100 hover:brightness-120 focus-visible:outline focus-visible:outline-offset-1 focus-visible:outline-kumo-ring",
+              "bg-kumo-brand focus-visible:outline-kumo-ring absolute -top-px right-2 -translate-y-full cursor-pointer rounded-t-md px-2 py-0.5 text-xs text-white opacity-0 transition-opacity group-focus-within/container:opacity-100 group-hover/container:opacity-100 hover:brightness-120 focus-visible:outline focus-visible:outline-offset-1",
             )}
           >
             {copied ? "Copied" : "Copy"}

@@ -184,11 +184,11 @@ export function FlowParallelNode({ children }: { children: ReactNode }) {
       ref={containerRef}
       className={cn(
         "relative",
-        orientation === "horizontal" ? "px-16 -mx-16" : "py-16 -my-16",
+        orientation === "horizontal" ? "-mx-16 px-16" : "-my-16 py-16",
       )}
       data-node-index={index}
     >
-      <div className="absolute inset-0 pointer-events-none z-10">
+      <div className="pointer-events-none absolute inset-0 z-10">
         {links && (
           <Connectors connectors={links.connectors} orientation={orientation}>
             {links.junctions?.start && (
@@ -210,10 +210,10 @@ export function FlowParallelNode({ children }: { children: ReactNode }) {
       </div>
       <ul
         className={cn(
-          "gap-5 list-none flex items-start",
+          "flex list-none items-start gap-5",
           orientation === "horizontal"
-            ? "flex-col ml-0"
-            : "gap-5 w-fit mx-auto",
+            ? "ml-0 flex-col"
+            : "mx-auto w-fit gap-5",
         )}
       >
         <DescendantsProvider value={descendants}>

@@ -42,7 +42,7 @@ export function emptyVariants({
   size = KUMO_EMPTY_DEFAULT_VARIANTS.size,
 }: KumoEmptyVariantsProps = {}) {
   return cn(
-    "flex w-full flex-col items-center rounded-xl border border-kumo-fill bg-kumo-control text-kumo-default",
+    "border-kumo-fill bg-kumo-control text-kumo-default flex w-full flex-col items-center rounded-xl border",
     KUMO_EMPTY_VARIANTS.size[size].classes,
   );
 }
@@ -100,7 +100,7 @@ export function Empty({
       <h2 className="text-2xl font-semibold">{title}</h2>
 
       {description && (
-        <p className="max-w-140 text-center text-kumo-strong">{description}</p>
+        <p className="text-kumo-strong max-w-140 text-center">{description}</p>
       )}
 
       {commandLine && (
@@ -108,12 +108,12 @@ export function Empty({
           className={cn(
             "group/cmd relative inline-flex h-10 max-w-8/10 transform-gpu items-center gap-2 rounded-lg font-mono shadow-sm",
             "bg-kumo-overlay pr-2 pl-3",
-            "transition-all duration-300 hover:border-kumo-interact/80 hover:shadow-md",
-            "border border-kumo-fill/60",
+            "hover:border-kumo-interact/80 transition-all duration-300 hover:shadow-md",
+            "border-kumo-fill/60 border",
           )}
         >
-          <span className="text-xs text-kumo-inactive select-none">$</span>
-          <span className="no-scrollbar overflow-scroll text-[14px] whitespace-nowrap text-kumo-brand">
+          <span className="text-kumo-inactive text-xs select-none">$</span>
+          <span className="no-scrollbar text-kumo-brand overflow-scroll text-[14px] whitespace-nowrap">
             {commandLine}
           </span>
           <Button

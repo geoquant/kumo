@@ -14,7 +14,7 @@ export interface KumoLayerCardVariantsProps {}
 export function layerCardVariants(_props: KumoLayerCardVariantsProps = {}) {
   return cn(
     // Base styles
-    "flex w-full flex-col overflow-hidden rounded-lg bg-kumo-elevated text-base ring ring-kumo-line",
+    "bg-kumo-elevated ring-kumo-line flex w-full flex-col overflow-hidden rounded-lg text-base ring",
   );
 }
 
@@ -55,7 +55,7 @@ function LayerCardSecondary({ children, className }: LayerCardProps) {
   return (
     <div
       className={cn(
-        "flex items-center gap-2 p-2 text-base font-medium text-kumo-strong",
+        "text-kumo-strong flex items-center gap-2 p-2 text-base font-medium",
         className,
       )}
     >
@@ -68,7 +68,7 @@ function LayerCardPrimary({ children, className }: LayerCardProps) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 overflow-hidden rounded-lg bg-kumo-base p-4 pr-3 text-inherit no-underline ring ring-kumo-fill",
+        "bg-kumo-base ring-kumo-fill flex flex-col gap-2 overflow-hidden rounded-lg p-4 pr-3 text-inherit no-underline ring",
         className,
       )}
     >

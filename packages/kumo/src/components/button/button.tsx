@@ -131,7 +131,7 @@ export function buttonVariants({
     "border-0 shadow-xs",
     "cursor-pointer",
     // Disabled state
-    "disabled:cursor-not-allowed disabled:text-kumo-subtle",
+    "disabled:text-kumo-subtle disabled:cursor-not-allowed",
     // Apply variant, size, shape styles from KUMO_BUTTON_VARIANTS
     KUMO_BUTTON_VARIANTS.variant[variant].classes,
     KUMO_BUTTON_VARIANTS.size[size].classes,
@@ -240,7 +240,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(
           buttonVariants({ variant, size, shape }),
-          "outline-none focus:opacity-100 focus-visible:ring-1 focus-visible:ring-kumo-ring *:in-focus:opacity-100", // Focus styles
+          "focus-visible:ring-kumo-ring outline-none focus:opacity-100 focus-visible:ring-1 *:in-focus:opacity-100", // Focus styles
           disabled && "cursor-not-allowed opacity-50",
           className,
         )}

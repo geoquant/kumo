@@ -184,7 +184,7 @@ const RadioItem = forwardRef<HTMLButtonElement, RadioItemProps>(
           value={value}
           disabled={disabled}
           className={cn(
-            "flex h-4 w-4 items-center justify-center rounded-full border-0 bg-kumo-base ring",
+            "bg-kumo-base flex h-4 w-4 items-center justify-center rounded-full border-0 ring",
             variant === "error" ? "ring-kumo-danger" : "ring-kumo-line",
             !disabled &&
               "group-hover:ring-kumo-ring focus-visible:ring-kumo-ring focus-visible:outline-offset-3",
@@ -192,10 +192,10 @@ const RadioItem = forwardRef<HTMLButtonElement, RadioItemProps>(
           )}
         >
           <BaseRadio.Indicator className="flex items-center justify-center">
-            <span className="h-2 w-2 rounded-full bg-kumo-base" />
+            <span className="bg-kumo-base h-2 w-2 rounded-full" />
           </BaseRadio.Indicator>
         </BaseRadio.Root>
-        <span className="text-base font-medium text-kumo-default">{label}</span>
+        <span className="text-kumo-default text-base font-medium">{label}</span>
       </label>
     );
   },
@@ -229,11 +229,11 @@ function RadioGroup({
       >
         <Fieldset.Root
           className={cn(
-            "flex flex-col gap-4 rounded-lg border border-kumo-line p-4",
+            "border-kumo-line flex flex-col gap-4 rounded-lg border p-4",
             className,
           )}
         >
-          <Fieldset.Legend className="text-lg font-medium text-kumo-default">
+          <Fieldset.Legend className="text-kumo-default text-lg font-medium">
             {legend}
           </Fieldset.Legend>
           <div
@@ -244,8 +244,8 @@ function RadioGroup({
           >
             {children}
           </div>
-          {error && <p className="text-sm text-kumo-danger">{error}</p>}
-          {description && <p className="text-sm text-kumo-subtle">{description}</p>}
+          {error && <p className="text-kumo-danger text-sm">{error}</p>}
+          {description && <p className="text-kumo-subtle text-sm">{description}</p>}
         </Fieldset.Root>
       </BaseRadioGroup>
     </RadioGroupContext.Provider>

@@ -48,8 +48,8 @@ export function tooltipVariants({
 }: KumoTooltipVariantsProps = {}) {
   return cn(
     // Base styles
-    "flex origin-[var(--transform-origin)] flex-col rounded-md bg-kumo-base px-2.5 py-1.5 text-sm text-kumo-default",
-    "shadow-lg shadow-kumo-tip-shadow outline outline-1 outline-kumo-fill",
+    "bg-kumo-base text-kumo-default flex origin-[var(--transform-origin)] flex-col rounded-md px-2.5 py-1.5 text-sm",
+    "shadow-kumo-tip-shadow outline-kumo-fill shadow-lg outline outline-1",
     "transition-[transform,opacity] duration-150",
     "data-[starting-style]:scale-90 data-[starting-style]:opacity-0",
     "data-[ending-style]:scale-90 data-[ending-style]:opacity-0",
@@ -129,8 +129,8 @@ export function Tooltip({
         <TooltipBase.Positioner align={align} side={side} sideOffset={10}>
           <TooltipBase.Popup
             className={cn(
-              "flex origin-[var(--transform-origin)] flex-col rounded-md bg-kumo-base px-2.5 py-1.5 text-sm text-kumo-default",
-              "shadow-lg shadow-kumo-tip-shadow outline outline-kumo-fill",
+              "bg-kumo-base text-kumo-default flex origin-[var(--transform-origin)] flex-col rounded-md px-2.5 py-1.5 text-sm",
+              "shadow-kumo-tip-shadow outline-kumo-fill shadow-lg outline",
               "transition-[transform,opacity] duration-150",
               "data-[starting-style]:scale-90 data-[starting-style]:opacity-0",
               "data-[ending-style]:scale-90 data-[ending-style]:opacity-0",

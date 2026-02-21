@@ -100,7 +100,7 @@ export function codeVariants({
 }: KumoCodeVariantsProps = {}) {
   return cn(
     // Base styles
-    "m-0 w-auto rounded-none border-none bg-transparent p-0 font-mono text-sm leading-[20px] text-kumo-strong",
+    "text-kumo-strong m-0 w-auto rounded-none border-none bg-transparent p-0 font-mono text-sm leading-[20px]",
     // Apply lang-specific styles (currently none, but extensible)
     KUMO_CODE_VARIANTS.lang[lang].classes,
   );
@@ -198,7 +198,7 @@ export interface CodeBlockProps {
  */
 function CodeBlockComponent({ code, lang }: CodeBlockProps) {
   return (
-    <div className="min-w-0 rounded-md border border-kumo-fill bg-kumo-base [&>pre]:p-2.5!">
+    <div className="border-kumo-fill bg-kumo-base min-w-0 rounded-md border [&>pre]:p-2.5!">
       <CodeComponent lang={lang} code={code} />
     </div>
   );

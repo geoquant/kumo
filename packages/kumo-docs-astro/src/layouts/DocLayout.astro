@@ -2,7 +2,7 @@
 import MainLayout from "./MainLayout.astro";
 import { StickyDocHeader } from "../components/docs/StickyDocHeader";
 import { BaseUIIcon } from "../components/docs/icons/BaseUIIcon";
-import { GithubLogo } from "@phosphor-icons/react";
+import { GithubLogoIcon } from "@phosphor-icons/react";
 
 interface Props {
   title: string;
@@ -60,7 +60,7 @@ const githubSourceUrl = sourceFile
                   title="View source on GitHub"
                   aria-label="View source on GitHub"
                 >
-                  <GithubLogo size={28} weight="fill" />
+                  <GithubLogoIcon size={28} weight="fill" />
                 </a>
               )
             }

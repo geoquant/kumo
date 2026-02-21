@@ -179,8 +179,8 @@ function Content({
         <ComboboxBase.Popup
           className={cn(
             "max-h-[min(var(--available-height),24rem)] max-w-(--available-width) min-w-(--anchor-width) scroll-pt-2 scroll-pb-2 overflow-y-auto overscroll-contain p-1.5",
-            "overflow-x-hidden bg-kumo-control text-kumo-default", // background
-            "rounded-lg shadow-lg ring ring-kumo-line", // border part
+            "bg-kumo-control text-kumo-default overflow-x-hidden", // background
+            "ring-kumo-line rounded-lg shadow-lg ring", // border part
             className,
           )}
         >
@@ -238,7 +238,7 @@ function Item({ children, ...props }: ComboboxBase.Item.Props) {
   return (
     <ComboboxBase.Item
       {...props}
-      className="group grid cursor-pointer grid-cols-[1fr_16px] gap-2 rounded px-2 py-1.5 text-base data-highlighted:bg-kumo-overlay"
+      className="group data-highlighted:bg-kumo-overlay grid cursor-pointer grid-cols-[1fr_16px] gap-2 rounded px-2 py-1.5 text-base"
     >
       <div className="col-start-1">{children}</div>
       <ComboboxBase.ItemIndicator className="col-start-2 flex items-center">
@@ -253,7 +253,7 @@ function Empty(props: ComboboxBase.Empty.Props) {
     <ComboboxBase.Empty
       {...props}
       className={cn(
-        "px-4 py-2 text-[0.925rem] leading-4 text-kumo-subtle empty:m-0 empty:p-0",
+        "text-kumo-subtle px-4 py-2 text-[0.925rem] leading-4 empty:m-0 empty:p-0",
       )}
       children={props.children ?? "No labels found."}
     />
@@ -286,10 +286,10 @@ function Chip(props: ComboboxBase.Chip.Props) {
   return (
     <ComboboxBase.Chip
       {...props}
-      className="flex items-center gap-1 rounded-md bg-kumo-overlay px-2 py-1"
+      className="bg-kumo-overlay flex items-center gap-1 rounded-md px-2 py-1"
     >
       {props.children}
-      <ComboboxBase.ChipRemove className="cursor-pointer rounded-md p-1 hover:bg-kumo-fill-hover">
+      <ComboboxBase.ChipRemove className="hover:bg-kumo-fill-hover cursor-pointer rounded-md p-1">
         <XIcon size={12} weight="bold" />
       </ComboboxBase.ChipRemove>
     </ComboboxBase.Chip>

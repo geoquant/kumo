@@ -266,7 +266,7 @@ function ToastList() {
         "[&[data-ending-style]:not([data-limited]):not([data-swipe-direction])]:[transform:translateY(150%)]",
       )}
     >
-      <div className="absolute inset-0 rounded-[11px] bg-kumo-control/90"></div>
+      <div className="bg-kumo-control/90 absolute inset-0 rounded-[11px]"></div>
       <Toast.Content className="isolate flex flex-col gap-1 transition-opacity [transition-duration:250ms] data-[behind]:pointer-events-none data-[behind]:opacity-0 data-[expanded]:pointer-events-auto data-[expanded]:opacity-100">
         {toast.content ?? (
           <>
@@ -275,9 +275,9 @@ function ToastList() {
               <div className="flex flex-col gap-1 overflow-hidden">
                 <Toast.Title
                   data-toast-title
-                  className="text-[0.975rem] leading-5 font-medium text-kumo-default"
+                  className="text-kumo-default text-[0.975rem] leading-5 font-medium"
                 />
-                <Toast.Description className="text-[0.925rem] leading-5 text-kumo-subtle" />
+                <Toast.Description className="text-kumo-subtle text-[0.925rem] leading-5" />
 
                 {!!toast.actions && (
                   <div className="mt-2 flex min-w-0 flex-nowrap gap-2 overflow-x-auto p-px">
@@ -291,7 +291,7 @@ function ToastList() {
           </>
         )}
         <Toast.Close
-          className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded border-none bg-transparent text-current/50 hover:bg-kumo-contrast/10 hover:text-current"
+          className="hover:bg-kumo-contrast/10 absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded border-none bg-transparent text-current/50 hover:text-current"
           aria-label="Close"
         >
           <XIcon className="h-3 w-3" />

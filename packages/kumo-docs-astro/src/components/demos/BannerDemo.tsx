@@ -1,5 +1,5 @@
 import { Banner, Text } from "@cloudflare/kumo";
-import { Info, WarningCircle } from "@phosphor-icons/react";
+import { InfoIcon, WarningCircleIcon } from "@phosphor-icons/react";
 
 export function BannerVariantsDemo() {
   return (
@@ -25,7 +25,7 @@ export function BannerErrorDemo() {
 
 export function BannerWithIconDemo() {
   return (
-    <Banner icon={<WarningCircle />} variant="alert">
+    <Banner icon={<WarningCircleIcon />} variant="alert">
       Review your billing information.
     </Banner>
   );
@@ -33,7 +33,7 @@ export function BannerWithIconDemo() {
 
 export function BannerCustomContentDemo() {
   return (
-    <Banner icon={<Info />}>
+    <Banner icon={<InfoIcon />}>
       <Text DANGEROUS_className="text-inherit">
         This banner supports <strong>custom content</strong> with Text.
       </Text>

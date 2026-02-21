@@ -230,7 +230,7 @@ export function FlowDiagram({
       <motion.div
         ref={wrapperRef}
         className={cn(
-          "relative overflow-hidden py-16 px-4 grow isolate group",
+          "group relative isolate grow overflow-hidden px-4 py-16",
           className,
         )}
         style={{
@@ -248,15 +248,15 @@ export function FlowDiagram({
           document.body.style.userSelect = "";
         }}
       >
-        <motion.div ref={contentRef} className="w-max mx-auto" style={{ x, y }}>
+        <motion.div ref={contentRef} className="mx-auto w-max" style={{ x, y }}>
           <FlowNodeList>{children}</FlowNodeList>
         </motion.div>
 
         {/* Vertical scrollbar */}
         {canScrollY && (
-          <div className="absolute right-1 top-4 bottom-4 w-1.5 rounded-full bg-kumo-line/50 opacity-0 group-hover:opacity-100">
+          <div className="bg-kumo-line/50 absolute top-4 right-1 bottom-4 w-1.5 rounded-full opacity-0 group-hover:opacity-100">
             <motion.div
-              className="absolute w-full rounded-full bg-kumo-fill"
+              className="bg-kumo-fill absolute w-full rounded-full"
               style={{
                 height: `${scrollThumbHeight}%`,
                 top: scrollTop,
@@ -267,9 +267,9 @@ export function FlowDiagram({
 
         {/* Horizontal scrollbar */}
         {canScrollX && (
-          <div className="absolute bottom-1 left-4 right-4 h-1.5 rounded-full bg-kumo-line/50 opacity-0 group-hover:opacity-100">
+          <div className="bg-kumo-line/50 absolute right-4 bottom-1 left-4 h-1.5 rounded-full opacity-0 group-hover:opacity-100">
             <motion.div
-              className="absolute h-full rounded-full bg-kumo-fill"
+              className="bg-kumo-fill absolute h-full rounded-full"
               style={{
                 width: `${scrollThumbWidth}%`,
                 left: scrollLeft,
@@ -358,7 +358,7 @@ export function FlowNodeList({ children }: { children: ReactNode }) {
         >
           {children}
         </ul>
-        <div className="absolute inset-0 pointer-events-none">
+        <div className="pointer-events-none absolute inset-0">
           <Connectors
             connectors={connectors}
             orientation={orientation}

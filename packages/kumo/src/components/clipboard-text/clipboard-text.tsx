@@ -63,7 +63,7 @@ export function clipboardTextVariants({
 }: KumoClipboardTextVariantsProps = {}) {
   return cn(
     // Base styles
-    "flex items-center overflow-hidden bg-kumo-base px-0 font-mono",
+    "bg-kumo-base flex items-center overflow-hidden px-0 font-mono",
     // Apply size styles from KUMO_CLIPBOARD_TEXT_VARIANTS
     KUMO_CLIPBOARD_TEXT_VARIANTS.size[size].classes,
   );
@@ -125,8 +125,8 @@ function AnchoredToasts() {
           <Toast.Root
             toast={toast}
             className={cn(
-              "flex origin-[var(--transform-origin)] flex-col rounded-md bg-kumo-base px-3 py-1.5 text-xs text-kumo-default font-sans",
-              "shadow-lg shadow-kumo-tip-shadow outline outline-kumo-fill",
+              "bg-kumo-base text-kumo-default flex origin-[var(--transform-origin)] flex-col rounded-md px-3 py-1.5 font-sans text-xs",
+              "shadow-kumo-tip-shadow outline-kumo-fill shadow-lg outline",
             )}
           >
             <Toast.Description />
@@ -246,7 +246,7 @@ export const ClipboardText = forwardRef<HTMLDivElement, ClipboardTextProps>(
         ref={buttonRef}
         size={sizeConfig.buttonSize}
         variant="ghost"
-        className="rounded-none border-l! border-kumo-line! px-3 relative overflow-hidden transition-all duration-200"
+        className="border-kumo-line! relative overflow-hidden rounded-none border-l! px-3 transition-all duration-200"
         onClick={copyToClipboard}
         aria-label={copyAction}
       >
@@ -299,8 +299,8 @@ export const ClipboardText = forwardRef<HTMLDivElement, ClipboardTextProps>(
                 <Tooltip.Positioner side={tooltipSide} sideOffset={8}>
                   <Tooltip.Popup
                     className={cn(
-                      "flex origin-[var(--transform-origin)] flex-col rounded-md bg-kumo-base px-3 py-1.5 text-xs text-kumo-default",
-                      "shadow-lg shadow-kumo-tip-shadow outline outline-kumo-fill",
+                      "bg-kumo-base text-kumo-default flex origin-[var(--transform-origin)] flex-col rounded-md px-3 py-1.5 text-xs",
+                      "shadow-kumo-tip-shadow outline-kumo-fill shadow-lg outline",
                     )}
                   >
                     {tooltipText}

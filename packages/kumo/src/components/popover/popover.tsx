@@ -148,8 +148,8 @@ function PopoverContent({
       >
         <PopoverBase.Popup
           className={cn(
-            "flex origin-(--transform-origin) flex-col rounded-lg bg-kumo-base px-4 py-3 text-sm text-kumo-default",
-            "shadow-lg shadow-kumo-tip-shadow outline outline-kumo-fill",
+            "bg-kumo-base text-kumo-default flex origin-(--transform-origin) flex-col rounded-lg px-4 py-3 text-sm",
+            "shadow-kumo-tip-shadow outline-kumo-fill shadow-lg outline",
             "transition-[transform,scale,opacity] duration-150",
             "data-starting-style:scale-90 data-starting-style:opacity-0",
             "data-ending-style:scale-90 data-ending-style:opacity-0",
@@ -210,7 +210,7 @@ export type PopoverDescriptionProps = BasePopoverDescriptionProps;
 function PopoverDescription({ className, ...props }: PopoverDescriptionProps) {
   return (
     <PopoverBase.Description
-      className={cn("m-0 text-base leading-6 text-kumo-subtle", className)}
+      className={cn("text-kumo-subtle m-0 text-base leading-6", className)}
       {...props}
     />
   );

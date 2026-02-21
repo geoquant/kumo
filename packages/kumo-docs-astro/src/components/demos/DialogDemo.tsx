@@ -6,7 +6,7 @@ import {
   Combobox,
   DropdownMenu,
 } from "@cloudflare/kumo";
-import { Warning, X } from "@phosphor-icons/react";
+import { WarningIcon, XIcon } from "@phosphor-icons/react";
 
 export function DialogBasicDemo() {
   return (
@@ -24,7 +24,7 @@ export function DialogBasicDemo() {
                 {...props}
                 variant="secondary"
                 shape="square"
-                icon={<X />}
+                icon={<XIcon />}
                 aria-label="Close"
               />
             )}
@@ -55,7 +55,7 @@ export function DialogWithActionsDemo() {
                 {...props}
                 variant="secondary"
                 shape="square"
-                icon={<X />}
+                icon={<XIcon />}
                 aria-label="Close"
               />
             )}
@@ -99,7 +99,7 @@ export function DialogConfirmationDemo() {
       <Dialog className="p-8">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-kumo-danger/20">
-            <Warning size={20} className="text-kumo-danger" />
+            <WarningIcon size={20} className="text-kumo-danger" />
           </div>
           <Dialog.Title className="text-xl font-semibold">
             Delete Project?
@@ -153,7 +153,7 @@ export function DialogWithSelectDemo() {
                 {...props}
                 variant="secondary"
                 shape="square"
-                icon={<X />}
+                icon={<XIcon />}
                 aria-label="Close"
               />
             )}
@@ -209,7 +209,7 @@ export function DialogWithComboboxDemo() {
                 {...props}
                 variant="secondary"
                 shape="square"
-                icon={<X />}
+                icon={<XIcon />}
                 aria-label="Close"
               />
             )}
@@ -265,7 +265,7 @@ export function DialogWithDropdownDemo() {
                 {...props}
                 variant="secondary"
                 shape="square"
-                icon={<X />}
+                icon={<XIcon />}
                 aria-label="Close"
               />
             )}

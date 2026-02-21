@@ -277,7 +277,7 @@ export function HomeGrid() {
         <Checkbox
           label="Max bandwidth"
           checked={checked}
-          onValueChange={(checked) => {
+          onCheckedChange={(checked) => {
             setChecked(checked);
           }}
         />
@@ -330,17 +330,13 @@ export function HomeGrid() {
       id: "banner",
       Component: (
         <div className="flex flex-col gap-2">
-          <Banner text="This is a default banner." />
-          <Banner
-            icon={<WarningIcon weight="fill" />}
-            text="This is an alert banner."
-            variant="alert"
-          />
-          <Banner
-            icon={<WarningOctagonIcon weight="fill" />}
-            text="This is an error banner."
-            variant="error"
-          />
+          <Banner>This is a default banner.</Banner>
+          <Banner icon={<WarningIcon weight="fill" />} variant="alert">
+            This is an alert banner.
+          </Banner>
+          <Banner icon={<WarningOctagonIcon weight="fill" />} variant="error">
+            This is an error banner.
+          </Banner>
         </div>
       ),
     },

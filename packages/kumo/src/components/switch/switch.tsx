@@ -225,7 +225,7 @@ const SwitchBase = forwardRef<HTMLButtonElement, SwitchProps>(
           };
 
           const mergedClassName = cn(
-            "interactive flex items-center gap-2 rounded-full border border-transparent bg-kumo-recessed p-1 transition-colors",
+            "interactive bg-kumo-recessed flex items-center gap-2 rounded-full border border-transparent p-1 transition-colors",
             switchVariants({ size, variant }),
             {
               "bg-kumo-brand": state.checked && !disabled && variant !== "error",
@@ -353,7 +353,7 @@ const SwitchItem = forwardRef<HTMLButtonElement, SwitchItemProps>(
             };
 
             const mergedClassName = cn(
-              "interactive flex items-center gap-2 rounded-full border border-transparent bg-kumo-recessed p-1 transition-colors",
+              "interactive bg-kumo-recessed flex items-center gap-2 rounded-full border border-transparent p-1 transition-colors",
               switchVariants({ size, variant }),
               {
                 "bg-kumo-brand": state.checked && !disabled && variant !== "error",
@@ -403,7 +403,7 @@ const SwitchItem = forwardRef<HTMLButtonElement, SwitchItemProps>(
             );
           }}
         />
-        <span className="text-base font-medium text-kumo-default">{label}</span>
+        <span className="text-kumo-default text-base font-medium">{label}</span>
       </label>
     );
   },
@@ -425,17 +425,17 @@ function SwitchGroup({
     <SwitchGroupContext.Provider value={{ controlFirst }}>
       <Fieldset.Root
         className={cn(
-          "flex flex-col gap-4 rounded-lg border border-kumo-line p-4",
+          "border-kumo-line flex flex-col gap-4 rounded-lg border p-4",
           className,
         )}
         disabled={disabled}
       >
-        <Fieldset.Legend className="text-lg font-medium text-kumo-default">
+        <Fieldset.Legend className="text-kumo-default text-lg font-medium">
           {legend}
         </Fieldset.Legend>
         <div className="flex flex-col gap-2">{children}</div>
-        {error && <p className="text-sm text-kumo-danger">{error}</p>}
-        {description && <p className="text-sm text-kumo-subtle">{description}</p>}
+        {error && <p className="text-kumo-danger text-sm">{error}</p>}
+        {description && <p className="text-kumo-subtle text-sm">{description}</p>}
       </Fieldset.Root>
     </SwitchGroupContext.Provider>
   );

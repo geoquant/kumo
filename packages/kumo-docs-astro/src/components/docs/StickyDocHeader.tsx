@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { cn } from "@cloudflare/kumo";
-import { GithubLogo } from "@phosphor-icons/react";
+import { GithubLogoIcon } from "@phosphor-icons/react";
 import { BaseUIIcon } from "./icons/BaseUIIcon";
 
 /** Height of the sticky header in pixels - matches h-12 Tailwind class (3rem) */
@@ -92,7 +92,7 @@ export function StickyDocHeader({
                 aria-label="View source on GitHub"
                 tabIndex={showStickyTitle ? 0 : -1}
               >
-                <GithubLogo size={18} weight="fill" />
+                <GithubLogoIcon size={18} weight="fill" />
               </a>
             )}
             {baseUIUrl && (
@@ -136,7 +136,7 @@ export function StickyDocHeader({
                 aria-label="View source on GitHub"
                 tabIndex={showStickyTitle && sidebarOpen ? 0 : -1}
               >
-                <GithubLogo size={20} weight="fill" />
+                <GithubLogoIcon size={20} weight="fill" />
               </a>
             )}
             {baseUIUrl && (

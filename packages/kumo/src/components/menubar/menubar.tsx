@@ -17,7 +17,7 @@ export interface KumoMenuBarVariantsProps {}
 export function menuBarVariants(_props: KumoMenuBarVariantsProps = {}) {
   return cn(
     // Base styles
-    "flex rounded-lg border border-kumo-fill bg-kumo-fill pl-px shadow-xs transition-colors",
+    "border-kumo-fill bg-kumo-fill flex rounded-lg border pl-px shadow-xs transition-colors",
   );
 }
 
@@ -46,7 +46,7 @@ const MenuOption = ({
     <Tooltip content={tooltip} asChild>
       <button
         className={cn(
-          "focus:inset-ring-focus relative -ml-px flex h-full w-11 cursor-pointer items-center justify-center rounded-md border-none bg-kumo-fill first:rounded-l-lg last:rounded-r-lg transition-colors focus:z-10 focus:outline-none focus-visible:z-10 focus-visible:inset-ring-[0.5]",
+          "focus:inset-ring-focus bg-kumo-fill relative -ml-px flex h-full w-11 cursor-pointer items-center justify-center rounded-md border-none transition-colors first:rounded-l-lg last:rounded-r-lg focus:z-10 focus:outline-none focus-visible:z-10 focus-visible:inset-ring-[0.5]",
           {
             "z-20 bg-kumo-base shadow-xs transition-colors": isActive === id,
           },
@@ -118,7 +118,7 @@ export const MenuBar = ({
   return (
     <nav
       className={cn(
-        "flex rounded-lg border border-kumo-fill bg-kumo-fill pl-px shadow-xs transition-colors",
+        "border-kumo-fill bg-kumo-fill flex rounded-lg border pl-px shadow-xs transition-colors",
         className,
       )}
       ref={menuRef}

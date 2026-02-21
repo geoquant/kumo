@@ -147,14 +147,14 @@ export function Tabs({
     >
       {/* Background element for segmented variant */}
       {isSegmented && (
-        <div className="absolute inset-x-0 top-1/2 -z-10 h-8.5 -translate-y-1/2 rounded-lg bg-kumo-tint" />
+        <div className="bg-kumo-tint absolute inset-x-0 top-1/2 -z-10 h-8.5 -translate-y-1/2 rounded-lg" />
       )}
       <TabsPrimitive.List
         activateOnFocus={activateOnFocus}
         className={cn(
           "scrollbar-hide relative flex min-w-0 shrink items-stretch",
-          isSegmented && "h-8.5 rounded-lg bg-kumo-tint px-px",
-          isUnderline && "h-7 gap-4 border-b border-kumo-line pb-2",
+          isSegmented && "bg-kumo-tint h-8.5 rounded-lg px-px",
+          isUnderline && "border-kumo-line h-7 gap-4 border-b pb-2",
           listClassName,
         )}
       >
@@ -163,11 +163,11 @@ export function Tabs({
             key={tab.value}
             value={tab.value}
             className={cn(
-              "relative z-10 flex cursor-pointer items-center rounded bg-transparent text-base whitespace-nowrap hover:border-kumo-tint focus-visible:rounded-none focus-visible:ring-kumo-ring focus-visible:outline-offset-3",
+              "hover:border-kumo-tint focus-visible:ring-kumo-ring relative z-10 flex cursor-pointer items-center rounded bg-transparent text-base whitespace-nowrap focus-visible:rounded-none focus-visible:outline-offset-3",
               isSegmented &&
-                "my-px rounded-lg px-2.5 text-kumo-strong aria-selected:text-kumo-default",
+                "text-kumo-strong aria-selected:text-kumo-default my-px rounded-lg px-2.5",
               isUnderline &&
-                "mb-2 text-kumo-strong hover:text-kumo-subtle aria-selected:font-medium aria-selected:text-kumo-default",
+                "text-kumo-strong hover:text-kumo-subtle aria-selected:text-kumo-default mb-2 aria-selected:font-medium",
               tab.className,
             )}
           >
@@ -180,8 +180,8 @@ export function Tabs({
             "data-[rendered=false]:scale-90 data-[rendered=false]:opacity-0",
             "left-(--active-tab-left) w-(--active-tab-width)",
             isSegmented &&
-              "top-(--active-tab-top) h-(--active-tab-height) rounded-lg bg-kumo-overlay shadow-sm ring ring-kumo-fill-hover",
-            isUnderline && "bottom-0 h-0.5 bg-kumo-brand",
+              "bg-kumo-overlay ring-kumo-fill-hover top-(--active-tab-top) h-(--active-tab-height) rounded-lg shadow-sm ring",
+            isUnderline && "bg-kumo-brand bottom-0 h-0.5",
             indicatorClassName,
           )}
         />

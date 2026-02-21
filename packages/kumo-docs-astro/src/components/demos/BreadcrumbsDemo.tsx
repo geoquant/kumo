@@ -1,5 +1,5 @@
 import { Breadcrumbs } from "@cloudflare/kumo";
-import { House } from "@phosphor-icons/react";
+import { HouseIcon } from "@phosphor-icons/react";
 
 export function BreadcrumbsDemo() {
   return (
@@ -16,7 +16,7 @@ export function BreadcrumbsDemo() {
 export function BreadcrumbsWithIconsDemo() {
   return (
     <Breadcrumbs>
-      <Breadcrumbs.Link href="#" icon={<House size={16} />}>
+      <Breadcrumbs.Link href="#" icon={<HouseIcon size={16} />}>
         Home
       </Breadcrumbs.Link>
       <Breadcrumbs.Separator />
@@ -30,7 +30,7 @@ export function BreadcrumbsWithIconsDemo() {
 export function BreadcrumbsLoadingDemo() {
   return (
     <Breadcrumbs>
-      <Breadcrumbs.Link href="#" icon={<House size={16} />}>
+      <Breadcrumbs.Link href="#" icon={<HouseIcon size={16} />}>
         Home
       </Breadcrumbs.Link>
       <Breadcrumbs.Separator />
@@ -44,7 +44,7 @@ export function BreadcrumbsLoadingDemo() {
 export function BreadcrumbsRootDemo() {
   return (
     <Breadcrumbs>
-      <Breadcrumbs.Current icon={<House size={16} />}>
+      <Breadcrumbs.Current icon={<HouseIcon size={16} />}>
         Worker Analytics
       </Breadcrumbs.Current>
     </Breadcrumbs>

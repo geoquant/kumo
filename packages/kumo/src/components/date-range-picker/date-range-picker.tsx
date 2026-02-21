@@ -274,7 +274,7 @@ export function DateRangePicker({
           <button
             type="button"
             aria-label="Previous month"
-            className="absolute top-0 left-0 cursor-pointer rounded bg-kumo-interact/85 p-1.5 hover:bg-kumo-interact"
+            className="bg-kumo-interact/85 hover:bg-kumo-interact absolute top-0 left-0 cursor-pointer rounded p-1.5"
             onClick={() => adjustMonth(-1)}
           >
             <CaretLeftIcon size={sizeConfig.iconSize} />
@@ -375,7 +375,7 @@ export function DateRangePicker({
           <button
             type="button"
             aria-label="Next month"
-            className="absolute top-0 right-0 cursor-pointer rounded bg-kumo-interact/85 p-1.5 hover:bg-kumo-interact"
+            className="bg-kumo-interact/85 hover:bg-kumo-interact absolute top-0 right-0 cursor-pointer rounded p-1.5"
             onClick={() => adjustMonth(1)}
           >
             <CaretRightIcon size={sizeConfig.iconSize} />
@@ -565,7 +565,7 @@ function DateRangeDayCell({
         sizeConfig.cellHeight,
         sizeConfig.cellWidth,
         sizeConfig.textSize,
-        "cursor-pointer text-center text-kumo-default transition-all duration-[50]",
+        "text-kumo-default cursor-pointer text-center transition-all duration-[50]",
         `leading-[${sizeConfig.cellHeight.replace("h-[", "").replace("]", "")}]`,
         mode !== DateRangeCellMode.OUT_OF_RANGE &&
           mode !== DateRangeCellMode.SELECTED_OUT_OF_RANGE
@@ -604,7 +604,7 @@ function DateRangeMonthHeader({
           aria-label="Edit month and year"
           defaultValue={`${month} ${year}`}
           className={cn(
-            "w-full rounded-md border-none bg-transparent py-1.5 text-center font-semibold text-kumo-default transition-all duration-200 focus:outline-none",
+            "text-kumo-default w-full rounded-md border-none bg-transparent py-1.5 text-center font-semibold transition-all duration-200 focus:outline-none",
             sizeConfig.textSize,
           )}
           onBlur={(e) => {
@@ -619,7 +619,7 @@ function DateRangeMonthHeader({
           <div
             key={day}
             className={cn(
-              "h-[22px] text-center text-kumo-subtle",
+              "text-kumo-subtle h-[22px] text-center",
               sizeConfig.cellWidth,
               sizeConfig.textSize,
             )}
@@ -645,14 +645,14 @@ function DateRangeFooter({
 
   return (
     <div
-      className={cn("flex items-center gap-2 text-kumo-strong", sizeConfig.textSize)}
+      className={cn("text-kumo-strong flex items-center gap-2", sizeConfig.textSize)}
     >
       <GlobeHemisphereWestIcon size={sizeConfig.iconSize} />
       <span className="flex-1">Timezone: {timezone}</span>
       <button
         type="button"
         onClick={reset}
-        className="cursor-pointer font-semibold text-kumo-default underline underline-offset-2"
+        className="text-kumo-default cursor-pointer font-semibold underline underline-offset-2"
       >
         Reset Dates
       </button>

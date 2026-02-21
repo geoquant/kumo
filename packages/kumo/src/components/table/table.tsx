@@ -71,11 +71,11 @@ const TableRoot = forwardRef<
   const className = cn(
     "w-full",
     KUMO_TABLE_VARIANTS.layout[layout].classes,
-    "[&_tr_td]:border-b [&_tr_td]:border-kumo-fill [&_tr:last-child_td]:border-b-0", // Row border
+    "[&_tr_td]:border-kumo-fill [&_tr_td]:border-b [&_tr:last-child_td]:border-b-0", // Row border
     "[&_tr_td]:p-3", // Cell padding
-    "[&_tr_th]:border-b [&_tr_th]:border-kumo-fill [&_tr_th]:p-3 [&_tr_th]:font-semibold", // Header styles
+    "[&_tr_th]:border-kumo-fill [&_tr_th]:border-b [&_tr_th]:p-3 [&_tr_th]:font-semibold", // Header styles
     "[&_tr_th]:bg-kumo-base", // Header background color
-    "text-left text-kumo-default",
+    "text-kumo-default text-left",
     props.className,
   );
 
@@ -148,10 +148,10 @@ const TableResizeHandle = forwardRef<
         "flex items-center justify-center", // Center the handle
         "cursor-col-resize touch-none select-none", // Prevent selection and touch events
         "absolute top-0 right-0", // Position the handle
-        "m-0 bg-kumo-base p-0", // Override the stratus button styles
+        "bg-kumo-base m-0 p-0", // Override the stratus button styles
       )}
     >
-      <span className="h-5 w-[2px] rounded bg-kumo-ring" />
+      <span className="bg-kumo-ring h-5 w-[2px] rounded" />
     </button>
   );
 });

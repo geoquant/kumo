@@ -59,7 +59,7 @@ const Link = ({
   return (
     <LinkComponent
       to={href}
-      className="flex min-w-0 items-center gap-1 text-kumo-subtle no-underline"
+      className="text-kumo-subtle flex min-w-0 items-center gap-1 no-underline"
     >
       {!!icon && <span className="flex shrink-0 items-center">{icon}</span>}
       {children}
@@ -99,7 +99,7 @@ function Current({
 
 function Separator() {
   return (
-    <span className="flex items-center text-kumo-inactive" aria-hidden="true">
+    <span className="text-kumo-inactive flex items-center" aria-hidden="true">
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
         <path
           stroke="currentColor"
