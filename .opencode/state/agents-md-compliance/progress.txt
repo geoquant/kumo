@@ -113,3 +113,13 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 - Existing pre-push validate-changeset hook unchanged
 - Files changed: lefthook.yml (6 lines added)
 - **Learnings:** The no-primitive-colors rule only fires on JSXAttribute nodes (className/class). A plain .ts file with a color string won't trigger it — must use .tsx with actual JSX. Root .oxlintrc.json includes the shared custom plugin at ./packages/kumo/lint/kumo-plugin.js and has 3 rules (no-cross-package-imports, no-primitive-colors, no-tailwind-dark-variant).
+
+## Task - infra-2
+- Added check-agents-staleness command to pre-push section of lefthook.yml
+- Inline bash script: extracts commit hash from AGENTS.md `**Commit:**` header via `sed`, counts commits since via `git rev-list --count`, warns if >50
+- All error paths guarded with `|| true` and `-n` checks — never fails the push
+- Skips on merge and rebase (same as validate-changeset)
+- Verified: lefthook runs both pre-push commands, validate-changeset still passes, staleness check exits 0
+- Used `sed` not `grep -P` for macOS compatibility (BSD grep lacks -P flag)
+- Files changed: lefthook.yml (12 lines added)
+- **Learnings:** macOS ships BSD grep which lacks `-P` (Perl regex). Use `sed -n 's/.../\1/p'` for portable capture groups. Lefthook `run: |` YAML block scalar supports multi-line shell scripts inline — no need for a separate script file for simple checks.

@@ -20,3 +20,15 @@ pre-push:
       skip:
         - merge
         - rebase
+    check-agents-staleness:
+      run: |
+        hash=$(sed -n 's/.*\*\*Commit:\*\* \([a-f0-9]*\).*/\1/p' AGENTS.md 2>/dev/null) || true
+        if [ -n "$hash" ] && git rev-parse "$hash" >/dev/null 2>&1; then
+          count=$(git rev-list --count "$hash"..HEAD 2>/dev/null) || true
+          if [ "${count:-0}" -gt 50 ]; then
+            echo "WARNING: AGENTS.md is $count commits stale (generated at $hash). Consider regenerating."
+          fi
+        fi
+      skip:
+        - merge
+        - rebase

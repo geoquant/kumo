@@ -154,7 +154,7 @@
         "Staleness check skips on merge and rebase",
         "Existing validate-changeset pre-push hook unchanged and still functional"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-9",
