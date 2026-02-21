@@ -127,7 +127,7 @@
         "Incident prevention focus section added per mandate spirit",
         "No stale numeric counts remain in the file"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "infra-1",

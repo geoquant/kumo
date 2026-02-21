@@ -124,6 +124,7 @@ pnpm typecheck                              # TypeScript check all packages
 pnpm --filter @cloudflare/kumo build        # Build library
 pnpm --filter @cloudflare/kumo test         # Vitest (happy-dom env, v8 coverage)
 pnpm --filter @cloudflare/kumo codegen:registry  # Regenerate registry
+pnpm --filter @cloudflare/kumo ai           # AI-assisted component queries
 
 # Test path aliases: @/ → src/, @cloudflare/kumo → src/index.ts
 
@@ -204,11 +205,40 @@ When you see lint errors from these rules, check the rule source for context.
 
 ```
 packages/kumo/src/
-├── components/     # 35 UI components
-├── blocks/         # Installable via CLI (not exported)
-├── primitives/     # Auto-generated Base UI re-exports
+├── components/     # 38 UI components
+├── blocks/         # 3 installable via CLI (not exported)
+├── primitives/     # 38 auto-generated Base UI re-exports
 ├── catalog/        # JSON-UI rendering runtime
-├── command-line/   # CLI commands
+├── command-line/   # CLI commands (ls, doc, add, blocks, init, migrate, ai)
 ├── styles/         # CSS and theme files
 └── utils/          # cn(), safeRandomId, LinkProvider
 ```
+
+For full monorepo architecture, codegen pipeline, and CI details, see [ARCHITECTURE.md](../../ARCHITECTURE.md).
+
+## Regression Prevention Tests
+
+Component changes should consider these test categories in `packages/kumo/tests/`:
+
+| Category               | Path                  | Purpose                                                  |
+| ---------------------- | --------------------- | -------------------------------------------------------- |
+| CSS class contract     | `tests/css-contract/` | Verifies component CSS classes match snapshots           |
+| Browser compat guard   | `tests/build/`        | Ensures build output works across target browsers        |
+| Tailwind conflict lint | `tests/lint/`         | Catches raw Tailwind usage that bypasses semantic tokens |
+
+## CI Protection
+
+- **VR (visual regression)**: Preview deployments (preview.yml) generate before/after screenshots posted to PR comments. Informational only — does not block merge.
+- **Changesets**: Pre-push hook validates any `packages/kumo/` change has a changeset.
+- **oxlint + custom rules**: Catches semantic token violations, deprecated props, dark: variant usage.
+
+## Incident Prevention
+
+This is a UI component library — not edge infrastructure. There is no direct production traffic. Risk surfaces are:
+
+1. **npm package** — broken release affects downstream consumers
+2. **Docs site** (kumo-ui.com) — deployment failures, stale content
+3. **CSS contract** — class name changes break consuming apps
+4. **Browser compat** — build output targeting wrong environments
+
+See [INCIDENTS.md](../../INCIDENTS.md) for the incident log and prevention mechanisms.

@@ -87,3 +87,17 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 - Static prompt ~218 words ≈ ~290 tokens (well under ~1K limit)
 - Files changed: .github/workflows/reviewer.yml
 - **Learnings:** Structured prompt with ## headers is more maintainable than run-on paragraphs. Keeps each concern scannable and independently editable. The `prompt: |` YAML block scalar preserves markdown formatting.
+
+## Task - ci-2
+- Updated .opencode/agents/kumo.md with accurate counts and 4 new sections
+- Fixed component count: 35→38 in Package Structure
+- Added block count (3) and primitive count (38) to Package Structure tree
+- Added CLI commands list to command-line/ tree comment
+- Added `ai` command to Common Commands section
+- Added "Regression Prevention Tests" section with test category table (css-contract, build, lint)
+- Added "CI Protection" section: VR gate, changesets, oxlint
+- Added "Incident Prevention" section: risk surfaces, link to INCIDENTS.md
+- Added ARCHITECTURE.md reference after Package Structure
+- Audited all numeric counts — no stale values remain
+- Files changed: .opencode/agents/kumo.md (30 lines added, 214→244 lines)
+- **Learnings:** The kumo.md agent file serves bonk (GitHub Actions AI agent). It needs to be self-contained enough for an agent with no prior context, so explicit counts and cross-references to docs (ARCHITECTURE.md, INCIDENTS.md) are valuable. Relative links (../../) work from .opencode/agents/ to repo root.
