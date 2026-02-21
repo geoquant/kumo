@@ -28,3 +28,10 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 - Scoring: evaluated lint/, .github/, kumo/scripts/, _examples/ — none met threshold for new AGENTS.md
 - Files changed: AGENTS.md, packages/kumo/AGENTS.md, packages/kumo-docs-astro/AGENTS.md, packages/kumo-figma/AGENTS.md, ci/AGENTS.md
 - **Learnings:** Previous root AGENTS.md incorrectly stated "No GitHub Actions workflows checked into repo" — 6 exist at .github/workflows/. ci/AGENTS.md also incorrectly said "No workflow YAML checked in". Both stale claims fixed.
+
+## Task - docs-3
+- Verification-only task — no file changes needed
+- Confirmed: root AGENTS.md lines 38-47 document all 6 workflows (reviewer, bonk, pullrequest, preview, preview-deploy, release)
+- Confirmed: correct counts — 38 components (line 29), 38 primitives (line 139), 44+ demos (line 33), 3 blocks (line 30)
+- Confirmed: no content duplication — root delegates detail to child files, child files cross-reference root
+- **Learnings:** Duplication check pattern: root should summarize + delegate via "See child AGENTS.md"; child should have "Parent: See root AGENTS.md". Counts in both are OK if contextual (root in WHERE TO LOOK, child in STRUCTURE).

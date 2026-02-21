@@ -34,7 +34,7 @@
         "Root AGENTS.md has correct counts: 38 components, 38 primitives, 44+ demos, 3 blocks",
         "No content duplication between parent and child AGENTS.md files"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-4",
