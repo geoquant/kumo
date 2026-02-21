@@ -32,15 +32,18 @@ kumo/
 
 ## WHERE TO LOOK
 
-| Task                     | Location                                        | Notes                                                      |
-| ------------------------ | ----------------------------------------------- | ---------------------------------------------------------- |
-| Component implementation | `src/components/{name}/{name}.tsx`              | Always check registry first                                |
-| Component API reference  | `ai/component-registry.json`                    | Source of truth for props/variants                         |
-| Variant definitions      | `KUMO_{NAME}_VARIANTS` export in component file | Machine-readable + lint-enforced                           |
-| CLI commands             | `src/command-line/commands/`                    | `ls`, `doc`, `add`, `blocks`, `init`, `migrate`, `ai`      |
-| Scaffold new component   | `plopfile.js`                                   | Injects into index.ts, vite.config.ts, package.json        |
-| Token definitions        | `scripts/theme-generator/config.ts`             | Source of truth; generates theme CSS                       |
-| Registry codegen         | `scripts/component-registry/index.ts`           | Pipeline: discovery → cache → type extraction → enrichment |
+| Task                     | Location                                        | Notes                                                       |
+| ------------------------ | ----------------------------------------------- | ----------------------------------------------------------- |
+| Component implementation | `src/components/{name}/{name}.tsx`              | Always check registry first                                 |
+| Component API reference  | `ai/component-registry.json`                    | Source of truth for props/variants                          |
+| Variant definitions      | `KUMO_{NAME}_VARIANTS` export in component file | Machine-readable + lint-enforced                            |
+| CLI commands             | `src/command-line/commands/`                    | `ls`, `doc`, `add`, `blocks`, `init`, `migrate`, `ai`       |
+| Scaffold new component   | `plopfile.js`                                   | Injects into index.ts, vite.config.ts, package.json         |
+| Token definitions        | `scripts/theme-generator/config.ts`             | Source of truth; generates theme CSS                        |
+| Registry codegen         | `scripts/component-registry/index.ts`           | Pipeline: discovery → cache → type extraction → enrichment  |
+| CSS class contract       | `tests/css-contract/css-classes.test.ts`        | Manifest of public CSS classes; update when adding/removing |
+| Browser compat guard     | `tests/build/browser-compat.test.ts`            | Banned ES2023+ APIs list; post-build scan                   |
+| Tailwind conflict lint   | `tests/lint/tailwind-conflicts.test.ts`         | AST-based cn() conflict detection; conflict pairs list      |
 
 ## CONVENTIONS
 
@@ -63,6 +66,18 @@ Each `src/components/{name}/{name}.tsx` must:
 ### Testing
 
 - **Vitest** with `happy-dom`, globals; `describe.skipIf(!isBuilt)` for post-build tests
+
+#### Regression Prevention Tests
+
+| Category           | Location                                 | What it guards                                    | When to run                                                   |
+| ------------------ | ---------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
+| CSS class contract | `tests/css-contract/css-classes.test.ts` | Public CSS classes survive Tailwind compilation   | After build (`pnpm build && pnpm test -- tests/css-contract`) |
+| Browser compat     | `tests/build/browser-compat.test.ts`     | No ES2023+ runtime APIs in dist output            | After build (`pnpm build && pnpm test -- tests/build`)        |
+| Tailwind conflicts | `tests/lint/tailwind-conflicts.test.ts`  | No conflicting Tailwind class pairs in cn() calls | Any time (`pnpm test -- tests/lint/tailwind-conflicts`)       |
+
+- **css-contract**: Manifest in test file is source of truth for public classes. Adding/removing classes requires manifest update. Removing requires changeset with major bump (breaking change).
+- **browser-compat**: Banned API list covers ES2023+ runtime methods (toSorted, findLast, structuredClone, etc.). Add exceptions with `KNOWN_EXCEPTIONS` + justification.
+- **tailwind-conflicts**: AST-based (TypeScript compiler API). Understands ternary branches (mutually exclusive classes are OK). Add conflict pairs to `CONFLICT_PAIRS` array.
 
 ## ANTI-PATTERNS
 

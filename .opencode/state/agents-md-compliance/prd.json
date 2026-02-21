@@ -67,7 +67,7 @@
         "packages/kumo/AGENTS.md contains WHERE TO LOOK rows for CSS class contract, browser compat guard, Tailwind conflict lint",
         "All .bak files deleted after merge complete"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-7",

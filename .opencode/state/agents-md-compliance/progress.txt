@@ -49,3 +49,12 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 - Verified kumo-docs-astro/AGENTS.md counts all correct: 37 component pages, 3 block pages, 44 demos + 2 non-demo
 - Files changed: ci/AGENTS.md
 - **Learnings:** VR is in preview.yml (same-repo) and preview-deploy.yml (fork), NOT pullrequest.yml. It's a detection tool — posts before/after screenshots to PR comment — never a merge gate. No `skip-vr` label exists.
+
+## Task - docs-6
+- Merged regression prevention content back into packages/kumo/AGENTS.md after docs-2 regeneration lost it
+- Added 3 WHERE TO LOOK rows: CSS class contract, browser compat guard, Tailwind conflict lint
+- Added full "Regression Prevention Tests" subsection under Testing with table + explanation bullets
+- tests/ structure in STRUCTURE section was already correct from regeneration (kept)
+- Deleted all 5 .bak files (AGENTS.md.bak, packages/kumo/AGENTS.md.bak, packages/kumo-docs-astro/AGENTS.md.bak, packages/kumo-figma/AGENTS.md.bak, ci/AGENTS.md.bak)
+- Files changed: packages/kumo/AGENTS.md (15 lines added), 5 .bak files deleted
+- **Learnings:** Selective merge is better than wholesale restore. The .bak had 129 lines with some opinionated observations (DateRangePicker duplication, catalog race condition) that aren't appropriate for AGENTS.md. Final: 95 lines — above the 80-line guideline but justified by the regression prevention mandate.
