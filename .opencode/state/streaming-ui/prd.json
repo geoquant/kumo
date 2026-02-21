@@ -105,7 +105,7 @@
         "Type aliasing: Textarea→InputArea, RadioGroup→Radio.Group",
         "Verify: prompt builder produces categorized, scored component docs"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "prompt-3",

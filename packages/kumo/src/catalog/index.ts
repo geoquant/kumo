@@ -86,3 +86,9 @@ export {
 
 // System prompt
 export { buildSystemPrompt, type SystemPromptOptions } from "./system-prompt";
+
+// Prompt builder
+export {
+  buildComponentDocs,
+  type PromptBuilderOptions,
+} from "./prompt-builder";
