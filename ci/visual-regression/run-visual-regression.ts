@@ -112,7 +112,9 @@ function isWorkerUnreachable(error: unknown): boolean {
     msg.includes("ENOTFOUND") ||
     msg.includes("ETIMEDOUT") ||
     msg.includes("EHOSTUNREACH") ||
+    msg.includes("ECONNABORTED") ||
     msg.includes("UND_ERR_CONNECT_TIMEOUT") ||
+    msg.includes("UND_ERR_SOCKET") ||
     // Match 5xx server errors from the worker (500–504)
     /Worker request failed: 50[0-4]\b/.test(msg)
   );
@@ -151,6 +153,10 @@ async function uploadImageToGitHub(
 
   if (!token) {
     throw new Error("GITHUB_TOKEN required for image upload");
+  }
+
+  if (prNumber && !/^\d+$/.test(prNumber)) {
+    throw new Error(`Invalid PR number: ${prNumber}`);
   }
 
   const [owner, repoName] = repo.split("/");
@@ -548,7 +554,7 @@ async function postPRComment(body: string): Promise<void> {
   const marker = "<!-- kumo-visual-regression -->";
 
   const commentsResponse = await fetch(
-    `https://api.github.com/repos/${owner}/${repoName}/issues/${prNumber}/comments`,
+    `https://api.github.com/repos/${owner}/${repoName}/issues/${prNumber}/comments?per_page=100`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -695,13 +701,21 @@ async function main(): Promise<void> {
         `Screenshot worker unreachable — visual regression skipped. ${msg}`,
         "Visual Regression Skipped",
       );
-      // Post a PR comment so reviewers know VR was skipped
-      await postPRComment(
-        "## Visual Regression: Skipped\n\n" +
-          "> **Screenshot worker was unreachable.** Visual regression comparison could not run.\n" +
-          `> Error: ${msg}\n\n` +
-          "This does not indicate a problem with your PR. The check will pass to avoid blocking merges on infrastructure issues.",
-      );
+      // Post a PR comment so reviewers know VR was skipped.
+      // Wrap in try/catch — if the worker is unreachable due to a broader
+      // network outage, the GitHub API may also be unreachable.
+      try {
+        await postPRComment(
+          "## Visual Regression: Skipped\n\n" +
+            "> **Screenshot worker was unreachable.** Visual regression comparison could not run.\n" +
+            `> Error: ${msg}\n\n` +
+            "This does not indicate a problem with your PR. The check will pass to avoid blocking merges on infrastructure issues.",
+        );
+      } catch (commentErr) {
+        const commentMsg =
+          commentErr instanceof Error ? commentErr.message : String(commentErr);
+        console.warn(`Failed to post skip comment: ${commentMsg}`);
+      }
       return;
     }
     throw error;

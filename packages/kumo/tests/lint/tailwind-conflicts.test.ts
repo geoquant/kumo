@@ -6,8 +6,9 @@ import ts from "typescript";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const componentsDir = join(__dirname, "../../src/components");
-const blocksDir = join(__dirname, "../../src/blocks");
+const srcDir = join(__dirname, "../../src");
+const componentsDir = join(srcDir, "components");
+const blocksDir = join(srcDir, "blocks");
 
 /**
  * Tailwind Class Conflict Lint
@@ -196,7 +197,7 @@ function extractUnconditionalClasses(node: ts.Node): string[] {
  */
 function findCnCalls(sourceFile: ts.SourceFile): CnCallInfo[] {
   const calls: CnCallInfo[] = [];
-  const relPath = relative(componentsDir, sourceFile.fileName);
+  const relPath = relative(srcDir, sourceFile.fileName);
 
   function visit(node: ts.Node): void {
     if (

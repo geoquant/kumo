@@ -56,11 +56,13 @@ export default [
   },
   // Tailwind CSS class ordering + shorthand enforcement
   // Uses beta (v4) for Tailwind v4 compatibility.
-  // TODO: Re-enable no-contradicting-classname when eslint-plugin-tailwindcss
-  // ships a stable v4 release with Tailwind v4 false positives fixed.
-  // This is the highest-value rule — it catches the exact class of bug
-  // (e.g. overflow-hidden vs overflow-y-auto) that motivated the custom
-  // tailwind-conflicts.test.ts. Track: https://github.com/francoismassart/eslint-plugin-tailwindcss
+  // TODO: Upgrade eslint-plugin-tailwindcss to stable v4 when released, then:
+  //   1. Re-enable no-contradicting-classname (highest-value rule — catches
+  //      the exact class of bug, e.g. overflow-hidden vs overflow-y-auto,
+  //      that motivated the custom tailwind-conflicts.test.ts)
+  //   2. Verify `config: {}` workaround is still needed (v4 may auto-detect)
+  //   3. Remove beta pin from package.json
+  // Track: https://github.com/francoismassart/eslint-plugin-tailwindcss
   // Skipped rules:
   //   no-contradicting-classname — known false positives with Tailwind v4 beta
   //   no-custom-classname — would flag all kumo semantic tokens (bg-kumo-*, etc.)
