@@ -72,7 +72,7 @@
         "Script exits zero when all diffs are within threshold",
         "Script has fallback: continue-on-error behavior with annotation warning when screenshot worker is unreachable"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "vr-2",

@@ -10,6 +10,7 @@ Started: 2026-02-20
 - **Build deps issue**: `motion` package needed `pnpm install` after being added to package.json (flow component)
 - **AST cn() parsing**: `ts.createSourceFile(path, source, ScriptTarget.Latest, true, ScriptKind.TSX)` + recursive visitor for CallExpression where `expression.text === "cn"`. Skip ternary branches via `isConditionalExpression` check.
 - **Popup overflow pattern**: Outer popup → `overflow-hidden` (clips animations/transforms). Inner scroll area → `overflow-y-auto` + `min-h-0 flex-1`. Single-element popup needing both → `overflow-x-hidden overflow-y-auto`.
+- **GitHub Actions annotations**: `console.log(\`::warning title=Title::message\`)` and `::error` for CI-visible annotations.
 
 ---
 
@@ -71,3 +72,16 @@ Started: 2026-02-20
   - Standard kumo popup pattern: outer container uses `overflow-hidden`, inner scroll area uses `overflow-y-auto`. Combobox is simpler (single element serves both roles), so axis-specific overflow classes are the correct fix.
   - `overflow-x-hidden` + `overflow-y-auto` don't conflict in Tailwind — they set different CSS properties (`overflow-x` vs `overflow-y`)
   - Select/dropdown use `overflow-hidden` only (Base UI handles internal scrolling). CommandPalette uses two-layer pattern (outer clip + inner scroll div).
+
+## Task - vr-1
+- Added threshold enforcement: script exits non-zero when any screenshot diff > 0.5%
+- Added `DIFF_THRESHOLD_PERCENT = 0.5` constant at module level
+- Added `ghAnnotation()` helper for GitHub Actions `::warning::` and `::error::` annotations
+- Added `isWorkerUnreachable()` check wrapping `captureScreenshots` — graceful fallback with warning annotation when worker is down (ECONNREFUSED, ENOTFOUND, fetch failed, 5xx)
+- On threshold exceeded: logs each offending screenshot, emits `::error` annotation, calls `process.exit(1)`
+- On success: logs "All screenshots within 0.5% threshold."
+- Files changed: `ci/visual-regression/run-visual-regression.ts`
+- **Learnings:**
+  - Existing script had no exit code logic — always exited 0 after posting PR comment, only `process.exit(1)` was in the unhandled error catch
+  - Worker error patterns: Node `fetch` throws "fetch failed" for network errors, undici uses "UND_ERR_CONNECT_TIMEOUT", plus standard ECONNREFUSED/ENOTFOUND
+  - GitHub Actions parses `::warning::` and `::error::` prefixed console output as workflow annotations — visible in PR checks UI

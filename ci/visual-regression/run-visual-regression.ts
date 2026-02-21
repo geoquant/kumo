@@ -21,6 +21,12 @@ const SCREENSHOTS_DIR = "ci/visual-regression/screenshots";
 const API_KEY = process.env.SCREENSHOT_API_KEY ?? "";
 
 /**
+ * Maximum allowed pixel diff percentage before the script fails.
+ * Any screenshot exceeding this threshold causes a non-zero exit.
+ */
+const DIFF_THRESHOLD_PERCENT = 0.5;
+
+/**
  * Screenshot result returned by the worker.
  *
  * For section-based screenshots (when `captureSections` was true and
@@ -62,6 +68,29 @@ interface ComparisonResult {
   changed: boolean;
   diffPixels: number;
   diffPercent: number;
+}
+
+/** Emit a GitHub Actions annotation (no-op outside CI). */
+function ghAnnotation(
+  level: "warning" | "error",
+  message: string,
+  title?: string,
+): void {
+  const titleSuffix = title ? ` title=${title}` : "";
+  // GitHub Actions interprets ::warning:: and ::error:: prefixed lines
+  console.log(`::${level}${titleSuffix}::${message}`);
+}
+
+/** Check if an error indicates the screenshot worker is unreachable. */
+function isWorkerUnreachable(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return (
+    msg.includes("fetch failed") ||
+    msg.includes("ECONNREFUSED") ||
+    msg.includes("ENOTFOUND") ||
+    msg.includes("UND_ERR_CONNECT_TIMEOUT") ||
+    msg.includes("Worker request failed: 5")
+  );
 }
 
 function getChangedFiles(): string[] | null {
@@ -596,21 +625,37 @@ async function main(): Promise<void> {
   const beforeDir = join(SCREENSHOTS_DIR, "before");
   const afterDir = join(SCREENSHOTS_DIR, "after");
 
-  console.log("=== Capturing BEFORE screenshots ===");
-  const beforeScreenshots = await captureScreenshots(
-    beforeUrl,
-    components,
-    beforeDir,
-    "before",
-  );
+  let beforeScreenshots: CapturedScreenshot[];
+  let afterScreenshots: CapturedScreenshot[];
 
-  console.log("\n=== Capturing AFTER screenshots ===");
-  const afterScreenshots = await captureScreenshots(
-    afterUrl,
-    components,
-    afterDir,
-    "after",
-  );
+  try {
+    console.log("=== Capturing BEFORE screenshots ===");
+    beforeScreenshots = await captureScreenshots(
+      beforeUrl,
+      components,
+      beforeDir,
+      "before",
+    );
+
+    console.log("\n=== Capturing AFTER screenshots ===");
+    afterScreenshots = await captureScreenshots(
+      afterUrl,
+      components,
+      afterDir,
+      "after",
+    );
+  } catch (error) {
+    if (isWorkerUnreachable(error)) {
+      const msg = error instanceof Error ? error.message : String(error);
+      ghAnnotation(
+        "warning",
+        `Screenshot worker unreachable — visual regression skipped. ${msg}`,
+        "Visual Regression Skipped",
+      );
+      return;
+    }
+    throw error;
+  }
 
   console.log("\n=== Comparing screenshots ===");
   const comparisons: ComparisonResult[] = [];
@@ -674,6 +719,28 @@ async function main(): Promise<void> {
   console.log("\n=== Generating report ===");
   const report = generateMarkdownReport(comparisons);
   await postPRComment(report);
+
+  // Fail if any screenshot exceeds the diff threshold
+  const exceedingThreshold = comparisons.filter(
+    (c) => c.changed && c.diffPercent > DIFF_THRESHOLD_PERCENT,
+  );
+
+  if (exceedingThreshold.length > 0) {
+    console.error(
+      `\n${exceedingThreshold.length} screenshot(s) exceed ${DIFF_THRESHOLD_PERCENT}% diff threshold:`,
+    );
+    for (const c of exceedingThreshold) {
+      console.error(`  - ${c.name}: ${c.diffPercent}%`);
+    }
+    ghAnnotation(
+      "error",
+      `${exceedingThreshold.length} screenshot(s) exceed ${DIFF_THRESHOLD_PERCENT}% threshold`,
+      "Visual Regression Failed",
+    );
+    process.exit(1);
+  }
+
+  console.log(`\nAll screenshots within ${DIFF_THRESHOLD_PERCENT}% threshold.`);
 }
 
 main().catch((error) => {
