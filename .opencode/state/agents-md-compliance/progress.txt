@@ -1,0 +1,18 @@
+# Progress Log
+PRD: agents-md-compliance
+Started: 2026-02-21
+Branch: geoquant/kumo-regression-prevention (DO NOT switch)
+
+## Codebase Patterns
+<!-- Consolidate reusable patterns here -->
+- AGENTS.md locations: root, packages/kumo, packages/kumo-docs-astro, packages/kumo-figma, ci/
+- All 5 files present as of task start
+
+---
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - docs-1
+- Created .bak snapshots of all 5 AGENTS.md files before regeneration
+- Files: AGENTS.md.bak, packages/kumo/AGENTS.md.bak, packages/kumo-docs-astro/AGENTS.md.bak, packages/kumo-figma/AGENTS.md.bak, ci/AGENTS.md.bak
+- Verified: md5 checksums match originals, line counts confirmed (131, 129, 95, 105, 90)
+- **Learnings:** All AGENTS.md files are in expected locations per root AGENTS.md STRUCTURE section
