@@ -89,7 +89,7 @@
         "Template includes 2+ working examples (counter UI, form)",
         "Verify: system prompt is model-agnostic (no provider-specific instructions)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "prompt-2",
