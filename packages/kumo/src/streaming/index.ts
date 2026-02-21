@@ -64,8 +64,36 @@ export {
   sanitizePatch,
 } from "./text-sanitizer";
 
+// URL policy (pure — no React dependency)
+export { sanitizeUrl } from "./url-policy";
+export type { UrlSanitizationResult } from "./url-policy";
+
 // Action types (pure — no React dependency)
 export type { ActionEvent, ActionDispatch } from "./action-types";
+
+// Action handler factory (pure — no React dependency)
+export { createActionHandler, createClickHandler } from "./action-handler";
+
+// Action registry (pure — no React dependency)
+export {
+  BUILTIN_HANDLERS,
+  createHandlerMap,
+  dispatchAction,
+} from "./action-registry";
+export type {
+  ActionResult,
+  PatchResult,
+  MessageResult,
+  ExternalResult,
+  NoneResult,
+  SubmitFormPayload,
+  ActionHandler,
+  ActionHandlerMap,
+} from "./action-registry";
+
+// Action result processor (pure — no React dependency)
+export { processActionResult } from "./process-action-result";
+export type { ActionResultCallbacks } from "./process-action-result";
 
 // Runtime value store (pure — no React dependency)
 export { createRuntimeValueStore } from "./runtime-value-store";
