@@ -120,7 +120,7 @@
         "Verify: no-args call still works (backwards compatible)",
         "Verify: existing catalog tests still pass"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "generative-1",
