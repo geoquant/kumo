@@ -21,3 +21,12 @@ Started: 2026-02-20
   - The `classExistsInCss` helper uses word-boundary-like regex to avoid partial matches (e.g. `.float` not matching `.floating`)
   - All 9 classes from kumo-binding.css survive Tailwind v4 compilation
   - Pre-existing build failure: `motion/react` import in flow/diagram.tsx requires `pnpm install` after fresh clone
+
+## Task - compat-1
+- Added explicit `target: "es2022"` to vite.config.ts build block
+- Vite default is `"modules"` (es2020); explicit es2022 prevents accidental downleveling
+- Files changed: `packages/kumo/vite.config.ts`
+- **Learnings:**
+  - Vite's `build.target` is separate from `rollupOptions` — it controls esbuild's syntax lowering
+  - ES2022 adds: top-level await, class fields, private methods, RegExp /d, Error.cause, Object.hasOwn, Array.at
+  - Build succeeds cleanly with es2022, no syntax incompatibilities in current source

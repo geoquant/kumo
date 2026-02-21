@@ -3,7 +3,6 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { readdirSync } from "fs";
 import dts from "vite-plugin-dts";
-import preserveDirectives from "rollup-plugin-preserve-directives";
 import { rebuildSignalPlugin } from "./vite-plugin-rebuild-signal";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -22,7 +21,7 @@ function getPrimitiveEntries() {
         entries[`primitives/${name}`] = resolve(primitivesDir, file);
       }
     }
-  } catch (e) {
+  } catch {
     // Primitives directory doesn't exist yet (first build)
   }
 
@@ -46,6 +45,12 @@ export default defineConfig(({ mode }) => {
       rebuildSignalPlugin(),
     ],
     build: {
+      // Explicit ES2022 target to prevent Vite from downleveling to ES2020 default.
+      // ES2022 includes: top-level await, class fields, private methods, RegExp /d,
+      // Error.cause, Object.hasOwn, Array.at — all widely supported since mid-2022.
+      // This does NOT include ES2023+ APIs (toSorted, findLast, etc.) which are
+      // guarded by the browser-compat post-build test (tests/build/browser-compat).
+      target: "es2022",
       lib: {
         entry: {
           // Main entry point
@@ -187,8 +192,8 @@ export default defineConfig(({ mode }) => {
             __dirname,
             "src/components/date-picker/index.ts",
           ),
-          'components/flow': resolve(__dirname, 'src/components/flow/index.ts'),
-        // PLOP_INJECT_COMPONENT_ENTRY
+          "components/flow": resolve(__dirname, "src/components/flow/index.ts"),
+          // PLOP_INJECT_COMPONENT_ENTRY
           // Utils entry point
           utils: resolve(__dirname, "src/utils/index.ts"),
           // Primitives entry point (base-ui re-exports)
@@ -228,7 +233,7 @@ export default defineConfig(({ mode }) => {
           hoistTransitiveImports: false,
           // Add "use client" directive to all output chunks
           // This is necessary because rollup-plugin-preserve-directives only works with preserveModules: true
-          banner: (chunk) => {
+          banner: (_chunk) => {
             // Add "use client" to all chunks since this is a client-side component library
             // RSC apps will need this directive on all components that use hooks/events
             return '"use client";\n';

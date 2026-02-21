@@ -23,7 +23,7 @@
         "vite.config.ts build block contains target: 'es2022'",
         "pnpm --filter @cloudflare/kumo build succeeds with new target"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "compat-2",
