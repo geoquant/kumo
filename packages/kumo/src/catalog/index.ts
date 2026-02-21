@@ -83,3 +83,6 @@ export {
   createVisibilityContext,
   type VisibilityContext,
 } from "./visibility";
+
+// System prompt
+export { buildSystemPrompt, type SystemPromptOptions } from "./system-prompt";
