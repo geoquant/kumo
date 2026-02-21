@@ -97,7 +97,7 @@
         "References (not duplicates) each package's AGENTS.md for detailed conventions",
         "File is under 100 lines"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ci-1",

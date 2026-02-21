@@ -66,3 +66,12 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 - No historical incidents; incident template with date, severity, summary, root cause, resolution, prevention
 - Files created: INCIDENTS.md
 - **Learnings:** VR is referenced as prevention mechanism in the table rather than a separate section — more natural since it's one of several CI-based protections alongside CSS contract and browser compat tests.
+
+## Task - docs-8
+- Created ARCHITECTURE.md at repo root (89 lines, under 100 limit)
+- ASCII diagram shows 3-package unidirectional pipeline: docs → kumo → figma, plus ci/, lint/, workflows
+- 5 sections: codegen pipeline, theming, publish flow, CI workflows
+- References (not duplicates) all 4 child AGENTS.md files via markdown links
+- Artifact bus pattern + VR detection documented in CI section
+- Files created: ARCHITECTURE.md
+- **Learnings:** ASCII art > mermaid for ARCHITECTURE.md — renders in plain text (git diff, terminal, any editor) without requiring a mermaid renderer. Keep diagrams readable at 80 columns.
