@@ -30,7 +30,7 @@
         "Verify: runtime value store captures form values per container",
         "Verify: tree-shakeable — importing createJSONLParser alone doesn't pull React"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "streaming-3",
