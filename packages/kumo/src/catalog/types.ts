@@ -234,6 +234,30 @@ export interface CatalogConfig {
 }
 
 /**
+ * Options for {@link KumoCatalog.generatePrompt}.
+ */
+export interface GeneratePromptOptions {
+  /**
+   * Restrict the prompt to these component names only.
+   * When omitted, all registry components (plus aliases & synthetics) are
+   * included.
+   */
+  readonly components?: readonly string[];
+
+  /**
+   * Maximum number of props to show per component.
+   * @default 10
+   */
+  readonly maxPropsPerComponent?: number;
+
+  /**
+   * Whether to include the worked examples (counter, form) in the prompt.
+   * @default true
+   */
+  readonly includeExamples?: boolean;
+}
+
+/**
  * Runtime catalog instance.
  */
 export interface KumoCatalog {
@@ -250,7 +274,7 @@ export interface KumoCatalog {
   /** Validate a complete UI tree */
   validateTree(tree: unknown): ValidationResult<UITree>;
   /** Generate a prompt describing the catalog for AI */
-  generatePrompt(): string;
+  generatePrompt(options?: GeneratePromptOptions): string;
 }
 
 /**

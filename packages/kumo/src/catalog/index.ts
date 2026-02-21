@@ -57,6 +57,7 @@ export type {
   // Catalog
   KumoCatalog,
   CatalogConfig,
+  GeneratePromptOptions,
   ValidationResult,
   // Registry (re-exported)
   ComponentRegistry,
@@ -66,7 +67,12 @@ export type {
 } from "./types";
 
 // Catalog
-export { createKumoCatalog, initCatalog, loadSchemas } from "./catalog";
+export {
+  createKumoCatalog,
+  initCatalog,
+  loadSchemas,
+  loadRegistry,
+} from "./catalog";
 
 // Data utilities
 export {
