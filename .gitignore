@@ -3,6 +3,7 @@ node_modules/
 
 # Build outputs
 build/
+!packages/kumo/tests/build/
 dist/
 .turbo/
 .react-router/
