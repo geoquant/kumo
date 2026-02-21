@@ -10,11 +10,13 @@
 import type {
   KumoCatalog,
   CatalogConfig,
-  ActionDefinition,
+  GeneratePromptOptions,
   ValidationResult,
   UITree,
   UIElement,
 } from "./types";
+import { buildSystemPrompt } from "./system-prompt";
+import { buildComponentDocs } from "./prompt-builder";
 
 // Schema types - will be populated from generated schemas
 interface SchemasModule {
@@ -41,6 +43,10 @@ interface SchemasModule {
 let schemasModule: SchemasModule | null = null;
 let schemasLoadPromise: Promise<SchemasModule> | null = null;
 
+// Component registry JSON — loaded once, cached for prompt generation
+let registryJson: unknown = null;
+let registryLoadPromise: Promise<unknown> | null = null;
+
 /**
  * Load the generated schemas module.
  * This is called automatically when needed.
@@ -55,6 +61,56 @@ export async function loadSchemas(): Promise<SchemasModule> {
   });
 
   return schemasLoadPromise;
+}
+
+/**
+ * Load the component registry JSON.
+ * Called automatically when {@link KumoCatalog.generatePrompt} needs it.
+ */
+export async function loadRegistry(): Promise<unknown> {
+  if (registryJson !== null) return registryJson;
+  if (registryLoadPromise) return registryLoadPromise;
+
+  registryLoadPromise = import("../../ai/component-registry.json").then(
+    (mod: { default?: unknown }) => {
+      registryJson = mod.default ?? mod;
+      return registryJson;
+    },
+  );
+
+  return registryLoadPromise;
+}
+
+/**
+ * Get registry JSON synchronously (throws if not loaded).
+ */
+function getRegistryJson(): unknown {
+  if (registryJson === null) {
+    throw new Error(
+      "Registry not loaded. Call initCatalog(catalog) first or use loadRegistry().",
+    );
+  }
+  return registryJson;
+}
+
+/**
+ * Remove the example sections (Counter UI, Form) from a prompt string.
+ * Keeps all content before `## Example (Counter UI)` and from `## Important`
+ * onward.
+ */
+function stripExampleSections(prompt: string): string {
+  const exampleStart = prompt.indexOf("\n## Example (");
+  if (exampleStart === -1) return prompt;
+
+  const importantStart = prompt.indexOf("\n## Important", exampleStart);
+  if (importantStart === -1) {
+    // No closing section — just remove everything from examples onward
+    return prompt.slice(0, exampleStart).trimEnd();
+  }
+
+  return (
+    prompt.slice(0, exampleStart) + prompt.slice(importantStart)
+  ).trimEnd();
 }
 
 /**
@@ -202,81 +258,40 @@ export function createKumoCatalog(config: CatalogConfig = {}): KumoCatalog {
       }
     },
 
-    generatePrompt(): string {
-      const schemas = getSchemas();
-      const lines: string[] = [
-        "# Kumo Component Catalog",
-        "",
-        "You are generating UI using Kumo components. Output must be valid JSON matching the UITree schema.",
-        "",
-        "## Available Components",
-        "",
-      ];
+    generatePrompt(options: GeneratePromptOptions = {}): string {
+      const {
+        components: componentFilter,
+        maxPropsPerComponent,
+        includeExamples = true,
+      } = options;
 
-      // List all components
-      for (const name of schemas.KUMO_COMPONENT_NAMES) {
-        lines.push(`- \`${name}\``);
+      // Build component docs from registry JSON (requires prior initCatalog)
+      const registry = getRegistryJson();
+      const componentsSection = buildComponentDocs(registry, {
+        maxPropsPerComponent,
+        components: componentFilter,
+      });
+
+      // Build system prompt with all sections
+      const prompt = buildSystemPrompt({ componentsSection });
+
+      if (!includeExamples) {
+        // Strip the two example sections by removing lines between
+        // "## Example (Counter UI)" and "## Important"
+        return stripExampleSections(prompt);
       }
 
-      // Actions section
-      if (actionNames.length > 0) {
-        lines.push("");
-        lines.push("## Available Actions");
-        lines.push("");
-        for (const [name, def] of Object.entries(actions)) {
-          lines.push(`- \`${name}\`: ${(def as ActionDefinition).description}`);
-        }
-      }
-
-      // Output format
-      lines.push("");
-      lines.push("## Output Format");
-      lines.push("");
-      lines.push("```json");
-      lines.push("{");
-      lines.push('  "root": "element-1",');
-      lines.push('  "elements": {');
-      lines.push('    "element-1": {');
-      lines.push('      "key": "element-1",');
-      lines.push('      "type": "ComponentName",');
-      lines.push('      "props": { ... },');
-      lines.push('      "children": ["element-2"],');
-      lines.push(
-        '      "visible": true | { "path": "/data/path" } | { "auth": "signedIn" }',
-      );
-      lines.push("    }");
-      lines.push("  }");
-      lines.push("}");
-      lines.push("```");
-      lines.push("");
-
-      // Dynamic values
-      lines.push("## Dynamic Values");
-      lines.push("");
-      lines.push(
-        'Props can reference data model values using `{ path: "/data/path" }`:',
-      );
-      lines.push("");
-      lines.push("```json");
-      lines.push("{");
-      lines.push('  "type": "Text",');
-      lines.push('  "props": {');
-      lines.push('    "children": { "path": "/user/name" }');
-      lines.push("  }");
-      lines.push("}");
-      lines.push("```");
-      lines.push("");
-
-      return lines.join("\n");
+      return prompt;
     },
   };
 }
 
 /**
- * Initialize the catalog by loading schemas.
- * Call this before using synchronous validation methods.
+ * Initialize the catalog by loading schemas and registry data.
+ * Call this before using synchronous validation or prompt generation methods.
  */
 export async function initCatalog(catalog: KumoCatalog): Promise<void> {
-  // Trigger a validation to load schemas
+  await Promise.all([loadSchemas(), loadRegistry()]);
+  // Touch validation to ensure schemas are wired up
   catalog.validateTree({});
 }

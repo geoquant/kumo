@@ -98,3 +98,14 @@ Started: 2026-02-21
 - Fixed `no-base-to-string` lint error: handle `prop.default` serialization for non-primitive types via `JSON.stringify`
 - Files changed: `prompt-builder.ts` (new), `index.ts` (barrel update)
 - **Learnings:** oxlint `no-base-to-string` catches `String(unknownValue)` — always type-narrow before stringifying; decoupling from `ComponentPropsSchemas`/zod means the prompt builder works without async schema loading
+
+## Task - prompt-3
+- Replaced stub `generatePrompt()` in catalog.ts with rich implementation using `buildSystemPrompt` + `buildComponentDocs`
+- Added `GeneratePromptOptions` type: `components?`, `maxPropsPerComponent?`, `includeExamples?`
+- Updated `KumoCatalog` interface to accept optional options parameter (backwards compatible)
+- Added `loadRegistry()` function to async-load `component-registry.json` (cached, alongside schemas)
+- Updated `initCatalog()` to load both schemas and registry in parallel
+- Added `stripExampleSections()` helper for `includeExamples: false` option
+- Exported `GeneratePromptOptions` type and `loadRegistry` from barrel
+- Files changed: `catalog.ts`, `types.ts`, `index.ts`
+- **Learnings:** `initCatalog()` is the natural place to load both schemas and registry JSON — the registry is needed for prompt generation but not validation, so loading it eagerly in `initCatalog` avoids a second async boundary at `generatePrompt` call time
