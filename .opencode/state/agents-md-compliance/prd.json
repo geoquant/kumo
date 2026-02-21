@@ -112,7 +112,7 @@
         "Prompt references regression prevention test categories for component changes",
         "Static prompt text stays under ~1K tokens"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ci-2",

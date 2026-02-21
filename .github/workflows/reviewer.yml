@@ -69,9 +69,22 @@ jobs:
           permissions: write
           # agent: reviewer
           prompt: |
-            Review PR "${{ steps.pr-details.outputs.title }}" against this repo's conventions. Read AGENTS.md (repo root and packages/kumo/) before reviewing. Read full files for context — diffs alone are not enough. Run `pnpm lint` and `pnpm typecheck` to validate changes. Focus on: semantic token usage (kumo-* only, never raw Tailwind colors or dark: variants), cn() for className composition, forwardRef/displayName patterns, and ESM-only imports.
+            Review PR "${{ steps.pr-details.outputs.title }}" against this repo's conventions.
 
-            Use the gh CLI to leave inline comments on specific files and lines. Use code suggestions where you have high confidence in the fix — ensure they account for surrounding code (braces, indentation). ALWAYS leave the final "review" comment empty. Separate "Needs Fix" (bugs, type errors, broken conventions, security) from "Style" (suggestions, minor improvements). Flag only real problems — not formatting the linter handles, pre-existing issues, or hypothetical edge cases. If the PR is clean, say "LGTM!".
+            ## Context
+            Read before reviewing: AGENTS.md (root + packages/kumo/), ARCHITECTURE.md (structure, codegen pipeline, theming), INCIDENTS.md (failure modes, prevention mechanisms). Read full files — diffs alone are not enough. Run `pnpm lint` and `pnpm typecheck` to validate.
+
+            ## Focus Areas
+            Semantic token usage (kumo-* only, never raw Tailwind colors or dark: variants), cn() for className composition, forwardRef/displayName patterns, ESM-only imports.
+
+            ## Auto-Flags
+            Flag if PR edits auto-generated files: ai/schemas.ts, ai/component-registry.json, ai/component-registry.md, src/styles/theme-kumo.css, src/primitives/*. These are codegen outputs — edit source configs instead.
+            Flag if PR adds a component without scaffolding: check that PLOP_INJECT_EXPORT marker in packages/kumo/src/index.ts was used (not manual insertion).
+            Flag if PR changes packages/kumo/ but .changeset/ has no new file in this PR.
+            For component changes, check regression prevention tests apply: CSS class contract (tests/css-contract/), browser compat guard (tests/build/), Tailwind conflict lint (tests/lint/).
+
+            ## Review Mechanics
+            Use gh CLI for inline comments on specific files/lines. Use code suggestions where confident — ensure they account for surrounding code. ALWAYS leave the final "review" comment empty. Separate "Needs Fix" (bugs, type errors, broken conventions, security) from "Style" (suggestions, minor improvements). Flag only real problems — not formatting the linter handles, pre-existing issues, or hypothetical edge cases. If clean, say "LGTM!".
 
             <pr_number>
             ${{ steps.pr-number.outputs.number }}

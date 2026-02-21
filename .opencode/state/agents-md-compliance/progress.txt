@@ -75,3 +75,15 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 - Artifact bus pattern + VR detection documented in CI section
 - Files created: ARCHITECTURE.md
 - **Learnings:** ASCII art > mermaid for ARCHITECTURE.md — renders in plain text (git diff, terminal, any editor) without requiring a mermaid renderer. Keep diagrams readable at 80 columns.
+
+## Task - ci-1
+- Hardened /review workflow prompt in .github/workflows/reviewer.yml
+- Restructured prompt into 4 sections: Context, Focus Areas, Auto-Flags, Review Mechanics
+- Added: read ARCHITECTURE.md (structure, codegen pipeline, theming) and INCIDENTS.md (failure modes, prevention)
+- Added auto-generated file flags: ai/schemas.ts, ai/component-registry.json, ai/component-registry.md, src/styles/theme-kumo.css, src/primitives/*
+- Added scaffolding check: PLOP_INJECT_EXPORT marker in packages/kumo/src/index.ts
+- Added changeset check: flag if packages/kumo/ changed but no .changeset/ file added
+- Added regression prevention test references: CSS class contract, browser compat guard, Tailwind conflict lint
+- Static prompt ~218 words ≈ ~290 tokens (well under ~1K limit)
+- Files changed: .github/workflows/reviewer.yml
+- **Learnings:** Structured prompt with ## headers is more maintainable than run-on paragraphs. Keeps each concern scannable and independently editable. The `prompt: |` YAML block scalar preserves markdown formatting.
