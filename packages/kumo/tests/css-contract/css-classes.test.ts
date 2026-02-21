@@ -25,9 +25,16 @@ const isBuilt = existsSync(join(distStylesDir, "kumo-standalone.css"));
  * Public CSS classes from kumo-binding.css and kumo.css that consumers
  * may reference directly. Each entry documents which component uses it.
  *
- * To add: append to this array and define the class in kumo-binding.css or kumo.css.
- * To remove: remove from this array, remove from source CSS, and create a
- *            changeset with at minimum a minor version bump.
+ * To add a class:
+ *   1. Define it in kumo-binding.css (or kumo.css)
+ *   2. Append an entry to this array with className, source, and usedBy
+ *   3. Run: pnpm --filter @cloudflare/kumo build && pnpm --filter @cloudflare/kumo test -- tests/css-contract
+ *
+ * To remove a class:
+ *   1. Remove the entry from this array
+ *   2. Remove the class definition from source CSS
+ *   3. Create a changeset (`pnpm changeset`) with at minimum a minor version bump
+ *      — removing a public class is a breaking change for consumers
  */
 const CSS_CLASS_MANIFEST: ReadonlyArray<{
   readonly className: string;

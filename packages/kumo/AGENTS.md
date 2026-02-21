@@ -25,7 +25,11 @@ kumo/
 │   ├── generate-primitives.ts
 │   └── css-build.ts         # Post-Vite CSS processing
 ├── lint/                    # 5 custom oxlint rules (superset of root lint/)
-├── tests/imports/           # Structural validation: export paths, package.json, build entries
+├── tests/
+│   ├── imports/             # Structural validation: export paths, package.json, build entries
+│   ├── css-contract/        # CSS class contract (public class survival after build)
+│   ├── build/               # Post-build guards (browser compat, banned APIs)
+│   └── lint/                # Source lint tests (Tailwind conflicts)
 ├── vite.config.ts           # Library mode, dynamic primitive discovery, PLOP marker
 └── vitest.config.ts         # happy-dom, v8 coverage, path aliases
 ```
@@ -43,6 +47,9 @@ kumo/
 | Scaffold new component   | `plopfile.js`                                   | Injects into index.ts, vite.config.ts, package.json                        |
 | Token definitions        | `scripts/theme-generator/config.ts`             | Source of truth; generates theme CSS                                       |
 | Registry codegen         | `scripts/component-registry/index.ts`           | 13 sub-modules; pipeline: discovery → cache → type extraction → enrichment |
+| CSS class contract       | `tests/css-contract/css-classes.test.ts`        | Manifest of public CSS classes; update when adding/removing                |
+| Browser compat guard     | `tests/build/browser-compat.test.ts`            | Banned ES2023+ APIs list; post-build scan                                  |
+| Tailwind conflict lint   | `tests/lint/tailwind-conflicts.test.ts`         | AST-based cn() conflict detection; conflict pairs list                     |
 
 ## CONVENTIONS
 
@@ -88,7 +95,19 @@ Output: ai/component-registry.{json,md} + ai/schemas.ts
 - **Path aliases**: `@/` → `src/`, `@cloudflare/kumo` → `src/index.ts`
 - **Structural tests** in `tests/imports/`: validate all export paths resolve, package.json matches vite entries
 - **Sparse component tests**: Only 3/35 components have unit tests; emphasis on infrastructure testing
-- **`describe.skipIf(!isBuilt)`**: Export validation tests skip gracefully when `dist/` missing
+- **`describe.skipIf(!isBuilt)`**: Post-build tests skip gracefully when `dist/` missing
+
+#### Regression Prevention Tests
+
+| Category           | Location                                 | What it guards                                    | When to run                                                   |
+| ------------------ | ---------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
+| CSS class contract | `tests/css-contract/css-classes.test.ts` | Public CSS classes survive Tailwind compilation   | After build (`pnpm build && pnpm test -- tests/css-contract`) |
+| Browser compat     | `tests/build/browser-compat.test.ts`     | No ES2023+ runtime APIs in dist output            | After build (`pnpm build && pnpm test -- tests/build`)        |
+| Tailwind conflicts | `tests/lint/tailwind-conflicts.test.ts`  | No conflicting Tailwind class pairs in cn() calls | Any time (`pnpm test -- tests/lint/tailwind-conflicts`)       |
+
+- **css-contract**: Manifest in test file is source of truth for public classes. Adding/removing classes requires manifest update. Removing requires changeset with minor bump.
+- **browser-compat**: Banned API list covers ES2023+ runtime methods (toSorted, findLast, structuredClone, etc.). Add exceptions with `KNOWN_EXCEPTIONS` + justification.
+- **tailwind-conflicts**: AST-based (TypeScript compiler API). Understands ternary branches (mutually exclusive classes are OK). Add conflict pairs to `CONFLICT_PAIRS` array.
 
 ## ANTI-PATTERNS
 

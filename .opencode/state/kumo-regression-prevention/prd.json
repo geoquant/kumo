@@ -93,7 +93,7 @@
         "CSS class manifest in test file has comment block explaining how to add/remove classes and version bump requirements",
         "AGENTS.md updated to mention css-contract, browser-compat, tailwind-conflicts test categories"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {

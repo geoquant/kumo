@@ -100,3 +100,14 @@ Started: 2026-02-20
   - `contains(github.event.pull_request.labels.*.name, 'label')` is the idiomatic way to check PR labels in workflow `if` / `env`
   - Fork VR lives in preview-deploy.yml (workflow_run trigger) — can't be a required check since it runs on a different SHA context. Only preview.yml's gate is usable for branch protection.
   - `timeout-minutes: 2` on gate job — it's just evaluating env vars, no checkout needed
+
+## Task - docs-1
+- Enhanced CSS class manifest comment in `css-classes.test.ts` with explicit step-by-step instructions for adding/removing classes, including changeset requirement
+- Updated `packages/kumo/AGENTS.md`:
+  - Added 3 new test categories to WHERE TO LOOK table (css-contract, browser-compat, tailwind-conflicts)
+  - Added "Regression Prevention Tests" subsection under Testing with table + per-category usage notes
+  - Updated STRUCTURE tree to show `tests/` subdirectories (css-contract/, build/, lint/)
+- Files changed: `packages/kumo/tests/css-contract/css-classes.test.ts`, `packages/kumo/AGENTS.md`
+- **Learnings:**
+  - All three test files already had good docblock headers with "To add" instructions — consistency pattern was already established
+  - AGENTS.md WHERE TO LOOK table is the primary discovery mechanism for agents — adding test categories here is highest-value documentation
