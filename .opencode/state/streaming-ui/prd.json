@@ -59,7 +59,7 @@
         "Verify: dist/streaming.js exists in build output",
         "Verify: TypeScript types emit correctly (dist/src/streaming/index.d.ts)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "streaming-5",
