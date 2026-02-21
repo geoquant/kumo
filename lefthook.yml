@@ -5,6 +5,12 @@
 # Skip specific hook: LEFTHOOK_EXCLUDE=validate-changeset git push
 # Git native skip: git push --no-verify
 
+pre-commit:
+  commands:
+    oxlint:
+      glob: "*.{ts,tsx,js,jsx,astro}"
+      run: pnpm oxlint {staged_files}
+
 pre-push:
   skip:
     - ref: main

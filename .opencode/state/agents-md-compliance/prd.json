@@ -140,7 +140,7 @@
         "Stage a test .ts file containing bg-blue-500, verify pre-commit hook catches it",
         "Remove test file after verification"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "infra-2",

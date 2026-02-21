@@ -12,6 +12,8 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 - CLI commands: ls, doc, add, blocks, init, migrate, ai (7 total)
 - Scoring candidates evaluated: lint/ (6 files, skip), .github/ (7 files, skip), kumo/scripts/ (20 files, child of existing), _examples/ (3 example projects, skip)
 - VR (visual regression): in preview.yml + preview-deploy.yml, NOT pullrequest.yml. Informational only — never blocks merge.
+- Lefthook pre-commit: `glob` filters staged files by extension, `{staged_files}` passes filtered paths to command
+- oxlint no-primitive-colors rule only fires on JSX className/class attributes — plain .ts strings won't trigger it, need .tsx with JSX
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -101,3 +103,13 @@ Branch: geoquant/kumo-regression-prevention (DO NOT switch)
 - Audited all numeric counts — no stale values remain
 - Files changed: .opencode/agents/kumo.md (30 lines added, 214→244 lines)
 - **Learnings:** The kumo.md agent file serves bonk (GitHub Actions AI agent). It needs to be self-contained enough for an agent with no prior context, so explicit counts and cross-references to docs (ARCHITECTURE.md, INCIDENTS.md) are valuable. Relative links (../../) work from .opencode/agents/ to repo root.
+
+## Task - infra-1
+- Added pre-commit oxlint hook to lefthook.yml
+- Hook config: glob `*.{ts,tsx,js,jsx,astro}`, runs `pnpm oxlint {staged_files}`
+- Lefthook install confirmed: detects both pre-commit and pre-push hooks
+- Verified: staged `_test-lint-hook.tsx` with `bg-blue-500` in className → `kumo(no-primitive-colors)` error, hook exits non-zero
+- Test file removed after verification
+- Existing pre-push validate-changeset hook unchanged
+- Files changed: lefthook.yml (6 lines added)
+- **Learnings:** The no-primitive-colors rule only fires on JSXAttribute nodes (className/class). A plain .ts file with a color string won't trigger it — must use .tsx with actual JSX. Root .oxlintrc.json includes the shared custom plugin at ./packages/kumo/lint/kumo-plugin.js and has 3 rules (no-cross-package-imports, no-primitive-colors, no-tailwind-dark-variant).
