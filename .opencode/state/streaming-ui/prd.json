@@ -45,7 +45,7 @@
         "Verify: action handlers are pure/testable",
         "Verify: URL policy blocks javascript:/data:/file: schemes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "streaming-4",

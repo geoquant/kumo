@@ -10,7 +10,8 @@ Started: 2026-02-21
 - `AnyRecord` pattern used to bridge UIElement (no index signature) with dynamic path traversal
 - Tree-shakeability: keep React imports in separate files (hooks.ts, context.tsx) from pure modules
 - oxlint enforces no `unknown | undefined` — `unknown` already includes `undefined`
-- Action types (ActionEvent, ActionDispatch) split into `action-types.ts` for lightweight import by hooks; full action system (factories, registry) deferred to streaming-3
+- Action types (ActionEvent, ActionDispatch) split into `action-types.ts` for lightweight import by hooks; full action system (factories, registry) in streaming-3
+- oxlint enforces `Array#toSorted()` over `Array#sort()` — always use immutable array methods
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -32,3 +33,16 @@ Started: 2026-02-21
 - Fixed `unknown | undefined` → `unknown` in runtime-value-store to satisfy oxlint
 - Tree-shakeability verified: React imports confined to hooks.ts and runtime-value-store-context.tsx
 - **Learnings:** When porting hooks that depend on not-yet-ported modules, extract minimal type-only deps into separate files rather than stubbing
+
+## Task - streaming-3
+- Ported action system: handler factory, registry with built-ins, result processor, URL policy
+- New files: `action-handler.ts`, `action-registry.ts`, `process-action-result.ts`, `url-policy.ts`
+- `action-handler.ts` re-exports ActionEvent/ActionDispatch from `action-types.ts` (no duplication)
+- `action-registry.ts` contains 4 built-in handlers: increment, decrement, submit_form, navigate
+- `process-action-result.ts` dispatches ActionResult discriminated union to host callbacks, uses sanitizeUrl for external URLs
+- `url-policy.ts` is a standalone pure module: allows http/https/relative, blocks javascript:/data:/file:/protocol-relative
+- `text-sanitizer.ts` was already ported in streaming-2 (no work needed)
+- Fixed `Array#sort()` → `Array#toSorted()` in action-registry to satisfy oxlint unicorn rule
+- Changed `[kumo-stream]` console.warn prefix to `[kumo]` since this is now in the library
+- Updated barrel `index.ts` with all new exports (types + values)
+- **Learnings:** oxlint enforces `Array#toSorted()` over `Array#sort()` — use immutable array methods when porting
