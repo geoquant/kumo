@@ -12,6 +12,7 @@ Started: 2026-02-21
 - oxlint enforces no `unknown | undefined` — `unknown` already includes `undefined`
 - Action types (ActionEvent, ActionDispatch) split into `action-types.ts` for lightweight import by hooks; full action system (factories, registry) in streaming-3
 - oxlint enforces `Array#toSorted()` over `Array#sort()` — always use immutable array methods
+- New module export pattern: vite entry `name: resolve(__dirname, "src/name/index.ts")` → package.json `"./name": { "types": "./dist/src/name/index.d.ts", "import": "./dist/name.js" }`
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -46,3 +47,13 @@ Started: 2026-02-21
 - Changed `[kumo-stream]` console.warn prefix to `[kumo]` since this is now in the library
 - Updated barrel `index.ts` with all new exports (types + values)
 - **Learnings:** oxlint enforces `Array#toSorted()` over `Array#sort()` — use immutable array methods when porting
+
+## Task - streaming-4
+- Wired `@cloudflare/kumo/streaming` into build pipeline and package exports
+- Files changed: `packages/kumo/vite.config.ts`, `packages/kumo/package.json`
+- Added `streaming` entry to vite.config.ts lib entry map (alongside catalog, utils, registry)
+- Added `./streaming` export to package.json with types + import paths
+- Barrel `index.ts` already existed from streaming-1
+- Build produces `dist/streaming.js` (JS) and `dist/src/streaming/index.d.ts` (types)
+- All 177 export path validation tests pass including new streaming export
+- **Learnings:** Top-level module export pattern: vite entry `name: resolve(__dirname, "src/name/index.ts")` + package.json `"./name": { "types": "./dist/src/name/index.d.ts", "import": "./dist/name.js" }`
