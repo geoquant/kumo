@@ -9,6 +9,7 @@ Started: 2026-02-20
 - **Dist CSS paths**: `dist/styles/kumo.css` (raw), `dist/styles/kumo-binding.css` (raw), `dist/styles/kumo-standalone.css` (compiled)
 - **Build deps issue**: `motion` package needed `pnpm install` after being added to package.json (flow component)
 - **AST cn() parsing**: `ts.createSourceFile(path, source, ScriptTarget.Latest, true, ScriptKind.TSX)` + recursive visitor for CallExpression where `expression.text === "cn"`. Skip ternary branches via `isConditionalExpression` check.
+- **Popup overflow pattern**: Outer popup → `overflow-hidden` (clips animations/transforms). Inner scroll area → `overflow-y-auto` + `min-h-0 flex-1`. Single-element popup needing both → `overflow-x-hidden overflow-y-auto`.
 
 ---
 
@@ -60,3 +61,13 @@ Started: 2026-02-20
   - input/input-group.tsx has a legitimate ternary usage of overflow-visible/overflow-hidden — AST-aware parsing essential to avoid false positives
   - `ts.createSourceFile` with `setParentNodes: true` and `ScriptKind.TSX` needed for JSX/TSX parsing
   - The test intentionally fails (reports combobox conflict) until lint-2 fixes it
+
+## Task - lint-2
+- Fixed combobox cn() conflict: changed `overflow-hidden` → `overflow-x-hidden` in Popup's cn() call
+- `overflow-x-hidden` clips horizontal overflow while `overflow-y-auto` (same cn() call) enables vertical scrolling
+- Matches the intent: popup has `max-h-[min(var(--available-height),24rem)]` height constraint needing scroll, horizontal content should be clipped
+- Files changed: `packages/kumo/src/components/combobox/combobox.tsx` (line 182)
+- **Learnings:**
+  - Standard kumo popup pattern: outer container uses `overflow-hidden`, inner scroll area uses `overflow-y-auto`. Combobox is simpler (single element serves both roles), so axis-specific overflow classes are the correct fix.
+  - `overflow-x-hidden` + `overflow-y-auto` don't conflict in Tailwind — they set different CSS properties (`overflow-x` vs `overflow-y`)
+  - Select/dropdown use `overflow-hidden` only (Base UI handles internal scrolling). CommandPalette uses two-layer pattern (outer clip + inner scroll div).

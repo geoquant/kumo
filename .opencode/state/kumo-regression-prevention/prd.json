@@ -61,7 +61,7 @@
         "pnpm --filter @cloudflare/kumo test -- tests/lint/tailwind-conflicts passes with zero conflicts",
         "Combobox dropdown content is scrollable (overflow-y-auto preserved, overflow-hidden removed or scoped correctly)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "vr-1",
