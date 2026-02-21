@@ -203,3 +203,37 @@ jobs:
           name: visual-regression-screenshots
           path: ci/visual-regression/screenshots/
           retention-days: 7
+
+  # Gate job for branch protection. Always runs so GitHub reports a status.
+  # "Visual Regression Check" should be the required status check name.
+  #
+  # Pass when: VR passed, VR was skipped (no visual changes / fork PR),
+  #            or PR has the "visual-change-approved" label.
+  # Fail when: VR failed AND label is absent.
+  visual-regression-check:
+    name: Visual Regression Check
+    needs: [visual-regression]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Evaluate result
+        env:
+          VR_RESULT: ${{ needs.visual-regression.result }}
+          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'visual-change-approved') }}
+        run: |
+          echo "Visual Regression result: $VR_RESULT"
+          echo "Has visual-change-approved label: $HAS_LABEL"
+
+          if [[ "$VR_RESULT" == "success" || "$VR_RESULT" == "skipped" ]]; then
+            echo "Visual regression passed or was skipped."
+            exit 0
+          fi
+
+          if [[ "$HAS_LABEL" == "true" ]]; then
+            echo "::warning title=Visual Regression Bypassed::PR has 'visual-change-approved' label — visual regression failure overridden."
+            exit 0
+          fi
+
+          echo "::error title=Visual Regression Failed::Visual regression detected changes exceeding threshold. Add the 'visual-change-approved' label to bypass."
+          exit 1

@@ -83,7 +83,7 @@
         "PR label visual-change-approved allows bypassing the check",
         "Visual change to dialog/select/combobox/dropdown blocks merge with diff report"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-1",

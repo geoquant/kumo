@@ -11,6 +11,7 @@ Started: 2026-02-20
 - **AST cn() parsing**: `ts.createSourceFile(path, source, ScriptTarget.Latest, true, ScriptKind.TSX)` + recursive visitor for CallExpression where `expression.text === "cn"`. Skip ternary branches via `isConditionalExpression` check.
 - **Popup overflow pattern**: Outer popup → `overflow-hidden` (clips animations/transforms). Inner scroll area → `overflow-y-auto` + `min-h-0 flex-1`. Single-element popup needing both → `overflow-x-hidden overflow-y-auto`.
 - **GitHub Actions annotations**: `console.log(\`::warning title=Title::message\`)` and `::error` for CI-visible annotations.
+- **Required check gate pattern**: Conditional jobs can't be required checks (skipped = no status). Use a gate job with `if: always()` that evaluates upstream result + label override. The gate job name is the required check.
 
 ---
 
@@ -85,3 +86,17 @@ Started: 2026-02-20
   - Existing script had no exit code logic — always exited 0 after posting PR comment, only `process.exit(1)` was in the unhandled error catch
   - Worker error patterns: Node `fetch` throws "fetch failed" for network errors, undici uses "UND_ERR_CONNECT_TIMEOUT", plus standard ECONNREFUSED/ENOTFOUND
   - GitHub Actions parses `::warning::` and `::error::` prefixed console output as workflow annotations — visible in PR checks UI
+
+## Task - vr-2
+- Added `visual-regression-check` gate job to preview.yml
+- Gate job uses `if: always()` so GitHub always reports a status for branch protection
+- Evaluates: VR result (`success`/`skipped` → pass), `visual-change-approved` label (`contains(github.event.pull_request.labels.*.name, ...)` → pass with warning), else → fail with error
+- "Visual Regression Check" should be configured as the required status check name in branch protection
+- VR failures on dialog/select/combobox/dropdown produce diff report (from vr-1) and block merge via this gate
+- Files changed: `.github/workflows/preview.yml`
+- **Learnings:**
+  - GitHub Actions skipped jobs report NO status — can't use them as required checks. Gate job pattern is the standard solution.
+  - `needs.visual-regression.result` returns `success`, `failure`, `cancelled`, or `skipped` as strings
+  - `contains(github.event.pull_request.labels.*.name, 'label')` is the idiomatic way to check PR labels in workflow `if` / `env`
+  - Fork VR lives in preview-deploy.yml (workflow_run trigger) — can't be a required check since it runs on a different SHA context. Only preview.yml's gate is usable for branch protection.
+  - `timeout-minutes: 2` on gate job — it's just evaluating env vars, no checkout needed
