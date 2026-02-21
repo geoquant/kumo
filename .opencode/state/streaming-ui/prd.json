@@ -75,7 +75,7 @@
         "Verify: pnpm --filter @cloudflare/kumo test passes all ported tests",
         "Verify: zero new dependencies added to kumo"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "prompt-1",
