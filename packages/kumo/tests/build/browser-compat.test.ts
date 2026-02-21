@@ -82,11 +82,11 @@ const BANNED_APIS: readonly BannedAPI[] = [
     pattern: /(?:[\])]|\w)\.with\(\s*\d/,
     since: "ES2023",
   },
-  // ES2024+ globals
+  // Web platform globals not available in older browsers
   {
     name: "structuredClone()",
     pattern: /\bstructuredClone\(/,
-    since: "ES2024",
+    since: "HTML spec (Safari 15.4+, 2022)",
   },
   {
     name: "Array.fromAsync()",

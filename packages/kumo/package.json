@@ -442,7 +442,6 @@
     "oxlint-tsgolint": "catalog:",
     "playwright": "catalog:",
     "plop": "4.0.4",
-    "rollup-plugin-preserve-directives": "0.4.0",
     "tailwindcss": "catalog:",
     "ts-json-schema-generator": "2.4.0",
     "tsx": "catalog:",

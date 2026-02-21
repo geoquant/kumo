@@ -4,6 +4,7 @@ node_modules/
 # Build outputs
 build/
 dist/
+.turbo/
 .react-router/
 .build-complete
 
