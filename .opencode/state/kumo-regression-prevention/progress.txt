@@ -8,6 +8,7 @@ Started: 2026-02-20
 - **CSS build pipeline**: vite build -> css-build.ts copies raw CSS + compiles kumo-standalone.css via @tailwindcss/cli
 - **Dist CSS paths**: `dist/styles/kumo.css` (raw), `dist/styles/kumo-binding.css` (raw), `dist/styles/kumo-standalone.css` (compiled)
 - **Build deps issue**: `motion` package needed `pnpm install` after being added to package.json (flow component)
+- **AST cn() parsing**: `ts.createSourceFile(path, source, ScriptTarget.Latest, true, ScriptKind.TSX)` + recursive visitor for CallExpression where `expression.text === "cn"`. Skip ternary branches via `isConditionalExpression` check.
 
 ---
 
@@ -42,3 +43,20 @@ Started: 2026-02-20
   - Current dist (134 JS files) is clean — zero banned APIs
   - `structuredClone` needs `\b` word boundary to avoid matching variable names containing the substring
   - Recursive file walk needed since dist has nested dirs (components/, primitives/, etc.)
+
+## Task - lint-1
+- Created Tailwind class conflict lint at `packages/kumo/tests/lint/tailwind-conflicts.test.ts`
+- Uses TypeScript compiler API (ts.createSourceFile) for AST parsing of cn() calls
+- Extracts string literals from all cn() arguments, splits into individual classes
+- Handles ternary expressions: classes in opposite branches of `cond ? a : b` are NOT compared (mutually exclusive at runtime)
+- Handles logical-AND: `cond && "classes"` ARE included (they co-occur with unconditional classes when condition is true)
+- Handles nested cn() calls and parenthesized expressions
+- 11 conflict pairs covering overflow, display, and visibility conflicts
+- Correctly detects combobox.tsx:180 overflow-hidden/overflow-y-auto conflict
+- Correctly ignores input-group.tsx ternary (overflow-visible vs overflow-hidden in opposite branches)
+- Files changed: `packages/kumo/tests/lint/tailwind-conflicts.test.ts` (new)
+- **Learnings:**
+  - TS 5.9 `ParenthesizedExpression` uses `.expression` not `.operand`
+  - input/input-group.tsx has a legitimate ternary usage of overflow-visible/overflow-hidden — AST-aware parsing essential to avoid false positives
+  - `ts.createSourceFile` with `setParentNodes: true` and `ScriptKind.TSX` needed for JSX/TSX parsing
+  - The test intentionally fails (reports combobox conflict) until lint-2 fixes it
