@@ -3,6 +3,21 @@ import { createKumoCatalog, initCatalog } from "@cloudflare/kumo/catalog";
 
 export const prerender = false;
 
+/** Maximum length (in characters) for a single user message. */
+const MAX_MESSAGE_LENGTH = 2000;
+
+/** Maximum length (in characters) for each history entry. */
+const MAX_HISTORY_ENTRY_LENGTH = 4000;
+
+/**
+ * AI Gateway ID — route Workers AI requests through AI Gateway for
+ * caching, analytics, and gateway-level rate limiting.
+ *
+ * Create this gateway in the Cloudflare dashboard under AI → AI Gateway.
+ * Cache TTL is set to 1 hour so identical preset prompts are served free.
+ */
+const AI_GATEWAY_ID = "kumo-docs";
+
 /** Chat request body schema. */
 interface ChatRequest {
   message: string;
@@ -25,6 +40,9 @@ function parseChatRequest(body: unknown): ChatRequest | null {
   if (typeof obj.message !== "string" || obj.message.trim().length === 0) {
     return null;
   }
+  if (obj.message.length > MAX_MESSAGE_LENGTH) {
+    return null;
+  }
 
   let history: ChatRequest["history"] | undefined;
   if (Array.isArray(obj.history)) {
@@ -33,7 +51,9 @@ function parseChatRequest(body: unknown): ChatRequest | null {
         typeof entry === "object" &&
         entry !== null &&
         typeof (entry as Record<string, unknown>).role === "string" &&
-        typeof (entry as Record<string, unknown>).content === "string",
+        typeof (entry as Record<string, unknown>).content === "string" &&
+        ((entry as Record<string, unknown>).content as string).length <=
+          MAX_HISTORY_ENTRY_LENGTH,
     );
     if (!valid) return null;
     history = obj.history as ChatRequest["history"];
@@ -95,6 +115,17 @@ let systemPromptCache: string | null = null;
 let systemPromptPromise: Promise<string> | null = null;
 
 async function getSystemPrompt(): Promise<string> {
+  // In dev, rebuild prompt on each request so prompt tweaks are immediately
+  // reflected without needing to restart the dev server.
+  if (import.meta.env.DEV) {
+    const catalog = createKumoCatalog();
+    await initCatalog(catalog);
+    return catalog.generatePrompt({
+      components: [...PROMPT_COMPONENTS],
+      maxPropsPerComponent: 8,
+    });
+  }
+
   if (systemPromptCache) return systemPromptCache;
   if (systemPromptPromise) return systemPromptPromise;
 
@@ -195,11 +226,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // --- Stream from Workers AI ---
   try {
-    const stream = await env.AI.run("@cf/zai-org/glm-4.7-flash", {
-      messages,
-      stream: true,
-      max_tokens: 16384,
-    });
+    const stream = await env.AI.run(
+      "@cf/zai-org/glm-4.7-flash",
+      {
+        messages,
+        stream: true,
+        max_tokens: 16384,
+      },
+      {
+        gateway: {
+          id: AI_GATEWAY_ID,
+          cacheTtl: 3600,
+        },
+      },
+    );
 
     // Workers AI returns a ReadableStream in SSE format when stream: true
     if (stream instanceof ReadableStream) {
