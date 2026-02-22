@@ -27,28 +27,56 @@ import { StreamingDemo } from "../components/demos/StreamingDemo";
       Stream AI-generated Kumo UI in three steps: parse JSONL, apply RFC 6902 patches, render.
     </p>
     <CodeBlock
-      code={`import { useUITree, createJsonlParser } from "@cloudflare/kumo/streaming";
+      code={`import {
+  useUITree,
+  useRuntimeValueStore,
+  createJsonlParser,
+} from "@cloudflare/kumo/streaming";
 import { UITreeRenderer } from "@cloudflare/kumo/generative";
 
 function StreamingUI() {
   const { tree, applyPatches, reset } = useUITree({ batchPatches: true });
+  const runtimeValueStore = useRuntimeValueStore();
 
   async function startStream(prompt: string) {
     reset();
     const parser = createJsonlParser();
     const res = await fetch("/api/chat", {
       method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
       body: JSON.stringify({ message: prompt }),
     });
 
-    const reader = res.body!.getReader();
+    const reader = res.body?.getReader();
+    if (!reader) return;
     const decoder = new TextDecoder();
+    let buffer = "";
 
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
-      const ops = parser.push(decoder.decode(value, { stream: true }));
-      if (ops.length > 0) applyPatches(ops);
+
+      buffer += decoder.decode(value, { stream: true }).replace(/\r/g, "");
+      for (;;) {
+        const newline = buffer.indexOf("\n");
+        if (newline === -1) break;
+        const line = buffer.slice(0, newline).trim();
+        buffer = buffer.slice(newline + 1);
+
+        if (!line.startsWith("data:")) continue;
+        const payload = line.slice("data:".length).trimStart();
+        if (payload === "[DONE]") return;
+
+        const parsed: unknown = JSON.parse(payload);
+        let token = "";
+        if (typeof parsed === "object" && parsed !== null) {
+          const obj = parsed as Record<string, unknown>;
+          if (typeof obj.response === "string") token = obj.response;
+        }
+
+        const ops = parser.push(token);
+        if (ops.length > 0) applyPatches(ops);
+      }
     }
 
     // Flush remaining buffer
@@ -56,7 +84,13 @@ function StreamingUI() {
     if (remaining.length > 0) applyPatches(remaining);
   }
 
-  return <UITreeRenderer tree={tree} streaming={true} />;
+  return (
+    <UITreeRenderer
+      tree={tree}
+      streaming={true}
+      runtimeValueStore={runtimeValueStore}
+    />
+  );
 }`}
       lang="tsx"
     />
@@ -64,6 +98,7 @@ function StreamingUI() {
       <h3 class="mb-2 text-lg font-semibold">What's happening</h3>
       <ul class="mt-2 list-inside list-disc space-y-1 text-kumo-strong">
         <li><strong>useUITree</strong> — manages UITree state, applies patches via functional setState</li>
+        <li><strong>useRuntimeValueStore</strong> — captures form field values (Input, Select, etc.) for <code>submit_form</code> actions</li>
         <li><strong>createJsonlParser</strong> — parses newline-delimited JSON into RFC 6902 patch ops</li>
         <li><strong>UITreeRenderer</strong> — maps UITree elements to real Kumo React components</li>
         <li><strong>batchPatches</strong> — coalesces multiple patches into a single React render</li>
@@ -154,7 +189,23 @@ function StreamingUI() {
             </tr>
             <tr class="border-b border-kumo-line">
               <td class="py-2 pr-4"><code>dispatchAction(event, id)</code></td>
-              <td class="py-2">Dispatch action from registry</td>
+              <td class="py-2">Dispatch action through built-in handlers</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>processActionResult(result, callbacks)</code></td>
+              <td class="py-2">Route action result to applyPatches / sendMessage / openExternal</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>getRuntimeValues(id)</code></td>
+              <td class="py-2">Read captured form input values</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>subscribeRuntimeValues(id, cb)</code></td>
+              <td class="py-2">Subscribe to form value changes</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>onAction(handler)</code></td>
+              <td class="py-2">Subscribe to all action events (JS callback alternative to CustomEvent)</td>
             </tr>
             <tr class="border-b border-kumo-line">
               <td class="py-2 pr-4"><code>reset(id)</code></td>
@@ -316,28 +367,58 @@ const compact = catalog.generatePrompt({
         </tbody>
       </table>
     </div>
+    <h3 class="mb-2 mt-6 text-lg font-semibold">React</h3>
+    <p class="mb-2 text-kumo-strong">
+      Wire <code>useRuntimeValueStore</code> to capture form field values, then connect
+      <code>sendMessage</code> to your streaming function so <code>submit_form</code> feeds
+      collected values back into the conversation.
+    </p>
     <CodeBlock
-      code={`import {
+      code={`import { useRef, useCallback } from "react";
+import {
   useUITree,
+  useRuntimeValueStore,
   BUILTIN_HANDLERS,
   dispatchAction,
   processActionResult,
   type ActionEvent,
   type JsonPatchOp,
+  type UITree,
 } from "@cloudflare/kumo/streaming";
 import { UITreeRenderer } from "@cloudflare/kumo/generative";
 
 function InteractiveUI() {
-  const { tree, applyPatches } = useUITree({ batchPatches: true });
+  const { tree, applyPatches, reset } = useUITree({ batchPatches: true });
+  const runtimeValueStore = useRuntimeValueStore();
+
+  // Refs prevent stale closures — the handleAction callback
+  // captures the latest tree/applyPatches without re-subscribing.
+  const treeRef = useRef<UITree>(tree);
+  treeRef.current = tree;
+  const applyPatchesRef = useRef(applyPatches);
+  applyPatchesRef.current = applyPatches;
+
+  const startStream = useCallback(async (prompt: string) => {
+    reset();
+    // ... your streaming logic (see Quick Start)
+  }, [reset]);
+  const startStreamRef = useRef(startStream);
+  startStreamRef.current = startStream;
 
   function handleAction(event: ActionEvent) {
-    const result = dispatchAction(BUILTIN_HANDLERS, event, tree);
+    const result = dispatchAction(
+      BUILTIN_HANDLERS, event, treeRef.current
+    );
     if (!result) return;
 
     processActionResult(result, {
-      applyPatches: (patches: readonly JsonPatchOp[]) => applyPatches(patches),
-      sendMessage: (msg: string) => console.log("Send:", msg),
-      openExternal: (url: string) => window.open(url),
+      applyPatches: (patches: readonly JsonPatchOp[]) =>
+        applyPatchesRef.current(patches),
+      // submit_form calls sendMessage with collected form values —
+      // wire it to start a new stream turn.
+      sendMessage: (msg: string) => startStreamRef.current(msg),
+      openExternal: (url: string, target?: string) =>
+        window.open(url, target ?? "_blank"),
     });
   }
 
@@ -346,11 +427,69 @@ function InteractiveUI() {
       tree={tree}
       streaming={false}
       onAction={handleAction}
+      runtimeValueStore={runtimeValueStore}
     />
   );
 }`}
       lang="tsx"
     />
+
+    <h3 class="mb-2 mt-6 text-lg font-semibold">UMD / HTML</h3>
+    <p class="mb-2 text-kumo-strong">
+      In UMD mode, actions fire as <code>CustomEvent</code>s on <code>window</code>.
+      Listen for <code>kumo-action</code>, dispatch through the built-in registry,
+      and process the result.
+    </p>
+    <CodeBlock
+      code={`<script>
+  const CONTAINER = "my-ui";
+
+  // Listen for action events from the rendered UI
+  window.addEventListener("kumo-action", function (e) {
+    var detail = e.detail;
+
+    // Dispatch through built-in handlers (increment, decrement, submit_form, navigate)
+    var result = CloudflareKumo.dispatchAction(detail, CONTAINER);
+    if (result == null) return;
+
+    CloudflareKumo.processActionResult(result, {
+      applyPatches: function (patches) {
+        CloudflareKumo.applyPatches(patches, CONTAINER);
+      },
+      // submit_form calls sendMessage with collected form values —
+      // wire it to start a new stream turn.
+      sendMessage: function (content) {
+        streamChat(content);
+      },
+    });
+  });
+
+  // React to runtime value changes (e.g. update a submit preview)
+  CloudflareKumo.subscribeRuntimeValues(CONTAINER, function () {
+    var values = CloudflareKumo.getRuntimeValues(CONTAINER);
+    console.log("Current form values:", values);
+  });
+<\/script>`}
+      lang="html"
+    />
+
+    <h3 class="mb-2 mt-6 text-lg font-semibold">Form Submission Flow</h3>
+    <p class="mb-2 text-kumo-strong">
+      When the LLM attaches a <code>submit_form</code> action to a Button, clicking it
+      triggers a data collection pipeline:
+    </p>
+    <ol class="mt-2 list-inside list-decimal space-y-1 text-kumo-strong">
+      <li><strong>Capture</strong> — Input/Textarea/Select/Checkbox changes are written to the <code>runtimeValueStore</code> as users type</li>
+      <li><strong>Snapshot</strong> — On submit click, all captured values are injected into <code>event.context.runtimeValues</code></li>
+      <li><strong>Dispatch</strong> — <code>dispatchAction</code> matches <code>submit_form</code>, collects scoped field values, returns a <code>MessageResult</code></li>
+      <li><strong>Send</strong> — <code>processActionResult</code> calls your <code>sendMessage</code> callback with the serialized form payload</li>
+    </ol>
+    <p class="mt-2 text-kumo-strong">
+      The payload sent to <code>sendMessage</code> is a JSON string containing
+      <code>actionName</code>, <code>sourceKey</code>, and <code>fields</code> (the collected input values).
+      Your server can parse this to process the form submission or feed it back into the LLM conversation.
+    </p>
+
     <div class="mt-4">
       <h3 class="mb-2 text-lg font-semibold">URL Security</h3>
       <p class="text-kumo-strong">
