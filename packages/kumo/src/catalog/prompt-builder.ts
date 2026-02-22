@@ -196,7 +196,32 @@ function shouldSkipProp(name: string): boolean {
   return false;
 }
 
-/** Props that score higher in the ranking. */
+/**
+ * Layout-critical props that score at +2.
+ * These must surface in the top-N for layout components so the LLM
+ * always specifies them rather than relying on defaults.
+ */
+const LAYOUT_CRITICAL_PROP_NAMES: ReadonlySet<string> = new Set([
+  "gap",
+  "justify",
+]);
+
+/**
+ * Short usage hints appended after the component description line for
+ * layout components. Helps the LLM understand composition patterns
+ * without reading the full system prompt anti-patterns section.
+ */
+const COMPOSITION_HINTS: Readonly<Record<string, string>> = {
+  Surface:
+    "Hint: Always wrap children in a Stack. Never nest Surface > Surface without Grid between.",
+  Grid: "Hint: Always specify variant (e.g. 2up, 3up, 4up). Use for multi-column layouts and card grids.",
+  Stack:
+    "Hint: Set gap explicitly (sm for tight groups, base for standard, lg for sections). Use inside Surface.",
+  Cluster:
+    "Hint: Set justify (start, end, between). Use for button groups and inline items.",
+};
+
+/** Props that score higher in the ranking (+1). */
 const INTERESTING_PROP_NAMES: ReadonlySet<string> = new Set([
   "children",
   "label",
@@ -205,9 +230,7 @@ const INTERESTING_PROP_NAMES: ReadonlySet<string> = new Set([
   "value",
   "variant",
   "size",
-  "gap",
   "align",
-  "justify",
   "wrap",
   "href",
   "tabs",
@@ -219,6 +242,8 @@ const INTERESTING_PROP_NAMES: ReadonlySet<string> = new Set([
   "description",
   "customValue",
   "max",
+  "color",
+  "layout",
 ]);
 
 /**
@@ -226,13 +251,15 @@ const INTERESTING_PROP_NAMES: ReadonlySet<string> = new Set([
  *
  * - Required: +3
  * - Enum type: +2
+ * - Layout-critical name: +2 (gap, justify — must appear in top-N for layout components)
  * - Interesting name: +1
  */
 function scoreProp(name: string, prop: RegistryProp): number {
   const requiredScore = prop.optional === true ? 0 : 3;
   const enumScore = prop.type === "enum" ? 2 : 0;
+  const layoutCriticalScore = LAYOUT_CRITICAL_PROP_NAMES.has(name) ? 2 : 0;
   const nameScore = INTERESTING_PROP_NAMES.has(name) ? 1 : 0;
-  return requiredScore + enumScore + nameScore;
+  return requiredScore + enumScore + layoutCriticalScore + nameScore;
 }
 
 // =============================================================================
@@ -556,6 +583,8 @@ export function buildComponentDocs(
     if (!lines) continue;
 
     lines.push(`- **${uiType}**${aliasNote} — ${entry.description}`);
+    const hint = COMPOSITION_HINTS[uiType];
+    if (hint) lines.push(`  ${hint}`);
     const propLines = renderPropsLines(entry.props, maxPropsPerComponent);
     if (propLines.length > 0) lines.push(...propLines);
   }
