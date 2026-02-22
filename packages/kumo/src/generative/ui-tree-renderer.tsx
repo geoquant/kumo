@@ -60,6 +60,26 @@ const TWO_COL_GRID_VARIANTS = new Set(["2up", "side-by-side", "2-1", "1-2"]);
 
 const FORM_ROW_CONTROL_TYPES = new Set(["Input", "Select", "Textarea"]);
 
+const FORM_CONTROL_TYPES = new Set([
+  "Input",
+  "InputArea",
+  "Textarea",
+  "Select",
+  "Checkbox",
+  "Switch",
+  "Radio",
+  "RadioGroup",
+]);
+
+const FIELD_CONTROL_TYPES = new Set([
+  "Input",
+  "InputArea",
+  "Textarea",
+  "Select",
+]);
+
+const CHECKABLE_TYPES = new Set(["Checkbox", "Switch", "Radio", "RadioGroup"]);
+
 type ElementValidation = ReturnType<typeof validateElement>;
 
 const validationCache = new WeakMap<UIElement, ElementValidation>();
@@ -116,6 +136,7 @@ export function normalizeSiblingFormRowGrids(tree: UITree): UITree {
     const rowGridKeys: string[] = [];
     for (const childKey of parent.children) {
       const child = elements[childKey];
+      if (!child) continue;
       if (!isTwoColFormRowGrid(child)) continue;
 
       const grandChildren = child.children;
@@ -150,6 +171,176 @@ export function normalizeSiblingFormRowGrids(tree: UITree): UITree {
   }
 
   return changed ? { ...tree, elements: nextElements } : tree;
+}
+
+/**
+ * Normalize nested Surfaces.
+ *
+ * The system prompt says never to nest Surface directly inside Surface, but LLMs
+ * still do it. This produces double borders and excessive padding.
+ *
+ * Heuristic: if a Surface's only child is another Surface, lift the inner
+ * Surface's children up into the outer Surface.
+ */
+export function normalizeNestedSurfaces(tree: UITree): UITree {
+  const elements = tree.elements;
+  let changed = false;
+  let nextElements: Record<string, UIElement> | null = null;
+
+  for (const outer of Object.values(elements)) {
+    if (!outer || outer.type !== "Surface") continue;
+    if (!outer.children || outer.children.length !== 1) continue;
+
+    const innerKey = outer.children[0];
+    const inner = elements[innerKey];
+    if (!inner || inner.type !== "Surface") continue;
+    if (!inner.children || inner.children.length === 0) continue;
+
+    if (nextElements == null) nextElements = { ...elements };
+
+    // Re-parent inner children to outer
+    for (const childKey of inner.children) {
+      const child = nextElements[childKey];
+      if (child) nextElements[childKey] = { ...child, parentKey: outer.key };
+    }
+
+    nextElements[outer.key] = { ...outer, children: [...inner.children] };
+    changed = true;
+  }
+
+  return changed && nextElements != null
+    ? { ...tree, elements: nextElements }
+    : tree;
+}
+
+function normalizeLabelText(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function readElementTextLabel(element: UIElement | undefined): string | null {
+  if (!element) return null;
+  if (element.type !== "Text" && element.type !== "Label") return null;
+  const children = (element.props as Record<string, unknown>)["children"];
+  if (typeof children !== "string") return null;
+  return normalizeLabelText(children);
+}
+
+function readFieldLabelProp(element: UIElement | undefined): string | null {
+  if (!element) return null;
+  if (!FIELD_CONTROL_TYPES.has(element.type)) return null;
+  const label = (element.props as Record<string, unknown>)["label"];
+  if (typeof label !== "string") return null;
+  return normalizeLabelText(label);
+}
+
+function isHeadingText(element: UIElement | undefined): boolean {
+  if (!element || element.type !== "Text") return false;
+  const variant = (element.props as Record<string, unknown>)["variant"];
+  return typeof variant === "string" && variant.startsWith("heading");
+}
+
+/**
+ * Normalize duplicate field labels.
+ *
+ * LLMs often emit: Text("Email") followed by Input({ label: "Email" }),
+ * producing a double label. Prefer the component's built-in `label`.
+ */
+export function normalizeDuplicateFieldLabels(tree: UITree): UITree {
+  const elements = tree.elements;
+  let changed = false;
+  let nextElements: Record<string, UIElement> | null = null;
+
+  for (const parent of Object.values(elements)) {
+    const children = parent?.children;
+    if (!children || children.length < 2) continue;
+
+    const nextChildren: string[] = [];
+    for (let i = 0; i < children.length; i++) {
+      const k = children[i];
+      const el = elements[k];
+      const nextKey = children[i + 1];
+      const nextEl = nextKey ? elements[nextKey] : undefined;
+
+      const textLabel = readElementTextLabel(el);
+      const fieldLabel = readFieldLabelProp(nextEl);
+
+      const shouldDrop =
+        textLabel != null &&
+        fieldLabel != null &&
+        textLabel === fieldLabel &&
+        !isHeadingText(el);
+
+      if (shouldDrop) {
+        changed = true;
+        continue;
+      }
+
+      nextChildren.push(k);
+    }
+
+    if (!changed) continue;
+    if (nextElements == null) nextElements = { ...elements };
+    nextElements[parent.key] = { ...parent, children: nextChildren };
+  }
+
+  return changed && nextElements != null
+    ? { ...tree, elements: nextElements }
+    : tree;
+}
+
+/**
+ * Normalize checkbox group label layout.
+ *
+ * LLMs often render a checkbox group as a 2-column Grid row:
+ *   [Text("Notification channels"), Stack([Checkbox, Checkbox, ...])]
+ * This makes the group label float mid-row.
+ *
+ * Heuristic: coerce such Grid rows into a vertical Stack so the label sits
+ * above the checkbox list.
+ */
+export function normalizeCheckboxGroupGrids(tree: UITree): UITree {
+  const elements = tree.elements;
+  let changed = false;
+  let nextElements: Record<string, UIElement> | null = null;
+
+  for (const grid of Object.values(elements)) {
+    if (!grid || grid.type !== "Grid") continue;
+    if (!grid.children || grid.children.length !== 2) continue;
+
+    const left = elements[grid.children[0]];
+    const right = elements[grid.children[1]];
+    if (!left || !right) continue;
+    if (left.type !== "Text" && left.type !== "Label") continue;
+    if (right.type !== "Stack") continue;
+
+    const rightChildren = right.children;
+    if (!rightChildren || rightChildren.length === 0) continue;
+    const allCheckables = rightChildren.every((k) => {
+      const t = elements[k]?.type;
+      return typeof t === "string" && CHECKABLE_TYPES.has(t);
+    });
+    if (!allCheckables) continue;
+
+    const props = grid.props as Record<string, unknown>;
+    const gap = props["gap"];
+    const className = props["className"];
+
+    const nextProps: Record<string, unknown> = {};
+    if (typeof className === "string") nextProps["className"] = className;
+    if (typeof gap === "string") nextProps["gap"] = gap;
+
+    if (nextElements == null) nextElements = { ...elements };
+    nextElements[grid.key] = {
+      ...grid,
+      type: "Stack",
+      props: nextProps,
+    };
+    changed = true;
+  }
+
+  return changed && nextElements != null
+    ? { ...tree, elements: nextElements }
+    : tree;
 }
 
 /**
@@ -214,6 +405,201 @@ export function normalizeSurfaceOrphans(tree: UITree): UITree {
   return changed && nextElements != null
     ? { ...tree, elements: nextElements }
     : tree;
+}
+
+/**
+ * Normalize counter layouts.
+ *
+ * A common counter structure is: Stack[ title(Text), count(Text), actions(Cluster) ].
+ * LLMs often forget `Stack.align="center"`, causing the count + actions to feel
+ * visually disconnected.
+ */
+export function normalizeCounterStacks(tree: UITree): UITree {
+  const elements = tree.elements;
+  let changed = false;
+  let nextElements: Record<string, UIElement> | null = null;
+
+  for (const stack of Object.values(elements)) {
+    if (!stack || stack.type !== "Stack") continue;
+    if (!stack.children || stack.children.length < 3) continue;
+
+    if (typeof stack.props?.["align"] === "string") continue;
+
+    // Find a Cluster with exactly 2 buttons: increment + decrement.
+    const clusterKey = stack.children.find(
+      (k) => elements[k]?.type === "Cluster",
+    );
+    if (!clusterKey) continue;
+    const cluster = elements[clusterKey];
+    if (!cluster?.children || cluster.children.length !== 2) continue;
+
+    const btnA = elements[cluster.children[0]];
+    const btnB = elements[cluster.children[1]];
+    if (!btnA || !btnB) continue;
+    if (btnA.type !== "Button" || btnB.type !== "Button") continue;
+
+    const nameA = btnA.action?.name;
+    const nameB = btnB.action?.name;
+    const names = new Set([nameA, nameB]);
+    if (!names.has("increment") || !names.has("decrement")) continue;
+
+    // Require a target Text element referenced by the action params.
+    const targetA = btnA.action?.params?.["target"];
+    const targetB = btnB.action?.params?.["target"];
+    const targetKey =
+      typeof targetA === "string"
+        ? targetA
+        : typeof targetB === "string"
+          ? targetB
+          : null;
+    if (!targetKey) continue;
+    const target = elements[targetKey];
+    if (!target || target.type !== "Text") continue;
+
+    if (nextElements == null) nextElements = { ...elements };
+    nextElements[stack.key] = {
+      ...stack,
+      props: { ...stack.props, align: "center" },
+    };
+
+    // Ensure the action row is centered too.
+    if (typeof cluster.props?.["justify"] !== "string") {
+      nextElements[cluster.key] = {
+        ...cluster,
+        props: { ...cluster.props, justify: "center" },
+      };
+    }
+
+    changed = true;
+  }
+
+  return changed && nextElements != null
+    ? { ...tree, elements: nextElements }
+    : tree;
+}
+
+/**
+ * Normalize form action bars.
+ *
+ * LLMs often leave submit actions left-aligned, or use a Cluster without
+ * `justify`, which looks sloppy in forms.
+ *
+ * Heuristic: for Stack layouts that contain at least one form control:
+ * - If the last child is a submit Button (action submit_form or variant=primary),
+ *   make it full-width on mobile and right-aligned on >= sm.
+ * - If the last child is a Cluster of Buttons, ensure it spans full width and
+ *   right-aligns its content.
+ */
+export function normalizeFormActionBars(tree: UITree): UITree {
+  const elements = tree.elements;
+  let changed = false;
+  let nextElements: Record<string, UIElement> | null = null;
+
+  function appendClassName(existing: unknown, extra: string): string {
+    if (typeof existing !== "string" || existing.trim().length === 0) {
+      return extra;
+    }
+    if (existing.includes(extra)) return existing;
+    return `${existing} ${extra}`;
+  }
+
+  for (const stack of Object.values(elements)) {
+    if (!stack || stack.type !== "Stack") continue;
+    const children = stack.children;
+    if (!children || children.length === 0) continue;
+
+    const hasFormControl = children.some((k) => {
+      const t = elements[k]?.type;
+      return typeof t === "string" && FORM_CONTROL_TYPES.has(t);
+    });
+    if (!hasFormControl) continue;
+
+    const lastKey = children[children.length - 1];
+    const last = elements[lastKey];
+    if (!last) continue;
+
+    // Case A: direct submit button
+    if (last.type === "Button") {
+      const props = last.props as Record<string, unknown>;
+      const actionName = last.action?.name;
+      const variant = props["variant"];
+      const isSubmit = actionName === "submit_form" || variant === "primary";
+      if (!isSubmit) continue;
+
+      if (nextElements == null) nextElements = { ...elements };
+      nextElements[last.key] = {
+        ...last,
+        props: {
+          ...props,
+          className: appendClassName(
+            props["className"],
+            "w-full sm:w-auto sm:self-end",
+          ),
+        },
+      };
+      changed = true;
+      continue;
+    }
+
+    // Case B: action Cluster as last child
+    if (last.type === "Cluster") {
+      const clusterChildren = last.children;
+      if (!clusterChildren || clusterChildren.length === 0) continue;
+
+      const allButtons = clusterChildren.every(
+        (k) => elements[k]?.type === "Button",
+      );
+      if (!allButtons) continue;
+
+      const props = last.props as Record<string, unknown>;
+      const nextProps: Record<string, unknown> = { ...props };
+
+      // Must span full width for justify-end to visually work.
+      nextProps["className"] = appendClassName(props["className"], "w-full");
+
+      if (props["justify"] == null) {
+        nextProps["justify"] = "end";
+      }
+
+      if (nextElements == null) nextElements = { ...elements };
+      nextElements[last.key] = { ...last, props: nextProps };
+      changed = true;
+    }
+  }
+
+  return changed && nextElements != null
+    ? { ...tree, elements: nextElements }
+    : tree;
+}
+
+/**
+ * Normalize Select elements missing SelectOption children.
+ *
+ * A Select with no options is effectively unusable. Rather than rendering an
+ * empty dropdown, coerce it into an Input so the user can still provide a
+ * value (keeps the label/placeholder intent intact).
+ */
+export function normalizeEmptySelects(tree: UITree): UITree {
+  const elements = tree.elements;
+  let changed = false;
+  const nextElements: Record<string, UIElement> = { ...elements };
+
+  for (const el of Object.values(elements)) {
+    if (!el || el.type !== "Select") continue;
+
+    const children = el.children;
+    const hasSelectOptions =
+      Array.isArray(children) &&
+      children.some((k) => elements[k]?.type === "SelectOption");
+
+    if (hasSelectOptions) continue;
+
+    const { children: _children, ...rest } = el;
+    nextElements[el.key] = { ...rest, type: "Input" };
+    changed = true;
+  }
+
+  return changed ? { ...tree, elements: nextElements } : tree;
 }
 
 function gridItemClassNameForChild(child: UIElement | undefined): string {
@@ -655,23 +1041,88 @@ function filterDivProps(
 // Main Renderer
 // ---------------------------------------------------------------------------
 
+function inferRootKey(
+  elements: Record<string, UIElement>,
+  missingRootHint?: string,
+): string | null {
+  const childKeys = new Set<string>();
+  for (const el of Object.values(elements)) {
+    if (!el?.children) continue;
+    for (const childKey of el.children) {
+      if (typeof childKey === "string" && childKey) childKeys.add(childKey);
+    }
+  }
+
+  const candidates: string[] = [];
+  for (const [key, el] of Object.entries(elements)) {
+    if (!el) continue;
+    const parentKey = el.parentKey;
+    if (typeof parentKey === "string" && parentKey) continue;
+    if (childKeys.has(key)) continue;
+    candidates.push(key);
+  }
+
+  if (candidates.length === 0) {
+    // If the model set a root key but never defined the root element,
+    // fall back to the element(s) that claim that missing root as parent.
+    if (missingRootHint) {
+      const hintChildren: string[] = [];
+      for (const [key, el] of Object.entries(elements)) {
+        if (!el) continue;
+        if (el.parentKey === missingRootHint) hintChildren.push(key);
+      }
+      if (hintChildren.length > 0) {
+        hintChildren.sort();
+        return hintChildren[0] ?? null;
+      }
+    }
+
+    // Last resort: render *something* rather than returning null.
+    const keys = Object.keys(elements);
+    if (keys.length === 0) return null;
+    keys.sort();
+    return keys[0] ?? null;
+  }
+  if (candidates.length === 1) return candidates[0] ?? null;
+  candidates.sort();
+  return candidates[0] ?? null;
+}
+
 function UITreeRendererImpl({
   tree,
   streaming = false,
   onAction,
   runtimeValueStore,
 }: UITreeRendererProps): React.JSX.Element | null {
-  const normalizedTree = useMemo(
-    () => normalizeSurfaceOrphans(normalizeSiblingFormRowGrids(tree)),
-    [tree],
-  );
+  if (Object.keys(tree.elements).length === 0) return null;
 
-  if (
-    !normalizedTree.root ||
-    Object.keys(normalizedTree.elements).length === 0
-  ) {
-    return null;
-  }
+  // During streaming, the model can set /root before it defines the root
+  // element. The normalization pipeline expects a real root element, so pick a
+  // root key that exists before normalizing.
+  const rootKey =
+    (tree.root && tree.elements[tree.root] ? tree.root : null) ??
+    inferRootKey(tree.elements, tree.root || undefined);
+  if (!rootKey) return null;
+
+  const normalizedTree = useMemo(() => {
+    const treeForNormalize =
+      tree.root === rootKey ? tree : { ...tree, root: rootKey };
+    return normalizeFormActionBars(
+      normalizeCounterStacks(
+        normalizeSurfaceOrphans(
+          normalizeSiblingFormRowGrids(
+            normalizeCheckboxGroupGrids(
+              normalizeDuplicateFieldLabels(
+                normalizeEmptySelects(
+                  normalizeNestedSurfaces(treeForNormalize),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }, [tree, rootKey]);
 
   return (
     <RuntimeValueStoreProvider value={runtimeValueStore ?? null}>
@@ -689,7 +1140,9 @@ export const UITreeRenderer = memo(UITreeRendererImpl);
 
 /** Check if a UITree has any renderable content. */
 export function isRenderableTree(tree: UITree): boolean {
-  return tree.root !== "" && Object.keys(tree.elements).length > 0;
+  if (Object.keys(tree.elements).length === 0) return false;
+  if (tree.root !== "" && tree.elements[tree.root]) return true;
+  return inferRootKey(tree.elements, tree.root || undefined) !== null;
 }
 
 /** Get unrecognized types in a tree (for debugging). */

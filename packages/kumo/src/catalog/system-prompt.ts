@@ -53,6 +53,18 @@ Every UI MUST use layout components to structure content. NEVER put children dir
 - **Form**: \`Surface > Stack(gap="lg") > [Text(heading), Input, Select, Button]\`
 - **Side-by-side**: \`Grid(variant="2up") > [Surface > Stack > ..., Surface > Stack > ...]\``;
 
+const INTENT_FIDELITY = `## Intent Fidelity (Required)
+
+- If the user explicitly requests a control type (e.g. "text input", "dropdown select", "checkbox"), you MUST include that control.
+- Before finishing, checklist the user's requested controls; if any are missing, add them.
+- When the user asks for a "name" field or says "text input", use **Input** (never Select).`;
+
+const NO_REDUNDANT_CONTROLS = `## No Redundant Controls (Required)
+
+- Do not add duplicate controls that do the same thing.
+- If you already have "Increment" and "Decrement" buttons, do NOT also add "+" and "-" buttons.
+- If the user asked for exactly N controls (or a minimal UI), keep it minimal.`;
+
 const LAYOUT_ANTI_PATTERNS = `## Layout Anti-Patterns (NEVER Do These)
 
 - **NEVER** put multiple children directly in Surface without a Stack wrapper. Surface is a card container, not a layout engine. Always: \`Surface > Stack > [children]\`.
@@ -94,6 +106,14 @@ Every form element MUST be labelled so screen readers can announce it:
 - **RadioGroup** — MUST have accessible context; each RadioItem MUST have \`label\`
 
 Never rely on \`placeholder\` alone as a label — placeholders disappear on input and are not announced by all screen readers.`;
+
+const FORM_FIELD_SELECTION = `## Form Field Selection (Required)
+
+- Use **Input** for freeform text: name, email, company, title, subject, URL, search
+- Use **Textarea** for multi-line/freeform > 1 line: message, notes, description
+- Use **Select** ONLY when the user provides a fixed set of options (or the domain is obviously enumerated) and you can render 2-8 **SelectOption** children
+- NEVER use **Select** for fields labelled "Name", "Email", "Company", "Project name", "Title" unless the user explicitly provides options
+- If you use **Select**, you MUST add **SelectOption** children (no empty selects) and include a helpful placeholder (e.g. "Choose")`;
 
 const RESPONSE_FORMAT = `## Response Format: JSONL (JSON Patch)
 
@@ -222,6 +242,39 @@ User: "Create a notification preferences form"
 {"op":"add","path":"/elements/freq-weekly","value":{"key":"freq-weekly","type":"SelectOption","props":{"value":"weekly","children":"Weekly"},"parentKey":"frequency"}}
 {"op":"add","path":"/elements/submit","value":{"key":"submit","type":"Button","props":{"children":"Save preferences","variant":"primary"},"parentKey":"stack","action":{"name":"submit_form","params":{"form_type":"notifications"}}}}`;
 
+const EXAMPLE_COUNTER = `## Example (Counter with Increment/Decrement)
+
+User: "Create a simple counter with increment and decrement buttons"
+
+{"op":"add","path":"/root","value":"card"}
+{"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["stack"]}}
+{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg","align":"center"},"children":["title","count","actions"],"parentKey":"card"}}
+{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Counter","variant":"heading2"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/count","value":{"key":"count","type":"Text","props":{"children":"0","variant":"heading1"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/actions","value":{"key":"actions","type":"Cluster","props":{"gap":"sm","justify":"center"},"children":["dec-btn","inc-btn"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/dec-btn","value":{"key":"dec-btn","type":"Button","props":{"children":"Decrement","variant":"secondary"},"parentKey":"actions","action":{"name":"decrement","params":{"target":"count"}}}}
+{"op":"add","path":"/elements/inc-btn","value":{"key":"inc-btn","type":"Button","props":{"children":"Increment","variant":"primary"},"parentKey":"actions","action":{"name":"increment","params":{"target":"count"}}}}`;
+
+const EXAMPLE_NOTIFICATION_PREFS_FORM = `## Example (Notification Preferences Form)
+
+User: "Build a notification preferences form with a text input for name, a select dropdown for email frequency (realtime, daily, weekly), checkboxes for notification channels, and a submit button"
+
+{"op":"add","path":"/root","value":"prefs"}
+{"op":"add","path":"/elements/prefs","value":{"key":"prefs","type":"Surface","props":{},"children":["stack"]}}
+{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["title","name","frequency","channels","submit"],"parentKey":"prefs"}}
+{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Notification preferences","variant":"heading2"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/name","value":{"key":"name","type":"Input","props":{"label":"Name","placeholder":"Your name"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/frequency","value":{"key":"frequency","type":"Select","props":{"label":"Email frequency","placeholder":"Choose"},"children":["freq-rt","freq-daily","freq-weekly"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/freq-rt","value":{"key":"freq-rt","type":"SelectOption","props":{"value":"realtime","children":"Real-time"},"parentKey":"frequency"}}
+{"op":"add","path":"/elements/freq-daily","value":{"key":"freq-daily","type":"SelectOption","props":{"value":"daily","children":"Daily"},"parentKey":"frequency"}}
+{"op":"add","path":"/elements/freq-weekly","value":{"key":"freq-weekly","type":"SelectOption","props":{"value":"weekly","children":"Weekly"},"parentKey":"frequency"}}
+{"op":"add","path":"/elements/channels","value":{"key":"channels","type":"Stack","props":{"gap":"sm"},"children":["channels-label","ch-email","ch-push","ch-sms"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/channels-label","value":{"key":"channels-label","type":"Text","props":{"children":"Channels","variant":"secondary"},"parentKey":"channels"}}
+{"op":"add","path":"/elements/ch-email","value":{"key":"ch-email","type":"Checkbox","props":{"label":"Email"},"parentKey":"channels"}}
+{"op":"add","path":"/elements/ch-push","value":{"key":"ch-push","type":"Checkbox","props":{"label":"Push"},"parentKey":"channels"}}
+{"op":"add","path":"/elements/ch-sms","value":{"key":"ch-sms","type":"Checkbox","props":{"label":"SMS"},"parentKey":"channels"}}
+{"op":"add","path":"/elements/submit","value":{"key":"submit","type":"Button","props":{"children":"Save preferences","variant":"primary"},"parentKey":"stack","action":{"name":"submit_form","params":{"form_type":"notification_preferences"}}}}`;
+
 const EXAMPLE_TABLE = `## Example (Pricing / Comparison Table)
 
 User: "Show a pricing table with 3 plans"
@@ -237,7 +290,7 @@ User: "Show a pricing table with 3 plans"
 {"op":"add","path":"/elements/h-free","value":{"key":"h-free","type":"TableHead","props":{"children":"Free"},"parentKey":"hrow"}}
 {"op":"add","path":"/elements/h-pro","value":{"key":"h-pro","type":"TableHead","props":{"children":"Pro"},"parentKey":"hrow"}}
 {"op":"add","path":"/elements/h-biz","value":{"key":"h-biz","type":"TableHead","props":{"children":"Business"},"parentKey":"hrow"}}
-{"op":"add","path":"/elements/tbody","value":{"key":"tbody","type":"TableBody","props":{},"children":["row-price","row-requests","row-storage"],"parentKey":"tbl"}}
+{"op":"add","path":"/elements/tbody","value":{"key":"tbody","type":"TableBody","props":{},"children":["row-price","row-requests","row-storage","row-features"],"parentKey":"tbl"}}
 {"op":"add","path":"/elements/row-price","value":{"key":"row-price","type":"TableRow","props":{},"children":["lbl-price","c-price-free","c-price-pro","c-price-biz"],"parentKey":"tbody"}}
 {"op":"add","path":"/elements/lbl-price","value":{"key":"lbl-price","type":"TableCell","props":{"children":"Monthly price"},"parentKey":"row-price"}}
 {"op":"add","path":"/elements/c-price-free","value":{"key":"c-price-free","type":"TableCell","props":{"children":"$0"},"parentKey":"row-price"}}
@@ -252,7 +305,12 @@ User: "Show a pricing table with 3 plans"
 {"op":"add","path":"/elements/lbl-stor","value":{"key":"lbl-stor","type":"TableCell","props":{"children":"Storage"},"parentKey":"row-storage"}}
 {"op":"add","path":"/elements/c-stor-free","value":{"key":"c-stor-free","type":"TableCell","props":{"children":"1 GB"},"parentKey":"row-storage"}}
 {"op":"add","path":"/elements/c-stor-pro","value":{"key":"c-stor-pro","type":"TableCell","props":{"children":"25 GB"},"parentKey":"row-storage"}}
-{"op":"add","path":"/elements/c-stor-biz","value":{"key":"c-stor-biz","type":"TableCell","props":{"children":"1 TB"},"parentKey":"row-storage"}}`;
+{"op":"add","path":"/elements/c-stor-biz","value":{"key":"c-stor-biz","type":"TableCell","props":{"children":"1 TB"},"parentKey":"row-storage"}}
+{"op":"add","path":"/elements/row-features","value":{"key":"row-features","type":"TableRow","props":{},"children":["lbl-feat","c-feat-free","c-feat-pro","c-feat-biz"],"parentKey":"tbody"}}
+{"op":"add","path":"/elements/lbl-feat","value":{"key":"lbl-feat","type":"TableCell","props":{"children":"Features"},"parentKey":"row-features"}}
+{"op":"add","path":"/elements/c-feat-free","value":{"key":"c-feat-free","type":"TableCell","props":{"children":"Basic analytics"},"parentKey":"row-features"}}
+{"op":"add","path":"/elements/c-feat-pro","value":{"key":"c-feat-pro","type":"TableCell","props":{"children":"Advanced analytics"},"parentKey":"row-features"}}
+{"op":"add","path":"/elements/c-feat-biz","value":{"key":"c-feat-biz","type":"TableCell","props":{"children":"Custom analytics"},"parentKey":"row-features"}}`;
 
 const EXAMPLE_DASHBOARD = `## Example (Dashboard with Stat Grid)
 
@@ -325,6 +383,14 @@ User: "Show an empty Workers page"
 {"op":"add","path":"/elements/empty-block","value":{"key":"empty-block","type":"Empty","props":{"title":"No Workers yet","description":"Deploy your first Worker to start running code at the edge."},"parentKey":"empty-stack"}}
 {"op":"add","path":"/elements/create-btn","value":{"key":"create-btn","type":"Button","props":{"children":"Create a Worker","variant":"primary"},"parentKey":"empty-stack","action":{"name":"navigate","params":{"url":"/workers/new"}}}}`;
 
+const TABLE_STRUCTURE = `## Table Structure (Required)
+
+- Every TableRow in a Table MUST have the **same number** of children (TableHead or TableCell). If the header row has N columns, every body row MUST also have exactly N cells.
+- Before emitting a body TableRow, count the header cells and ensure you produce the same count.
+- Use \`layout="fixed"\` on the Table element so columns share equal width.
+- Column order: first cell in each body row is the row label, remaining cells correspond 1:1 with header columns left-to-right.
+- NEVER skip or omit a TableCell — if a cell has no meaningful value, use an empty string \`""\` or a dash \`"-"\`.`;
+
 const CLOSING_RULES = `## Important
 
 - ALWAYS respond with ONLY JSONL lines. No markdown fences, no explanations, no text before or after.
@@ -379,14 +445,20 @@ export function buildSystemPrompt(options: SystemPromptOptions = {}): string {
   const sections = [
     preamble,
     DESIGN_RULES,
+    INTENT_FIDELITY,
+    NO_REDUNDANT_CONTROLS,
     LAYOUT_ANTI_PATTERNS,
     COMPOSITION_RECIPES,
     ACCESSIBILITY,
+    FORM_FIELD_SELECTION,
+    TABLE_STRUCTURE,
     RESPONSE_FORMAT,
     componentsBlock,
     ACTION_SYSTEM,
     EXAMPLE_USER_CARD,
     EXAMPLE_FORM,
+    EXAMPLE_COUNTER,
+    EXAMPLE_NOTIFICATION_PREFS_FORM,
     EXAMPLE_TABLE,
     EXAMPLE_DASHBOARD,
     EXAMPLE_LIST,

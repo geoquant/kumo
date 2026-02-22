@@ -13,6 +13,14 @@ import {
 } from "../../ai/schemas.js";
 import type { UIElement } from "../streaming/types";
 
+function normalizeProps(input: unknown): Record<string, unknown> {
+  if (typeof input !== "object" || input === null) return {};
+  if (Array.isArray(input)) return {};
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(input)) out[k] = v;
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Enum Coercion
 // ---------------------------------------------------------------------------
@@ -74,7 +82,7 @@ const ENUM_COERCION_MAP: Readonly<
  */
 export function coerceElementProps(element: UIElement): UIElement {
   const { type } = element;
-  const props = element.props as Record<string, unknown>;
+  const props = normalizeProps(element.props);
   let coerced: Record<string, unknown> | null = null;
 
   for (const [mapKey, corrections] of Object.entries(ENUM_COERCION_MAP)) {
@@ -94,7 +102,7 @@ export function coerceElementProps(element: UIElement): UIElement {
     coerced[propName] = correctedValue;
   }
 
-  if (coerced == null) return element;
+  if (coerced == null) return { ...element, props };
   return { ...element, props: coerced };
 }
 
@@ -176,8 +184,8 @@ export function validateElement(element: UIElement): ElementValidationResult {
   // always fails validation. Strip it unconditionally — the renderer already
   // reads structural children from element.children, not props.children.
   const elementForValidation = (() => {
-    const props = element.props as Record<string, unknown>;
-    if (!Array.isArray(props["children"])) return element;
+    const props = normalizeProps(element.props);
+    if (!Array.isArray(props["children"])) return { ...element, props };
     const { children: _children, ...rest } = props;
     return { ...element, props: rest };
   })();
