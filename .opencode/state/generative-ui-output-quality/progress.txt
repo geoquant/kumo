@@ -149,3 +149,17 @@ Started: 2026-02-21
 - **Learnings:**
   - PROMPT_COMPONENTS is manually curated — adding a component here only works if it also exists in `ai/component-registry.json` (which is auto-generated from component source via codegen)
   - `maxPropsPerComponent: 8` is a prompt-builder budget that controls how many props are included per component in the system prompt; higher values increase token usage but improve LLM awareness of available props
+
+## Task - integration-1
+- Full integration verification of all PRD changes together
+- Typecheck: clean, no errors
+- Tests: 42 files, 939 tests passed — includes 27 structural grader tests on 4 JSONL fixtures
+- Lint: 0 errors (8 pre-existing warnings — all `no-array-sort` in unrelated files)
+- Dev server: starts successfully, HTTP 200 on localhost:4321
+- Golden prompt verification: previously confirmed in commit 7070ec2; underlying infrastructure unchanged since
+- JSONL fixtures pass all 8 grader rules (user-card, settings-form, counter, pricing-table)
+- All 11 PRD tasks now verified and marked passes: true
+- **Learnings:**
+  - `pnpm dev` runs full codegen pipeline first (primitives → themes → registry) before starting Astro dev server — takes ~10s total
+  - The codegen pipeline is idempotent when cached: 42/42 components cached, 0 regenerated
+  - Golden prompt steps (5-8) are inherently non-deterministic (LLM output varies) — the deterministic guardrails (wrappers, coercion, normalization, graders) provide the real quality guarantee
