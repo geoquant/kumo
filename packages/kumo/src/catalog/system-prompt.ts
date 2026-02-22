@@ -224,6 +224,77 @@ User: "Show a pricing table with 3 plans"
 {"op":"add","path":"/elements/c-stor-pro","value":{"key":"c-stor-pro","type":"TableCell","props":{"children":"25 GB"},"parentKey":"row-storage"}}
 {"op":"add","path":"/elements/c-stor-biz","value":{"key":"c-stor-biz","type":"TableCell","props":{"children":"1 TB"},"parentKey":"row-storage"}}`;
 
+const EXAMPLE_DASHBOARD = `## Example (Dashboard with Stat Grid)
+
+User: "Show a traffic analytics dashboard"
+
+{"op":"add","path":"/root","value":"dashboard"}
+{"op":"add","path":"/elements/dashboard","value":{"key":"dashboard","type":"Surface","props":{},"children":["dash-stack"]}}
+{"op":"add","path":"/elements/dash-stack","value":{"key":"dash-stack","type":"Stack","props":{"gap":"lg"},"children":["dash-title","stat-grid"],"parentKey":"dashboard"}}
+{"op":"add","path":"/elements/dash-title","value":{"key":"dash-title","type":"Text","props":{"children":"Traffic overview","variant":"heading2"},"parentKey":"dash-stack"}}
+{"op":"add","path":"/elements/stat-grid","value":{"key":"stat-grid","type":"Grid","props":{"variant":"4up","gap":"base"},"children":["stat-requests","stat-bandwidth","stat-errors","stat-cache"],"parentKey":"dash-stack"}}
+{"op":"add","path":"/elements/stat-requests","value":{"key":"stat-requests","type":"Surface","props":{"color":"neutral"},"children":["stat-requests-stack"],"parentKey":"stat-grid"}}
+{"op":"add","path":"/elements/stat-requests-stack","value":{"key":"stat-requests-stack","type":"Stack","props":{"gap":"sm"},"children":["stat-requests-label","stat-requests-val"],"parentKey":"stat-requests"}}
+{"op":"add","path":"/elements/stat-requests-label","value":{"key":"stat-requests-label","type":"Text","props":{"children":"Requests","variant":"secondary"},"parentKey":"stat-requests-stack"}}
+{"op":"add","path":"/elements/stat-requests-val","value":{"key":"stat-requests-val","type":"Text","props":{"children":"1.2M","variant":"heading2"},"parentKey":"stat-requests-stack"}}
+{"op":"add","path":"/elements/stat-bandwidth","value":{"key":"stat-bandwidth","type":"Surface","props":{"color":"neutral"},"children":["stat-bandwidth-stack"],"parentKey":"stat-grid"}}
+{"op":"add","path":"/elements/stat-bandwidth-stack","value":{"key":"stat-bandwidth-stack","type":"Stack","props":{"gap":"sm"},"children":["stat-bandwidth-label","stat-bandwidth-val"],"parentKey":"stat-bandwidth"}}
+{"op":"add","path":"/elements/stat-bandwidth-label","value":{"key":"stat-bandwidth-label","type":"Text","props":{"children":"Bandwidth","variant":"secondary"},"parentKey":"stat-bandwidth-stack"}}
+{"op":"add","path":"/elements/stat-bandwidth-val","value":{"key":"stat-bandwidth-val","type":"Text","props":{"children":"4.8 GB","variant":"heading2"},"parentKey":"stat-bandwidth-stack"}}
+{"op":"add","path":"/elements/stat-errors","value":{"key":"stat-errors","type":"Surface","props":{"color":"neutral"},"children":["stat-errors-stack"],"parentKey":"stat-grid"}}
+{"op":"add","path":"/elements/stat-errors-stack","value":{"key":"stat-errors-stack","type":"Stack","props":{"gap":"sm"},"children":["stat-errors-label","stat-errors-val"],"parentKey":"stat-errors"}}
+{"op":"add","path":"/elements/stat-errors-label","value":{"key":"stat-errors-label","type":"Text","props":{"children":"Errors","variant":"secondary"},"parentKey":"stat-errors-stack"}}
+{"op":"add","path":"/elements/stat-errors-val","value":{"key":"stat-errors-val","type":"Text","props":{"children":"0.03%","variant":"heading2"},"parentKey":"stat-errors-stack"}}
+{"op":"add","path":"/elements/stat-cache","value":{"key":"stat-cache","type":"Surface","props":{"color":"neutral"},"children":["stat-cache-stack"],"parentKey":"stat-grid"}}
+{"op":"add","path":"/elements/stat-cache-stack","value":{"key":"stat-cache-stack","type":"Stack","props":{"gap":"sm"},"children":["stat-cache-label","stat-cache-val"],"parentKey":"stat-cache"}}
+{"op":"add","path":"/elements/stat-cache-label","value":{"key":"stat-cache-label","type":"Text","props":{"children":"Cache hit rate","variant":"secondary"},"parentKey":"stat-cache-stack"}}
+{"op":"add","path":"/elements/stat-cache-val","value":{"key":"stat-cache-val","type":"Text","props":{"children":"94.7%","variant":"heading2"},"parentKey":"stat-cache-stack"}}`;
+
+const EXAMPLE_LIST = `## Example (Data List with Badges and Actions)
+
+User: "Show a list of recent deployments"
+
+{"op":"add","path":"/root","value":"deployments"}
+{"op":"add","path":"/elements/deployments","value":{"key":"deployments","type":"Surface","props":{},"children":["deploy-stack"]}}
+{"op":"add","path":"/elements/deploy-stack","value":{"key":"deploy-stack","type":"Stack","props":{"gap":"lg"},"children":["deploy-title","deploy-table","deploy-actions"],"parentKey":"deployments"}}
+{"op":"add","path":"/elements/deploy-title","value":{"key":"deploy-title","type":"Text","props":{"children":"Recent deployments","variant":"heading2"},"parentKey":"deploy-stack"}}
+{"op":"add","path":"/elements/deploy-table","value":{"key":"deploy-table","type":"Table","props":{"layout":"fixed"},"children":["deploy-thead","deploy-tbody"],"parentKey":"deploy-stack"}}
+{"op":"add","path":"/elements/deploy-thead","value":{"key":"deploy-thead","type":"TableHeader","props":{},"children":["deploy-hrow"],"parentKey":"deploy-table"}}
+{"op":"add","path":"/elements/deploy-hrow","value":{"key":"deploy-hrow","type":"TableRow","props":{},"children":["h-env","h-commit","h-status","h-time"],"parentKey":"deploy-thead"}}
+{"op":"add","path":"/elements/h-env","value":{"key":"h-env","type":"TableHead","props":{"children":"Environment"},"parentKey":"deploy-hrow"}}
+{"op":"add","path":"/elements/h-commit","value":{"key":"h-commit","type":"TableHead","props":{"children":"Commit"},"parentKey":"deploy-hrow"}}
+{"op":"add","path":"/elements/h-status","value":{"key":"h-status","type":"TableHead","props":{"children":"Status"},"parentKey":"deploy-hrow"}}
+{"op":"add","path":"/elements/h-time","value":{"key":"h-time","type":"TableHead","props":{"children":"Deployed"},"parentKey":"deploy-hrow"}}
+{"op":"add","path":"/elements/deploy-tbody","value":{"key":"deploy-tbody","type":"TableBody","props":{},"children":["row-prod","row-staging","row-preview"],"parentKey":"deploy-table"}}
+{"op":"add","path":"/elements/row-prod","value":{"key":"row-prod","type":"TableRow","props":{},"children":["c-prod-env","c-prod-commit","c-prod-status","c-prod-time"],"parentKey":"deploy-tbody"}}
+{"op":"add","path":"/elements/c-prod-env","value":{"key":"c-prod-env","type":"TableCell","props":{"children":"Production"},"parentKey":"row-prod"}}
+{"op":"add","path":"/elements/c-prod-commit","value":{"key":"c-prod-commit","type":"TableCell","props":{"children":"a1b2c3d"},"parentKey":"row-prod"}}
+{"op":"add","path":"/elements/c-prod-status","value":{"key":"c-prod-status","type":"Badge","props":{"children":"Live","variant":"primary"},"parentKey":"row-prod"}}
+{"op":"add","path":"/elements/c-prod-time","value":{"key":"c-prod-time","type":"TableCell","props":{"children":"2 hours ago"},"parentKey":"row-prod"}}
+{"op":"add","path":"/elements/row-staging","value":{"key":"row-staging","type":"TableRow","props":{},"children":["c-stg-env","c-stg-commit","c-stg-status","c-stg-time"],"parentKey":"deploy-tbody"}}
+{"op":"add","path":"/elements/c-stg-env","value":{"key":"c-stg-env","type":"TableCell","props":{"children":"Staging"},"parentKey":"row-staging"}}
+{"op":"add","path":"/elements/c-stg-commit","value":{"key":"c-stg-commit","type":"TableCell","props":{"children":"e5f6g7h"},"parentKey":"row-staging"}}
+{"op":"add","path":"/elements/c-stg-status","value":{"key":"c-stg-status","type":"Badge","props":{"children":"Building","variant":"secondary"},"parentKey":"row-staging"}}
+{"op":"add","path":"/elements/c-stg-time","value":{"key":"c-stg-time","type":"TableCell","props":{"children":"15 minutes ago"},"parentKey":"row-staging"}}
+{"op":"add","path":"/elements/row-preview","value":{"key":"row-preview","type":"TableRow","props":{},"children":["c-prv-env","c-prv-commit","c-prv-status","c-prv-time"],"parentKey":"deploy-tbody"}}
+{"op":"add","path":"/elements/c-prv-env","value":{"key":"c-prv-env","type":"TableCell","props":{"children":"Preview"},"parentKey":"row-preview"}}
+{"op":"add","path":"/elements/c-prv-commit","value":{"key":"c-prv-commit","type":"TableCell","props":{"children":"i8j9k0l"},"parentKey":"row-preview"}}
+{"op":"add","path":"/elements/c-prv-status","value":{"key":"c-prv-status","type":"Badge","props":{"children":"Failed","variant":"destructive"},"parentKey":"row-preview"}}
+{"op":"add","path":"/elements/c-prv-time","value":{"key":"c-prv-time","type":"TableCell","props":{"children":"1 hour ago"},"parentKey":"row-preview"}}
+{"op":"add","path":"/elements/deploy-actions","value":{"key":"deploy-actions","type":"Cluster","props":{"gap":"sm"},"children":["btn-deploy","btn-rollback"],"parentKey":"deploy-stack"}}
+{"op":"add","path":"/elements/btn-deploy","value":{"key":"btn-deploy","type":"Button","props":{"children":"New deployment","variant":"primary"},"parentKey":"deploy-actions","action":{"name":"navigate","params":{"url":"/deploy"}}}}
+{"op":"add","path":"/elements/btn-rollback","value":{"key":"btn-rollback","type":"Button","props":{"children":"Rollback","variant":"secondary"},"parentKey":"deploy-actions"}}`;
+
+const EXAMPLE_EMPTY_STATE = `## Example (Empty State with Action)
+
+User: "Show an empty Workers page"
+
+{"op":"add","path":"/root","value":"empty-card"}
+{"op":"add","path":"/elements/empty-card","value":{"key":"empty-card","type":"Surface","props":{},"children":["empty-stack"]}}
+{"op":"add","path":"/elements/empty-stack","value":{"key":"empty-stack","type":"Stack","props":{"gap":"lg","align":"center"},"children":["empty-block","create-btn"],"parentKey":"empty-card"}}
+{"op":"add","path":"/elements/empty-block","value":{"key":"empty-block","type":"Empty","props":{"title":"No Workers yet","description":"Deploy your first Worker to start running code at the edge."},"parentKey":"empty-stack"}}
+{"op":"add","path":"/elements/create-btn","value":{"key":"create-btn","type":"Button","props":{"children":"Create a Worker","variant":"primary"},"parentKey":"empty-stack","action":{"name":"navigate","params":{"url":"/workers/new"}}}}`;
+
 const CLOSING_RULES = `## Important
 
 - ALWAYS respond with ONLY JSONL lines. No markdown fences, no explanations, no text before or after.
@@ -248,7 +319,7 @@ const CLOSING_RULES = `## Important
  * - JSONL/RFC 6902 response format with UITree schema
  * - Available components (injected via `componentsSection`)
  * - Action system (built-in actions, dispatch rules)
- * - Two working examples (counter UI, form with Select)
+ * - Six working examples (user card, form, table, dashboard, list, empty state)
  *
  * @example
  * ```ts
@@ -283,6 +354,9 @@ export function buildSystemPrompt(options: SystemPromptOptions = {}): string {
     EXAMPLE_USER_CARD,
     EXAMPLE_FORM,
     EXAMPLE_TABLE,
+    EXAMPLE_DASHBOARD,
+    EXAMPLE_LIST,
+    EXAMPLE_EMPTY_STATE,
     CLOSING_RULES,
   ].filter(Boolean);
 
