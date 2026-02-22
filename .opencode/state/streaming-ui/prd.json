@@ -239,7 +239,7 @@
         "Verify: CloudflareKumo.setTheme('dark') toggles theme",
         "Verify: shadow DOM mount mode works"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-1",
