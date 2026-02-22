@@ -57,12 +57,12 @@ export type { JsonPatchOp } from "./rfc6902";
 export { createJsonlParser } from "./jsonl-parser";
 export type { JsonlParser } from "./jsonl-parser";
 
-// Text sanitizer (pure — no React dependency)
+// Text normalizer — emoji stripping, NOT XSS sanitization (pure — no React dependency)
 export {
   stripLeadingEmojiTokens,
   sanitizeUnknownText,
   sanitizePatch,
-} from "./text-sanitizer";
+} from "./text-normalizer";
 
 // URL policy (pure — no React dependency)
 export { sanitizeUrl } from "./url-policy";

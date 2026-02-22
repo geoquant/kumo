@@ -4,11 +4,11 @@
  * Provides immutable tree updates with optional batched patch application.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { applyPatch as applyRfc6902Patch, type JsonPatchOp } from "./rfc6902";
 import { EMPTY_TREE, type UITree } from "./types";
 import type { ActionDispatch } from "./action-types";
-import { sanitizePatch } from "./text-sanitizer";
+import { sanitizePatch } from "./text-normalizer";
 import {
   createRuntimeValueStore,
   type RuntimeValueStore,
@@ -72,26 +72,22 @@ export function useUITree(options?: UseUITreeOptions): UseUITreeReturn {
 
   const batchPatches = options?.batchPatches ?? false;
 
-  const pendingRef = useMemo(() => {
-    return { patches: [] as JsonPatchOp[] };
-  }, []);
-  const scheduledRef = useMemo(() => {
-    return { rafId: null as number | null };
-  }, []);
+  const pendingRef = useRef<JsonPatchOp[]>([]);
+  const scheduledRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
-      if (scheduledRef.rafId != null) {
-        cancelAnimationFrame(scheduledRef.rafId);
-        scheduledRef.rafId = null;
+      if (scheduledRef.current != null) {
+        cancelAnimationFrame(scheduledRef.current);
+        scheduledRef.current = null;
       }
-      pendingRef.patches = [];
+      pendingRef.current = [];
     };
-  }, [pendingRef, scheduledRef]);
+  }, []);
 
   const flushPending = useCallback((): void => {
-    const patches = pendingRef.patches;
-    pendingRef.patches = [];
+    const patches = pendingRef.current;
+    pendingRef.current = [];
 
     if (patches.length === 0) return;
 
@@ -102,15 +98,15 @@ export function useUITree(options?: UseUITreeOptions): UseUITreeReturn {
       }
       return current;
     });
-  }, [pendingRef]);
+  }, []);
 
   const scheduleFlush = useCallback((): void => {
-    if (scheduledRef.rafId != null) return;
-    scheduledRef.rafId = requestAnimationFrame(() => {
-      scheduledRef.rafId = null;
+    if (scheduledRef.current != null) return;
+    scheduledRef.current = requestAnimationFrame(() => {
+      scheduledRef.current = null;
       flushPending();
     });
-  }, [flushPending, scheduledRef]);
+  }, [flushPending]);
 
   const applyPatch = useCallback(
     (patch: JsonPatchOp): void => {
@@ -120,10 +116,10 @@ export function useUITree(options?: UseUITreeOptions): UseUITreeReturn {
         return;
       }
 
-      pendingRef.patches.push(sanitized);
+      pendingRef.current.push(sanitized);
       scheduleFlush();
     },
-    [batchPatches, pendingRef, scheduleFlush],
+    [batchPatches, scheduleFlush],
   );
 
   const applyPatches = useCallback(
@@ -143,20 +139,20 @@ export function useUITree(options?: UseUITreeOptions): UseUITreeReturn {
         return;
       }
 
-      pendingRef.patches.push(...sanitized);
+      pendingRef.current.push(...sanitized);
       scheduleFlush();
     },
-    [batchPatches, pendingRef, scheduleFlush],
+    [batchPatches, scheduleFlush],
   );
 
   const reset = useCallback((): void => {
-    if (scheduledRef.rafId != null) {
-      cancelAnimationFrame(scheduledRef.rafId);
-      scheduledRef.rafId = null;
+    if (scheduledRef.current != null) {
+      cancelAnimationFrame(scheduledRef.current);
+      scheduledRef.current = null;
     }
-    pendingRef.patches = [];
+    pendingRef.current = [];
     setTree(EMPTY_TREE);
-  }, [pendingRef, scheduledRef]);
+  }, []);
 
   return { tree, applyPatch, applyPatches, reset, onAction: options?.onAction };
 }

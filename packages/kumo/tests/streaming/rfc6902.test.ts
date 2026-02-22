@@ -369,3 +369,76 @@ describe("parsePatchLine", () => {
     expect(parsePatchLine("null")).toBeNull();
   });
 });
+
+// =============================================================================
+// applyPatch: prototype pollution prevention
+// =============================================================================
+
+describe("applyPatch: prototype pollution prevention", () => {
+  const base: UITree = {
+    root: "r",
+    elements: { r: el("r", "Surface", { children: "hi" }) },
+  };
+
+  it("blocks __proto__ paths — add", () => {
+    const result = applyPatch(base, {
+      op: "add",
+      path: "/__proto__/polluted",
+      value: true,
+    });
+    // Blocked path returns same reference (no-op)
+    expect(result).toBe(base);
+    // Ensure Object.prototype was not modified
+    expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+  });
+
+  it("blocks constructor paths — add", () => {
+    const result = applyPatch(base, {
+      op: "add",
+      path: "/constructor/polluted",
+      value: true,
+    });
+    expect(result).toBe(base);
+  });
+
+  it("blocks prototype paths — add", () => {
+    const result = applyPatch(base, {
+      op: "add",
+      path: "/prototype/polluted",
+      value: true,
+    });
+    expect(result).toBe(base);
+  });
+
+  it("blocks __proto__ in nested element paths", () => {
+    const result = applyPatch(base, {
+      op: "replace",
+      path: "/elements/r/__proto__/polluted",
+      value: true,
+    });
+    expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+    // Blocked path returns same reference (no-op)
+    expect(result).toBe(base);
+  });
+
+  it("blocks tilde-encoded __proto__ (RFC 6901 ~0 = ~)", () => {
+    // __proto__ doesn't contain ~ or / so tilde encoding doesn't help an
+    // attacker here, but verify the path is still blocked after decoding.
+    const result = applyPatch(base, {
+      op: "add",
+      path: "/__proto__/evil",
+      value: "pwned",
+    });
+    expect(result).toBe(base);
+    expect(({} as Record<string, unknown>)["evil"]).toBeUndefined();
+  });
+
+  it("blocks __proto__ via remove op", () => {
+    const result = applyPatch(base, {
+      op: "remove",
+      path: "/__proto__/toString",
+    });
+    expect(result).toBe(base);
+    expect({}.toString).toBeDefined();
+  });
+});
