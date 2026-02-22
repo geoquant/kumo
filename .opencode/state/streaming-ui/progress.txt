@@ -22,6 +22,7 @@ Started: 2026-02-21
 - vitest.config.ts `tests/` include glob was `.ts` only — needed `.{ts,tsx}` to pick up tsx test files in tests/ directory
 - COMPONENT_MAP mutation in tests: cast via `(COMPONENT_MAP as Record<string, unknown>)` to avoid type errors when injecting spy components (no `any` casts)
 - UMD loadable build: separate `vite.loadable.config.ts` with `@tailwindcss/vite` plugin, no `@vitejs/plugin-react` needed (esbuild handles JSX via tsconfig `jsx: "react-jsx"`), `cssCodeSplit: false` for single CSS output, `inlineDynamicImports: true` for UMD compat
+- Loadable tests need `@cloudflare/kumo/styles/standalone` alias in `vitest.config.ts` — without it, vitest can't resolve the CSS import in `loadable/index.ts`. The UMD build config has the alias but vitest config didn't; must be added to both top-level and project-level resolve.alias
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -193,3 +194,17 @@ Started: 2026-02-21
 - Output: `dist/loadable/kumo-loadable.umd.js` (1010KB raw, 303KB gzip) + `dist/loadable/style.css` (74KB raw, 13KB gzip) = ~316KB gzip total
 - All 862 tests pass, typecheck clean, lint clean (0 errors)
 - **Learnings:** UMD loadable build doesn't need `@vitejs/plugin-react` — esbuild's JSX transform suffices for production builds. The `@tailwindcss/vite` plugin is essential to process `@import "tailwindcss"` directives in standalone CSS. `"use client"` directive warnings from bundled deps are harmless in UMD context (no RSC).
+
+## Task - loadable-3
+- Ported 5 UMD loadable test files to `packages/kumo/tests/loadable/`
+- Files: `loadable-shadow-root.test.ts`, `loadable-batched-render.test.ts`, `loadable-action-runtime.test.ts`, `loadable-tree-access.test.ts`, `loadable-css.test.ts`
+- 19 tests across 5 files, all passing (881 total)
+- Import path changes: `../loadable/index` → `@/loadable/index`, `../core/types` → `@/streaming/types`
+- CSS test: updated JS filename from `component-loadable.umd.js` → `kumo-loadable.umd.js` to match actual build output
+- CSS test uses `describe.skipIf(!isBuilt)` to gracefully skip when `dist/loadable/` missing (11 tests skip or pass depending on build state)
+- Fixed vitest.config.ts: added `@cloudflare/kumo/styles/standalone` alias to both top-level and project-level resolve — required for loadable/index.ts CSS import resolution in test environment
+- Shadow root test: verifies ShadowRoot mount mode, stylesheet injection, cleanup on reset
+- Batched render test: verifies rAF coalescing for applyPatchesBatched
+- Action runtime test: verifies increment built-in + submit_form message dispatch
+- Tree access test: verifies getTree, subscribeTree, applyPatch/applyPatches notification
+- **Learnings:** `@cloudflare/kumo/styles/standalone` must be aliased in vitest.config.ts (both top-level + project-level) for loadable tests — the loadable entry imports this CSS, and without the alias vitest's vite:import-analysis plugin errors out
