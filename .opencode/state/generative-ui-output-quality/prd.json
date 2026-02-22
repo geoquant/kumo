@@ -140,7 +140,7 @@
         "Skip: Surface has exactly 1 child that IS a Stack",
         "Wrap: Surface has 1 non-Stack child (single orphan is still non-canonical)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "endpoint-1",
