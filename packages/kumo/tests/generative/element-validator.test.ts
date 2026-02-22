@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   validateElement,
+  repairElement,
   logValidationError,
 } from "@/generative/element-validator";
 import type { UIElement } from "@/streaming/types";
@@ -129,6 +130,36 @@ describe("validateElement", () => {
     });
   });
 
+  describe("props.children array stripping", () => {
+    it("strips array props.children before validation (Table with structural children)", () => {
+      // LLM emits props.children as array AND element.children as array
+      const result = validateElement(
+        el(
+          "tbl-1",
+          "Table",
+          { children: ["header", "body"] },
+          { children: ["header", "body"] },
+        ),
+      );
+      expect(result.valid).toBe(true);
+    });
+
+    it("strips array props.children even without element.children", () => {
+      // LLM emits props.children as array but no element.children
+      const result = validateElement(
+        el("tbl-2", "Table", { children: ["header", "body"] }),
+      );
+      expect(result.valid).toBe(true);
+    });
+
+    it("keeps scalar props.children (text content)", () => {
+      const result = validateElement(
+        el("txt-c", "Text", { variant: "body", children: "Hello world" }),
+      );
+      expect(result.valid).toBe(true);
+    });
+  });
+
   describe("alias mapping", () => {
     it("validates Textarea via InputArea schema", () => {
       // InputArea schema is z.object({}) — accepts any props
@@ -158,6 +189,61 @@ describe("validateElement", () => {
       );
       expect(result.valid).toBe(true);
     });
+  });
+});
+
+describe("repairElement", () => {
+  it("strips invalid Grid gap and produces a valid element", () => {
+    const element = el("grid-1", "Grid", {
+      gap: "invalid_gap_value",
+      variant: "3up",
+      className: "my-grid",
+    });
+    const validation = validateElement(element);
+    expect(validation.valid).toBe(false);
+
+    if (!validation.valid) {
+      // Repair should strip `gap` (single-segment path)
+      const repaired = repairElement(element, validation);
+      expect(repaired).not.toBeNull();
+      expect(repaired!.props).not.toHaveProperty("gap");
+      expect(repaired!.props).toHaveProperty("variant", "3up");
+      expect(repaired!.props).toHaveProperty("className", "my-grid");
+
+      // Repaired element should now pass validation
+      const revalidation = validateElement(repaired!);
+      expect(revalidation.valid).toBe(true);
+    }
+  });
+
+  it("strips multiple invalid props at once", () => {
+    const element = el("grid-2", "Grid", {
+      gap: "bad",
+      variant: "nonexistent",
+    });
+    const validation = validateElement(element);
+    expect(validation.valid).toBe(false);
+
+    if (!validation.valid) {
+      const repaired = repairElement(element, validation);
+      expect(repaired).not.toBeNull();
+      expect(repaired!.props).not.toHaveProperty("gap");
+      expect(repaired!.props).not.toHaveProperty("variant");
+
+      const revalidation = validateElement(repaired!);
+      expect(revalidation.valid).toBe(true);
+    }
+  });
+
+  it("returns null when all issues are at root level", () => {
+    // Simulate a root-level issue (no strippable props)
+    const result = repairElement(el("x", "Button", {}), {
+      valid: false as const,
+      elementKey: "x",
+      elementType: "Button",
+      issues: [{ path: "(root)", message: "Something wrong" }],
+    });
+    expect(result).toBeNull();
   });
 });
 

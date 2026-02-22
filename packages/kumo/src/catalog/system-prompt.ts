@@ -31,9 +31,27 @@ export interface SystemPromptOptions {
 const DESIGN_RULES = `## Design Rules
 
 - One primary action per UI (one prominent variant="primary" button)
-- Group related sections using Surface/Stack/Grid
 - Headlines sound human; buttons describe outcomes
-- No emoji/unicode icon characters in any visible text`;
+- No emoji/unicode icon characters in any visible text
+
+## Layout Patterns (Required)
+
+Every UI MUST use layout components to structure content. NEVER put children directly in Surface without a layout wrapper.
+
+### Canonical pattern
+\`Surface > Stack > [children]\` — wrap every Surface's children in a Stack for vertical spacing.
+
+### Layout components
+- **Stack** — vertical layout with \`gap\` ("sm" | "base" | "lg" | "xl"). ALWAYS wrap multiple children in a Stack.
+- **Grid** — multi-column layout with \`variant\` ("2up" | "3up" | "4up") or columns prop. Use for side-by-side cards, stat grids, form rows.
+- **Cluster** — horizontal inline layout with \`gap\` and \`justify\`. Use for button groups, tags, inline items.
+- **Surface** — card container with rounded corners and padding. Nest Surfaces inside Grid for card grids.
+
+### Common compositions
+- **Card UI**: \`Surface > Stack(gap="lg") > [Text(heading), content, Button]\`
+- **Dashboard**: \`Surface > Stack > [Text(heading), Grid(variant="3up") > [Surface > Stack > stat, ...]]\`
+- **Form**: \`Surface > Stack(gap="lg") > [Text(heading), Input, Select, Button]\`
+- **Side-by-side**: \`Grid(variant="2up") > [Surface > Stack > ..., Surface > Stack > ...]\``;
 
 const ACCESSIBILITY = `## Accessibility (Required)
 
@@ -137,40 +155,74 @@ Any action name NOT in this list is a **custom action** — the host logs it to 
 - When using \`submit_form\`, include static form data in \`params\` — the host serializes it and sends as a chat message
 - For dynamic form data (user-typed values), the host collects \`context\` from stateful wrappers at dispatch time — you do NOT need to include runtime values in \`params\``;
 
-const EXAMPLE_COUNTER = `## Example (Counter UI)
+const EXAMPLE_USER_CARD = `## Example (User Card with Grid Layout)
 
-User: "Two counters"
+User: "Show a user profile card"
 
 {"op":"add","path":"/root","value":"card"}
 {"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["stack"]}}
-{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["title","grid"],"parentKey":"card"}}
-{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Two counters","variant":"heading2"},"parentKey":"stack"}}
-{"op":"add","path":"/elements/grid","value":{"key":"grid","type":"Grid","props":{"variant":"2up","gap":"base"},"children":["a","b"],"parentKey":"stack"}}
-{"op":"add","path":"/elements/a","value":{"key":"a","type":"Surface","props":{},"children":["a-stack"],"parentKey":"grid"}}
-{"op":"add","path":"/elements/a-stack","value":{"key":"a-stack","type":"Stack","props":{"gap":"base","align":"center"},"children":["a-num","a-actions"],"parentKey":"a"}}
-{"op":"add","path":"/elements/a-num","value":{"key":"a-num","type":"Text","props":{"children":"0","variant":"heading1"},"parentKey":"a-stack"}}
-{"op":"add","path":"/elements/a-actions","value":{"key":"a-actions","type":"Cluster","props":{"gap":"sm","justify":"center"},"children":["a-dec","a-inc"],"parentKey":"a-stack"}}
-{"op":"add","path":"/elements/a-dec","value":{"key":"a-dec","type":"Button","props":{"children":"-","variant":"secondary"},"parentKey":"a-actions","action":{"name":"decrement","params":{"target":"a-num"}}}}
-{"op":"add","path":"/elements/a-inc","value":{"key":"a-inc","type":"Button","props":{"children":"+","variant":"primary"},"parentKey":"a-actions","action":{"name":"increment","params":{"target":"a-num"}}}}
-{"op":"add","path":"/elements/b","value":{"key":"b","type":"Surface","props":{},"children":["b-stack"],"parentKey":"grid"}}
-{"op":"add","path":"/elements/b-stack","value":{"key":"b-stack","type":"Stack","props":{"gap":"base","align":"center"},"children":["b-num","b-actions"],"parentKey":"b"}}
-{"op":"add","path":"/elements/b-num","value":{"key":"b-num","type":"Text","props":{"children":"0","variant":"heading1"},"parentKey":"b-stack"}}
-{"op":"add","path":"/elements/b-actions","value":{"key":"b-actions","type":"Cluster","props":{"gap":"sm","justify":"center"},"children":["b-dec","b-inc"],"parentKey":"b-stack"}}
-{"op":"add","path":"/elements/b-dec","value":{"key":"b-dec","type":"Button","props":{"children":"-","variant":"secondary"},"parentKey":"b-actions","action":{"name":"decrement","params":{"target":"b-num"}}}}
-{"op":"add","path":"/elements/b-inc","value":{"key":"b-inc","type":"Button","props":{"children":"+","variant":"primary"},"parentKey":"b-actions","action":{"name":"increment","params":{"target":"b-num"}}}}`;
+{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["header","info-grid","actions"],"parentKey":"card"}}
+{"op":"add","path":"/elements/header","value":{"key":"header","type":"Stack","props":{"gap":"sm"},"children":["name","role"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/name","value":{"key":"name","type":"Text","props":{"children":"Jane Cooper","variant":"heading2"},"parentKey":"header"}}
+{"op":"add","path":"/elements/role","value":{"key":"role","type":"Cluster","props":{"gap":"sm"},"children":["role-badge","dept"],"parentKey":"header"}}
+{"op":"add","path":"/elements/role-badge","value":{"key":"role-badge","type":"Badge","props":{"children":"Admin","variant":"primary"},"parentKey":"role"}}
+{"op":"add","path":"/elements/dept","value":{"key":"dept","type":"Text","props":{"children":"Engineering","variant":"secondary"},"parentKey":"role"}}
+{"op":"add","path":"/elements/info-grid","value":{"key":"info-grid","type":"Grid","props":{"variant":"2up","gap":"base"},"children":["email-col","joined-col"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/email-col","value":{"key":"email-col","type":"Stack","props":{"gap":"xs"},"children":["email-label","email-val"],"parentKey":"info-grid"}}
+{"op":"add","path":"/elements/email-label","value":{"key":"email-label","type":"Text","props":{"children":"Email","variant":"secondary"},"parentKey":"email-col"}}
+{"op":"add","path":"/elements/email-val","value":{"key":"email-val","type":"Text","props":{"children":"jane@cloudflare.com"},"parentKey":"email-col"}}
+{"op":"add","path":"/elements/joined-col","value":{"key":"joined-col","type":"Stack","props":{"gap":"xs"},"children":["joined-label","joined-val"],"parentKey":"info-grid"}}
+{"op":"add","path":"/elements/joined-label","value":{"key":"joined-label","type":"Text","props":{"children":"Joined","variant":"secondary"},"parentKey":"joined-col"}}
+{"op":"add","path":"/elements/joined-val","value":{"key":"joined-val","type":"Text","props":{"children":"March 2024"},"parentKey":"joined-col"}}
+{"op":"add","path":"/elements/actions","value":{"key":"actions","type":"Cluster","props":{"gap":"sm"},"children":["edit-btn","msg-btn"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/edit-btn","value":{"key":"edit-btn","type":"Button","props":{"children":"Edit profile","variant":"primary"},"parentKey":"actions"}}
+{"op":"add","path":"/elements/msg-btn","value":{"key":"msg-btn","type":"Button","props":{"children":"Send message","variant":"secondary"},"parentKey":"actions"}}`;
 
-const EXAMPLE_FORM = `## Example (Form)
+const EXAMPLE_FORM = `## Example (Form with Select)
 
 User: "Create a notification preferences form"
 
 {"op":"add","path":"/root","value":"prefs"}
 {"op":"add","path":"/elements/prefs","value":{"key":"prefs","type":"Surface","props":{},"children":["stack"]}}
-{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["title","frequency"],"parentKey":"prefs"}}
+{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["title","frequency","submit"],"parentKey":"prefs"}}
 {"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Notification preferences","variant":"heading2"},"parentKey":"stack"}}
 {"op":"add","path":"/elements/frequency","value":{"key":"frequency","type":"Select","props":{"label":"Notification frequency","placeholder":"Choose"},"children":["freq-real","freq-daily","freq-weekly"],"parentKey":"stack"}}
 {"op":"add","path":"/elements/freq-real","value":{"key":"freq-real","type":"SelectOption","props":{"value":"realtime","children":"Real-time"},"parentKey":"frequency"}}
 {"op":"add","path":"/elements/freq-daily","value":{"key":"freq-daily","type":"SelectOption","props":{"value":"daily","children":"Daily"},"parentKey":"frequency"}}
-{"op":"add","path":"/elements/freq-weekly","value":{"key":"freq-weekly","type":"SelectOption","props":{"value":"weekly","children":"Weekly"},"parentKey":"frequency"}}`;
+{"op":"add","path":"/elements/freq-weekly","value":{"key":"freq-weekly","type":"SelectOption","props":{"value":"weekly","children":"Weekly"},"parentKey":"frequency"}}
+{"op":"add","path":"/elements/submit","value":{"key":"submit","type":"Button","props":{"children":"Save preferences","variant":"primary"},"parentKey":"stack","action":{"name":"submit_form","params":{"form_type":"notifications"}}}}`;
+
+const EXAMPLE_TABLE = `## Example (Pricing / Comparison Table)
+
+User: "Show a pricing table with 3 plans"
+
+{"op":"add","path":"/root","value":"card"}
+{"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["stack"]}}
+{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["title","tbl"],"parentKey":"card"}}
+{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Choose your plan","variant":"heading2"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/tbl","value":{"key":"tbl","type":"Table","props":{"layout":"fixed"},"children":["thead","tbody"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/thead","value":{"key":"thead","type":"TableHeader","props":{},"children":["hrow"],"parentKey":"tbl"}}
+{"op":"add","path":"/elements/hrow","value":{"key":"hrow","type":"TableRow","props":{},"children":["h-blank","h-free","h-pro","h-biz"],"parentKey":"thead"}}
+{"op":"add","path":"/elements/h-blank","value":{"key":"h-blank","type":"TableHead","props":{"children":""},"parentKey":"hrow"}}
+{"op":"add","path":"/elements/h-free","value":{"key":"h-free","type":"TableHead","props":{"children":"Free"},"parentKey":"hrow"}}
+{"op":"add","path":"/elements/h-pro","value":{"key":"h-pro","type":"TableHead","props":{"children":"Pro"},"parentKey":"hrow"}}
+{"op":"add","path":"/elements/h-biz","value":{"key":"h-biz","type":"TableHead","props":{"children":"Business"},"parentKey":"hrow"}}
+{"op":"add","path":"/elements/tbody","value":{"key":"tbody","type":"TableBody","props":{},"children":["row-price","row-requests","row-storage"],"parentKey":"tbl"}}
+{"op":"add","path":"/elements/row-price","value":{"key":"row-price","type":"TableRow","props":{},"children":["lbl-price","c-price-free","c-price-pro","c-price-biz"],"parentKey":"tbody"}}
+{"op":"add","path":"/elements/lbl-price","value":{"key":"lbl-price","type":"TableCell","props":{"children":"Monthly price"},"parentKey":"row-price"}}
+{"op":"add","path":"/elements/c-price-free","value":{"key":"c-price-free","type":"TableCell","props":{"children":"$0"},"parentKey":"row-price"}}
+{"op":"add","path":"/elements/c-price-pro","value":{"key":"c-price-pro","type":"TableCell","props":{"children":"$20"},"parentKey":"row-price"}}
+{"op":"add","path":"/elements/c-price-biz","value":{"key":"c-price-biz","type":"TableCell","props":{"children":"$200"},"parentKey":"row-price"}}
+{"op":"add","path":"/elements/row-requests","value":{"key":"row-requests","type":"TableRow","props":{},"children":["lbl-req","c-req-free","c-req-pro","c-req-biz"],"parentKey":"tbody"}}
+{"op":"add","path":"/elements/lbl-req","value":{"key":"lbl-req","type":"TableCell","props":{"children":"Requests / day"},"parentKey":"row-requests"}}
+{"op":"add","path":"/elements/c-req-free","value":{"key":"c-req-free","type":"TableCell","props":{"children":"100K"},"parentKey":"row-requests"}}
+{"op":"add","path":"/elements/c-req-pro","value":{"key":"c-req-pro","type":"TableCell","props":{"children":"10M"},"parentKey":"row-requests"}}
+{"op":"add","path":"/elements/c-req-biz","value":{"key":"c-req-biz","type":"TableCell","props":{"children":"Unlimited"},"parentKey":"row-requests"}}
+{"op":"add","path":"/elements/row-storage","value":{"key":"row-storage","type":"TableRow","props":{},"children":["lbl-stor","c-stor-free","c-stor-pro","c-stor-biz"],"parentKey":"tbody"}}
+{"op":"add","path":"/elements/lbl-stor","value":{"key":"lbl-stor","type":"TableCell","props":{"children":"Storage"},"parentKey":"row-storage"}}
+{"op":"add","path":"/elements/c-stor-free","value":{"key":"c-stor-free","type":"TableCell","props":{"children":"1 GB"},"parentKey":"row-storage"}}
+{"op":"add","path":"/elements/c-stor-pro","value":{"key":"c-stor-pro","type":"TableCell","props":{"children":"25 GB"},"parentKey":"row-storage"}}
+{"op":"add","path":"/elements/c-stor-biz","value":{"key":"c-stor-biz","type":"TableCell","props":{"children":"1 TB"},"parentKey":"row-storage"}}`;
 
 const CLOSING_RULES = `## Important
 
@@ -228,8 +280,9 @@ export function buildSystemPrompt(options: SystemPromptOptions = {}): string {
     RESPONSE_FORMAT,
     componentsBlock,
     ACTION_SYSTEM,
-    EXAMPLE_COUNTER,
+    EXAMPLE_USER_CARD,
     EXAMPLE_FORM,
+    EXAMPLE_TABLE,
     CLOSING_RULES,
   ].filter(Boolean);
 
