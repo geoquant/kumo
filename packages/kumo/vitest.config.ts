@@ -9,6 +9,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
+      "@cloudflare/kumo/styles/standalone": resolve(
+        __dirname,
+        "src/styles/kumo-standalone.css",
+      ),
       "@cloudflare/kumo": resolve(__dirname, "src/index.ts"),
     },
   },
@@ -25,6 +29,10 @@ export default defineConfig({
         resolve: {
           alias: {
             "@": resolve(__dirname, "src"),
+            "@cloudflare/kumo/styles/standalone": resolve(
+              __dirname,
+              "src/styles/kumo-standalone.css",
+            ),
             "@cloudflare/kumo": resolve(__dirname, "src/index.ts"),
           },
         },
