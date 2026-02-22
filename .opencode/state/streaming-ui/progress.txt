@@ -138,3 +138,13 @@ Started: 2026-02-21
 - Changed `[kumo-stream]` console.warn → `[kumo]` in URL policy blocked link warning
 - generative-wrappers.tsx already existed from generative-1 (no changes needed)
 - **Learnings:** Cross-module imports within package use relative paths — `../streaming/` from generative, `../../ai/` from generative to ai schemas. The `ai/` directory is in tsconfig include so TS resolves it correctly.
+
+## Task - generative-3
+- Wired `@cloudflare/kumo/generative` into build pipeline and package exports
+- Files changed: `packages/kumo/vite.config.ts`, `packages/kumo/package.json`, `packages/kumo/src/generative/component-map.ts`
+- Added `generative` entry to vite.config.ts lib entry map (after streaming)
+- Added `./generative` export to package.json with types + import paths
+- Fixed eslint error in component-map.ts: removed `@typescript-eslint/no-explicit-any` disable comment (rule not configured in this project's eslint; only jsx-a11y rules active)
+- Build produces `dist/generative.js` (18KB) and `dist/src/generative/index.d.ts` (types)
+- All 747 tests pass including 129 package-json-validation tests covering new export
+- **Learnings:** ESLint config only has jsx-a11y rules; `@typescript-eslint/*` rules are not configured. Don't use `eslint-disable-next-line @typescript-eslint/*` comments — they cause "Definition for rule not found" errors.
