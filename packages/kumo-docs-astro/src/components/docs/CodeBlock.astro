@@ -3,7 +3,7 @@ import { Code } from "astro:components";
 
 interface Props {
   code: string;
-  lang?: "tsx" | "ts" | "jsx" | "js" | "bash" | "css" | "json";
+  lang?: "tsx" | "ts" | "jsx" | "js" | "bash" | "css" | "json" | "html";
 }
 
 const { code, lang = "tsx" } = Astro.props;

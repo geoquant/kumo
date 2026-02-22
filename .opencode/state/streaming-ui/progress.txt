@@ -255,3 +255,16 @@ Started: 2026-02-21
 - Badge variant: `primary` (no `info` variant exists), Loader size: `sm` (no `xs` size exists)
 - Files changed: `src/components/demos/StreamingDemo.tsx` (new)
 - **Learnings:** Kumo `Text` component does not accept `className` — it uses `DANGEROUS_className` for escape-hatch styling. For demo chrome where Tailwind utilities are needed directly, use plain `<span>` elements instead. Badge has 5 variants (primary/secondary/destructive/outline/beta), no `info`. Loader sizes are sm/base/lg, no `xs`.
+
+## Task - docs-4
+- Updated `src/pages/streaming.astro` with live demo and 5 new docs sections
+- Added `StreamingDemo` at top with `client:load` hydration directive
+- New sections: Quick Start, UMD/HTML Usage (API table), Component Map (4-grid layout), System Prompt Generation, Action System (built-in handlers table + URL security)
+- Kept all existing catalog docs (overview, how it works, installation, creating catalog, UI tree format, data binding, visibility, catalog actions, validation, type exports, key benefits)
+- Renamed existing "Actions" heading to "Catalog Actions" to avoid collision with new "Action System" section
+- Removed "Full Example" and "AI Prompt Generation" sections (replaced by richer Quick Start and System Prompt sections)
+- Added `"html"` to CodeBlock.astro Props lang union for UMD code example
+- Added `{ label: "Streaming UI", href: "/streaming" }` to SidebarNav.tsx staticPages array
+- Docs site build succeeds; streaming page renders at `/streaming/index.html`
+- Files changed: `src/pages/streaming.astro`, `src/components/SidebarNav.tsx`, `src/components/docs/CodeBlock.astro`
+- **Learnings:** CodeBlock.astro `lang` prop is a strict union — must add new languages to the type explicitly. `client:load` is correct for the StreamingDemo since it's interactive and at the top of the page (not a lazy demo below the fold where `client:visible` would be better).
