@@ -14,6 +14,91 @@ import {
 import type { UIElement } from "../streaming/types";
 
 // ---------------------------------------------------------------------------
+// Enum Coercion
+// ---------------------------------------------------------------------------
+
+/**
+ * Maps `ComponentType.propName` → `{ invalidValue → validValue }`.
+ *
+ * LLMs frequently hallucinate enum values that are semantically close
+ * (e.g. "success" for Badge instead of "primary", or "medium" for a gap
+ * instead of "base"). Rather than stripping these via repair, we silently
+ * coerce them to the nearest valid value BEFORE Zod validation so the
+ * corrected value survives into the rendered component.
+ *
+ * Flow: coerce → validate → (if still invalid) repair (strip remaining)
+ */
+const ENUM_COERCION_MAP: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = {
+  // Badge.variant — valid: primary, secondary, destructive, outline, beta
+  "Badge.variant": {
+    info: "primary",
+    success: "primary",
+    error: "destructive",
+    danger: "destructive",
+    warning: "outline",
+    negative: "destructive",
+    positive: "primary",
+    caution: "outline",
+  },
+  // Stack.gap — valid: none, xs, sm, base, lg, xl
+  "Stack.gap": {
+    medium: "base",
+    large: "lg",
+    small: "sm",
+    extra: "xl",
+  },
+  // Grid.gap — valid: none, sm, base, lg
+  "Grid.gap": {
+    medium: "base",
+    large: "lg",
+    small: "sm",
+  },
+  // Text.variant — valid: heading1..3, body, secondary, success, error, mono, mono-secondary
+  "Text.variant": {
+    title: "heading2",
+    subtitle: "heading3",
+    caption: "secondary",
+  },
+};
+
+/**
+ * Apply enum coercions to an element's props in-place (returns new object).
+ *
+ * For each `Type.propName` entry in ENUM_COERCION_MAP, if the element's type
+ * matches and the prop value is a recognized invalid value, replace it with
+ * the mapped valid value.
+ *
+ * Returns the original element unchanged if no coercions applied.
+ */
+export function coerceElementProps(element: UIElement): UIElement {
+  const { type } = element;
+  const props = element.props as Record<string, unknown>;
+  let coerced: Record<string, unknown> | null = null;
+
+  for (const [mapKey, corrections] of Object.entries(ENUM_COERCION_MAP)) {
+    const [mapType, propName] = mapKey.split(".");
+    if (mapType !== type) continue;
+
+    const currentValue = props[propName];
+    if (typeof currentValue !== "string") continue;
+
+    const correctedValue = corrections[currentValue];
+    if (correctedValue == null) continue;
+
+    // Lazily clone props on first coercion
+    if (coerced == null) {
+      coerced = { ...props };
+    }
+    coerced[propName] = correctedValue;
+  }
+
+  if (coerced == null) return element;
+  return { ...element, props: coerced };
+}
+
+// ---------------------------------------------------------------------------
 // Type → Schema Mapping
 // ---------------------------------------------------------------------------
 
@@ -75,6 +160,11 @@ const VALID: ElementValidationResult = { valid: true } as const;
  *
  * Returns `{ valid: false, ... }` only when a schema exists and props
  * fail validation.
+ *
+ * **Important**: Callers should run {@link coerceElementProps} on the element
+ * BEFORE calling this function. Coercion fixes commonly hallucinated enum
+ * values (e.g. Badge "success" → "primary") so they pass validation and
+ * survive into the rendered output. See {@link ENUM_COERCION_MAP}.
  */
 export function validateElement(element: UIElement): ElementValidationResult {
   const { type, key } = element;

@@ -7,7 +7,7 @@ Started: 2026-02-21
 - **UITree is flat**: `{ root: string, elements: Record<string, UIElement> }`. Children referenced by key arrays, not nesting.
 - **UIElement**: `{ key, type, props, children?: string[], parentKey?: string }`. Types map to COMPONENT_MAP entries.
 - **COMPONENT_MAP layers**: direct (18) → sub-component aliases (12) → type aliases (1) → generative wrappers (8) → stateful wrappers (5) → synthetic (1). In `src/generative/component-map.ts`.
-- **Validation flow**: `validateElement()` checks props against Zod schemas from `ai/schemas.ts`. `repairElement()` strips invalid top-level props. Sub-components (TableRow, SelectOption) skip validation.
+- **Validation flow**: `coerceElementProps()` → `validateElement()` → `repairElement()`. Coercion fixes known-invalid enums (ENUM_COERCION_MAP). Validation checks Zod schemas. Repair strips remaining invalid props. Sub-components skip validation.
 - **Test pattern**: Vitest with `@/` path aliases resolved at runtime (LSP shows errors but tests run fine). `happy-dom` environment.
 - **Generative wrapper pattern**: `forwardRef`, read prop, default if missing, delegate to real component. See `src/generative/generative-wrappers.tsx`.
 - **Normalization pattern**: Functions like `normalizeSiblingFormRowGrids` mutate tree in `useMemo` chain in `ui-tree-renderer.tsx:107`.
@@ -114,3 +114,18 @@ Started: 2026-02-21
   - Text component omits `className` from its public API; uses `DANGEROUS_className` instead. Generative wrappers for Text skip the `cn(readClassName(props))` pattern.
   - Grid does not have a real `columns` prop in the component — but LLMs may hallucinate it. Checking for `columns` prevents overriding LLM intent when it tries to use custom columns.
   - Defaults spread BEFORE `...stripClassName(props)` so explicit LLM values override the defaults via object spread semantics.
+
+## Task - validator-1
+- Added `ENUM_COERCION_MAP` to `element-validator.ts`: maps `ComponentType.propName` → `{ invalidValue → validValue }` for Badge.variant, Stack.gap, Grid.gap, Text.variant
+- Added `coerceElementProps()`: iterates ENUM_COERCION_MAP entries, lazily clones props on first coercion, returns same ref when no coercion needed
+- Wired coercion into renderer (`ui-tree-renderer.tsx`): `coerceElementProps(rawElement)` runs before `getElementValidation(element)`, so coerced values are what gets validated and rendered
+- PRD specified some target values (positive, negative, caution) that don't exist as valid Badge variants — corrected to actual valid values: success→primary, error→destructive, danger→destructive, warning→outline
+- 25 new tests: 5 Badge coercions, 4 Stack.gap, 3 Grid.gap, 4 Text.variant, 3 no-op edge cases, 4 coercion+validation integration, 2 survival tests
+- Files changed:
+  - `packages/kumo/src/generative/element-validator.ts` (ENUM_COERCION_MAP, coerceElementProps export, updated docstring)
+  - `packages/kumo/src/generative/ui-tree-renderer.tsx` (import coerceElementProps, apply before validation in RenderElement)
+  - `tests/generative/element-validator.test.ts` (25 new tests in coerceElementProps describe block)
+- **Learnings:**
+  - Coercion returns same ref when no changes needed — important for WeakMap cache in renderer. New refs from coercion don't cache-hit but that's acceptable (coercion is cheap).
+  - PRD enum target values were aspirational (referenced non-existent variants like "positive", "caution"). Always verify against actual Zod schemas in `ai/schemas.ts`.
+  - Coercion is deliberately separate from `validateElement()` so the renderer can use the coerced element for rendering (not just validation). The flow is: coerce → validate coerced → repair coerced if needed.
