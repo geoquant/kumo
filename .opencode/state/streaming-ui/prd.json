@@ -254,7 +254,7 @@
         "Verify: pnpm --filter @cloudflare/kumo-docs-astro build succeeds",
         "Verify: existing static pages still render correctly"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-2",
