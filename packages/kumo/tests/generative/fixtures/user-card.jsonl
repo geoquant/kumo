@@ -1,0 +1,18 @@
+{"op":"add","path":"/root","value":"card"}
+{"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["stack"]}}
+{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["header","info-grid","actions"],"parentKey":"card"}}
+{"op":"add","path":"/elements/header","value":{"key":"header","type":"Stack","props":{"gap":"sm"},"children":["name","role"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/name","value":{"key":"name","type":"Text","props":{"children":"Jane Cooper","variant":"heading2"},"parentKey":"header"}}
+{"op":"add","path":"/elements/role","value":{"key":"role","type":"Cluster","props":{"gap":"sm"},"children":["role-badge","dept"],"parentKey":"header"}}
+{"op":"add","path":"/elements/role-badge","value":{"key":"role-badge","type":"Badge","props":{"children":"Admin","variant":"primary"},"parentKey":"role"}}
+{"op":"add","path":"/elements/dept","value":{"key":"dept","type":"Text","props":{"children":"Engineering","variant":"secondary"},"parentKey":"role"}}
+{"op":"add","path":"/elements/info-grid","value":{"key":"info-grid","type":"Grid","props":{"variant":"2up","gap":"base"},"children":["email-col","joined-col"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/email-col","value":{"key":"email-col","type":"Stack","props":{"gap":"xs"},"children":["email-label","email-val"],"parentKey":"info-grid"}}
+{"op":"add","path":"/elements/email-label","value":{"key":"email-label","type":"Text","props":{"children":"Email","variant":"secondary"},"parentKey":"email-col"}}
+{"op":"add","path":"/elements/email-val","value":{"key":"email-val","type":"Text","props":{"children":"jane@cloudflare.com"},"parentKey":"email-col"}}
+{"op":"add","path":"/elements/joined-col","value":{"key":"joined-col","type":"Stack","props":{"gap":"xs"},"children":["joined-label","joined-val"],"parentKey":"info-grid"}}
+{"op":"add","path":"/elements/joined-label","value":{"key":"joined-label","type":"Text","props":{"children":"Joined","variant":"secondary"},"parentKey":"joined-col"}}
+{"op":"add","path":"/elements/joined-val","value":{"key":"joined-val","type":"Text","props":{"children":"March 2024"},"parentKey":"joined-col"}}
+{"op":"add","path":"/elements/actions","value":{"key":"actions","type":"Cluster","props":{"gap":"sm"},"children":["edit-btn","msg-btn"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/edit-btn","value":{"key":"edit-btn","type":"Button","props":{"children":"Edit profile","variant":"primary"},"parentKey":"actions"}}
+{"op":"add","path":"/elements/msg-btn","value":{"key":"msg-btn","type":"Button","props":{"children":"Send message","variant":"secondary"},"parentKey":"actions"}}
