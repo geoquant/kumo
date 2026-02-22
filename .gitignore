@@ -49,3 +49,7 @@ coverage/
 
 # Codex
 .codex/environments
+
+# Eval harness (local-only, environment-specific)
+.eval-baselines/
+.eval-outputs/
