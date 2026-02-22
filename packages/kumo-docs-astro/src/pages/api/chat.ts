@@ -42,6 +42,51 @@ function parseChatRequest(body: unknown): ChatRequest | null {
   return { message: obj.message, history };
 }
 
+/**
+ * Components included in the system prompt. Pruned to keep token budget
+ * manageable — only types that appear in the generative component map and
+ * are useful for freeform UI generation.
+ */
+const PROMPT_COMPONENTS = [
+  // Layout
+  "Surface",
+  "Stack",
+  "Cluster",
+  "Grid",
+  "Div",
+  // Content
+  "Text",
+  "Badge",
+  "Banner",
+  "Code",
+  // Interactive
+  "Button",
+  "Input",
+  "Textarea",
+  "Select",
+  "SelectOption",
+  "Checkbox",
+  "Switch",
+  "Tabs",
+  "Collapsible",
+  "RadioGroup",
+  "RadioItem",
+  // Data display
+  "Table",
+  "TableHeader",
+  "TableHead",
+  "TableBody",
+  "TableRow",
+  "TableCell",
+  "TableFooter",
+  "Meter",
+  // Navigation
+  "Link",
+  // Feedback
+  "Loader",
+  "Empty",
+] as const;
+
 /** Cached system prompt — generated once per cold start. */
 let systemPromptCache: string | null = null;
 let systemPromptPromise: Promise<string> | null = null;
@@ -53,7 +98,10 @@ async function getSystemPrompt(): Promise<string> {
   systemPromptPromise = (async () => {
     const catalog = createKumoCatalog();
     await initCatalog(catalog);
-    const prompt = catalog.generatePrompt();
+    const prompt = catalog.generatePrompt({
+      components: [...PROMPT_COMPONENTS],
+      maxPropsPerComponent: 6,
+    });
     systemPromptCache = prompt;
     return prompt;
   })();
@@ -147,6 +195,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const stream = await env.AI.run("@cf/zai-org/glm-4.7-flash", {
       messages,
       stream: true,
+      max_tokens: 16384,
     });
 
     // Workers AI returns a ReadableStream in SSE format when stream: true

@@ -94,9 +94,9 @@ function getRegistryJson(): unknown {
 }
 
 /**
- * Remove the example sections (Counter UI, Form) from a prompt string.
- * Keeps all content before `## Example (Counter UI)` and from `## Important`
- * onward.
+ * Remove the example sections from a prompt string.
+ * Keeps all content before the first `## Example (` heading and from
+ * `## Important` onward.
  */
 function stripExampleSections(prompt: string): string {
   const exampleStart = prompt.indexOf("\n## Example (");
@@ -276,8 +276,8 @@ export function createKumoCatalog(config: CatalogConfig = {}): KumoCatalog {
       const prompt = buildSystemPrompt({ componentsSection });
 
       if (!includeExamples) {
-        // Strip the two example sections by removing lines between
-        // "## Example (Counter UI)" and "## Important"
+        // Strip example sections (everything between first "## Example ("
+        // and "## Important")
         return stripExampleSections(prompt);
       }
 

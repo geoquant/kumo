@@ -16,7 +16,7 @@ import {
   useEffect,
   type FormEvent,
 } from "react";
-import { Button, Input, Badge, Surface, Loader } from "@cloudflare/kumo";
+import { Button, InputArea, Badge, Surface, Loader } from "@cloudflare/kumo";
 import {
   useUITree,
   useRuntimeValueStore,
@@ -24,7 +24,6 @@ import {
   BUILTIN_HANDLERS,
   dispatchAction,
   processActionResult,
-  createRuntimeValueStore,
   type ActionEvent,
   type UITree,
   type JsonPatchOp,
@@ -34,15 +33,6 @@ import { UITreeRenderer, isRenderableTree } from "@cloudflare/kumo/generative";
 // =============================================================================
 // Types
 // =============================================================================
-
-type ChatRole = "user" | "assistant";
-
-interface ChatHistoryEntry {
-  readonly role: ChatRole;
-  /** User messages store text; assistant messages store a snapshot of the rendered tree. */
-  readonly content: string;
-  readonly tree?: UITree;
-}
 
 type DemoStatus = "idle" | "streaming" | "error";
 
@@ -68,8 +58,6 @@ const PRESET_PROMPTS = [
     prompt: "Display a pricing comparison table with 3 tiers",
   },
 ] as const;
-
-const MAX_VISUAL_HISTORY = 10;
 
 // =============================================================================
 // SSE stream reader
@@ -114,13 +102,28 @@ async function readSSEStream(
 
         try {
           const parsed: unknown = JSON.parse(payload);
-          if (
-            typeof parsed === "object" &&
-            parsed !== null &&
-            "response" in parsed &&
-            typeof (parsed as Record<string, unknown>).response === "string"
-          ) {
-            onToken((parsed as Record<string, unknown>).response as string);
+          if (typeof parsed !== "object" || parsed === null) continue;
+
+          const obj = parsed as Record<string, unknown>;
+
+          // Workers AI legacy format: { response: "..." }
+          if ("response" in obj && typeof obj.response === "string") {
+            onToken(obj.response);
+            continue;
+          }
+
+          // OpenAI-compatible chat completion format:
+          // { choices: [{ delta: { content: "..." } }] }
+          if ("choices" in obj && Array.isArray(obj.choices)) {
+            const choice = obj.choices[0] as
+              | Record<string, unknown>
+              | undefined;
+            if (choice && typeof choice.delta === "object" && choice.delta) {
+              const delta = choice.delta as Record<string, unknown>;
+              if (typeof delta.content === "string" && delta.content) {
+                onToken(delta.content);
+              }
+            }
           }
         } catch {
           // Skip malformed JSON chunks
@@ -133,68 +136,23 @@ async function readSSEStream(
 }
 
 // =============================================================================
-// Sub-components
-// =============================================================================
-
-function ChatBubble({
-  entry,
-  runtimeValueStore,
-}: {
-  readonly entry: ChatHistoryEntry;
-  readonly runtimeValueStore?: ReturnType<typeof createRuntimeValueStore>;
-}) {
-  if (entry.role === "user") {
-    return (
-      <div className="flex justify-end">
-        <div className="max-w-[80%] rounded-lg bg-kumo-brand/10 px-3 py-2 text-sm text-kumo-default">
-          {entry.content}
-        </div>
-      </div>
-    );
-  }
-
-  // Assistant message — render tree snapshot (non-interactive)
-  if (entry.tree && isRenderableTree(entry.tree)) {
-    return (
-      <div className="pointer-events-none opacity-80">
-        <UITreeRenderer
-          tree={entry.tree}
-          streaming={false}
-          runtimeValueStore={runtimeValueStore}
-        />
-      </div>
-    );
-  }
-
-  // Fallback text for assistant
-  return <div className="text-sm text-kumo-subtle italic">{entry.content}</div>;
-}
-
-// =============================================================================
 // Main component
 // =============================================================================
 
 /** Live streaming generative UI demo. */
 export function StreamingDemo() {
   // --- State ---
-  const [chatHistory, setChatHistory] = useState<readonly ChatHistoryEntry[]>(
-    [],
-  );
-  const [apiHistory, setApiHistory] = useState<
-    readonly { role: string; content: string }[]
-  >([]);
+  const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const [status, setStatus] = useState<DemoStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
 
   // --- Refs ---
   const abortRef = useRef<AbortController | null>(null);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
   const accumulatedTextRef = useRef("");
 
   // --- Hooks ---
   const runtimeValueStore = useRuntimeValueStore();
-  const historyRuntimeStore = useRef(createRuntimeValueStore());
 
   // Stable ref for tree — avoids stale closure in handleAction
   const treeRef = useRef<UITree>({ root: "", elements: {} });
@@ -232,13 +190,6 @@ export function StreamingDemo() {
   treeRef.current = tree;
   applyPatchesRef.current = applyPatches;
 
-  // --- Auto-scroll ---
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [chatHistory, tree, status]);
-
   // --- Submit handler ---
   const handleSubmit = useCallback(
     (e?: FormEvent, overrideMessage?: string) => {
@@ -249,34 +200,14 @@ export function StreamingDemo() {
       // Abort any in-flight stream
       abortRef.current?.abort();
 
-      // Snapshot current tree into history before resetting
-      if (isRenderableTree(tree)) {
-        setChatHistory((prev) => [
-          ...prev.slice(-MAX_VISUAL_HISTORY),
-          {
-            role: "assistant" as const,
-            content: "",
-            tree: structuredClone(tree),
-          },
-        ]);
-      }
-
-      // Add user message to visual history
-      setChatHistory((prev) => [
-        ...prev.slice(-MAX_VISUAL_HISTORY),
-        { role: "user" as const, content: msg },
-      ]);
-
-      // Reset UI state for new response
+      // Reset everything for a fresh response
+      setLastPrompt(msg);
       runtimeValueStore.clear();
       reset();
       setErrorMessage(null);
       setStatus("streaming");
       setInputValue("");
       accumulatedTextRef.current = "";
-
-      // Build API history for this request
-      const nextApiHistory = [...apiHistory, { role: "user", content: msg }];
 
       // Create fresh parser for this stream
       const parser = createJsonlParser();
@@ -288,10 +219,7 @@ export function StreamingDemo() {
           const response = await fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              message: msg,
-              history: nextApiHistory.slice(-20),
-            }),
+            body: JSON.stringify({ message: msg }),
             signal: controller.signal,
           });
 
@@ -325,11 +253,6 @@ export function StreamingDemo() {
             applyPatches(remaining);
           }
 
-          // Update API history with assistant response
-          setApiHistory([
-            ...nextApiHistory,
-            { role: "assistant", content: "(UI response)" },
-          ]);
           setStatus("idle");
         } catch (err: unknown) {
           if (err instanceof DOMException && err.name === "AbortError") return;
@@ -349,15 +272,7 @@ export function StreamingDemo() {
         }
       })();
     },
-    [
-      inputValue,
-      status,
-      tree,
-      apiHistory,
-      runtimeValueStore,
-      reset,
-      applyPatches,
-    ],
+    [inputValue, status, runtimeValueStore, reset, applyPatches],
   );
 
   // Keep handleSubmitRef in sync
@@ -391,48 +306,30 @@ export function StreamingDemo() {
         )}
       </div>
 
-      {/* Chat area */}
+      {/* Generated UI area */}
       <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4"
-        style={{ minHeight: "320px", maxHeight: "520px" }}
+        className="flex-1 overflow-y-auto p-4 space-y-3"
+        style={{ minHeight: "200px", maxHeight: "520px" }}
       >
         {/* Empty state */}
-        {chatHistory.length === 0 && !showCurrentTree && !isStreaming && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <span className="mb-2 text-lg font-semibold text-kumo-default">
-              Try it out
+        {!lastPrompt && !showCurrentTree && !isStreaming && (
+          <div className="flex items-center justify-center py-12 text-center">
+            <span className="text-sm text-kumo-subtle">
+              Pick a preset or type a prompt below to generate UI.
             </span>
-            <span className="mb-6 text-sm text-kumo-subtle max-w-sm">
-              Ask the AI to generate a UI using Kumo components. Pick a preset
-              or type your own prompt.
-            </span>
-            <div className="flex flex-wrap justify-center gap-2">
-              {PRESET_PROMPTS.map((preset) => (
-                <Button
-                  key={preset.label}
-                  variant="outline"
-                  size="sm"
-                  disabled={isStreaming}
-                  onClick={() => handleSubmit(undefined, preset.prompt)}
-                >
-                  {preset.label}
-                </Button>
-              ))}
+          </div>
+        )}
+
+        {/* Last user prompt */}
+        {lastPrompt && (
+          <div className="flex justify-end">
+            <div className="max-w-[80%] rounded-lg bg-kumo-brand/10 px-3 py-2 text-sm text-kumo-default">
+              {lastPrompt}
             </div>
           </div>
         )}
 
-        {/* Chat history */}
-        {chatHistory.map((entry, i) => (
-          <ChatBubble
-            key={`${entry.role}-${String(i)}`}
-            entry={entry}
-            runtimeValueStore={historyRuntimeStore.current}
-          />
-        ))}
-
-        {/* Current streaming tree */}
+        {/* Current streaming/rendered tree */}
         {showCurrentTree && (
           <div className="rounded-lg border border-kumo-line bg-kumo-base p-4">
             <UITreeRenderer
@@ -444,14 +341,6 @@ export function StreamingDemo() {
           </div>
         )}
 
-        {/* Streaming placeholder */}
-        {isStreaming && !showCurrentTree && (
-          <div className="flex items-center gap-2 text-sm text-kumo-subtle">
-            <Loader size="sm" />
-            Generating UI...
-          </div>
-        )}
-
         {/* Error display */}
         {status === "error" && errorMessage && (
           <Surface className="rounded-lg border border-kumo-danger bg-kumo-danger-tint p-3">
@@ -460,45 +349,50 @@ export function StreamingDemo() {
         )}
       </div>
 
-      {/* Input area */}
-      <div className="border-t border-kumo-line bg-kumo-elevated p-3">
-        {/* Preset pills (shown when there's history) */}
-        {chatHistory.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            {PRESET_PROMPTS.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                disabled={isStreaming}
-                onClick={() => handleSubmit(undefined, preset.prompt)}
-                className="rounded-full border border-kumo-line bg-kumo-base px-2.5 py-1 text-xs text-kumo-subtle transition-colors hover:border-kumo-brand hover:text-kumo-brand disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <form
-          onSubmit={(e) => handleSubmit(e)}
-          className="flex items-center gap-2"
-        >
-          <div className="flex-1">
-            <Input
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Describe the UI you want..."
+      {/* Controls — always visible */}
+      <div className="border-t border-kumo-line bg-kumo-elevated p-3 space-y-2">
+        {/* Preset pills — always shown */}
+        <div className="flex flex-wrap gap-1.5">
+          {PRESET_PROMPTS.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
               disabled={isStreaming}
-              aria-label="Chat message"
-            />
+              onClick={() => handleSubmit(undefined, preset.prompt)}
+              className="rounded-full border border-kumo-line bg-kumo-base px-2.5 py-1 text-xs text-kumo-subtle transition-colors hover:border-kumo-brand hover:text-kumo-brand disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={(e) => handleSubmit(e)}>
+          <InputArea
+            value={inputValue}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              setInputValue(e.target.value)
+            }
+            onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            placeholder="Describe the UI you want..."
+            disabled={isStreaming}
+            aria-label="Chat message"
+            rows={2}
+            className="w-full"
+          />
+          <div className="mt-2 flex justify-end">
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isStreaming || !inputValue.trim()}
+            >
+              {isStreaming ? "Streaming..." : "Send"}
+            </Button>
           </div>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={isStreaming || !inputValue.trim()}
-          >
-            {isStreaming ? "Streaming..." : "Send"}
-          </Button>
         </form>
       </div>
     </div>

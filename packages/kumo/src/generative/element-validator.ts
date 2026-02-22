@@ -79,13 +79,15 @@ const VALID: ElementValidationResult = { valid: true } as const;
 export function validateElement(element: UIElement): ElementValidationResult {
   const { type, key } = element;
 
-  // In generative UI, structural children are expressed via UIElement.children (string keys).
-  // Some models also emit `props.children` arrays redundantly; those fail Kumo's
-  // props schema (children expects a ReactNode-ish scalar/dynamic, not arrays).
+  // In generative UI, structural children are expressed via UIElement.children
+  // (string key arrays). LLMs sometimes also emit `props.children` as an array
+  // (redundant key refs or nested objects). Kumo schemas expect props.children
+  // to be a scalar (string/number/boolean/null/DynamicValue), so an array value
+  // always fails validation. Strip it unconditionally — the renderer already
+  // reads structural children from element.children, not props.children.
   const elementForValidation = (() => {
     const props = element.props as Record<string, unknown>;
     if (!Array.isArray(props["children"])) return element;
-    if (!Array.isArray(element.children)) return element;
     const { children: _children, ...rest } = props;
     return { ...element, props: rest };
   })();
@@ -141,6 +143,55 @@ function toResult(
 }
 
 // ---------------------------------------------------------------------------
+// Repair
+// ---------------------------------------------------------------------------
+
+/**
+ * Attempt to repair an element that failed validation by stripping the
+ * invalid top-level props identified in the validation issues.
+ *
+ * LLMs frequently emit props with invalid enum values (e.g. a Text with
+ * `variant: "email"` instead of a valid variant). Rather than rejecting the
+ * entire element, we strip the offending props and let the component render
+ * with its defaults.
+ *
+ * Only top-level props are stripped (path depth 1). Deeply nested failures
+ * are left as-is — stripping a parent object could remove valid sibling
+ * fields.
+ *
+ * Returns `null` if no props can be stripped (e.g. all issues are at root
+ * level or deeply nested), signaling the caller should fall back to the
+ * original error display.
+ */
+export function repairElement(
+  element: UIElement,
+  result: ElementValidationResult & { valid: false },
+): UIElement | null {
+  // Collect top-level prop names to strip. A top-level issue has a path
+  // like "variant" (single segment) — not "(root)" and not "foo.bar".
+  const propsToStrip = new Set<string>();
+  for (const issue of result.issues) {
+    const segments = issue.path.split(".");
+    // Only strip when the failing path is exactly one level deep (a prop name)
+    if (segments.length === 1 && segments[0] !== "(root)") {
+      propsToStrip.add(segments[0]);
+    }
+  }
+
+  if (propsToStrip.size === 0) return null;
+
+  const originalProps = element.props as Record<string, unknown>;
+  const repairedProps: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(originalProps)) {
+    if (!propsToStrip.has(key)) {
+      repairedProps[key] = value;
+    }
+  }
+
+  return { ...element, props: repairedProps };
+}
+
+// ---------------------------------------------------------------------------
 // Logging
 // ---------------------------------------------------------------------------
 
@@ -157,5 +208,17 @@ export function logValidationError(
 
   console.warn(
     `[UITreeRenderer] Validation failed for element "${result.elementKey}" (${result.elementType}):\n${details}`,
+  );
+}
+
+/**
+ * Log that an element was repaired (invalid props stripped).
+ */
+export function logValidationRepair(
+  result: ElementValidationResult & { valid: false },
+  strippedProps: ReadonlyArray<string>,
+): void {
+  console.warn(
+    `[UITreeRenderer] Repaired element "${result.elementKey}" (${result.elementType}): stripped invalid props [${strippedProps.join(", ")}]`,
   );
 }

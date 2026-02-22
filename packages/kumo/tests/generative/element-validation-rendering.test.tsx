@@ -102,26 +102,33 @@ describe("UITreeRenderer validation integration", () => {
     expect(container.textContent).not.toContain("Validation failed");
   });
 
-  it("shows validation warning for invalid props and logs error", () => {
+  it("repairs invalid props by stripping them and renders with defaults", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const tree = mkTree("root", {
-      root: el("root", "Button", { variant: "totally-invalid" }),
+      root: el("root", "Button", {
+        variant: "totally-invalid",
+        children: "Click me",
+      }),
     });
 
     const { container } = render(<UITreeRenderer tree={tree} />);
 
-    // Should show validation failure message (rendered before component attempt)
-    expect(container.textContent).toContain("Validation failed");
-    expect(container.textContent).toContain("root");
-    expect(container.textContent).toContain("Button");
+    // Should NOT show validation failure — the element is repaired
+    expect(container.textContent).not.toContain("Validation failed");
 
-    // Should have logged the error
+    // Button should render (via Spy) with the invalid variant stripped
+    const buttonEl = container.querySelector('[data-key="root"]');
+    expect(buttonEl).not.toBeNull();
+    expect(container.textContent).toContain("Click me");
+
+    // Should have logged a repair warning
     expect(warnSpy).toHaveBeenCalled();
+    expect(warnSpy.mock.calls[0][0]).toContain("Repaired");
     expect(warnSpy.mock.calls[0][0]).toContain("root");
   });
 
-  it("renders sibling elements even when one fails validation", () => {
+  it("repairs invalid sibling and renders all elements", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const tree = mkTree("container", {
@@ -136,6 +143,7 @@ describe("UITreeRenderer validation integration", () => {
       "valid-text": el("valid-text", "Text", { children: "I am valid" }),
       "invalid-badge": el("invalid-badge", "Badge", {
         variant: "does-not-exist",
+        children: "Repaired badge",
       }),
       "valid-button": el("valid-button", "Button", {
         variant: "primary",
@@ -148,35 +156,49 @@ describe("UITreeRenderer validation integration", () => {
     // Valid text should render (via Spy)
     expect(container.textContent).toContain("I am valid");
 
-    // Invalid badge should show validation warning
-    expect(container.textContent).toContain("Validation failed");
-    expect(container.textContent).toContain("invalid-badge");
+    // Invalid badge should be repaired (variant stripped), not show error
+    expect(container.textContent).not.toContain("Validation failed");
+    const badgeEl = container.querySelector('[data-key="invalid-badge"]');
+    expect(badgeEl).not.toBeNull();
+    expect(container.textContent).toContain("Repaired badge");
 
-    // Valid button should still render (tree not blocked)
+    // Valid button should still render
     const buttonEl = container.querySelector('[data-key="valid-button"]');
     expect(buttonEl).not.toBeNull();
 
-    // Should have logged exactly 1 warning (for the badge)
+    // Should have logged exactly 1 repair warning (for the badge)
     expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy.mock.calls[0][0]).toContain("Repaired");
   });
 
-  it("handles deeply nested invalid elements gracefully", () => {
+  it("repairs deeply nested invalid elements gracefully", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const tree = mkTree("root", {
       root: el("root", "Div", {}, { children: ["level1"] }),
       level1: el("level1", "Div", {}, { children: ["level2"] }),
       level2: el("level2", "Div", {}, { children: ["bad-elem", "good-elem"] }),
-      "bad-elem": el("bad-elem", "Banner", { variant: "nonexistent" }),
+      "bad-elem": el("bad-elem", "Banner", {
+        variant: "nonexistent",
+        children: "Fixed banner",
+      }),
       "good-elem": el("good-elem", "Text", { children: "Still here" }),
     });
 
     const { container } = render(<UITreeRenderer tree={tree} />);
 
-    expect(container.textContent).toContain("Validation failed");
-    expect(container.textContent).toContain("bad-elem");
+    // Bad element should be repaired, not show error
+    expect(container.textContent).not.toContain("Validation failed");
+    const bannerEl = container.querySelector('[data-key="bad-elem"]');
+    expect(bannerEl).not.toBeNull();
+    expect(container.textContent).toContain("Fixed banner");
+
+    // Good sibling should still render
     expect(container.textContent).toContain("Still here");
+
+    // Should have logged a repair warning
     expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy.mock.calls[0][0]).toContain("Repaired");
   });
 
   it("does not show validation warning for Div elements", () => {
