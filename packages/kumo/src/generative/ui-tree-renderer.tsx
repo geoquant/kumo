@@ -17,7 +17,12 @@ import {
   createClickHandler,
   type ActionDispatch,
 } from "../streaming/action-handler";
-import { validateElement, logValidationError } from "./element-validator.js";
+import {
+  validateElement,
+  logValidationError,
+  logValidationRepair,
+  repairElement,
+} from "./element-validator.js";
 import type { RuntimeValueStore } from "../streaming/runtime-value-store";
 import {
   RuntimeValueStoreProvider,
@@ -29,7 +34,15 @@ import { sanitizeUrl } from "../streaming/url-policy";
 const MAX_DEPTH = 50;
 
 /** Props that must never be spread onto DOM elements from LLM output. */
-const BLOCKED_PROPS = new Set(["dangerouslySetInnerHTML", "ref", "key"]);
+const BLOCKED_PROPS = new Set([
+  "dangerouslySetInnerHTML",
+  "ref",
+  "key",
+  // `action` is a UIElement top-level field handled by the renderer's action
+  // system — if the LLM accidentally nests it inside `props`, strip it so it
+  // doesn't leak to React DOM (React 19 only allows `action` on <form>).
+  "action",
+]);
 
 /**
  * Component types that use onClick for action dispatch instead of onAction.
@@ -305,21 +318,47 @@ function RenderElement({
 
   const element = elements[elementKey];
   if (!element) {
-    // During streaming, missing keys are expected (parent declared children
-    // before child elements arrived). Render nothing — they'll appear on the
-    // next patch.
-    if (streaming) return null;
-    return (
-      <div className="text-xs text-kumo-danger">
-        Missing element: {elementKey}
-      </div>
-    );
+    // Missing keys are expected in generative UI — the LLM may declare child
+    // references it never defines (output truncation, token limits, etc.).
+    // During streaming they'll appear on the next patch; after streaming ends
+    // they're simply incomplete output. Render nothing either way rather than
+    // showing distracting error text to the user.
+    return null;
   }
 
   // Validate element props against Kumo schema before rendering.
-  // Invalid elements render a warning instead of crashing the tree.
+  // On failure, attempt to repair by stripping invalid props so the
+  // component renders with defaults instead of showing an error box.
   const validation = getElementValidation(element);
   if (!validation.valid) {
+    const repaired = repairElement(element, validation);
+    if (repaired != null) {
+      // Log the repair once per element instance
+      if (!loggedInvalidElements.has(element)) {
+        loggedInvalidElements.add(element);
+        const originalProps = element.props as Record<string, unknown>;
+        const repairedProps = repaired.props as Record<string, unknown>;
+        const stripped = Object.keys(originalProps).filter(
+          (k) => !(k in repairedProps),
+        );
+        logValidationRepair(validation, stripped);
+      }
+      // Re-render with the repaired element. We replace the element in a
+      // shallow copy of the elements map so downstream rendering uses the
+      // cleaned props. This doesn't mutate the original tree.
+      const patchedElements = { ...elements, [elementKey]: repaired };
+      return (
+        <RenderElement
+          elementKey={elementKey}
+          elements={patchedElements}
+          depth={depth}
+          streaming={streaming}
+          onAction={onAction}
+        />
+      );
+    }
+
+    // Repair failed (issues at root level or deeply nested) — show error.
     if (!loggedInvalidElements.has(element)) {
       loggedInvalidElements.add(element);
       logValidationError(validation);

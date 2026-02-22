@@ -29,7 +29,7 @@ const staticPages: NavItem[] = [
   { label: "Figma Resources", href: "/figma" },
   { label: "CLI", href: "/cli" },
   { label: "Registry", href: "/registry" },
-  { label: "Streaming UI", href: "/streaming" },
+  { label: "Streaming", href: "/streaming" },
 ];
 
 const componentItems: NavItem[] = [

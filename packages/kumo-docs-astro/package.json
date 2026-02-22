@@ -32,6 +32,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
     "@astrojs/react": "^4.2.1",
+    "@emotion/is-prop-valid": "^1.4.0",
     "@tailwindcss/vite": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
