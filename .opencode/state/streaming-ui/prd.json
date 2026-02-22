@@ -194,7 +194,7 @@
         "Port layout-normalization.test.tsx, component-map-new-entries.test.tsx",
         "Verify: all ported tests pass in kumo vitest environment"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "loadable-1",
