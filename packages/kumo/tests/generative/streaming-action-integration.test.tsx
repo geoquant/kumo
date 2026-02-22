@@ -348,7 +348,7 @@ describe("integration: streaming mode with actions", () => {
     expect(selectEvent.context).toEqual({ value: "blue" });
   });
 
-  it("streaming=false shows error for missing elements but actions still work on present ones", () => {
+  it("streaming=false silently skips missing elements; actions work on present ones", () => {
     const dispatch = vi.fn();
 
     const tree = mkTree("root", {
@@ -366,10 +366,10 @@ describe("integration: streaming mode with actions", () => {
       <UITreeRenderer tree={tree} streaming={false} onAction={dispatch} />,
     );
 
-    // Should show "Missing element" error for the missing key
-    expect(container.textContent).toContain("Missing element: missing");
+    // Missing elements are silently omitted (no error text shown)
+    expect(container.textContent).not.toContain("Missing element");
 
-    // But the present element's action should still work
+    // Present element's action should still work
     triggerAction("exists", { value: "hello" });
     expect(dispatch).toHaveBeenCalledOnce();
     expect((dispatch.mock.calls[0][0] as ActionEvent).actionName).toBe(
