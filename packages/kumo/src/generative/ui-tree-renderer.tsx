@@ -152,6 +152,70 @@ export function normalizeSiblingFormRowGrids(tree: UITree): UITree {
   return changed ? { ...tree, elements: nextElements } : tree;
 }
 
+/**
+ * Normalize Surface elements whose children aren't wrapped in a single Stack.
+ *
+ * LLMs often emit a Surface with multiple direct children (Text, Button, etc.)
+ * instead of wrapping them in a Stack for vertical rhythm. Without a Stack the
+ * Surface's children render as siblings with no gap, producing a collapsed
+ * layout.
+ *
+ * Heuristic: when a Surface has children that aren't a single Stack, inject a
+ * synthetic Stack element that wraps the original children. The Surface then
+ * points to this single Stack, which provides consistent `gap="lg"` spacing.
+ *
+ * Skip when:
+ * - Surface has 0 children
+ * - Surface has exactly 1 child that IS a Stack
+ */
+export function normalizeSurfaceOrphans(tree: UITree): UITree {
+  const elements = tree.elements;
+  let changed = false;
+  let nextElements: Record<string, UIElement> | null = null;
+
+  for (const el of Object.values(elements)) {
+    if (!el || el.type !== "Surface") continue;
+    if (!el.children || el.children.length === 0) continue;
+
+    // Skip: single child that is already a Stack
+    if (el.children.length === 1) {
+      const onlyChild = elements[el.children[0]];
+      if (onlyChild?.type === "Stack") continue;
+    }
+
+    // Surface has 1+ non-Stack children → wrap in synthetic Stack
+    const stackKey = `auto-stack-${el.key}`;
+
+    if (nextElements == null) {
+      nextElements = { ...elements };
+    }
+
+    const syntheticStack: UIElement = {
+      key: stackKey,
+      type: "Stack",
+      props: { gap: "lg" },
+      children: [...el.children],
+      parentKey: el.key,
+    };
+
+    // Update parent refs on original children
+    for (const childKey of el.children) {
+      const child = nextElements[childKey];
+      if (child) {
+        nextElements[childKey] = { ...child, parentKey: stackKey };
+      }
+    }
+
+    nextElements[stackKey] = syntheticStack;
+    nextElements[el.key] = { ...el, children: [stackKey] };
+    changed = true;
+  }
+
+  return changed && nextElements != null
+    ? { ...tree, elements: nextElements }
+    : tree;
+}
+
 function gridItemClassNameForChild(child: UIElement | undefined): string {
   // Base: allow grid children to shrink (prevents overflow in long labels/inputs)
   // and ensure each logical child becomes exactly one grid cell.
@@ -598,7 +662,7 @@ function UITreeRendererImpl({
   runtimeValueStore,
 }: UITreeRendererProps): React.JSX.Element | null {
   const normalizedTree = useMemo(
-    () => normalizeSiblingFormRowGrids(tree),
+    () => normalizeSurfaceOrphans(normalizeSiblingFormRowGrids(tree)),
     [tree],
   );
 
