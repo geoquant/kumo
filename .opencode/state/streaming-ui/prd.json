@@ -152,7 +152,7 @@
         "Verify: element validator catches invalid props, renders warning box (no crash)",
         "Verify: import { UITreeRenderer, COMPONENT_MAP } from '@cloudflare/kumo/generative' resolves"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "generative-3",
