@@ -11,12 +11,14 @@ const MAX_HISTORY_ENTRY_LENGTH = 4000;
 
 /**
  * AI Gateway ID — route Workers AI requests through AI Gateway for
- * caching, analytics, and gateway-level rate limiting.
+ * analytics and gateway-level rate limiting.
  *
  * Create this gateway in the Cloudflare dashboard under AI → AI Gateway.
- * Cache TTL is set to 1 hour so identical preset prompts are served free.
+ * Caching is disabled so streaming is always visible in the demo.
  */
 const AI_GATEWAY_ID = "kumo-docs";
+
+const MODEL_ID = "@cf/zai-org/glm-4.7-flash";
 
 /** Chat request body schema. */
 interface ChatRequest {
@@ -227,16 +229,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // --- Stream from Workers AI ---
   try {
     const stream = await env.AI.run(
-      "@cf/zai-org/glm-4.7-flash",
+      MODEL_ID,
       {
         messages,
         stream: true,
         max_tokens: 16384,
+        temperature: 0,
       },
       {
         gateway: {
           id: AI_GATEWAY_ID,
-          cacheTtl: 3600,
+          cacheTtl: 0,
         },
       },
     );
@@ -246,7 +249,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(stream, {
         headers: {
           "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
+          "Cache-Control": "no-cache, no-transform",
           Connection: "keep-alive",
         },
       });
@@ -269,7 +272,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(fallbackStream, {
       headers: {
         "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
+        "Cache-Control": "no-cache, no-transform",
         Connection: "keep-alive",
       },
     });
