@@ -138,3 +138,14 @@ Started: 2026-02-21
 - **Learnings:**
   - `nextElements` uses lazy initialization (`null` until first mutation) to avoid shallow-copying elements map when no Surface needs wrapping — good pattern for normalization functions that often no-op
   - parentKey update on children is critical: without it, structural graders' orphan detection would flag the original children as unreachable from root
+
+## Task - endpoint-1
+- Verified all 5 PRD steps already implemented in commit 7218d10
+- `maxPropsPerComponent` changed from 6 to 8 in chat.ts (line 106)
+- Field, Label, ClipboardText all present in PROMPT_COMPONENTS array (lines 62, 75-76)
+- Confirmed all 3 components exist in `ai/component-registry.json` with props: Field(7), Label(6), ClipboardText(5)
+- Feedback loops: typecheck clean, 939 tests pass, lint 0 errors
+- Files: no source changes needed; PRD `passes` field updated
+- **Learnings:**
+  - PROMPT_COMPONENTS is manually curated — adding a component here only works if it also exists in `ai/component-registry.json` (which is auto-generated from component source via codegen)
+  - `maxPropsPerComponent: 8` is a prompt-builder budget that controls how many props are included per component in the system prompt; higher values increase token usage but improve LLM awareness of available props
