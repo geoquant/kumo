@@ -18,6 +18,7 @@
     "lint:astro": "node ../../lint/lint-astro-colors.js src/"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^12.6.12",
     "@astrojs/sitemap": "^3.7.0",
     "@cloudflare/kumo": "workspace:*",
     "@phosphor-icons/react": "catalog:",
