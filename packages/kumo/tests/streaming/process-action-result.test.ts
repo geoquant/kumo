@@ -140,7 +140,11 @@ describe("processActionResult — external", () => {
       { applyPatches: vi.fn(), sendMessage: vi.fn() },
     );
 
-    expect(openSpy).toHaveBeenCalledWith("https://example.com", "_blank");
+    expect(openSpy).toHaveBeenCalledWith(
+      "https://example.com",
+      "_blank",
+      "noopener,noreferrer",
+    );
     openSpy.mockRestore();
   });
 
