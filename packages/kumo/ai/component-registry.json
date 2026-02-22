@@ -397,7 +397,7 @@
         }
       },
       "examples": [
-        "<div className=\"flex flex-wrap items-center gap-2\">\n      <Button variant=\"secondary\">Button</Button>\n      <Button\n        variant=\"secondary\"\n        shape=\"square\"\n        icon={PlusIcon}\n        aria-label=\"Add\"\n      />\n    </div>",
+        "<div className=\"flex flex-wrap items-center gap-2\">\n      <Button variant=\"secondary\">Button</Button>\n      <Button variant=\"secondary\" shape=\"square\" icon={PlusIcon} />\n    </div>",
         "<Button variant=\"primary\">Primary</Button>",
         "<Button variant=\"secondary\">Secondary</Button>",
         "<Button variant=\"ghost\">Ghost</Button>",
@@ -1891,6 +1891,146 @@
         "text-kumo-default"
       ]
     },
+    "Cluster": {
+      "name": "Cluster",
+      "type": "component",
+      "description": "Horizontal flex layout primitive with constrained gap, justify, align, and wrap tokens.  Uses `render` prop for element composition (renders `<div>` by default): ```tsx <Cluster gap=\"base\" justify=\"between\"> <Button>Cancel</Button> <Button>Submit</Button> </Cluster>  <Cluster render={<nav />} gap=\"sm\" wrap=\"nowrap\"> <a href=\"/home\">Home</a> <a href=\"/about\">About</a> </Cluster> ```",
+      "importPath": "@cloudflare/kumo",
+      "category": "Other",
+      "props": {
+        "gap": {
+          "type": "enum",
+          "optional": true,
+          "description": "Gap size between cluster items.\n- `\"none\"` -- 0px\n- `\"xs\"` -- 4px\n- `\"sm\"` -- 8px\n- `\"base\"` -- 16px\n- `\"lg\"` -- 24px\n- `\"xl\"` -- 32px",
+          "values": [
+            "none",
+            "xs",
+            "sm",
+            "base",
+            "lg",
+            "xl"
+          ],
+          "descriptions": {
+            "none": "No gap between cluster items",
+            "xs": "Extra-small gap (4px) between cluster items",
+            "sm": "Small gap (8px) between cluster items",
+            "base": "Base gap (16px) between cluster items",
+            "lg": "Large gap (24px) between cluster items",
+            "xl": "Extra-large gap (32px) between cluster items"
+          },
+          "classes": {
+            "none": "gap-0",
+            "xs": "gap-1",
+            "sm": "gap-2",
+            "base": "gap-4",
+            "lg": "gap-6",
+            "xl": "gap-8"
+          },
+          "default": "base"
+        },
+        "justify": {
+          "type": "enum",
+          "optional": true,
+          "description": "Main-axis distribution of cluster items.\n- `\"start\"` -- Pack to start\n- `\"center\"` -- Center\n- `\"end\"` -- Pack to end\n- `\"between\"` -- Space evenly",
+          "values": [
+            "start",
+            "center",
+            "end",
+            "between"
+          ],
+          "descriptions": {
+            "start": "Pack items to the start of the main axis",
+            "center": "Center items on the main axis",
+            "end": "Pack items to the end of the main axis",
+            "between": "Distribute items evenly with first/last at edges"
+          },
+          "classes": {
+            "start": "justify-start",
+            "center": "justify-center",
+            "end": "justify-end",
+            "between": "justify-between"
+          },
+          "default": "start"
+        },
+        "align": {
+          "type": "enum",
+          "optional": true,
+          "description": "Cross-axis alignment of cluster items.\n- `\"start\"` -- Align to start\n- `\"center\"` -- Center\n- `\"end\"` -- Align to end\n- `\"baseline\"` -- Align baselines\n- `\"stretch\"` -- Fill cross axis",
+          "values": [
+            "start",
+            "center",
+            "end",
+            "baseline",
+            "stretch"
+          ],
+          "descriptions": {
+            "start": "Align items to the start of the cross axis",
+            "center": "Center items on the cross axis",
+            "end": "Align items to the end of the cross axis",
+            "baseline": "Align items along their baselines",
+            "stretch": "Stretch items to fill the cross axis"
+          },
+          "classes": {
+            "start": "items-start",
+            "center": "items-center",
+            "end": "items-end",
+            "baseline": "items-baseline",
+            "stretch": "items-stretch"
+          },
+          "default": "center"
+        },
+        "wrap": {
+          "type": "enum",
+          "optional": true,
+          "description": "Whether items wrap to new lines or stay on one line.\n- `\"wrap\"` -- Allow wrapping\n- `\"nowrap\"` -- Force single line",
+          "values": [
+            "wrap",
+            "nowrap"
+          ],
+          "descriptions": {
+            "wrap": "Allow items to wrap to new lines",
+            "nowrap": "Force items onto a single line"
+          },
+          "classes": {
+            "wrap": "flex-wrap",
+            "nowrap": "flex-nowrap"
+          },
+          "default": "wrap"
+        },
+        "render": {
+          "type": "ReactNode",
+          "optional": true,
+          "description": "Allows you to replace the component’s HTML element with a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+        },
+        "children": {
+          "type": "ReactNode",
+          "optional": true
+        },
+        "className": {
+          "type": "string",
+          "optional": true
+        },
+        "id": {
+          "type": "string",
+          "optional": true
+        },
+        "lang": {
+          "type": "string",
+          "optional": true
+        },
+        "title": {
+          "type": "string",
+          "optional": true
+        }
+      },
+      "examples": [
+        "<Cluster gap=\"base\">\n      <Surface className=\"rounded-lg p-4\">\n        <Text bold>Item 1</Text>\n      </Surface>\n      <Surface className=\"rounded-lg p-4\">\n        <Text bold>Item 2</Text>\n      </Surface>\n      <Surface className=\"rounded-lg p-4\">\n        <Text bold>Item 3</Text>\n      </Surface>\n    </Cluster>",
+        "<div className=\"flex flex-col gap-8\">\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">gap=\"none\"</p>\n        <Cluster gap=\"none\">\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>1</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>2</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>3</Text>\n          </Surface>\n        </Cluster>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">gap=\"sm\"</p>\n        <Cluster gap=\"sm\">\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>1</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>2</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>3</Text>\n          </Surface>\n        </Cluster>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">gap=\"base\" (default)</p>\n        <Cluster gap=\"base\">\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>1</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>2</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>3</Text>\n          </Surface>\n        </Cluster>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">gap=\"xl\"</p>\n        <Cluster gap=\"xl\">\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>1</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>2</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>3</Text>\n          </Surface>\n        </Cluster>\n      </div>\n    </div>",
+        "<div className=\"flex flex-col gap-8\">\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">justify=\"start\" (default)</p>\n        <Cluster gap=\"sm\" justify=\"start\">\n          <Surface className=\"rounded-lg p-4\">\n            <Text>A</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>B</Text>\n          </Surface>\n        </Cluster>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">justify=\"center\"</p>\n        <Cluster gap=\"sm\" justify=\"center\">\n          <Surface className=\"rounded-lg p-4\">\n            <Text>A</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>B</Text>\n          </Surface>\n        </Cluster>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">justify=\"end\"</p>\n        <Cluster gap=\"sm\" justify=\"end\">\n          <Surface className=\"rounded-lg p-4\">\n            <Text>A</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>B</Text>\n          </Surface>\n        </Cluster>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">justify=\"between\"</p>\n        <Cluster gap=\"sm\" justify=\"between\">\n          <Surface className=\"rounded-lg p-4\">\n            <Text>A</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>B</Text>\n          </Surface>\n        </Cluster>\n      </div>\n    </div>",
+        "<div className=\"flex flex-col gap-8\">\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">wrap=\"wrap\" (default)</p>\n        <Cluster gap=\"sm\" wrap=\"wrap\" className=\"max-w-xs\">\n          <Surface className=\"rounded-lg p-4\">\n            <Text>One</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Two</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Three</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Four</Text>\n          </Surface>\n        </Cluster>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">wrap=\"nowrap\"</p>\n        <Cluster gap=\"sm\" wrap=\"nowrap\">\n          <Surface className=\"rounded-lg p-4\">\n            <Text>One</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Two</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Three</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Four</Text>\n          </Surface>\n        </Cluster>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">align=\"start\"</p>\n        <Cluster gap=\"sm\" align=\"start\">\n          <Surface className=\"rounded-lg p-2\">\n            <Text size=\"sm\">Small</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text size=\"lg\">Large</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-2\">\n            <Text size=\"sm\">Small</Text>\n          </Surface>\n        </Cluster>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">align=\"center\" (default)</p>\n        <Cluster gap=\"sm\" align=\"center\">\n          <Surface className=\"rounded-lg p-2\">\n            <Text size=\"sm\">Small</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text size=\"lg\">Large</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-2\">\n            <Text size=\"sm\">Small</Text>\n          </Surface>\n        </Cluster>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">align=\"baseline\"</p>\n        <Cluster gap=\"sm\" align=\"baseline\">\n          <Surface className=\"rounded-lg p-2\">\n            <Text size=\"sm\">Small</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text size=\"lg\">Large</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-2\">\n            <Text size=\"sm\">Small</Text>\n          </Surface>\n        </Cluster>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">align=\"stretch\"</p>\n        <Cluster gap=\"sm\" align=\"stretch\">\n          <Surface className=\"rounded-lg p-2\">\n            <Text size=\"sm\">Small</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text size=\"lg\">Large</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-2\">\n            <Text size=\"sm\">Small</Text>\n          </Surface>\n        </Cluster>\n      </div>\n    </div>"
+      ],
+      "colors": []
+    },
     "Code": {
       "name": "Code",
       "type": "component",
@@ -3138,7 +3278,7 @@
         }
       },
       "examples": [
-        "<LayerCard>\n      <LayerCard.Secondary className=\"flex items-center justify-between\">\n        <div>Next Steps</div>\n        <Button\n          variant=\"ghost\"\n          size=\"sm\"\n          shape=\"square\"\n          aria-label=\"Go to next steps\"\n        >\n          <ArrowRightIcon size={16} />\n        </Button>\n      </LayerCard.Secondary>\n\n      <LayerCard.Primary>Get started with Kumo</LayerCard.Primary>\n    </LayerCard>",
+        "<LayerCard>\n      <LayerCard.Secondary className=\"flex items-center justify-between\">\n        <div>Next Steps</div>\n        <Button variant=\"ghost\" size=\"sm\" shape=\"square\">\n          <ArrowRightIcon size={16} />\n        </Button>\n      </LayerCard.Secondary>\n\n      <LayerCard.Primary>Get started with Kumo</LayerCard.Primary>\n    </LayerCard>",
         "<LayerCard className=\"w-[250px]\">\n      <LayerCard.Secondary>Getting Started</LayerCard.Secondary>\n      <LayerCard.Primary>\n        <p className=\"text-sm text-kumo-subtle\">\n          Quick start guide for new users\n        </p>\n      </LayerCard.Primary>\n    </LayerCard>",
         "<div className=\"flex gap-4\">\n      <LayerCard className=\"w-[200px]\">\n        <LayerCard.Secondary>Components</LayerCard.Secondary>\n        <LayerCard.Primary>\n          <p className=\"text-sm\">Browse all components</p>\n        </LayerCard.Primary>\n      </LayerCard>\n      <LayerCard className=\"w-[200px]\">\n        <LayerCard.Secondary>Examples</LayerCard.Secondary>\n        <LayerCard.Primary>\n          <p className=\"text-sm\">View code examples</p>\n        </LayerCard.Primary>\n      </LayerCard>\n    </div>"
       ],
@@ -3632,7 +3772,7 @@
         }
       },
       "examples": [
-        "<Popover>\n      <Popover.Trigger asChild>\n        <Button shape=\"square\" icon={BellIcon} aria-label=\"Notifications\" />\n      </Popover.Trigger>\n      <Popover.Content>\n        <Popover.Title>Notifications</Popover.Title>\n        <Popover.Description>\n          You are all caught up. Good job!\n        </Popover.Description>\n      </Popover.Content>\n    </Popover>",
+        "<Popover>\n      <Popover.Trigger asChild>\n        <Button shape=\"square\" icon={BellIcon} />\n      </Popover.Trigger>\n      <Popover.Content>\n        <Popover.Title>Notifications</Popover.Title>\n        <Popover.Description>\n          You are all caught up. Good job!\n        </Popover.Description>\n      </Popover.Content>\n    </Popover>",
         "<Popover>\n      <Popover.Trigger asChild>\n        <Button>Open Popover</Button>\n      </Popover.Trigger>\n      <Popover.Content>\n        <Popover.Title>Popover Title</Popover.Title>\n        <Popover.Description>\n          This is a basic popover with a title and description.\n        </Popover.Description>\n      </Popover.Content>\n    </Popover>",
         "<Popover>\n      <Popover.Trigger asChild>\n        <Button>Open Settings</Button>\n      </Popover.Trigger>\n      <Popover.Content>\n        <Popover.Title>Settings</Popover.Title>\n        <Popover.Description>\n          Configure your preferences below.\n        </Popover.Description>\n        <div className=\"mt-3\">\n          <Popover.Close asChild>\n            <Button variant=\"secondary\" size=\"sm\">\n              Close\n            </Button>\n          </Popover.Close>\n        </div>\n      </Popover.Content>\n    </Popover>",
         "<div className=\"flex flex-wrap gap-4\">\n      <Popover>\n        <Popover.Trigger asChild>\n          <Button variant=\"secondary\">Bottom</Button>\n        </Popover.Trigger>\n        <Popover.Content side=\"bottom\">\n          <Popover.Title>Bottom</Popover.Title>\n          <Popover.Description>\n            Popover on bottom (default).\n          </Popover.Description>\n        </Popover.Content>\n      </Popover>\n\n      <Popover>\n        <Popover.Trigger asChild>\n          <Button variant=\"secondary\">Top</Button>\n        </Popover.Trigger>\n        <Popover.Content side=\"top\">\n          <Popover.Title>Top</Popover.Title>\n          <Popover.Description>Popover on top.</Popover.Description>\n        </Popover.Content>\n      </Popover>\n\n      <Popover>\n        <Popover.Trigger asChild>\n          <Button variant=\"secondary\">Left</Button>\n        </Popover.Trigger>\n        <Popover.Content side=\"left\">\n          <Popover.Title>Left</Popover.Title>\n          <Popover.Description>Popover on left.</Popover.Description>\n        </Popover.Content>\n      </Popover>\n\n      <Popover>\n        <Popover.Trigger asChild>\n          <Button variant=\"secondary\">Right</Button>\n        </Popover.Trigger>\n        <Popover.Content side=\"right\">\n          <Popover.Title>Right</Popover.Title>\n          <Popover.Description>Popover on right.</Popover.Description>\n        </Popover.Content>\n      </Popover>\n    </div>",
@@ -4039,6 +4179,100 @@
         "text-kumo-default",
         "text-kumo-subtle"
       ]
+    },
+    "Stack": {
+      "name": "Stack",
+      "type": "component",
+      "description": "Vertical flex layout primitive with constrained gap and alignment tokens.  Uses `render` prop for element composition (renders `<div>` by default): ```tsx <Stack gap=\"base\"> <Surface className=\"p-4\">First</Surface> <Surface className=\"p-4\">Second</Surface> </Stack>  <Stack render={<nav />} gap=\"sm\"> <a href=\"/home\">Home</a> <a href=\"/about\">About</a> </Stack> ```",
+      "importPath": "@cloudflare/kumo",
+      "category": "Other",
+      "props": {
+        "gap": {
+          "type": "enum",
+          "optional": true,
+          "description": "Gap size between stack items.\n- `\"none\"` -- 0px\n- `\"xs\"` -- 4px\n- `\"sm\"` -- 8px\n- `\"base\"` -- 16px\n- `\"lg\"` -- 24px\n- `\"xl\"` -- 32px",
+          "values": [
+            "none",
+            "xs",
+            "sm",
+            "base",
+            "lg",
+            "xl"
+          ],
+          "descriptions": {
+            "none": "No gap between stack items",
+            "xs": "Extra-small gap (4px) between stack items",
+            "sm": "Small gap (8px) between stack items",
+            "base": "Base gap (16px) between stack items",
+            "lg": "Large gap (24px) between stack items",
+            "xl": "Extra-large gap (32px) between stack items"
+          },
+          "classes": {
+            "none": "gap-0",
+            "xs": "gap-1",
+            "sm": "gap-2",
+            "base": "gap-4",
+            "lg": "gap-6",
+            "xl": "gap-8"
+          },
+          "default": "base"
+        },
+        "align": {
+          "type": "enum",
+          "optional": true,
+          "description": "Cross-axis alignment of stack items.\n- `\"start\"` -- Align to start\n- `\"center\"` -- Center\n- `\"end\"` -- Align to end\n- `\"stretch\"` -- Fill cross axis",
+          "values": [
+            "start",
+            "center",
+            "end",
+            "stretch"
+          ],
+          "descriptions": {
+            "start": "Align items to the start of the cross axis",
+            "center": "Center items on the cross axis",
+            "end": "Align items to the end of the cross axis",
+            "stretch": "Stretch items to fill the cross axis"
+          },
+          "classes": {
+            "start": "items-start",
+            "center": "items-center",
+            "end": "items-end",
+            "stretch": "items-stretch"
+          },
+          "default": "stretch"
+        },
+        "render": {
+          "type": "ReactNode",
+          "optional": true,
+          "description": "Allows you to replace the component’s HTML element with a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+        },
+        "children": {
+          "type": "ReactNode",
+          "optional": true
+        },
+        "className": {
+          "type": "string",
+          "optional": true
+        },
+        "id": {
+          "type": "string",
+          "optional": true
+        },
+        "lang": {
+          "type": "string",
+          "optional": true
+        },
+        "title": {
+          "type": "string",
+          "optional": true
+        }
+      },
+      "examples": [
+        "<Stack gap=\"base\">\n      <Surface className=\"rounded-lg p-4\">\n        <Text bold>Item 1</Text>\n        <div className=\"mt-1\">\n          <Text variant=\"secondary\">First stack item</Text>\n        </div>\n      </Surface>\n      <Surface className=\"rounded-lg p-4\">\n        <Text bold>Item 2</Text>\n        <div className=\"mt-1\">\n          <Text variant=\"secondary\">Second stack item</Text>\n        </div>\n      </Surface>\n      <Surface className=\"rounded-lg p-4\">\n        <Text bold>Item 3</Text>\n        <div className=\"mt-1\">\n          <Text variant=\"secondary\">Third stack item</Text>\n        </div>\n      </Surface>\n    </Stack>",
+        "<div className=\"flex flex-col gap-8\">\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">gap=\"none\"</p>\n        <Stack gap=\"none\">\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>1</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>2</Text>\n          </Surface>\n        </Stack>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">gap=\"xs\"</p>\n        <Stack gap=\"xs\">\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>1</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>2</Text>\n          </Surface>\n        </Stack>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">gap=\"sm\"</p>\n        <Stack gap=\"sm\">\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>1</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>2</Text>\n          </Surface>\n        </Stack>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">gap=\"base\" (default)</p>\n        <Stack gap=\"base\">\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>1</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>2</Text>\n          </Surface>\n        </Stack>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">gap=\"lg\"</p>\n        <Stack gap=\"lg\">\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>1</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>2</Text>\n          </Surface>\n        </Stack>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">gap=\"xl\"</p>\n        <Stack gap=\"xl\">\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>1</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4 text-center\">\n            <Text>2</Text>\n          </Surface>\n        </Stack>\n      </div>\n    </div>",
+        "<div className=\"flex flex-col gap-8\">\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">align=\"stretch\" (default)</p>\n        <Stack gap=\"sm\" align=\"stretch\">\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Full width</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Full width</Text>\n          </Surface>\n        </Stack>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">align=\"start\"</p>\n        <Stack gap=\"sm\" align=\"start\">\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Aligned start</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Short</Text>\n          </Surface>\n        </Stack>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">align=\"center\"</p>\n        <Stack gap=\"sm\" align=\"center\">\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Centered</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Short</Text>\n          </Surface>\n        </Stack>\n      </div>\n\n      <div>\n        <p className=\"mb-2 text-kumo-subtle\">align=\"end\"</p>\n        <Stack gap=\"sm\" align=\"end\">\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Aligned end</Text>\n          </Surface>\n          <Surface className=\"rounded-lg p-4\">\n            <Text>Short</Text>\n          </Surface>\n        </Stack>\n      </div>\n    </div>"
+      ],
+      "colors": []
     },
     "Surface": {
       "name": "Surface",
@@ -4699,9 +4933,9 @@
         }
       },
       "examples": [
-        "<TooltipProvider>\n      <Tooltip content=\"Add new item\" asChild>\n        <Button shape=\"square\" icon={PlusIcon} aria-label=\"Add new item\" />\n      </Tooltip>\n    </TooltipProvider>",
-        "<TooltipProvider>\n      <Tooltip content=\"Add\" asChild>\n        <Button shape=\"square\" icon={PlusIcon} aria-label=\"Add\" />\n      </Tooltip>\n    </TooltipProvider>",
-        "<TooltipProvider>\n      <div className=\"flex gap-2\">\n        <Tooltip content=\"Add\" asChild>\n          <Button shape=\"square\" icon={PlusIcon} aria-label=\"Add\" />\n        </Tooltip>\n        <Tooltip content=\"Change language\" asChild>\n          <Button\n            shape=\"square\"\n            icon={TranslateIcon}\n            aria-label=\"Change language\"\n          />\n        </Tooltip>\n      </div>\n    </TooltipProvider>"
+        "<TooltipProvider>\n      <Tooltip content=\"Add new item\" asChild>\n        <Button shape=\"square\" icon={PlusIcon} />\n      </Tooltip>\n    </TooltipProvider>",
+        "<TooltipProvider>\n      <Tooltip content=\"Add\" asChild>\n        <Button shape=\"square\" icon={PlusIcon} />\n      </Tooltip>\n    </TooltipProvider>",
+        "<TooltipProvider>\n      <div className=\"flex gap-2\">\n        <Tooltip content=\"Add\" asChild>\n          <Button shape=\"square\" icon={PlusIcon} />\n        </Tooltip>\n        <Tooltip content=\"Change language\" asChild>\n          <Button shape=\"square\" icon={TranslateIcon} />\n        </Tooltip>\n      </div>\n    </TooltipProvider>"
       ],
       "colors": [
         "bg-kumo-base",
@@ -4989,10 +5223,12 @@
       ],
       "Other": [
         "CloudflareLogo",
+        "Cluster",
         "DatePicker",
         "Label",
         "Link",
         "SensitiveInput",
+        "Stack",
         "Table",
         "DeleteResource"
       ],
@@ -5023,6 +5259,7 @@
       "Checkbox",
       "ClipboardText",
       "CloudflareLogo",
+      "Cluster",
       "Code",
       "Collapsible",
       "Combobox",
@@ -5049,6 +5286,7 @@
       "ResourceListPage",
       "Select",
       "SensitiveInput",
+      "Stack",
       "Surface",
       "Switch",
       "Table",
@@ -5066,6 +5304,7 @@
         "Checkbox",
         "ClipboardText",
         "CloudflareLogo",
+        "Cluster",
         "Code",
         "Collapsible",
         "Combobox",
@@ -5089,6 +5328,7 @@
         "Radio",
         "Select",
         "SensitiveInput",
+        "Stack",
         "Surface",
         "Switch",
         "Table",
