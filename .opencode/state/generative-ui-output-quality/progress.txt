@@ -6,7 +6,7 @@ Started: 2026-02-21
 - **JSONL → UITree pipeline**: `createJsonlParser().push(chunk)` → `JsonPatchOp[]` → `applyPatch(tree, op)` → new `UITree`. Parser in `src/streaming/jsonl-parser.ts`, patch engine in `src/streaming/rfc6902.ts`.
 - **UITree is flat**: `{ root: string, elements: Record<string, UIElement> }`. Children referenced by key arrays, not nesting.
 - **UIElement**: `{ key, type, props, children?: string[], parentKey?: string }`. Types map to COMPONENT_MAP entries.
-- **COMPONENT_MAP layers**: direct (18) → sub-component aliases (12) → type aliases (1) → generative wrappers (5) → stateful wrappers (5) → synthetic (1). In `src/generative/component-map.ts`.
+- **COMPONENT_MAP layers**: direct (18) → sub-component aliases (12) → type aliases (1) → generative wrappers (8) → stateful wrappers (5) → synthetic (1). In `src/generative/component-map.ts`.
 - **Validation flow**: `validateElement()` checks props against Zod schemas from `ai/schemas.ts`. `repairElement()` strips invalid top-level props. Sub-components (TableRow, SelectOption) skip validation.
 - **Test pattern**: Vitest with `@/` path aliases resolved at runtime (LSP shows errors but tests run fine). `happy-dom` environment.
 - **Generative wrapper pattern**: `forwardRef`, read prop, default if missing, delegate to real component. See `src/generative/generative-wrappers.tsx`.
@@ -99,3 +99,18 @@ Started: 2026-02-21
   - Scoring tiers: required(+3) > enum(+2) = layout-critical(+2) > interesting(+1). A required enum prop scores 5; an optional layout-critical enum scores 4.
   - `gap` and `justify` were already in INTERESTING_PROP_NAMES — moved to LAYOUT_CRITICAL to avoid double-counting (+2 replaces +1, net gain +1)
   - Hints are indented with 2 spaces to visually nest under the component description bullet
+
+## Task - generative-1, generative-2, generative-3
+- Implemented 3 generative wrappers: GenerativeGrid, GenerativeStack, GenerativeText
+- GenerativeGrid: defaults `variant="2up"` when both `variant` and `columns` are missing; defaults `gap="base"` when missing
+- GenerativeStack: defaults `gap="base"` when missing
+- GenerativeText: defaults `variant="body"` when missing; uses cast to `React.ComponentType<Record<string, unknown>>` because Text uses `DANGEROUS_className` not `className`
+- All 3 registered in COMPONENT_MAP (layer 4, generative wrappers now 8 total)
+- All use `forwardRef` pattern and have `displayName` set
+- Files changed:
+  - `packages/kumo/src/generative/generative-wrappers.tsx` (3 new wrapper components)
+  - `packages/kumo/src/generative/component-map.ts` (3 new imports + 3 map registrations)
+- **Learnings:**
+  - Text component omits `className` from its public API; uses `DANGEROUS_className` instead. Generative wrappers for Text skip the `cn(readClassName(props))` pattern.
+  - Grid does not have a real `columns` prop in the component — but LLMs may hallucinate it. Checking for `columns` prevents overriding LLM intent when it tries to use custom columns.
+  - Defaults spread BEFORE `...stripClassName(props)` so explicit LLM values override the defaults via object spread semantics.
