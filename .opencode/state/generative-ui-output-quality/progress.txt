@@ -129,3 +129,12 @@ Started: 2026-02-21
   - Coercion returns same ref when no changes needed — important for WeakMap cache in renderer. New refs from coercion don't cache-hit but that's acceptable (coercion is cheap).
   - PRD enum target values were aspirational (referenced non-existent variants like "positive", "caution"). Always verify against actual Zod schemas in `ai/schemas.ts`.
   - Coercion is deliberately separate from `validateElement()` so the renderer can use the coerced element for rendering (not just validation). The flow is: coerce → validate coerced → repair coerced if needed.
+
+## Task - validator-2
+- Verified `normalizeSurfaceOrphans()` in `ui-tree-renderer.tsx:171-217` — already implemented in commit f327cdc
+- All 10 PRD steps verified: function exists, wired into useMemo chain (line 665), deterministic `auto-stack-{key}` naming, synthetic Stack with `gap="lg"`, parent ref updates, skip logic for 0 children and single-Stack-child, wrap logic for non-Stack single child
+- Feedback loops: typecheck clean, 939 tests pass, lint 0 errors
+- Files: no changes needed to source code; PRD `passes` field updated
+- **Learnings:**
+  - `nextElements` uses lazy initialization (`null` until first mutation) to avoid shallow-copying elements map when no Surface needs wrapping — good pattern for normalization functions that often no-op
+  - parentKey update on children is critical: without it, structural graders' orphan detection would flag the original children as unreachable from root
