@@ -23,7 +23,7 @@ Started: 2026-02-21
 |---------------|-------------------------------------|---------|
 | testing-1     | Structural graders + fixtures       | DONE    |
 | prompt-1      | 3 new few-shot examples             | DONE    |
-| prompt-2      | Anti-patterns + composition recipes | MISSING |
+| prompt-2      | Anti-patterns + composition recipes | DONE    |
 | prompt-3      | Prompt builder enhancements         | MISSING |
 | generative-1  | GenerativeGrid wrapper              | MISSING |
 | generative-2  | GenerativeStack wrapper             | MISSING |
@@ -72,3 +72,15 @@ Started: 2026-02-21
   - Empty component uses `title` and `description` string props (not children for text content)
   - Grid `variant="4up"` + `gap="base"` is the canonical stat grid pattern
   - Surface accepts `color` prop (e.g. "neutral") for visual differentiation of nested cards
+
+## Task - prompt-2
+- Added `LAYOUT_ANTI_PATTERNS` section: 4 NEVER rules targeting common LLM layout mistakes (orphan Surface children, unconfigured Grid, nested Surface-in-Surface, unnecessary Div)
+- Added `COMPOSITION_RECIPES` section: markdown table with 6 proven patterns (section header, stat grid, form group, action bar, key-value pair, status list row) + prop usage guidance subsection
+- Prop guidance covers Stack.gap, Grid.variant, Cluster.justify, Surface usage patterns
+- Both sections wired into buildSystemPrompt() between DESIGN_RULES and ACCESSIBILITY (logical placement — layout rules before format rules)
+- Files changed:
+  - `packages/kumo/src/catalog/system-prompt.ts` (2 new constants + sections array + docstring update)
+- **Learnings:**
+  - Surface does NOT have a `color` prop in Zod schema — the PRD step "Surface.color" is aspirational; real guidance focuses on Surface as container (delegate layout to inner Stack/Grid)
+  - Placing anti-patterns before examples is strategic: LLMs weigh early instructions more heavily
+  - Composition recipes as a markdown table is efficient for token usage vs. prose explanations
