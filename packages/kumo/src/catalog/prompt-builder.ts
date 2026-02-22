@@ -60,13 +60,6 @@ export interface PromptBuilderOptions {
    * When omitted, all registry components (plus aliases & synthetics) are included.
    */
   readonly components?: readonly string[];
-
-  /**
-   * Additional UI type names to include beyond the registry.
-   * These are matched against aliases and synthetic entries.
-   * When omitted together with `components`, all types are included.
-   */
-  readonly additionalTypes?: readonly string[];
 }
 
 // =============================================================================

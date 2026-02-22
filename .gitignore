@@ -50,3 +50,6 @@ coverage/
 # Eval harness (local-only, environment-specific)
 .eval-baselines/
 .eval-outputs/
+
+# Overseer task DB (local-only)
+.overseer/

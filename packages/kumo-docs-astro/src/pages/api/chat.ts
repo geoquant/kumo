@@ -10,6 +10,12 @@ const MAX_MESSAGE_LENGTH = 2000;
 const MAX_HISTORY_ENTRY_LENGTH = 4000;
 
 /**
+ * Aggregate character budget for the full message array (system + history + user).
+ * Prevents cost amplification from many long history entries.
+ */
+const MAX_TOTAL_MESSAGE_CHARS = 40_000;
+
+/**
  * AI Gateway ID — route Workers AI requests through AI Gateway for
  * analytics and gateway-level rate limiting.
  *
@@ -132,14 +138,20 @@ async function getSystemPrompt(): Promise<string> {
   if (systemPromptPromise) return systemPromptPromise;
 
   systemPromptPromise = (async () => {
-    const catalog = createKumoCatalog();
-    await initCatalog(catalog);
-    const prompt = catalog.generatePrompt({
-      components: [...PROMPT_COMPONENTS],
-      maxPropsPerComponent: 8,
-    });
-    systemPromptCache = prompt;
-    return prompt;
+    try {
+      const catalog = createKumoCatalog();
+      await initCatalog(catalog);
+      const prompt = catalog.generatePrompt({
+        components: [...PROMPT_COMPONENTS],
+        maxPropsPerComponent: 8,
+      });
+      systemPromptCache = prompt;
+      return prompt;
+    } catch (err) {
+      // Clear promise so next request retries instead of caching the rejection.
+      systemPromptPromise = null;
+      throw err;
+    }
   })();
 
   return systemPromptPromise;
@@ -157,10 +169,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const env = locals.runtime.env;
 
   // --- Rate limiting ---
-  const clientIp =
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for") ??
-    "unknown";
+  const clientIp = request.headers.get("cf-connecting-ip") ?? "unknown";
 
   try {
     const { success } = await env.CHAT_RATE_LIMIT.limit({ key: clientIp });
@@ -173,8 +182,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
         },
       );
     }
-  } catch {
-    // Rate limiter unavailable — allow request through
+  } catch (rateLimitErr) {
+    console.error("[chat] rate limiter unavailable:", rateLimitErr);
+    // Fail open — prefer availability over blocking when the binding is down.
+    // The error is logged so operators can detect misconfiguration.
   }
 
   // --- Parse request body ---
@@ -225,6 +236,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // Append current user message
   messages.push({ role: "user", content: chatRequest.message });
+
+  // --- Aggregate token budget check ---
+  const totalChars = messages.reduce((sum, m) => sum + m.content.length, 0);
+  if (totalChars > MAX_TOTAL_MESSAGE_CHARS) {
+    return new Response(
+      JSON.stringify({
+        error: "Conversation too long. Please start a new chat.",
+      }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
 
   // --- Stream from Workers AI ---
   try {
@@ -277,11 +299,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       },
     });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Workers AI unavailable";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("[chat] AI error:", err);
+    return new Response(
+      JSON.stringify({ error: "AI service temporarily unavailable." }),
+      { status: 503, headers: { "Content-Type": "application/json" } },
+    );
   }
 };

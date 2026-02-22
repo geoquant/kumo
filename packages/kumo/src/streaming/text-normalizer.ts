@@ -1,8 +1,12 @@
 /**
- * Text sanitizer for LLM-generated UI.
+ * Text normalizer for LLM-generated UI.
  *
  * Strips leading emoji tokens from patch values to keep copy clean —
  * some models prefix headings/labels with emoji icons (e.g. "⚡ Performance").
+ *
+ * NOTE: This module does NOT provide XSS sanitization. It only normalizes
+ * cosmetic text issues. XSS protection relies on React's default escaping
+ * and the prop sanitization in ui-tree-renderer.tsx.
  */
 
 import type { JsonPatchOp } from "./rfc6902";

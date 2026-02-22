@@ -63,6 +63,9 @@ type MountMode = "light-dom" | "shadow-root";
 
 interface ContainerConfig {
   readonly mountMode: MountMode;
+  /** Href for the stylesheet injected into ShadowRoot containers.
+   *  @default "/.well-known/stylesheet.css" */
+  readonly shadowStylesheetHref?: string;
 }
 
 type ContainerMount =
@@ -121,7 +124,12 @@ function getDesiredMountMode(
   return readMountModeFromAttributes(hostEl);
 }
 
-function ensureShadowStylesheet(shadowRoot: ShadowRoot): void {
+const DEFAULT_SHADOW_STYLESHEET_HREF = "/.well-known/stylesheet.css";
+
+function ensureShadowStylesheet(
+  shadowRoot: ShadowRoot,
+  href: string = DEFAULT_SHADOW_STYLESHEET_HREF,
+): void {
   const existing = shadowRoot.querySelector(
     `link[${SHADOW_STYLESHEET_ATTR}="true"]`,
   );
@@ -129,7 +137,7 @@ function ensureShadowStylesheet(shadowRoot: ShadowRoot): void {
 
   const link = document.createElement("link");
   link.setAttribute("rel", "stylesheet");
-  link.setAttribute("href", "/.well-known/stylesheet.css");
+  link.setAttribute("href", href);
   link.setAttribute(SHADOW_STYLESHEET_ATTR, "true");
 
   const first = shadowRoot.firstChild;
@@ -162,7 +170,8 @@ function getOrCreateMount(
   if (mountMode === "shadow-root") {
     const shadowRoot =
       hostEl.shadowRoot ?? hostEl.attachShadow({ mode: "open" });
-    ensureShadowStylesheet(shadowRoot);
+    const config = _containerConfigs.get(containerId);
+    ensureShadowStylesheet(shadowRoot, config?.shadowStylesheetHref);
     const mountEl = ensureShadowMount(shadowRoot);
 
     const mount: ContainerMount = {

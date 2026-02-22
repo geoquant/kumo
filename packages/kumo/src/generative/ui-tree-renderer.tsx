@@ -375,10 +375,15 @@ export function normalizeSurfaceOrphans(tree: UITree): UITree {
     }
 
     // Surface has 1+ non-Stack children → wrap in synthetic Stack
-    const stackKey = `auto-stack-${el.key}`;
+    let stackKey = `auto-stack-${el.key}`;
 
     if (nextElements == null) {
       nextElements = { ...elements };
+    }
+
+    // Ensure the synthetic key doesn't collide with an existing element.
+    while (stackKey in nextElements) {
+      stackKey = `${stackKey}-wrap`;
     }
 
     const syntheticStack: UIElement = {
@@ -678,9 +683,18 @@ function sanitizeProps(
 ): Record<string, unknown> {
   const clean: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(props)) {
-    if (!BLOCKED_PROPS.has(key)) {
-      clean[key] = value;
-    }
+    if (BLOCKED_PROPS.has(key)) continue;
+    // Block event handler props — LLM output is JSON (no functions) but
+    // defense-in-depth prevents any on* prop from reaching React components.
+    if (
+      key.length > 2 &&
+      key[0] === "o" &&
+      key[1] === "n" &&
+      key.charCodeAt(2) >= 65 &&
+      key.charCodeAt(2) <= 90
+    )
+      continue;
+    clean[key] = value;
   }
   return clean;
 }
@@ -1023,14 +1037,9 @@ function filterDivProps(
 ): Record<string, unknown> {
   const safe: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(props)) {
-    // Allow style, id, and data-* attributes only
-    if (
-      key === "style" ||
-      key === "id" ||
-      key.startsWith("data-") ||
-      key.startsWith("aria-") ||
-      key === "role"
-    ) {
+    // Allow data-* and aria-* attributes, plus role.
+    // Blocked: style (CSS injection), id (DOM clobbering), on* (event handlers).
+    if (key.startsWith("data-") || key.startsWith("aria-") || key === "role") {
       safe[key] = value;
     }
   }
