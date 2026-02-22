@@ -59,6 +59,7 @@ jobs:
         with:
           name: docs-preview-dist
           path: packages/kumo-docs-astro/dist/
+          include-hidden-files: true
           retention-days: 1
 
   # Stage 2 (internal path): Deploy docs preview for non-fork PRs.
