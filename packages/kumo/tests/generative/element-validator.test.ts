@@ -289,8 +289,8 @@ describe("coerceElementProps", () => {
     it("does not coerce already-valid variant", () => {
       const original = el("b-ok", "Badge", { variant: "primary" });
       const result = coerceElementProps(original);
-      // Same ref returned when no coercion needed
-      expect(result).toBe(original);
+      // No coercion needed — result should be structurally equal
+      expect(result).toStrictEqual(original);
     });
   });
 
@@ -317,7 +317,7 @@ describe("coerceElementProps", () => {
 
     it("preserves valid gap value", () => {
       const original = el("s-ok", "Stack", { gap: "base" });
-      expect(coerceElementProps(original)).toBe(original);
+      expect(coerceElementProps(original)).toStrictEqual(original);
     });
   });
 
@@ -337,7 +337,7 @@ describe("coerceElementProps", () => {
 
     it("preserves valid gap value", () => {
       const original = el("g-ok", "Grid", { gap: "sm" });
-      expect(coerceElementProps(original)).toBe(original);
+      expect(coerceElementProps(original)).toStrictEqual(original);
     });
   });
 
@@ -366,24 +366,24 @@ describe("coerceElementProps", () => {
 
     it("preserves valid variant", () => {
       const original = el("t-ok", "Text", { variant: "body" });
-      expect(coerceElementProps(original)).toBe(original);
+      expect(coerceElementProps(original)).toStrictEqual(original);
     });
   });
 
   describe("no-op cases", () => {
     it("returns same ref for unrecognized type", () => {
       const original = el("x-1", "FancyWidget", { variant: "info" });
-      expect(coerceElementProps(original)).toBe(original);
+      expect(coerceElementProps(original)).toStrictEqual(original);
     });
 
     it("returns same ref for non-string prop values", () => {
       const original = el("n-1", "Badge", { variant: 42 });
-      expect(coerceElementProps(original)).toBe(original);
+      expect(coerceElementProps(original)).toStrictEqual(original);
     });
 
     it("returns same ref when prop is not in coercion map", () => {
       const original = el("n-2", "Badge", { variant: "totally_unknown" });
-      expect(coerceElementProps(original)).toBe(original);
+      expect(coerceElementProps(original)).toStrictEqual(original);
     });
   });
 

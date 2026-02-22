@@ -290,7 +290,7 @@ describe("UITreeRenderer action injection", () => {
     }
   });
 
-  it("preserves existing onClick from LLM output on Button", () => {
+  it("strips onClick from LLM output on Button (on* props blocked for security)", () => {
     const dispatch = vi.fn();
     const existingOnClick = vi.fn();
 
@@ -310,17 +310,17 @@ describe("UITreeRenderer action injection", () => {
       render(<UITreeRenderer tree={t} onAction={dispatch} />);
 
       const props = propsFor("root");
-      // onClick should be a wrapper that chains the existing handler
+      // onClick is injected by the action system (not the LLM's onClick).
+      // The LLM's onClick is stripped by sanitizeProps (on* blocking).
       expect(props.onClick).toBeTypeOf("function");
       expect(props.onAction).toBeUndefined();
 
-      // Invoke and verify both handlers fire
+      // Invoke — only the action dispatch should fire, not the LLM's handler
       const clickHandler = props.onClick as (...args: unknown[]) => void;
       const fakeEvent = { type: "click" };
       clickHandler(fakeEvent);
 
-      expect(existingOnClick).toHaveBeenCalledOnce();
-      expect(existingOnClick).toHaveBeenCalledWith(fakeEvent);
+      expect(existingOnClick).not.toHaveBeenCalled();
       expect(dispatch).toHaveBeenCalledOnce();
     } finally {
       (COMPONENT_MAP as Record<string, unknown>).Button = originalButton;
@@ -377,7 +377,7 @@ describe("UITreeRenderer action injection", () => {
     expect(props.onClick).toBeUndefined();
   });
 
-  it("non-Button/Link onClick from LLM passes through unchanged", () => {
+  it("non-Button/Link onClick from LLM is stripped (on* props blocked for security)", () => {
     const dispatch = vi.fn();
     const existingOnClick = vi.fn();
     const t = mkTree("root", {
@@ -392,9 +392,9 @@ describe("UITreeRenderer action injection", () => {
     render(<UITreeRenderer tree={t} onAction={dispatch} />);
 
     const props = propsFor("root");
-    // For non-Button/Link, onAction is injected and onClick passes through as-is
+    // onAction is injected by the action system; onClick from LLM is blocked
     expect(props.onAction).toBeTypeOf("function");
-    expect(props.onClick).toBe(existingOnClick);
+    expect(props.onClick).toBeUndefined();
   });
 
   it("threads onAction to nested children", () => {
