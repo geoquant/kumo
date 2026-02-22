@@ -207,6 +207,8 @@ export default defineConfig(({ mode }) => {
           catalog: resolve(__dirname, "src/catalog/index.ts"),
           // Streaming module entry point (JSONL parser, RFC 6902, hooks, actions)
           streaming: resolve(__dirname, "src/streaming/index.ts"),
+          // Generative module entry point (UITreeRenderer, component map, element validator)
+          generative: resolve(__dirname, "src/generative/index.ts"),
           // AI schemas entry point (Zod schemas for runtime validation of AI-generated UI trees)
           "ai/schemas": resolve(__dirname, "ai/schemas.ts"),
         },

@@ -164,7 +164,7 @@
         "Verify: pnpm --filter @cloudflare/kumo build succeeds",
         "Verify: dist/generative.js exists with UITreeRenderer + COMPONENT_MAP"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "generative-4",
