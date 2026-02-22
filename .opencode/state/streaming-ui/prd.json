@@ -322,7 +322,7 @@
         "Verify: pnpm --filter @cloudflare/kumo-docs-astro build succeeds",
         "Verify: pnpm lint passes"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
