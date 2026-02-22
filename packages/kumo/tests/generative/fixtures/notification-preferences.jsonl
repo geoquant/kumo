@@ -1,0 +1,15 @@
+{"op":"add","path":"/root","value":"prefs"}
+{"op":"add","path":"/elements/prefs","value":{"key":"prefs","type":"Surface","props":{},"children":["stack"]}}
+{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["title","name","frequency","channels","submit"],"parentKey":"prefs"}}
+{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Notification preferences","variant":"heading2"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/name","value":{"key":"name","type":"Input","props":{"label":"Name","placeholder":"Your name"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/frequency","value":{"key":"frequency","type":"Select","props":{"label":"Email frequency","placeholder":"Choose"},"children":["freq-rt","freq-daily","freq-weekly"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/freq-rt","value":{"key":"freq-rt","type":"SelectOption","props":{"value":"realtime","children":"Real-time"},"parentKey":"frequency"}}
+{"op":"add","path":"/elements/freq-daily","value":{"key":"freq-daily","type":"SelectOption","props":{"value":"daily","children":"Daily"},"parentKey":"frequency"}}
+{"op":"add","path":"/elements/freq-weekly","value":{"key":"freq-weekly","type":"SelectOption","props":{"value":"weekly","children":"Weekly"},"parentKey":"frequency"}}
+{"op":"add","path":"/elements/channels","value":{"key":"channels","type":"Stack","props":{"gap":"sm"},"children":["channels-label","ch-email","ch-push","ch-sms"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/channels-label","value":{"key":"channels-label","type":"Text","props":{"children":"Channels","variant":"secondary"},"parentKey":"channels"}}
+{"op":"add","path":"/elements/ch-email","value":{"key":"ch-email","type":"Checkbox","props":{"label":"Email"},"parentKey":"channels"}}
+{"op":"add","path":"/elements/ch-push","value":{"key":"ch-push","type":"Checkbox","props":{"label":"Push"},"parentKey":"channels"}}
+{"op":"add","path":"/elements/ch-sms","value":{"key":"ch-sms","type":"Checkbox","props":{"label":"SMS"},"parentKey":"channels"}}
+{"op":"add","path":"/elements/submit","value":{"key":"submit","type":"Button","props":{"children":"Save preferences","variant":"primary"},"parentKey":"stack","action":{"name":"submit_form","params":{"form_type":"notification_preferences"}}}}

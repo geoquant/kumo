@@ -1,6 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { normalizeSiblingFormRowGrids } from "@/generative/ui-tree-renderer";
-import type { UITree, UIElement } from "@/streaming/types";
+import {
+  normalizeSiblingFormRowGrids,
+  normalizeEmptySelects,
+  normalizeNestedSurfaces,
+  normalizeCounterStacks,
+  normalizeFormActionBars,
+  normalizeDuplicateFieldLabels,
+  normalizeCheckboxGroupGrids,
+} from "../../src/generative/ui-tree-renderer";
+import type { UITree, UIElement } from "../../src/streaming/types";
 
 function el(
   key: string,
@@ -42,5 +50,160 @@ describe("layout normalization", () => {
 
     expect(rowA?.props["variant"]).toBe("2up");
     expect(rowB?.props["variant"]).toBe("2up");
+  });
+
+  it("coerces empty Select into Input", () => {
+    const tree: UITree = {
+      root: "form",
+      elements: {
+        form: el("form", "Div", {}, ["frequency"]),
+        frequency: el("frequency", "Select", { label: "Email frequency" }),
+      },
+    };
+
+    const normalized = normalizeEmptySelects(tree);
+    expect(normalized.elements["frequency"]?.type).toBe("Input");
+  });
+
+  it("lifts inner Surface children to avoid double borders", () => {
+    const tree: UITree = {
+      root: "outer",
+      elements: {
+        outer: el("outer", "Surface", {}, ["inner"]),
+        inner: el("inner", "Surface", {}, ["stack"]),
+        stack: el("stack", "Stack", { gap: "lg" }, ["title"]),
+        title: el("title", "Text", { children: "Hi" }),
+      },
+    };
+
+    const normalized = normalizeNestedSurfaces(tree);
+    expect(normalized.elements["outer"]?.children).toEqual(["stack"]);
+  });
+
+  it("centers counter Stack when it has increment/decrement actions", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, ["stack"]),
+        stack: el("stack", "Stack", { gap: "lg" }, [
+          "title",
+          "count",
+          "actions",
+        ]),
+        title: el("title", "Text", {
+          children: "Counter",
+          variant: "heading2",
+        }),
+        count: el("count", "Text", { children: "0", variant: "heading1" }),
+        actions: el("actions", "Cluster", { gap: "sm" }, ["dec", "inc"]),
+        dec: {
+          key: "dec",
+          type: "Button",
+          props: { children: "Decrement" },
+          action: { name: "decrement", params: { target: "count" } },
+          parentKey: "actions",
+        },
+        inc: {
+          key: "inc",
+          type: "Button",
+          props: { children: "Increment" },
+          action: { name: "increment", params: { target: "count" } },
+          parentKey: "actions",
+        },
+      },
+    };
+
+    const normalized = normalizeCounterStacks(tree);
+    expect(normalized.elements["stack"]?.props["align"]).toBe("center");
+    expect(normalized.elements["actions"]?.props["justify"]).toBe("center");
+  });
+
+  it("right-aligns submit button in a form stack", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, ["stack"]),
+        stack: el("stack", "Stack", { gap: "lg" }, ["name", "submit"]),
+        name: el("name", "Input", { label: "Name" }),
+        submit: {
+          key: "submit",
+          type: "Button",
+          props: { children: "Save", variant: "primary" },
+          action: { name: "submit_form", params: { form_type: "x" } },
+          parentKey: "stack",
+        },
+      },
+    };
+
+    const normalized = normalizeFormActionBars(tree);
+    const className = normalized.elements["submit"]?.props["className"];
+    expect(typeof className).toBe("string");
+    expect(String(className)).toContain("w-full");
+    expect(String(className)).toContain("sm:self-end");
+  });
+
+  it("right-aligns action Cluster in a form stack", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, ["stack"]),
+        stack: el("stack", "Stack", { gap: "lg" }, ["name", "actions"]),
+        name: el("name", "Input", { label: "Name" }),
+        actions: el("actions", "Cluster", { gap: "sm" }, ["cancel", "save"]),
+        cancel: el("cancel", "Button", {
+          children: "Cancel",
+          variant: "secondary",
+        }),
+        save: {
+          key: "save",
+          type: "Button",
+          props: { children: "Save", variant: "primary" },
+          action: { name: "submit_form", params: { form_type: "x" } },
+          parentKey: "actions",
+        },
+      },
+    };
+
+    const normalized = normalizeFormActionBars(tree);
+    expect(normalized.elements["actions"]?.props["justify"]).toBe("end");
+    const className = normalized.elements["actions"]?.props["className"];
+    expect(String(className)).toContain("w-full");
+  });
+
+  it("drops duplicate Text label before a labeled Input", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, ["stack"]),
+        stack: el("stack", "Stack", { gap: "lg" }, ["l1", "name"]),
+        l1: el("l1", "Text", { children: "Full name" }),
+        name: el("name", "Input", { label: "Full name", placeholder: "X" }),
+      },
+    };
+
+    const normalized = normalizeDuplicateFieldLabels(tree);
+    expect(normalized.elements["stack"]?.children).toEqual(["name"]);
+  });
+
+  it("coerces checkbox-group Grid into a vertical Stack", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, ["stack"]),
+        stack: el("stack", "Stack", { gap: "lg" }, ["row"]),
+        row: el("row", "Grid", { variant: "2up", gap: "base" }, [
+          "label",
+          "choices",
+        ]),
+        label: el("label", "Text", { children: "Notification channels" }),
+        choices: el("choices", "Stack", { gap: "sm" }, ["a", "b"]),
+        a: el("a", "Checkbox", { label: "Email" }),
+        b: el("b", "Checkbox", { label: "SMS" }),
+      },
+    };
+
+    const normalized = normalizeCheckboxGroupGrids(tree);
+    expect(normalized.elements["row"]?.type).toBe("Stack");
+    expect(normalized.elements["row"]?.children).toEqual(["label", "choices"]);
   });
 });
