@@ -55,7 +55,7 @@ export async function loadSchemas(): Promise<SchemasModule> {
   if (schemasModule) return schemasModule;
   if (schemasLoadPromise) return schemasLoadPromise;
 
-  schemasLoadPromise = import("../../ai/schemas").then((mod: unknown) => {
+  schemasLoadPromise = import("../../ai/schemas.js").then((mod: unknown) => {
     schemasModule = mod as unknown as SchemasModule;
     return schemasModule;
   });

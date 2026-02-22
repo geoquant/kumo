@@ -455,11 +455,9 @@ interface SyntheticEntry {
 const SYNTHETIC_TYPES: Readonly<Record<string, SyntheticEntry>> = {
   Div: {
     description:
-      "Generic HTML container. Props are restricted to className plus safe attributes (style/id/role/aria-*/data-*).",
+      "Generic HTML container. Props: className, role, aria-*, data-*.",
     propsLines: [
       "  - className?: string",
-      "  - style?: Record<string, unknown>",
-      "  - id?: string",
       "  - role?: string",
       "  - aria-*: string",
       "  - data-*: string",

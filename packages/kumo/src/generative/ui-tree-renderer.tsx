@@ -52,7 +52,7 @@ const BLOCKED_PROPS = new Set([
  */
 const ONCLICK_ACTION_TYPES = new Set(["Button", "Link"]);
 
-const RUNTIME_VALUE_CAPTURE_TYPES = new Set(["Input", "Textarea"]);
+const RUNTIME_VALUE_CAPTURE_TYPES = new Set(["Input", "InputArea", "Textarea"]);
 
 const SUBMIT_FORM_RUNTIME_VALUES_KEY = "runtimeValues";
 
@@ -254,6 +254,8 @@ export function normalizeDuplicateFieldLabels(tree: UITree): UITree {
     const children = parent?.children;
     if (!children || children.length < 2) continue;
 
+    let parentChanged = false;
+
     const nextChildren: string[] = [];
     for (let i = 0; i < children.length; i++) {
       const k = children[i];
@@ -271,16 +273,17 @@ export function normalizeDuplicateFieldLabels(tree: UITree): UITree {
         !isHeadingText(el);
 
       if (shouldDrop) {
-        changed = true;
+        parentChanged = true;
         continue;
       }
 
       nextChildren.push(k);
     }
 
-    if (!changed) continue;
+    if (!parentChanged) continue;
     if (nextElements == null) nextElements = { ...elements };
     nextElements[parent.key] = { ...parent, children: nextChildren };
+    changed = true;
   }
 
   return changed && nextElements != null
@@ -688,10 +691,8 @@ function sanitizeProps(
     // defense-in-depth prevents any on* prop from reaching React components.
     if (
       key.length > 2 &&
-      key[0] === "o" &&
-      key[1] === "n" &&
-      key.charCodeAt(2) >= 65 &&
-      key.charCodeAt(2) <= 90
+      (key[0] === "o" || key[0] === "O") &&
+      (key[1] === "n" || key[1] === "N")
     )
       continue;
     clean[key] = value;

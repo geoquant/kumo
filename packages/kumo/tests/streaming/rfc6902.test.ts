@@ -441,4 +441,14 @@ describe("applyPatch: prototype pollution prevention", () => {
     expect(result).toBe(base);
     expect({}.toString).toBeDefined();
   });
+
+  it("blocks __proto__ as element key", () => {
+    const result = applyPatch(base, {
+      op: "add",
+      path: "/elements/__proto__",
+      value: { type: "Text", key: "__proto__", props: {}, children: "pwned" },
+    });
+    expect(result).toBe(base);
+    expect(({} as Record<string, unknown>)["type"]).toBeUndefined();
+  });
 });
