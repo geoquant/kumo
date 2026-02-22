@@ -6,10 +6,21 @@
  * - Input/InputArea: full-width by default
  * - CloudflareLogo: default dimensions when not specified
  * - Select: visible label by default
+ * - Grid: defaults variant="2up" (when no variant/columns) and gap="base"
+ * - Stack: defaults gap="base" (16px vertical rhythm)
+ * - Text: defaults variant="body"
  */
 
 import React, { forwardRef } from "react";
-import { CloudflareLogo, Input, InputArea, Surface } from "../index.js";
+import {
+  CloudflareLogo,
+  Grid,
+  Input,
+  InputArea,
+  Stack,
+  Surface,
+  Text,
+} from "../index.js";
 import { cn } from "../utils/index.js";
 import { StatefulSelect } from "./stateful-wrappers.js";
 
@@ -116,6 +127,111 @@ export const GenerativeCloudflareLogo = forwardRef<
   });
 });
 GenerativeCloudflareLogo.displayName = "GenerativeCloudflareLogo";
+
+// =============================================================================
+// GenerativeGrid
+// =============================================================================
+
+/**
+ * Grid wrapper that defaults `variant` and `gap` when the LLM omits them.
+ *
+ * Without a variant the Grid renders a single-column stack (useless).
+ * Defaults `variant="2up"` only when BOTH `variant` AND `columns` are missing
+ * so that an explicit `columns` prop is never overridden.
+ */
+export const GenerativeGrid = forwardRef<
+  HTMLDivElement,
+  Record<string, unknown>
+>(function GenerativeGrid(props, ref) {
+  const variant = props["variant"];
+  const columns = props["columns"];
+  const gap = props["gap"];
+
+  const defaults: Record<string, unknown> = {};
+
+  if (variant == null && columns == null) {
+    defaults["variant"] = "2up";
+  }
+  if (gap == null) {
+    defaults["gap"] = "base";
+  }
+
+  return React.createElement(Grid, {
+    ref,
+    className: cn(readClassName(props)),
+    ...defaults,
+    ...stripClassName(props),
+  });
+});
+GenerativeGrid.displayName = "GenerativeGrid";
+
+// =============================================================================
+// GenerativeStack
+// =============================================================================
+
+/**
+ * Stack wrapper that defaults `gap` when the LLM omits it.
+ *
+ * Without a gap value, Stack items collapse with no spacing. Defaulting
+ * to `"base"` (16px) provides a reasonable vertical rhythm.
+ */
+export const GenerativeStack = forwardRef<
+  HTMLDivElement,
+  Record<string, unknown>
+>(function GenerativeStack(props, ref) {
+  const gap = props["gap"];
+
+  const defaults: Record<string, unknown> = {};
+
+  if (gap == null) {
+    defaults["gap"] = "base";
+  }
+
+  return React.createElement(Stack, {
+    ref,
+    className: cn(readClassName(props)),
+    ...defaults,
+    ...stripClassName(props),
+  });
+});
+GenerativeStack.displayName = "GenerativeStack";
+
+// =============================================================================
+// GenerativeText
+// =============================================================================
+
+/**
+ * Text wrapper that defaults `variant` when the LLM omits it.
+ *
+ * Without a variant the Text component uses its own default, but being
+ * explicit about `"body"` ensures consistent rendering when the LLM
+ * generates Text elements without specifying a style.
+ *
+ * Note: Text uses `DANGEROUS_className` not `className`, so we skip
+ * the className merge pattern used by other generative wrappers.
+ */
+export const GenerativeText = forwardRef<
+  HTMLSpanElement,
+  Record<string, unknown>
+>(function GenerativeText(props, ref) {
+  const variant = props["variant"];
+
+  const defaults: Record<string, unknown> = {};
+
+  if (variant == null) {
+    defaults["variant"] = "body";
+  }
+
+  return React.createElement(
+    Text as React.ComponentType<Record<string, unknown>>,
+    {
+      ref,
+      ...defaults,
+      ...props,
+    },
+  );
+});
+GenerativeText.displayName = "GenerativeText";
 
 // =============================================================================
 // GenerativeSelect
