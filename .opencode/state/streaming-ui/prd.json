@@ -208,7 +208,7 @@
         "Update imports to reference ../streaming/ and ../generative/ instead of ../core/",
         "Verify: all methods (applyPatch, createParser, renderTree, setTheme, etc.) reference new paths"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "loadable-2",

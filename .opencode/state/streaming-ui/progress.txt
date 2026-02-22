@@ -171,3 +171,13 @@ Started: 2026-02-21
 - Fixed vitest.config.ts: `tests/**/*.{test,spec}.ts` → `tests/**/*.{test,spec}.{ts,tsx}` to include tsx test files
 - Typecheck, lint, and all 862 tests pass cleanly
 - **Learnings:** vitest.config.ts `tests/` include glob was `.ts` only — needed `.{ts,tsx}` for tsx tests; cast COMPONENT_MAP via `Record<string, unknown>` not `any` for spy injection
+
+## Task - loadable-1
+- Ported UMD loadable entry point to `packages/kumo/src/loadable/`
+- New files: `index.ts`, `action-dispatch.ts`, `theme.tsx`
+- Import remapping: `../core/rfc6902` → `../streaming/rfc6902`, `../core/jsonl-parser` → `../streaming/jsonl-parser`, `../core/UITreeRenderer` → `../generative/ui-tree-renderer`, `../core/types` → `../streaming/types`, `../core/action-handler` → `../streaming/action-types`, `../core/runtime-value-store` → `../streaming/runtime-value-store`, `../core/action-registry` → `../streaming/action-registry`, `../core/process-action-result` → `../streaming/process-action-result`
+- `action-dispatch.ts`: import from `../streaming/action-types` (not `../streaming/action-handler`) to use lightweight type-only dep
+- `theme.tsx`: no import changes needed (only React imports)
+- `index.ts`: window.CloudflareKumo API with 15+ methods; imports split across `../streaming/` (data layer) and `../generative/` (UITreeRenderer)
+- No build wiring yet (separate task loadable-2 — UMD vite config + package.json exports)
+- **Learnings:** Loadable module straddles streaming (patch/parser/actions/runtime) and generative (UITreeRenderer) — it's a thin orchestration layer, not a new domain. Action types come from `action-types.ts` not `action-handler.ts` to keep the type import lightweight.
