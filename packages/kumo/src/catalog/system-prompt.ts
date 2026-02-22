@@ -228,20 +228,6 @@ User: "Show a user profile card"
 {"op":"add","path":"/elements/edit-btn","value":{"key":"edit-btn","type":"Button","props":{"children":"Edit profile","variant":"primary"},"parentKey":"actions"}}
 {"op":"add","path":"/elements/msg-btn","value":{"key":"msg-btn","type":"Button","props":{"children":"Send message","variant":"secondary"},"parentKey":"actions"}}`;
 
-const EXAMPLE_FORM = `## Example (Form with Select)
-
-User: "Create a notification preferences form"
-
-{"op":"add","path":"/root","value":"prefs"}
-{"op":"add","path":"/elements/prefs","value":{"key":"prefs","type":"Surface","props":{},"children":["stack"]}}
-{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["title","frequency","submit"],"parentKey":"prefs"}}
-{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Notification preferences","variant":"heading2"},"parentKey":"stack"}}
-{"op":"add","path":"/elements/frequency","value":{"key":"frequency","type":"Select","props":{"label":"Notification frequency","placeholder":"Choose"},"children":["freq-real","freq-daily","freq-weekly"],"parentKey":"stack"}}
-{"op":"add","path":"/elements/freq-real","value":{"key":"freq-real","type":"SelectOption","props":{"value":"realtime","children":"Real-time"},"parentKey":"frequency"}}
-{"op":"add","path":"/elements/freq-daily","value":{"key":"freq-daily","type":"SelectOption","props":{"value":"daily","children":"Daily"},"parentKey":"frequency"}}
-{"op":"add","path":"/elements/freq-weekly","value":{"key":"freq-weekly","type":"SelectOption","props":{"value":"weekly","children":"Weekly"},"parentKey":"frequency"}}
-{"op":"add","path":"/elements/submit","value":{"key":"submit","type":"Button","props":{"children":"Save preferences","variant":"primary"},"parentKey":"stack","action":{"name":"submit_form","params":{"form_type":"notifications"}}}}`;
-
 const EXAMPLE_COUNTER = `## Example (Counter with Increment/Decrement)
 
 User: "Create a simple counter with increment and decrement buttons"
@@ -275,7 +261,7 @@ User: "Build a notification preferences form with a text input for name, a selec
 {"op":"add","path":"/elements/ch-sms","value":{"key":"ch-sms","type":"Checkbox","props":{"label":"SMS"},"parentKey":"channels"}}
 {"op":"add","path":"/elements/submit","value":{"key":"submit","type":"Button","props":{"children":"Save preferences","variant":"primary"},"parentKey":"stack","action":{"name":"submit_form","params":{"form_type":"notification_preferences"}}}}`;
 
-const EXAMPLE_TABLE = `## Example (Pricing / Comparison Table)
+const EXAMPLE_TABLE = `## Example (Comparison Table — Rows Are Features, Columns Are Tiers)
 
 User: "Show a pricing table with 3 plans"
 
@@ -290,7 +276,7 @@ User: "Show a pricing table with 3 plans"
 {"op":"add","path":"/elements/h-free","value":{"key":"h-free","type":"TableHead","props":{"children":"Free"},"parentKey":"hrow"}}
 {"op":"add","path":"/elements/h-pro","value":{"key":"h-pro","type":"TableHead","props":{"children":"Pro"},"parentKey":"hrow"}}
 {"op":"add","path":"/elements/h-biz","value":{"key":"h-biz","type":"TableHead","props":{"children":"Business"},"parentKey":"hrow"}}
-{"op":"add","path":"/elements/tbody","value":{"key":"tbody","type":"TableBody","props":{},"children":["row-price","row-requests","row-storage","row-features"],"parentKey":"tbl"}}
+{"op":"add","path":"/elements/tbody","value":{"key":"tbody","type":"TableBody","props":{},"children":["row-price","row-requests"],"parentKey":"tbl"}}
 {"op":"add","path":"/elements/row-price","value":{"key":"row-price","type":"TableRow","props":{},"children":["lbl-price","c-price-free","c-price-pro","c-price-biz"],"parentKey":"tbody"}}
 {"op":"add","path":"/elements/lbl-price","value":{"key":"lbl-price","type":"TableCell","props":{"children":"Monthly price"},"parentKey":"row-price"}}
 {"op":"add","path":"/elements/c-price-free","value":{"key":"c-price-free","type":"TableCell","props":{"children":"$0"},"parentKey":"row-price"}}
@@ -300,17 +286,7 @@ User: "Show a pricing table with 3 plans"
 {"op":"add","path":"/elements/lbl-req","value":{"key":"lbl-req","type":"TableCell","props":{"children":"Requests / day"},"parentKey":"row-requests"}}
 {"op":"add","path":"/elements/c-req-free","value":{"key":"c-req-free","type":"TableCell","props":{"children":"100K"},"parentKey":"row-requests"}}
 {"op":"add","path":"/elements/c-req-pro","value":{"key":"c-req-pro","type":"TableCell","props":{"children":"10M"},"parentKey":"row-requests"}}
-{"op":"add","path":"/elements/c-req-biz","value":{"key":"c-req-biz","type":"TableCell","props":{"children":"Unlimited"},"parentKey":"row-requests"}}
-{"op":"add","path":"/elements/row-storage","value":{"key":"row-storage","type":"TableRow","props":{},"children":["lbl-stor","c-stor-free","c-stor-pro","c-stor-biz"],"parentKey":"tbody"}}
-{"op":"add","path":"/elements/lbl-stor","value":{"key":"lbl-stor","type":"TableCell","props":{"children":"Storage"},"parentKey":"row-storage"}}
-{"op":"add","path":"/elements/c-stor-free","value":{"key":"c-stor-free","type":"TableCell","props":{"children":"1 GB"},"parentKey":"row-storage"}}
-{"op":"add","path":"/elements/c-stor-pro","value":{"key":"c-stor-pro","type":"TableCell","props":{"children":"25 GB"},"parentKey":"row-storage"}}
-{"op":"add","path":"/elements/c-stor-biz","value":{"key":"c-stor-biz","type":"TableCell","props":{"children":"1 TB"},"parentKey":"row-storage"}}
-{"op":"add","path":"/elements/row-features","value":{"key":"row-features","type":"TableRow","props":{},"children":["lbl-feat","c-feat-free","c-feat-pro","c-feat-biz"],"parentKey":"tbody"}}
-{"op":"add","path":"/elements/lbl-feat","value":{"key":"lbl-feat","type":"TableCell","props":{"children":"Features"},"parentKey":"row-features"}}
-{"op":"add","path":"/elements/c-feat-free","value":{"key":"c-feat-free","type":"TableCell","props":{"children":"Basic analytics"},"parentKey":"row-features"}}
-{"op":"add","path":"/elements/c-feat-pro","value":{"key":"c-feat-pro","type":"TableCell","props":{"children":"Advanced analytics"},"parentKey":"row-features"}}
-{"op":"add","path":"/elements/c-feat-biz","value":{"key":"c-feat-biz","type":"TableCell","props":{"children":"Custom analytics"},"parentKey":"row-features"}}`;
+{"op":"add","path":"/elements/c-req-biz","value":{"key":"c-req-biz","type":"TableCell","props":{"children":"Unlimited"},"parentKey":"row-requests"}}`;
 
 const EXAMPLE_DASHBOARD = `## Example (Dashboard with Stat Grid)
 
@@ -396,7 +372,9 @@ const CLOSING_RULES = `## Important
 - ALWAYS respond with ONLY JSONL lines. No markdown fences, no explanations, no text before or after.
 - If the user asks something that doesn't need a UI, still create a relevant informational UI using Banner, Text, and Surface components to display the answer visually.
 - Generate realistic mock data when the prompt asks for data you don't have access to (e.g., account stats, zone traffic). Use plausible placeholder values.
-- For Cloudflare-specific requests, generate mock dashboards with realistic-looking data.`;
+- For Cloudflare-specific requests, generate mock dashboards with realistic-looking data.
+- When asked to show component variants, render ACTUAL component instances (e.g. real Badge, Button, Banner elements) with each variant prop set — never just Text labels describing the variants.
+- Keep generated UIs concise. Limit to at most 30 elements per response. For variant showcases, pick 3-4 representative variants rather than every possible combination.`;
 
 // =============================================================================
 // Public API
@@ -417,7 +395,7 @@ const CLOSING_RULES = `## Important
  * - JSONL/RFC 6902 response format with UITree schema
  * - Available components (injected via `componentsSection`)
  * - Action system (built-in actions, dispatch rules)
- * - Six working examples (user card, form, table, dashboard, list, empty state)
+ * - Seven working examples (user card, counter, notification form, pricing table, dashboard, list, empty state)
  *
  * @example
  * ```ts
@@ -456,7 +434,6 @@ export function buildSystemPrompt(options: SystemPromptOptions = {}): string {
     componentsBlock,
     ACTION_SYSTEM,
     EXAMPLE_USER_CARD,
-    EXAMPLE_FORM,
     EXAMPLE_COUNTER,
     EXAMPLE_NOTIFICATION_PREFS_FORM,
     EXAMPLE_TABLE,

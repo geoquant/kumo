@@ -94,6 +94,11 @@ export function parsePatchLine(line: string): JsonPatchOp | null {
     return null;
   }
 
+  // Disallow empty-path patches (replace entire tree / wipe state).
+  if (obj.path === "" || obj.path === "/") {
+    return null;
+  }
+
   const op = obj.op;
   if (op !== "add" && op !== "replace" && op !== "remove") {
     return null;
@@ -154,7 +159,8 @@ function applyAdd(spec: UITree, segments: string[], value: unknown): UITree {
     return addToElements(spec, rest, value);
   }
 
-  return { ...spec, [first as string]: value };
+  // Ignore unknown top-level keys.
+  return spec;
 }
 
 function addToElements(
@@ -252,7 +258,8 @@ function applyReplace(
     return replaceInElements(spec, rest, value);
   }
 
-  return { ...spec, [first as string]: value };
+  // Ignore unknown top-level keys.
+  return spec;
 }
 
 function replaceInElements(

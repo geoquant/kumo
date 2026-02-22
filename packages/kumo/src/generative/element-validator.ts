@@ -13,12 +13,12 @@ import {
 } from "../../ai/schemas.js";
 import type { UIElement } from "../streaming/types";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function normalizeProps(input: unknown): Record<string, unknown> {
-  if (typeof input !== "object" || input === null) return {};
-  if (Array.isArray(input)) return {};
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(input)) out[k] = v;
-  return out;
+  return isRecord(input) ? input : {};
 }
 
 // ---------------------------------------------------------------------------
@@ -102,7 +102,12 @@ export function coerceElementProps(element: UIElement): UIElement {
     coerced[propName] = correctedValue;
   }
 
-  if (coerced == null) return { ...element, props };
+  if (coerced == null) {
+    // Preserve referential stability when nothing changes; this keeps
+    // WeakMap/WeakSet caches effective in the renderer.
+    if (props === element.props) return element;
+    return { ...element, props };
+  }
   return { ...element, props: coerced };
 }
 
@@ -278,7 +283,7 @@ export function repairElement(
 
   if (propsToStrip.size === 0) return null;
 
-  const originalProps = element.props as Record<string, unknown>;
+  const originalProps = normalizeProps(element.props);
   const repairedProps: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(originalProps)) {
     if (!propsToStrip.has(key)) {

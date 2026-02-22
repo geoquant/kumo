@@ -9,6 +9,9 @@ const MAX_MESSAGE_LENGTH = 2000;
 /** Maximum length (in characters) for each history entry. */
 const MAX_HISTORY_ENTRY_LENGTH = 4000;
 
+/** Maximum number of history entries accepted in a request. */
+const MAX_HISTORY_ENTRIES = 50;
+
 /**
  * Aggregate character budget for the full message array (system + history + user).
  * Prevents cost amplification from many long history entries.
@@ -48,12 +51,14 @@ function parseChatRequest(body: unknown): ChatRequest | null {
   if (typeof obj.message !== "string" || obj.message.trim().length === 0) {
     return null;
   }
-  if (obj.message.length > MAX_MESSAGE_LENGTH) {
+  const message = obj.message.trim();
+  if (message.length > MAX_MESSAGE_LENGTH) {
     return null;
   }
 
   let history: ChatRequest["history"] | undefined;
   if (Array.isArray(obj.history)) {
+    if (obj.history.length > MAX_HISTORY_ENTRIES) return null;
     const valid = obj.history.every(
       (entry: unknown) =>
         typeof entry === "object" &&
@@ -67,7 +72,7 @@ function parseChatRequest(body: unknown): ChatRequest | null {
     history = obj.history as ChatRequest["history"];
   }
 
-  return { message: obj.message, history };
+  return { message, history };
 }
 
 /**
@@ -169,23 +174,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const env = locals.runtime.env;
 
   // --- Rate limiting ---
-  const clientIp = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const clientIp = request.headers.get("cf-connecting-ip");
 
   try {
-    const { success } = await env.CHAT_RATE_LIMIT.limit({ key: clientIp });
-    if (!success) {
-      return new Response(
-        JSON.stringify({ error: "Rate limited. Try again in a minute." }),
-        {
-          status: 429,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+    // In dev/preview, this header is often missing; avoid collapsing
+    // all users into a single "unknown" rate-limit bucket.
+    if (clientIp) {
+      const { success } = await env.CHAT_RATE_LIMIT.limit({ key: clientIp });
+      if (!success) {
+        return new Response(
+          JSON.stringify({ error: "Rate limited. Try again in a minute." }),
+          {
+            status: 429,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
     }
   } catch (rateLimitErr) {
     console.error("[chat] rate limiter unavailable:", rateLimitErr);
-    // Fail open — prefer availability over blocking when the binding is down.
-    // The error is logged so operators can detect misconfiguration.
+    if (!import.meta.env.DEV) {
+      return new Response(
+        JSON.stringify({ error: "Rate limiting unavailable. Try again." }),
+        { status: 503, headers: { "Content-Type": "application/json" } },
+      );
+    }
   }
 
   // --- Parse request body ---
@@ -237,9 +250,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Append current user message
   messages.push({ role: "user", content: chatRequest.message });
 
-  // --- Aggregate token budget check ---
-  const totalChars = messages.reduce((sum, m) => sum + m.content.length, 0);
-  if (totalChars > MAX_TOTAL_MESSAGE_CHARS) {
+  // --- Aggregate token budget check (user + history only; system prompt is server-controlled) ---
+  const userChars = messages.reduce(
+    (sum, m) => (m.role === "system" ? sum : sum + m.content.length),
+    0,
+  );
+  if (userChars > MAX_TOTAL_MESSAGE_CHARS) {
     return new Response(
       JSON.stringify({
         error: "Conversation too long. Please start a new chat.",
@@ -250,20 +266,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // --- Stream from Workers AI ---
   try {
+    const aiOptions = import.meta.env.DEV
+      ? undefined
+      : {
+          gateway: {
+            id: AI_GATEWAY_ID,
+            cacheTtl: 0,
+          },
+        };
+
     const stream = await env.AI.run(
       MODEL_ID,
       {
         messages,
         stream: true,
-        max_tokens: 16384,
+        max_tokens: 4096,
         temperature: 0,
       },
-      {
-        gateway: {
-          id: AI_GATEWAY_ID,
-          cacheTtl: 0,
-        },
-      },
+      aiOptions,
     );
 
     // Workers AI returns a ReadableStream in SSE format when stream: true

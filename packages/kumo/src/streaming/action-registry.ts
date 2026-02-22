@@ -113,7 +113,7 @@ const SUBMIT_FORM_FIELD_TYPES = new Set([
 const SUBMIT_FORM_RUNTIME_VALUES_KEY = "runtimeValues";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function sortedRecord(
