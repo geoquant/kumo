@@ -122,7 +122,7 @@
         "Flow: coerce -> validate -> fail -> repair (strip remaining)",
         "Coerced props are preserved (not stripped) — the corrected value passes validation"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "validator-2",

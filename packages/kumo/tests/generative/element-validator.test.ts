@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
+  coerceElementProps,
   validateElement,
   repairElement,
   logValidationError,
@@ -244,6 +245,197 @@ describe("repairElement", () => {
       issues: [{ path: "(root)", message: "Something wrong" }],
     });
     expect(result).toBeNull();
+  });
+});
+
+describe("coerceElementProps", () => {
+  describe("Badge.variant coercions", () => {
+    it("coerces info → primary", () => {
+      const result = coerceElementProps(
+        el("b-1", "Badge", { variant: "info", children: "Status" }),
+      );
+      expect(result.props).toHaveProperty("variant", "primary");
+      expect(result.props).toHaveProperty("children", "Status");
+    });
+
+    it("coerces success → primary", () => {
+      const result = coerceElementProps(
+        el("b-2", "Badge", { variant: "success" }),
+      );
+      expect(result.props).toHaveProperty("variant", "primary");
+    });
+
+    it("coerces error → destructive", () => {
+      const result = coerceElementProps(
+        el("b-3", "Badge", { variant: "error" }),
+      );
+      expect(result.props).toHaveProperty("variant", "destructive");
+    });
+
+    it("coerces danger → destructive", () => {
+      const result = coerceElementProps(
+        el("b-4", "Badge", { variant: "danger" }),
+      );
+      expect(result.props).toHaveProperty("variant", "destructive");
+    });
+
+    it("coerces warning → outline", () => {
+      const result = coerceElementProps(
+        el("b-5", "Badge", { variant: "warning" }),
+      );
+      expect(result.props).toHaveProperty("variant", "outline");
+    });
+
+    it("does not coerce already-valid variant", () => {
+      const original = el("b-ok", "Badge", { variant: "primary" });
+      const result = coerceElementProps(original);
+      // Same ref returned when no coercion needed
+      expect(result).toBe(original);
+    });
+  });
+
+  describe("Stack.gap coercions", () => {
+    it("coerces medium → base", () => {
+      const result = coerceElementProps(el("s-1", "Stack", { gap: "medium" }));
+      expect(result.props).toHaveProperty("gap", "base");
+    });
+
+    it("coerces large → lg", () => {
+      const result = coerceElementProps(el("s-2", "Stack", { gap: "large" }));
+      expect(result.props).toHaveProperty("gap", "lg");
+    });
+
+    it("coerces small → sm", () => {
+      const result = coerceElementProps(el("s-3", "Stack", { gap: "small" }));
+      expect(result.props).toHaveProperty("gap", "sm");
+    });
+
+    it("coerces extra → xl", () => {
+      const result = coerceElementProps(el("s-4", "Stack", { gap: "extra" }));
+      expect(result.props).toHaveProperty("gap", "xl");
+    });
+
+    it("preserves valid gap value", () => {
+      const original = el("s-ok", "Stack", { gap: "base" });
+      expect(coerceElementProps(original)).toBe(original);
+    });
+  });
+
+  describe("Grid.gap coercions", () => {
+    it("coerces medium → base", () => {
+      const result = coerceElementProps(
+        el("g-1", "Grid", { gap: "medium", variant: "2up" }),
+      );
+      expect(result.props).toHaveProperty("gap", "base");
+      expect(result.props).toHaveProperty("variant", "2up");
+    });
+
+    it("coerces large → lg", () => {
+      const result = coerceElementProps(el("g-2", "Grid", { gap: "large" }));
+      expect(result.props).toHaveProperty("gap", "lg");
+    });
+
+    it("preserves valid gap value", () => {
+      const original = el("g-ok", "Grid", { gap: "sm" });
+      expect(coerceElementProps(original)).toBe(original);
+    });
+  });
+
+  describe("Text.variant coercions", () => {
+    it("coerces title → heading2", () => {
+      const result = coerceElementProps(
+        el("t-1", "Text", { variant: "title", children: "Hello" }),
+      );
+      expect(result.props).toHaveProperty("variant", "heading2");
+      expect(result.props).toHaveProperty("children", "Hello");
+    });
+
+    it("coerces subtitle → heading3", () => {
+      const result = coerceElementProps(
+        el("t-2", "Text", { variant: "subtitle" }),
+      );
+      expect(result.props).toHaveProperty("variant", "heading3");
+    });
+
+    it("coerces caption → secondary", () => {
+      const result = coerceElementProps(
+        el("t-3", "Text", { variant: "caption" }),
+      );
+      expect(result.props).toHaveProperty("variant", "secondary");
+    });
+
+    it("preserves valid variant", () => {
+      const original = el("t-ok", "Text", { variant: "body" });
+      expect(coerceElementProps(original)).toBe(original);
+    });
+  });
+
+  describe("no-op cases", () => {
+    it("returns same ref for unrecognized type", () => {
+      const original = el("x-1", "FancyWidget", { variant: "info" });
+      expect(coerceElementProps(original)).toBe(original);
+    });
+
+    it("returns same ref for non-string prop values", () => {
+      const original = el("n-1", "Badge", { variant: 42 });
+      expect(coerceElementProps(original)).toBe(original);
+    });
+
+    it("returns same ref when prop is not in coercion map", () => {
+      const original = el("n-2", "Badge", { variant: "totally_unknown" });
+      expect(coerceElementProps(original)).toBe(original);
+    });
+  });
+
+  describe("coercion + validation integration", () => {
+    it("Badge with 'error' variant passes validation after coercion", () => {
+      const original = el("b-int", "Badge", {
+        variant: "error",
+        children: "Fail",
+      });
+      // Without coercion, this would fail validation
+      const rawValidation = validateElement(original);
+      expect(rawValidation.valid).toBe(false);
+
+      // After coercion, it passes
+      const coerced = coerceElementProps(original);
+      const validation = validateElement(coerced);
+      expect(validation.valid).toBe(true);
+      expect(coerced.props).toHaveProperty("variant", "destructive");
+    });
+
+    it("Stack with 'medium' gap passes validation after coercion", () => {
+      const original = el("s-int", "Stack", { gap: "medium" });
+      expect(validateElement(original).valid).toBe(false);
+
+      const coerced = coerceElementProps(original);
+      expect(validateElement(coerced).valid).toBe(true);
+      expect(coerced.props).toHaveProperty("gap", "base");
+    });
+
+    it("Text with 'title' variant passes validation after coercion", () => {
+      const original = el("t-int", "Text", {
+        variant: "title",
+        children: "Heading",
+      });
+      expect(validateElement(original).valid).toBe(false);
+
+      const coerced = coerceElementProps(original);
+      expect(validateElement(coerced).valid).toBe(true);
+      expect(coerced.props).toHaveProperty("variant", "heading2");
+    });
+
+    it("coerced props survive (not stripped by repair)", () => {
+      // Badge "danger" → "destructive" via coercion, passes validation
+      const coerced = coerceElementProps(
+        el("b-surv", "Badge", { variant: "danger", children: "Alert" }),
+      );
+      const validation = validateElement(coerced);
+      // Should pass — no need for repair
+      expect(validation.valid).toBe(true);
+      // The coerced value is preserved in the element
+      expect(coerced.props).toHaveProperty("variant", "destructive");
+    });
   });
 });
 
