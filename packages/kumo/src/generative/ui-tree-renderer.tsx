@@ -18,6 +18,7 @@ import {
   type ActionDispatch,
 } from "../streaming/action-handler";
 import {
+  coerceElementProps,
   validateElement,
   logValidationError,
   logValidationRepair,
@@ -316,8 +317,8 @@ function RenderElement({
     );
   }
 
-  const element = elements[elementKey];
-  if (!element) {
+  const rawElement = elements[elementKey];
+  if (!rawElement) {
     // Missing keys are expected in generative UI — the LLM may declare child
     // references it never defines (output truncation, token limits, etc.).
     // During streaming they'll appear on the next patch; after streaming ends
@@ -326,9 +327,16 @@ function RenderElement({
     return null;
   }
 
-  // Validate element props against Kumo schema before rendering.
+  // Coerce known-invalid enum values to valid equivalents BEFORE validation.
+  // This preserves the LLM's semantic intent (e.g. Badge "success" → "primary")
+  // instead of stripping the prop entirely via repair.
+  const element = coerceElementProps(rawElement);
+
+  // Validate the coerced element's props against Kumo schema before rendering.
   // On failure, attempt to repair by stripping invalid props so the
   // component renders with defaults instead of showing an error box.
+  // Note: we validate the coerced element (not rawElement) so corrected
+  // enum values pass through validation and survive into the rendered output.
   const validation = getElementValidation(element);
   if (!validation.valid) {
     const repaired = repairElement(element, validation);
