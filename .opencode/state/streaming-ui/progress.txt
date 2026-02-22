@@ -21,6 +21,7 @@ Started: 2026-02-21
 - React 19 forwardRef components are `typeof === "object"`, not `"function"` — accept function/object/string when checking React component values
 - vitest.config.ts `tests/` include glob was `.ts` only — needed `.{ts,tsx}` to pick up tsx test files in tests/ directory
 - COMPONENT_MAP mutation in tests: cast via `(COMPONENT_MAP as Record<string, unknown>)` to avoid type errors when injecting spy components (no `any` casts)
+- UMD loadable build: separate `vite.loadable.config.ts` with `@tailwindcss/vite` plugin, no `@vitejs/plugin-react` needed (esbuild handles JSX via tsconfig `jsx: "react-jsx"`), `cssCodeSplit: false` for single CSS output, `inlineDynamicImports: true` for UMD compat
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -181,3 +182,14 @@ Started: 2026-02-21
 - `index.ts`: window.CloudflareKumo API with 15+ methods; imports split across `../streaming/` (data layer) and `../generative/` (UITreeRenderer)
 - No build wiring yet (separate task loadable-2 — UMD vite config + package.json exports)
 - **Learnings:** Loadable module straddles streaming (patch/parser/actions/runtime) and generative (UITreeRenderer) — it's a thin orchestration layer, not a new domain. Action types come from `action-types.ts` not `action-handler.ts` to keep the type import lightweight.
+
+## Task - loadable-2
+- Created UMD Vite build config and wired package exports
+- New file: `vite.loadable.config.ts`
+- Modified: `package.json` (added `build:loadable` script, `./loadable/kumo-loadable.umd.js` and `./loadable/style.css` exports)
+- Config: UMD format, `@tailwindcss/vite` for CSS processing, React bundled (not external), ES2017 target, `inlineDynamicImports: true`, `cssCodeSplit: false`
+- No `@vitejs/plugin-react` needed — Vite's esbuild handles JSX via tsconfig `jsx: "react-jsx"`
+- `@cloudflare/kumo/styles/standalone` aliased to source CSS so Tailwind plugin processes directives
+- Output: `dist/loadable/kumo-loadable.umd.js` (1010KB raw, 303KB gzip) + `dist/loadable/style.css` (74KB raw, 13KB gzip) = ~316KB gzip total
+- All 862 tests pass, typecheck clean, lint clean (0 errors)
+- **Learnings:** UMD loadable build doesn't need `@vitejs/plugin-react` — esbuild's JSX transform suffices for production builds. The `@tailwindcss/vite` plugin is essential to process `@import "tailwindcss"` directives in standalone CSS. `"use client"` directive warnings from bundled deps are harmless in UMD context (no RSC).
