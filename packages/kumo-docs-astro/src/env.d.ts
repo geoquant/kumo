@@ -13,7 +13,15 @@ interface WorkersAi {
   run(
     model: string,
     inputs: Record<string, unknown>,
-    options?: { gateway?: { id: string } },
+    options?: {
+      gateway?: {
+        id: string;
+        /** Cache TTL in seconds. Identical requests served from cache at zero cost. */
+        cacheTtl?: number;
+        /** Skip cache for this request. */
+        skipCache?: boolean;
+      };
+    },
   ): Promise<ReadableStream | Record<string, unknown>>;
 }
 
