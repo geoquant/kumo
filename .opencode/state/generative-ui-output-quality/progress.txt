@@ -1,0 +1,59 @@
+# Progress Log
+PRD: generative-ui-output-quality
+Started: 2026-02-21
+
+## Codebase Patterns
+- **JSONL → UITree pipeline**: `createJsonlParser().push(chunk)` → `JsonPatchOp[]` → `applyPatch(tree, op)` → new `UITree`. Parser in `src/streaming/jsonl-parser.ts`, patch engine in `src/streaming/rfc6902.ts`.
+- **UITree is flat**: `{ root: string, elements: Record<string, UIElement> }`. Children referenced by key arrays, not nesting.
+- **UIElement**: `{ key, type, props, children?: string[], parentKey?: string }`. Types map to COMPONENT_MAP entries.
+- **COMPONENT_MAP layers**: direct (18) → sub-component aliases (12) → type aliases (1) → generative wrappers (5) → stateful wrappers (5) → synthetic (1). In `src/generative/component-map.ts`.
+- **Validation flow**: `validateElement()` checks props against Zod schemas from `ai/schemas.ts`. `repairElement()` strips invalid top-level props. Sub-components (TableRow, SelectOption) skip validation.
+- **Test pattern**: Vitest with `@/` path aliases resolved at runtime (LSP shows errors but tests run fine). `happy-dom` environment.
+- **Generative wrapper pattern**: `forwardRef`, read prop, default if missing, delegate to real component. See `src/generative/generative-wrappers.tsx`.
+- **Normalization pattern**: Functions like `normalizeSiblingFormRowGrids` mutate tree in `useMemo` chain in `ui-tree-renderer.tsx:107`.
+- **Branch**: `geoquant/streaming-ui` — do NOT change branches.
+
+---
+
+## Audit: 2026-02-21
+
+### Status per PRD Task
+
+| ID            | Task                                | Status  |
+|---------------|-------------------------------------|---------|
+| testing-1     | Structural graders + fixtures       | DONE    |
+| prompt-1      | 3 new few-shot examples             | MISSING (3 exist, need 3 more) |
+| prompt-2      | Anti-patterns + composition recipes | MISSING |
+| prompt-3      | Prompt builder enhancements         | MISSING |
+| generative-1  | GenerativeGrid wrapper              | MISSING |
+| generative-2  | GenerativeStack wrapper             | MISSING |
+| generative-3  | GenerativeText wrapper              | MISSING |
+| validator-1   | ENUM_COERCION_MAP + pre-Zod coerce  | MISSING |
+| validator-2   | normalizeSurfaceOrphans()           | MISSING |
+| endpoint-1    | Chat endpoint maxProps + components | PARTIAL (maxProps=6, Field/Label/ClipboardText absent) |
+| integration-1 | Full integration verification       | MISSING |
+
+### Existing Infrastructure
+- 5 generative wrappers: Surface, Input, InputArea, CloudflareLogo, Select
+- 3 few-shot examples: user-card, form, table
+- INTERESTING_PROP_NAMES scoring exists (+1 tier)
+- normalizeSiblingFormRowGrids() normalization exists (pattern to follow)
+- repairElement() strips invalid props (coercion layer goes before this)
+- 11 generative test files (structural graders added)
+
+---
+
+## Task - testing-1
+- Implemented structural graders: `parseJsonlToTree()`, `walkTree()`, `gradeTree()` with 8 quality rules
+- Created 4 JSONL fixture files: user-card, settings-form, counter, pricing-table
+- 27 tests total: 2 parseJsonlToTree, 1 walkTree, 24 gradeTree (8 rule pass/fail + 4 fixture sweep)
+- Files changed:
+  - `tests/generative/structural-graders.test.ts` (new, ~595 lines)
+  - `tests/generative/fixtures/user-card.jsonl` (new)
+  - `tests/generative/fixtures/settings-form.jsonl` (new)
+  - `tests/generative/fixtures/counter.jsonl` (new)
+  - `tests/generative/fixtures/pricing-table.jsonl` (new)
+- **Learnings:**
+  - Orphan detection must run outside `walkTree` — orphans are by definition unreachable from root
+  - `Object.values(tree.elements)` returns `unknown` in strict TS; cast to `UIElement[]`
+  - Fixtures derived from system-prompt.ts examples ensure consistency between prompt examples and grader expectations

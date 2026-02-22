@@ -1,0 +1,8 @@
+{"op":"add","path":"/root","value":"card"}
+{"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["stack"]}}
+{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["title","count","actions"],"parentKey":"card"}}
+{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Counter","variant":"heading2"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/count","value":{"key":"count","type":"Text","props":{"children":"0","variant":"heading1"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/actions","value":{"key":"actions","type":"Cluster","props":{"gap":"sm","justify":"center"},"children":["dec-btn","inc-btn"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/dec-btn","value":{"key":"dec-btn","type":"Button","props":{"children":"Decrement","variant":"secondary"},"parentKey":"actions","action":{"name":"decrement","params":{"target":"count"}}}}
+{"op":"add","path":"/elements/inc-btn","value":{"key":"inc-btn","type":"Button","props":{"children":"Increment","variant":"primary"},"parentKey":"actions","action":{"name":"increment","params":{"target":"count"}}}}

@@ -1,0 +1,22 @@
+{"op":"add","path":"/root","value":"card"}
+{"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["stack"]}}
+{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["title","tbl"],"parentKey":"card"}}
+{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Choose your plan","variant":"heading2"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/tbl","value":{"key":"tbl","type":"Table","props":{"layout":"fixed"},"children":["thead","tbody"],"parentKey":"stack"}}
+{"op":"add","path":"/elements/thead","value":{"key":"thead","type":"TableHeader","props":{},"children":["hrow"],"parentKey":"tbl"}}
+{"op":"add","path":"/elements/hrow","value":{"key":"hrow","type":"TableRow","props":{},"children":["h-blank","h-free","h-pro","h-biz"],"parentKey":"thead"}}
+{"op":"add","path":"/elements/h-blank","value":{"key":"h-blank","type":"TableHead","props":{"children":""},"parentKey":"hrow"}}
+{"op":"add","path":"/elements/h-free","value":{"key":"h-free","type":"TableHead","props":{"children":"Free"},"parentKey":"hrow"}}
+{"op":"add","path":"/elements/h-pro","value":{"key":"h-pro","type":"TableHead","props":{"children":"Pro"},"parentKey":"hrow"}}
+{"op":"add","path":"/elements/h-biz","value":{"key":"h-biz","type":"TableHead","props":{"children":"Business"},"parentKey":"hrow"}}
+{"op":"add","path":"/elements/tbody","value":{"key":"tbody","type":"TableBody","props":{},"children":["row-price","row-requests"],"parentKey":"tbl"}}
+{"op":"add","path":"/elements/row-price","value":{"key":"row-price","type":"TableRow","props":{},"children":["lbl-price","c-price-free","c-price-pro","c-price-biz"],"parentKey":"tbody"}}
+{"op":"add","path":"/elements/lbl-price","value":{"key":"lbl-price","type":"TableCell","props":{"children":"Monthly price"},"parentKey":"row-price"}}
+{"op":"add","path":"/elements/c-price-free","value":{"key":"c-price-free","type":"TableCell","props":{"children":"$0"},"parentKey":"row-price"}}
+{"op":"add","path":"/elements/c-price-pro","value":{"key":"c-price-pro","type":"TableCell","props":{"children":"$20"},"parentKey":"row-price"}}
+{"op":"add","path":"/elements/c-price-biz","value":{"key":"c-price-biz","type":"TableCell","props":{"children":"$200"},"parentKey":"row-price"}}
+{"op":"add","path":"/elements/row-requests","value":{"key":"row-requests","type":"TableRow","props":{},"children":["lbl-req","c-req-free","c-req-pro","c-req-biz"],"parentKey":"tbody"}}
+{"op":"add","path":"/elements/lbl-req","value":{"key":"lbl-req","type":"TableCell","props":{"children":"Requests / day"},"parentKey":"row-requests"}}
+{"op":"add","path":"/elements/c-req-free","value":{"key":"c-req-free","type":"TableCell","props":{"children":"100K"},"parentKey":"row-requests"}}
+{"op":"add","path":"/elements/c-req-pro","value":{"key":"c-req-pro","type":"TableCell","props":{"children":"10M"},"parentKey":"row-requests"}}
+{"op":"add","path":"/elements/c-req-biz","value":{"key":"c-req-biz","type":"TableCell","props":{"children":"Unlimited"},"parentKey":"row-requests"}}
