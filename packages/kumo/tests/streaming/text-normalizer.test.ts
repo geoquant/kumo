@@ -4,7 +4,7 @@ import {
   sanitizePatch,
   sanitizeUnknownText,
   stripLeadingEmojiTokens,
-} from "@/streaming/text-sanitizer";
+} from "@/streaming/text-normalizer";
 import type { JsonPatchOp } from "@/streaming/rfc6902";
 
 describe("stripLeadingEmojiTokens", () => {

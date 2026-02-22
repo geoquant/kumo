@@ -13,6 +13,7 @@
 import type { ActionEvent } from "./action-types";
 import type { UITree } from "./types";
 import type { JsonPatchOp } from "./rfc6902";
+import { sanitizeUrl } from "./url-policy";
 
 // =============================================================================
 // Result types — discriminated union on `type`
@@ -359,11 +360,14 @@ function handleNavigate(
   const url = event.params?.url;
   if (typeof url !== "string" || url.length === 0) return null;
 
+  const sanitized = sanitizeUrl(url);
+  if (!sanitized.ok) return null;
+
   const target = event.params?.target;
 
   return {
     type: "external",
-    url,
+    url: sanitized.url,
     ...(typeof target === "string" ? { target } : undefined),
   };
 }

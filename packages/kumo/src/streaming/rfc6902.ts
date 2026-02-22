@@ -8,6 +8,11 @@
  *   /root          → tree.root
  *   /elements/key  → tree.elements[key]
  *   /elements/key/children/- → append to children array
+ *
+ * Limitation: Array operations are limited to `/-` (append). Indexed array
+ * operations (e.g. `/elements/key/children/0`) are NOT supported — the path
+ * segment is treated as an object key, not an array index. This is intentional:
+ * the streaming protocol only uses object nesting and `/-` for child appends.
  */
 
 import type { UITree, UIElement } from "./types";
@@ -51,6 +56,8 @@ function toElement(rec: AnyRecord): UIElement {
  */
 export function applyPatch(spec: UITree, patch: JsonPatchOp): UITree {
   const segments = parsePath(patch.path);
+  // Blocked path (prototype pollution) — return unchanged tree.
+  if (segments === null) return spec;
 
   switch (patch.op) {
     case "add":
@@ -111,8 +118,9 @@ export function parsePatchLine(line: string): JsonPatchOp | null {
 /** Segments that must never appear in a JSON Pointer path (prototype pollution). */
 const BLOCKED_SEGMENTS = new Set(["__proto__", "constructor", "prototype"]);
 
-/** Parse a JSON Pointer path into segments. Leading "/" is stripped. */
-function parsePath(path: string): string[] {
+/** Parse a JSON Pointer path into segments. Leading "/" is stripped.
+ *  Returns `null` when the path contains a blocked segment (prototype pollution). */
+function parsePath(path: string): string[] | null {
   if (path === "" || path === "/") return [];
   const raw = path.startsWith("/") ? path.slice(1) : path;
   // RFC 6901: ~1 → /, ~0 → ~
@@ -121,7 +129,7 @@ function parsePath(path: string): string[] {
     .map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"));
 
   for (const seg of segments) {
-    if (BLOCKED_SEGMENTS.has(seg)) return [];
+    if (BLOCKED_SEGMENTS.has(seg)) return null;
   }
 
   return segments;
