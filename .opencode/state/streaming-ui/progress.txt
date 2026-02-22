@@ -19,6 +19,8 @@ Started: 2026-02-21
 - `Object.assign(StatefulSelectInner, { Option: Select.Option })` pattern for compound function components (avoids `.Option` property type issue on plain functions)
 - Cross-module imports: generative→streaming uses `../streaming/X`, generative→ai uses `../../ai/schemas.js` (relative, not `@cloudflare/kumo/ai/schemas`)
 - React 19 forwardRef components are `typeof === "object"`, not `"function"` — accept function/object/string when checking React component values
+- vitest.config.ts `tests/` include glob was `.ts` only — needed `.{ts,tsx}` to pick up tsx test files in tests/ directory
+- COMPONENT_MAP mutation in tests: cast via `(COMPONENT_MAP as Record<string, unknown>)` to avoid type errors when injecting spy components (no `any` casts)
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -157,3 +159,15 @@ Started: 2026-02-21
 - React 19 `forwardRef` returns objects (not functions) — type checks use `function || object || string` not just `function || string`
 - All 783 tests pass, typecheck clean, lint clean
 - **Learnings:** React 19 forwardRef components have `typeof === "object"`, not `"function"`. When checking if a value is a valid React component, accept function/object/string. Codegen staleness tests should dynamic-import the generator and compare output vs checked-in file rather than hash-based checks.
+
+## Task - generative-5
+- Ported 9 generative rendering test files to `packages/kumo/tests/generative/`
+- Files: `element-validator.test.ts`, `element-validation-rendering.test.tsx`, `stateful-wrappers.test.tsx`, `ui-tree-renderer-action.test.tsx`, `streaming-action-integration.test.tsx`, `use-ui-tree-on-action.test.tsx`, `runtime-value-capture.test.tsx`, `layout-normalization.test.tsx`, `component-map-new-entries.test.tsx`
+- 63 new tests across 9 files, all passing (862 total)
+- Import path changes: `../core/X` → `@/generative/X` or `@/streaming/X` (vitest alias)
+- ActionEvent/ActionDispatch types imported from `@/streaming/action-types` (not action-handler)
+- Removed `eslint-disable-next-line @typescript-eslint/no-explicit-any` comments (rule not configured)
+- COMPONENT_MAP spy injection uses `Record<string, unknown>` cast instead of `any` cast
+- Fixed vitest.config.ts: `tests/**/*.{test,spec}.ts` → `tests/**/*.{test,spec}.{ts,tsx}` to include tsx test files
+- Typecheck, lint, and all 862 tests pass cleanly
+- **Learnings:** vitest.config.ts `tests/` include glob was `.ts` only — needed `.{ts,tsx}` for tsx tests; cast COMPONENT_MAP via `Record<string, unknown>` not `any` for spy injection
