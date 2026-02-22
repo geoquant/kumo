@@ -289,7 +289,7 @@
         "Verify: works in both light and dark mode",
         "Verify: graceful degradation if AI unavailable (error message, not crash)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-4",
