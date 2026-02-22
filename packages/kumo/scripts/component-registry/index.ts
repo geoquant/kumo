@@ -57,6 +57,7 @@ import {
 } from "./sub-components.js";
 import { generateAIContext } from "./markdown-generator.js";
 import { generateSchemasFile } from "./schema-generator.js";
+import { generateComponentManifest } from "./generative-map-generator.js";
 import {
   PASSTHROUGH_COMPONENT_DOCS,
   ADDITIONAL_COMPONENT_PROPS,
@@ -913,6 +914,14 @@ async function main() {
   const schemasPath = join(outputDir, "schemas.ts");
   writeFileSync(schemasPath, schemasContent);
   console.log(`✓ Generated ${schemasPath}`);
+
+  // Write generative component manifest
+  const manifestContent = generateComponentManifest(registry);
+  const generativeDir = join(__dirname, "../../src/generative");
+  mkdirSync(generativeDir, { recursive: true });
+  const manifestPath = join(generativeDir, "component-manifest.ts");
+  writeFileSync(manifestPath, manifestContent);
+  console.log(`✓ Generated ${manifestPath}`);
 
   // Also output to stdout for piping
   console.log("\n--- Registry Summary ---");

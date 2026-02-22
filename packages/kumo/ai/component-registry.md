@@ -2336,6 +2336,7 @@ Close sub-component
                 variant="secondary"
                 shape="square"
                 icon={<X />}
+                aria-label="Close"
               />
             )}
           />
@@ -2364,6 +2365,7 @@ Close sub-component
                 variant="secondary"
                 shape="square"
                 icon={<X />}
+                aria-label="Close"
               />
             )}
           />

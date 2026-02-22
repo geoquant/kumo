@@ -137,7 +137,7 @@
         "Verify: pnpm codegen:registry generates both files",
         "Verify: component map has entries for all 37+ registry components"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "generative-2",
