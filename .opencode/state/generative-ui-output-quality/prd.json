@@ -37,7 +37,7 @@
         "All examples included in buildSystemPrompt() sections array",
         "Total examples: 6 (3 existing + 3 new)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "prompt-2",
