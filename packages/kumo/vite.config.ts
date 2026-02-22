@@ -214,6 +214,8 @@ export default defineConfig(({ mode }) => {
           "code/server": resolve(__dirname, "src/code/server.tsx"),
           // Streaming module entry point (JSONL parser, RFC 6902, hooks, actions)
           streaming: resolve(__dirname, "src/streaming/index.ts"),
+          // Generative module entry point (UITreeRenderer, component map, element validator)
+          generative: resolve(__dirname, "src/generative/index.ts"),
           // AI schemas for runtime validation (compiled to avoid consumers type-checking raw .ts)
           "ai/schemas": resolve(__dirname, "ai/schemas.ts"),
           // Theme generator utilities for consumers extending the theme
