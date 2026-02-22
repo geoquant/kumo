@@ -43,6 +43,23 @@ export { validateElement, logValidationError } from "./element-validator.js";
 
 export type { ElementValidationResult } from "./element-validator.js";
 
+// Structural graders
+export {
+  parseJsonlToTree,
+  walkTree,
+  gradeTree,
+  A11Y_LABEL_TYPES,
+  MAX_DEPTH,
+  RULE_NAMES,
+} from "./structural-graders.js";
+
+export type {
+  WalkVisitor,
+  GradeResult,
+  GradeReport,
+  RuleName,
+} from "./structural-graders.js";
+
 // UITreeRenderer
 export {
   UITreeRenderer,

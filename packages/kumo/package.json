@@ -418,6 +418,7 @@
     "test:coverage": "vitest run --coverage",
     "test:exports": "vitest run --project=unit tests/imports/export-path-validation.test.ts",
     "test:watch": "vitest run --project=unit --watch",
+    "eval": "tsx scripts/eval-generative.ts",
     "typecheck": "tsc --noEmit",
     "validate:build": "vitest run --project=unit tests/imports/export-path-validation.test.ts",
     "validate:changeset": "tsx ../../ci/scripts/validate-kumo-changeset.ts"

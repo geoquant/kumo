@@ -46,3 +46,7 @@ coverage/
 # Temporary files
 *.tmp
 .cache/
+
+# Eval harness (local-only, environment-specific)
+.eval-baselines/
+.eval-outputs/
