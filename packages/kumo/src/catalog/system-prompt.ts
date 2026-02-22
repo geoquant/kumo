@@ -53,6 +53,36 @@ Every UI MUST use layout components to structure content. NEVER put children dir
 - **Form**: \`Surface > Stack(gap="lg") > [Text(heading), Input, Select, Button]\`
 - **Side-by-side**: \`Grid(variant="2up") > [Surface > Stack > ..., Surface > Stack > ...]\``;
 
+const LAYOUT_ANTI_PATTERNS = `## Layout Anti-Patterns (NEVER Do These)
+
+- **NEVER** put multiple children directly in Surface without a Stack wrapper. Surface is a card container, not a layout engine. Always: \`Surface > Stack > [children]\`.
+- **NEVER** use Grid without specifying \`variant\` or \`columns\`. An unconfigured Grid collapses to a single column and adds no value. Always set \`variant\` (e.g. "2up", "3up", "4up").
+- **NEVER** nest Surface directly inside Surface. Surfaces are cards — to place cards side-by-side, put a Grid between them: \`Surface > Stack > Grid > [Surface, Surface]\`.
+- **NEVER** use Div when Stack, Grid, or Cluster can express the intent. Div is a generic escape hatch. Prefer semantic layout components:
+  - Vertical stacking → Stack
+  - Multi-column → Grid
+  - Horizontal inline → Cluster`;
+
+const COMPOSITION_RECIPES = `## Composition Recipes
+
+Use these proven patterns for common UI structures:
+
+| Pattern | Structure | Key Props |
+|---------|-----------|-----------|
+| Section header | \`Stack(gap="sm") > [Text(heading2), Text(secondary)]\` | Stack.gap="sm" for tight label/sublabel |
+| Stat grid | \`Grid(variant="4up") > [Surface > Stack(gap="sm") > [Text(secondary), Text(heading2)], ...]\` | Grid.variant for column count, inner Stack.gap="sm" |
+| Form group | \`Stack(gap="lg") > [Text(heading2), Input, Select, Button(primary)]\` | Stack.gap="lg" for breathing room between fields |
+| Action bar | \`Cluster(gap="sm", justify="end") > [Button(secondary), Button(primary)]\` | Cluster.justify="end" right-aligns; primary button last |
+| Key-value pair | \`Stack(gap="xs") > [Text(secondary), Text(body)]\` | Stack.gap="xs" for tight label/value |
+| Status list row | \`TableRow > [TableCell, TableCell, Badge(variant), TableCell]\` | Badge.variant: "primary"=active, "secondary"=pending, "destructive"=error |
+
+### Prop Usage Guidance
+
+- **Stack.gap** — \`"sm"\` for tight groups (label + value), \`"base"\` for standard spacing, \`"lg"\` for top-level sections in a card
+- **Grid.variant** — \`"2up"\` for side-by-side, \`"3up"\` for trio layouts, \`"4up"\` for stat dashboards. ALWAYS specify.
+- **Cluster.justify** — \`"start"\` (default) for left-aligned groups, \`"end"\` for right-aligned action bars, \`"between"\` for spread layouts
+- **Surface** — outermost card container. Nest inside Grid for multi-card layouts. Do not set layout props on Surface itself — delegate to inner Stack/Grid.`;
+
 const ACCESSIBILITY = `## Accessibility (Required)
 
 Every form element MUST be labelled so screen readers can announce it:
@@ -315,6 +345,8 @@ const CLOSING_RULES = `## Important
  *
  * Sections included:
  * - Design rules (one primary action, semantic grouping, no emoji)
+ * - Layout anti-patterns (4 NEVER rules for common LLM mistakes)
+ * - Composition recipes (6 proven patterns with prop guidance)
  * - Accessibility requirements (labelled form elements)
  * - JSONL/RFC 6902 response format with UITree schema
  * - Available components (injected via `componentsSection`)
@@ -347,6 +379,8 @@ export function buildSystemPrompt(options: SystemPromptOptions = {}): string {
   const sections = [
     preamble,
     DESIGN_RULES,
+    LAYOUT_ANTI_PATTERNS,
+    COMPOSITION_RECIPES,
     ACCESSIBILITY,
     RESPONSE_FORMAT,
     componentsBlock,
