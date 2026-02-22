@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from "astro/config";
+import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
 import { execSync } from "child_process";
@@ -69,6 +70,9 @@ const kumoSrc = resolve(__dirname, "../kumo/src");
 
 // https://astro.build/config
 export default defineConfig({
+  adapter: cloudflare({
+    platformProxy: { enabled: true },
+  }),
   integrations: [react(), sitemap()],
   site: "https://kumo-ui.com/",
   vite: {

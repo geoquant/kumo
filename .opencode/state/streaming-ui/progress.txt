@@ -23,6 +23,10 @@ Started: 2026-02-21
 - COMPONENT_MAP mutation in tests: cast via `(COMPONENT_MAP as Record<string, unknown>)` to avoid type errors when injecting spy components (no `any` casts)
 - UMD loadable build: separate `vite.loadable.config.ts` with `@tailwindcss/vite` plugin, no `@vitejs/plugin-react` needed (esbuild handles JSX via tsconfig `jsx: "react-jsx"`), `cssCodeSplit: false` for single CSS output, `inlineDynamicImports: true` for UMD compat
 - Loadable tests need `@cloudflare/kumo/styles/standalone` alias in `vitest.config.ts` — without it, vitest can't resolve the CSS import in `loadable/index.ts`. The UMD build config has the alias but vitest config didn't; must be added to both top-level and project-level resolve.alias
+- `@astrojs/cloudflare` adapter: add without `output: 'server'` in astro config — Astro 5 defaults to static prerender, adapter enables per-page SSR via `export const prerender = false`. All existing pages stay static without modification.
+- Cloudflare SSR wrangler config: needs `main`, `compatibility_flags: ["nodejs_compat"]`, `assets.binding: "ASSETS"` in addition to `assets.directory`
+- `env.d.ts` for Cloudflare bindings: define minimal type interfaces inline (WorkersAi, WorkersRateLimit) rather than importing from `@cloudflare/workers-types` which may not be a direct dependency
+- `public/.assetsignore` with `_worker.js` is required for Cloudflare Workers deployment to exclude the worker script from static asset serving
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -208,3 +212,16 @@ Started: 2026-02-21
 - Action runtime test: verifies increment built-in + submit_form message dispatch
 - Tree access test: verifies getTree, subscribeTree, applyPatch/applyPatches notification
 - **Learnings:** `@cloudflare/kumo/styles/standalone` must be aliased in vitest.config.ts (both top-level + project-level) for loadable tests — the loadable entry imports this CSS, and without the alias vitest's vite:import-analysis plugin errors out
+
+## Task - docs-1
+- Added Cloudflare SSR adapter and Workers AI binding to docs site
+- Installed `@astrojs/cloudflare@^12.2.1` as dependency
+- Updated `astro.config.mjs`: imported cloudflare adapter, added `adapter: cloudflare({ platformProxy: { enabled: true } })`
+- Updated `wrangler.jsonc`: added `main` (worker entry), `compatibility_flags: ["nodejs_compat"]`, `assets.binding: "ASSETS"`, `ai` binding (`AI`), `ratelimits` binding (`CHAT_RATE_LIMIT` — 20 req/60s)
+- Created `src/env.d.ts` with `KumoDocsEnv` type (WorkersAi, WorkersRateLimit interfaces), `Runtime` type from adapter, `App.Locals` namespace extension
+- Created `public/.assetsignore` to exclude `_worker.js` from static assets
+- All 50+ pages still prerender as static (no `output: 'server'` — adapter enables per-page SSR opt-in)
+- Build produces `dist/_worker.js/index.js` for Cloudflare Workers
+- Pre-existing typecheck (SearchDialog.tsx:316) and lint errors (TabsDemo a11y, sort() warnings) confirmed unchanged
+- Files changed: `astro.config.mjs`, `wrangler.jsonc`, `package.json`, `pnpm-lock.yaml`, `src/env.d.ts` (new), `public/.assetsignore` (new)
+- **Learnings:** Astro 5 with `@astrojs/cloudflare` doesn't require `output: 'server'` — the adapter enables SSR capability while keeping static prerender as default. Future SSR pages use `export const prerender = false`. The `platformProxy: { enabled: true }` option enables `Astro.locals.runtime.env` access during local dev.
