@@ -18,6 +18,7 @@ Started: 2026-02-21
 - Codegen-as-manifest pattern: generate pure data (arrays/objects) not React components; hand-written code imports manifest. Drift detection tests compare manifest against registry.
 - `Object.assign(StatefulSelectInner, { Option: Select.Option })` pattern for compound function components (avoids `.Option` property type issue on plain functions)
 - Cross-module imports: generative→streaming uses `../streaming/X`, generative→ai uses `../../ai/schemas.js` (relative, not `@cloudflare/kumo/ai/schemas`)
+- React 19 forwardRef components are `typeof === "object"`, not `"function"` — accept function/object/string when checking React component values
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -148,3 +149,11 @@ Started: 2026-02-21
 - Build produces `dist/generative.js` (18KB) and `dist/src/generative/index.d.ts` (types)
 - All 747 tests pass including 129 package-json-validation tests covering new export
 - **Learnings:** ESLint config only has jsx-a11y rules; `@typescript-eslint/*` rules are not configured. Don't use `eslint-disable-next-line @typescript-eslint/*` comments — they cause "Definition for rule not found" errors.
+
+## Task - generative-4
+- Created `packages/kumo/tests/generative/drift-detection.test.ts` with 36 tests across 7 describe blocks
+- Tests cover: registry coverage, COMPONENT_MAP entry validity, stateful wrapper presence, generative wrapper presence, no stale entries, excluded component documentation, codegen staleness
+- Codegen staleness test: dynamically imports `generateComponentManifest`, runs it against live registry JSON, compares output to checked-in `component-manifest.ts`
+- React 19 `forwardRef` returns objects (not functions) — type checks use `function || object || string` not just `function || string`
+- All 783 tests pass, typecheck clean, lint clean
+- **Learnings:** React 19 forwardRef components have `typeof === "object"`, not `"function"`. When checking if a value is a valid React component, accept function/object/string. Codegen staleness tests should dynamic-import the generator and compare output vs checked-in file rather than hash-based checks.

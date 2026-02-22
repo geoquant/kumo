@@ -180,7 +180,7 @@
         "Add codegen staleness check: fail if generated files differ from checked-in",
         "Verify: pnpm --filter @cloudflare/kumo test passes drift tests"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "generative-5",
