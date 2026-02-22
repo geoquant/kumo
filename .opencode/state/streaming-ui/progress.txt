@@ -239,3 +239,19 @@ Started: 2026-02-21
 - Input validation: `parseChatRequest()` validates body shape without type assertions
 - Files changed: `src/pages/api/chat.ts` (new)
 - **Learnings:** Workers AI `env.AI.run(model, { messages, stream: true })` returns a `ReadableStream` that can be passed directly to `new Response()` with `text/event-stream` content-type. The SSE wire format is `data: {"response":"...token..."}\n\n` ending with `data: [DONE]\n\n`. Astro `APIRoute` receives `locals.runtime.env` for Cloudflare bindings via the adapter.
+
+## Task - docs-3
+- Created `src/components/demos/StreamingDemo.tsx` — live generative UI chat demo
+- Composes `@cloudflare/kumo/streaming` (useUITree, createJsonlParser, action system) + `@cloudflare/kumo/generative` (UITreeRenderer, isRenderableTree)
+- Dual state pattern: `chatHistory` (visual chat bubbles) + `apiHistory` (conversation context for API)
+- SSE parsing: custom `readSSEStream()` reads Workers AI wire format (`data: {"response":"..."}` lines)
+- Fresh parser per stream: `createJsonlParser()` created per handleSubmit, patches applied via `applyPatches`
+- Preset prompt pills: 4 presets (user card, settings form, counter, pricing table), disabled during streaming
+- Action handling: `dispatchAction(BUILTIN_HANDLERS, event, tree)` + `processActionResult` with null guard
+- Stable refs for stale-closure avoidance: `treeRef`, `applyPatchesRef`, `handleSubmitRef` synced each render
+- History snapshots: `structuredClone(tree)` before reset, rendered non-interactively with `pointer-events-none`
+- Graceful error handling: abort controller cleanup, partial flush on error, error banner display
+- Used plain `<span>` elements instead of kumo `Text` — `Text` component uses `DANGEROUS_className` pattern incompatible with Tailwind utility classes on the element itself
+- Badge variant: `primary` (no `info` variant exists), Loader size: `sm` (no `xs` size exists)
+- Files changed: `src/components/demos/StreamingDemo.tsx` (new)
+- **Learnings:** Kumo `Text` component does not accept `className` — it uses `DANGEROUS_className` for escape-hatch styling. For demo chrome where Tailwind utilities are needed directly, use plain `<span>` elements instead. Badge has 5 variants (primary/secondary/destructive/outline/beta), no `info`. Loader sizes are sm/base/lg, no `xs`.
