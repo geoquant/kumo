@@ -367,6 +367,8 @@
       "types": "./dist/ai/schemas.d.ts",
       "import": "./dist/ai/schemas.js"
     },
+    "./loadable/kumo-loadable.umd.js": "./dist/loadable/kumo-loadable.umd.js",
+    "./loadable/style.css": "./dist/loadable/style.css",
     "./registry/component-registry.json": "./ai/component-registry.json",
     "./registry/component-registry.md": "./ai/component-registry.md",
     "./styles/tailwind": "./dist/styles/kumo.css",
@@ -397,6 +399,7 @@
   "scripts": {
     "prepublish": "pnpm run clean && pnpm run codegen:registry && pnpm run build && pnpm run test:unit",
     "build": "vite build --mode production && tsx scripts/css-build.ts && tsx src/command-line/build-cli.ts",
+    "build:loadable": "vite build --config vite.loadable.config.ts",
     "dev": "vite build --watch --mode development",
     "new:component": "plop component",
     "clean": "rm -rf dist",
