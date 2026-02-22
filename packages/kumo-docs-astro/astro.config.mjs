@@ -93,24 +93,27 @@ export default defineConfig({
       kumoRegistryPlugin(),
     ],
 
-    // In dev mode, add resolve.alias for CSS @import statements that may bypass
-    // Vite plugins. This ensures `@import "@cloudflare/kumo/styles"` resolves
-    // to source files without requiring a build step.
-    resolve: isDev
-      ? {
-          alias: {
-            "@cloudflare/kumo/styles/tailwind": resolve(
-              kumoSrc,
-              "styles/kumo.css",
-            ),
-            "@cloudflare/kumo/styles/standalone": resolve(
-              kumoSrc,
-              "styles/kumo-standalone.css",
-            ),
-            "@cloudflare/kumo/styles": resolve(kumoSrc, "styles/kumo.css"),
-          },
-        }
-      : undefined,
+    resolve: {
+      alias: {
+        // Dev mode: resolve kumo CSS imports to source files for HMR
+        ...(isDev
+          ? {
+              "@cloudflare/kumo/styles/tailwind": resolve(
+                kumoSrc,
+                "styles/kumo.css",
+              ),
+              "@cloudflare/kumo/styles/standalone": resolve(
+                kumoSrc,
+                "styles/kumo-standalone.css",
+              ),
+              "@cloudflare/kumo/styles": resolve(kumoSrc, "styles/kumo.css"),
+            }
+          : {}),
+        // Production: use react-dom/server.edge instead of .browser to avoid
+        // MessageChannel (unavailable in workerd). See astro#12824.
+        ...(!isDev ? { "react-dom/server": "react-dom/server.edge" } : {}),
+      },
+    },
 
     define: {
       __KUMO_VERSION__: JSON.stringify(buildInfo.kumoVersion),
