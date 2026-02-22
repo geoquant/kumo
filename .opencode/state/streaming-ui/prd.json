@@ -223,7 +223,7 @@
         "Verify: dist/loadable/style.css exists with all component styles",
         "Verify: bundle < 500KB gzipped"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "loadable-3",
