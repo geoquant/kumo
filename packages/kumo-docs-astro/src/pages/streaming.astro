@@ -3,31 +3,388 @@ import DocLayout from "../layouts/DocLayout.astro";
 import ComponentSection from "../components/docs/ComponentSection.astro";
 import CodeBlock from "../components/docs/CodeBlock.astro";
 import Callout from "../components/docs/Callout.astro";
+import { StreamingDemo } from "../components/demos/StreamingDemo";
 ---
 
 <DocLayout
   title="Streaming UI"
   description="Render AI-generated UI from JSON using Kumo's auto-generated schemas. Enable progressive rendering as LLM responses stream in."
 >
+  <!-- Live Demo -->
   <ComponentSection>
-    <h2 class="mb-4 text-2xl font-bold">Overview</h2>
+    <h2 class="mb-4 text-2xl font-bold">Live Demo</h2>
     <p class="mb-4 text-kumo-strong">
-      The Kumo catalog module enables rendering UI from JSON structures, designed specifically for 
-      AI-generated interfaces. It provides runtime validation, data binding, conditional rendering, 
+      Ask the AI to generate UI using Kumo components. The response streams in
+      real-time as JSONL patches, rendering live Kumo components as tokens arrive.
+    </p>
+    <StreamingDemo client:load />
+  </ComponentSection>
+
+  <!-- Quick Start -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Quick Start</h2>
+    <p class="mb-4 text-kumo-strong">
+      Stream AI-generated Kumo UI in three steps: parse JSONL, apply RFC 6902 patches, render.
+    </p>
+    <CodeBlock
+      code={`import { useUITree, createJsonlParser } from "@cloudflare/kumo/streaming";
+import { UITreeRenderer } from "@cloudflare/kumo/generative";
+
+function StreamingUI() {
+  const { tree, applyPatches, reset } = useUITree({ batchPatches: true });
+
+  async function startStream(prompt: string) {
+    reset();
+    const parser = createJsonlParser();
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({ message: prompt }),
+    });
+
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const ops = parser.push(decoder.decode(value, { stream: true }));
+      if (ops.length > 0) applyPatches(ops);
+    }
+
+    // Flush remaining buffer
+    const remaining = parser.flush();
+    if (remaining.length > 0) applyPatches(remaining);
+  }
+
+  return <UITreeRenderer tree={tree} streaming={true} />;
+}`}
+      lang="tsx"
+    />
+    <div class="mt-4">
+      <h3 class="mb-2 text-lg font-semibold">What's happening</h3>
+      <ul class="mt-2 list-inside list-disc space-y-1 text-kumo-strong">
+        <li><strong>useUITree</strong> — manages UITree state, applies patches via functional setState</li>
+        <li><strong>createJsonlParser</strong> — parses newline-delimited JSON into RFC 6902 patch ops</li>
+        <li><strong>UITreeRenderer</strong> — maps UITree elements to real Kumo React components</li>
+        <li><strong>batchPatches</strong> — coalesces multiple patches into a single React render</li>
+      </ul>
+    </div>
+  </ComponentSection>
+
+  <!-- UMD / HTML -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">UMD / HTML Usage</h2>
+    <p class="mb-4 text-kumo-strong">
+      For non-React environments, the loadable UMD bundle exposes <code>window.CloudflareKumo</code>
+      with a zero-framework API. React is bundled inside — the host page needs only a
+      <code>&lt;script&gt;</code> tag and a container <code>&lt;div&gt;</code>.
+    </p>
+    <CodeBlock
+      code={`<link rel="stylesheet" href="@cloudflare/kumo/loadable/style.css" />
+<script src="@cloudflare/kumo/loadable/kumo-loadable.umd.js"><\/script>
+
+<div id="my-ui"></div>
+
+<script>
+  const { CloudflareKumo } = window;
+
+  // Optional: set theme
+  CloudflareKumo.setTheme("dark");
+
+  // Apply patches from your streaming source
+  const parser = CloudflareKumo.createParser();
+
+  eventSource.onmessage = (e) => {
+    const ops = parser.push(e.data);
+    if (ops.length > 0) {
+      CloudflareKumo.applyPatchesBatched(ops, "my-ui");
+    }
+  };
+
+  // Or render a complete tree at once
+  CloudflareKumo.renderTree(
+    { root: "card", elements: { card: { key: "card", type: "Surface", props: {}, children: [] } } },
+    "my-ui"
+  );
+<\/script>`}
+      lang="html"
+    />
+    <div class="mt-4">
+      <h3 class="mb-2 text-lg font-semibold">API Reference</h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="border-b border-kumo-line">
+              <th class="py-2 pr-4 text-left font-medium">Method</th>
+              <th class="py-2 text-left font-medium">Description</th>
+            </tr>
+          </thead>
+          <tbody class="text-kumo-strong">
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>applyPatch(op, id)</code></td>
+              <td class="py-2">Apply one RFC 6902 patch, re-render</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>applyPatches(ops, id)</code></td>
+              <td class="py-2">Batch patches, single render</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>applyPatchesBatched(ops, id)</code></td>
+              <td class="py-2">Batch patches, coalesced rAF render</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>renderTree(tree, id)</code></td>
+              <td class="py-2">Replace entire UITree at once</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>createParser()</code></td>
+              <td class="py-2">Create JSONL streaming parser</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>setTheme(mode)</code></td>
+              <td class="py-2">Switch light/dark theme</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>getTree(id)</code></td>
+              <td class="py-2">Read current UITree state</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>subscribeTree(id, cb)</code></td>
+              <td class="py-2">Subscribe to UITree changes</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>dispatchAction(event, id)</code></td>
+              <td class="py-2">Dispatch action from registry</td>
+            </tr>
+            <tr class="border-b border-kumo-line">
+              <td class="py-2 pr-4"><code>reset(id)</code></td>
+              <td class="py-2">Clear state and unmount</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <Callout type="info">
+      The loadable bundle uses shadow DOM isolation by default for style encapsulation.
+      Pass a container ID to scope each independent UI instance.
+    </Callout>
+  </ComponentSection>
+
+  <!-- Component Map -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Component Map</h2>
+    <p class="mb-4 text-kumo-strong">
+      The generative module maps UITree <code>type</code> strings to Kumo React components.
+      This map is auto-generated from the component registry to stay in sync.
+    </p>
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="rounded-lg border border-kumo-line bg-kumo-elevated p-4">
+        <h3 class="mb-2 font-semibold">Direct Components</h3>
+        <p class="mb-2 text-xs text-kumo-subtle">1:1 mapping to Kumo exports</p>
+        <div class="flex flex-wrap gap-1.5">
+          {["Badge", "Banner", "Breadcrumbs", "Button", "ClipboardText", "Cluster", "Code",
+            "Empty", "Field", "Grid", "Label", "Link", "Loader", "Meter", "Radio",
+            "Stack", "Table", "Text"].map(name => (
+            <code class="rounded bg-kumo-control px-1.5 py-0.5 text-xs">{name}</code>
+          ))}
+        </div>
+      </div>
+      <div class="rounded-lg border border-kumo-line bg-kumo-elevated p-4">
+        <h3 class="mb-2 font-semibold">Stateful Wrappers</h3>
+        <p class="mb-2 text-xs text-kumo-subtle">Adds internal state for controlled-only components</p>
+        <div class="flex flex-wrap gap-1.5">
+          {["Checkbox", "Collapsible", "Select", "Switch", "Tabs"].map(name => (
+            <code class="rounded bg-kumo-control px-1.5 py-0.5 text-xs">{name}</code>
+          ))}
+        </div>
+      </div>
+      <div class="rounded-lg border border-kumo-line bg-kumo-elevated p-4">
+        <h3 class="mb-2 font-semibold">Generative Wrappers</h3>
+        <p class="mb-2 text-xs text-kumo-subtle">Sensible defaults for AI context</p>
+        <div class="flex flex-wrap gap-1.5">
+          {["Surface", "Input", "InputArea", "CloudflareLogo", "Select"].map(name => (
+            <code class="rounded bg-kumo-control px-1.5 py-0.5 text-xs">{name}</code>
+          ))}
+        </div>
+      </div>
+      <div class="rounded-lg border border-kumo-line bg-kumo-elevated p-4">
+        <h3 class="mb-2 font-semibold">Sub-Component Aliases</h3>
+        <p class="mb-2 text-xs text-kumo-subtle">Flattened names for LLM output</p>
+        <div class="flex flex-wrap gap-1.5">
+          {["TableHeader", "TableHead", "TableBody", "TableRow", "TableCell", "TableFooter",
+            "BreadcrumbsLink", "BreadcrumbsCurrent", "SelectOption", "GridItem"].map(name => (
+            <code class="rounded bg-kumo-control px-1.5 py-0.5 text-xs">{name}</code>
+          ))}
+        </div>
+      </div>
+    </div>
+    <div class="mt-4 text-sm text-kumo-strong">
+      <strong>Type aliases:</strong> <code>Textarea</code> maps to <code>InputArea</code>,
+      <code>RadioGroup</code> maps to <code>Radio</code>.
+      <code>Div</code> is a synthetic container type rendered as a plain <code>&lt;div&gt;</code>.
+    </div>
+    <Callout type="info">
+      The component map and drift detection tests are auto-generated via
+      <code>pnpm codegen:registry</code>. Run it after modifying component props or adding new components.
+    </Callout>
+  </ComponentSection>
+
+  <!-- System Prompt -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">System Prompt Generation</h2>
+    <p class="mb-4 text-kumo-strong">
+      The catalog's <code>generatePrompt()</code> builds a complete system prompt for LLMs,
+      including component documentation, JSONL/RFC 6902 format instructions, design rules,
+      and working examples. It's derived from the component registry — always in sync.
+    </p>
+    <CodeBlock
+      code={`import { createKumoCatalog, initCatalog } from "@cloudflare/kumo/catalog";
+
+const catalog = createKumoCatalog();
+await initCatalog(catalog);
+
+// Full prompt with all components, examples, and format instructions
+const prompt = catalog.generatePrompt();
+
+// Subset of components only
+const focused = catalog.generatePrompt({
+  components: ["Button", "Input", "Surface", "Text"],
+});
+
+// Skip examples to reduce token count
+const compact = catalog.generatePrompt({
+  includeExamples: false,
+  maxPropsPerComponent: 5,
+});`}
+      lang="ts"
+    />
+    <div class="mt-4">
+      <h3 class="mb-2 text-lg font-semibold">What the prompt includes</h3>
+      <ul class="mt-2 list-inside list-disc space-y-1 text-kumo-strong">
+        <li><strong>Component docs</strong> — props grouped by category (Layout, Content, Interactive, etc.)</li>
+        <li><strong>Prop scoring</strong> — top 10 props per component, ranked by relevance (required, enum, common names)</li>
+        <li><strong>JSONL format</strong> — how the LLM should emit newline-delimited JSON patch ops</li>
+        <li><strong>RFC 6902 schema</strong> — the UITree structure, element format, and patch semantics</li>
+        <li><strong>Design rules</strong> — accessibility, semantic grouping, no emoji in content</li>
+        <li><strong>Working examples</strong> — counter UI and form examples the LLM can learn from</li>
+        <li><strong>Action system</strong> — built-in actions the LLM can attach to elements</li>
+      </ul>
+    </div>
+    <Callout type="info">
+      The full prompt is under 15K tokens. Use the <code>components</code> option to narrow it
+      for domain-specific use cases.
+    </Callout>
+  </ComponentSection>
+
+  <!-- Action System -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Action System</h2>
+    <p class="mb-4 text-kumo-strong">
+      The streaming action system handles user interactions with AI-generated UI. Built-in
+      actions cover common patterns; the host can extend with custom handlers.
+    </p>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="border-b border-kumo-line">
+            <th class="py-2 pr-4 text-left font-medium">Action</th>
+            <th class="py-2 pr-4 text-left font-medium">Trigger</th>
+            <th class="py-2 text-left font-medium">Effect</th>
+          </tr>
+        </thead>
+        <tbody class="text-kumo-strong">
+          <tr class="border-b border-kumo-line">
+            <td class="py-2 pr-4"><code>increment</code></td>
+            <td class="py-2 pr-4">Button click</td>
+            <td class="py-2">Increments a numeric value at a JSON Pointer path</td>
+          </tr>
+          <tr class="border-b border-kumo-line">
+            <td class="py-2 pr-4"><code>decrement</code></td>
+            <td class="py-2 pr-4">Button click</td>
+            <td class="py-2">Decrements a numeric value at a JSON Pointer path</td>
+          </tr>
+          <tr class="border-b border-kumo-line">
+            <td class="py-2 pr-4"><code>submit_form</code></td>
+            <td class="py-2 pr-4">Button click</td>
+            <td class="py-2">Collects runtime form values and sends as a message</td>
+          </tr>
+          <tr class="border-b border-kumo-line">
+            <td class="py-2 pr-4"><code>navigate</code></td>
+            <td class="py-2 pr-4">Link / button click</td>
+            <td class="py-2">Opens URL (http/https/relative only — javascript: blocked)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <CodeBlock
+      code={`import {
+  useUITree,
+  BUILTIN_HANDLERS,
+  dispatchAction,
+  processActionResult,
+  type ActionEvent,
+  type JsonPatchOp,
+} from "@cloudflare/kumo/streaming";
+import { UITreeRenderer } from "@cloudflare/kumo/generative";
+
+function InteractiveUI() {
+  const { tree, applyPatches } = useUITree({ batchPatches: true });
+
+  function handleAction(event: ActionEvent) {
+    const result = dispatchAction(BUILTIN_HANDLERS, event, tree);
+    if (!result) return;
+
+    processActionResult(result, {
+      applyPatches: (patches: readonly JsonPatchOp[]) => applyPatches(patches),
+      sendMessage: (msg: string) => console.log("Send:", msg),
+      openExternal: (url: string) => window.open(url),
+    });
+  }
+
+  return (
+    <UITreeRenderer
+      tree={tree}
+      streaming={false}
+      onAction={handleAction}
+    />
+  );
+}`}
+      lang="tsx"
+    />
+    <div class="mt-4">
+      <h3 class="mb-2 text-lg font-semibold">URL Security</h3>
+      <p class="text-kumo-strong">
+        The <code>navigate</code> action enforces a URL allowlist: only <code>http://</code>,
+        <code>https://</code>, and relative paths are permitted.
+        <code>javascript:</code>, <code>data:</code>, <code>file:</code>, and
+        protocol-relative URLs are blocked and logged as warnings.
+      </p>
+    </div>
+  </ComponentSection>
+
+  <!-- Divider: existing catalog docs below -->
+  <div class="my-8 border-t border-kumo-line"></div>
+
+  <!-- Existing: Overview -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Catalog Overview</h2>
+    <p class="mb-4 text-kumo-strong">
+      The Kumo catalog module enables rendering UI from JSON structures, designed specifically for
+      AI-generated interfaces. It provides runtime validation, data binding, conditional rendering,
       and action handling for JSON-based UI trees.
     </p>
     <div class="my-6 rounded-lg border border-kumo-brand/30 bg-kumo-brand/5 p-4">
       <h3 class="mb-2 font-semibold text-kumo-brand">Schemas Derived from Your Codebase</h3>
       <p class="text-sm text-kumo-strong">
-        Unlike approaches that require maintaining separate schema definitions, Kumo automatically 
-        derives validation schemas from your actual component TypeScript types. When you update a 
-        component's props, the validation schemas update automatically via the component registry 
-        codegen process. No manual synchronization required - your schemas are always in sync with 
+        Unlike approaches that require maintaining separate schema definitions, Kumo automatically
+        derives validation schemas from your actual component TypeScript types. When you update a
+        component's props, the validation schemas update automatically via the component registry
+        codegen process. No manual synchronization required - your schemas are always in sync with
         your components.
       </p>
     </div>
     <Callout type="info">
-      Schemas are auto-generated in <code>@cloudflare/kumo/ai/schemas</code> from component TypeScript 
+      Schemas are auto-generated in <code>@cloudflare/kumo/ai/schemas</code> from component TypeScript
       types. Run <code>pnpm codegen:registry</code> after modifying component props to regenerate.
     </Callout>
   </ComponentSection>
@@ -35,7 +392,7 @@ import Callout from "../components/docs/Callout.astro";
   <ComponentSection>
     <h2 class="mb-4 text-2xl font-bold">How It Works</h2>
     <p class="mb-4 text-kumo-strong">
-      The catalog module uses a pipeline that extracts component metadata from your TypeScript 
+      The catalog module uses a pipeline that extracts component metadata from your TypeScript
       source code:
     </p>
     <div class="overflow-x-auto">
@@ -105,8 +462,8 @@ if (result.success) {
   <ComponentSection>
     <h2 class="mb-4 text-2xl font-bold">UI Tree Format</h2>
     <p class="mb-4 text-kumo-strong">
-      The UI tree uses a flat structure optimized for LLM generation and streaming. Elements 
-      reference each other by key rather than nesting, enabling progressive rendering as 
+      The UI tree uses a flat structure optimized for LLM generation and streaming. Elements
+      reference each other by key rather than nesting, enabling progressive rendering as
       elements stream in.
     </p>
     <CodeBlock
@@ -122,7 +479,7 @@ if (result.success) {
     "heading-1": {
       "key": "heading-1",
       "type": "Text",
-      "props": { 
+      "props": {
         "variant": "heading2",
         "children": "Welcome"
       },
@@ -131,7 +488,7 @@ if (result.success) {
     "text-1": {
       "key": "text-1",
       "type": "Text",
-      "props": { 
+      "props": {
         "children": { "path": "/user/name" }
       },
       "parentKey": "card-1"
@@ -139,7 +496,7 @@ if (result.success) {
     "button-1": {
       "key": "button-1",
       "type": "Button",
-      "props": { 
+      "props": {
         "variant": "primary",
         "children": "Get Started"
       },
@@ -166,7 +523,7 @@ if (result.success) {
   <ComponentSection>
     <h2 class="mb-4 text-2xl font-bold">Dynamic Values (Data Binding)</h2>
     <p class="mb-4 text-kumo-strong">
-      Props can reference values from a data model using JSON Pointer paths. This allows the AI 
+      Props can reference values from a data model using JSON Pointer paths. This allows the AI
       to declare data bindings that your application resolves at render time.
     </p>
     <CodeBlock
@@ -204,13 +561,13 @@ const name = resolveDynamicValue({ path: "/user/name" }, dataModel);
   <ComponentSection>
     <h2 class="mb-4 text-2xl font-bold">Visibility Conditions</h2>
     <p class="mb-4 text-kumo-strong">
-      Elements can be conditionally rendered based on data values, authentication state, or 
+      Elements can be conditionally rendered based on data values, authentication state, or
       complex logic expressions.
     </p>
     <CodeBlock
-      code={`import { 
-  evaluateVisibility, 
-  createVisibilityContext 
+      code={`import {
+  evaluateVisibility,
+  createVisibilityContext
 } from "@cloudflare/kumo/catalog";
 
 const ctx = createVisibilityContext(
@@ -231,8 +588,8 @@ evaluateVisibility({ auth: "signedIn" }, ctx); // true
 evaluateVisibility({ auth: "signedOut" }, ctx); // false
 
 // Equality check
-evaluateVisibility({ 
-  eq: [{ path: "/user/role" }, "editor"] 
+evaluateVisibility({
+  eq: [{ path: "/user/role" }, "editor"]
 }, ctx); // true
 
 // Complex logic
@@ -287,9 +644,9 @@ evaluateVisibility({
   </ComponentSection>
 
   <ComponentSection>
-    <h2 class="mb-4 text-2xl font-bold">Actions</h2>
+    <h2 class="mb-4 text-2xl font-bold">Catalog Actions</h2>
     <p class="mb-4 text-kumo-strong">
-      Elements can declare actions that your application handles. The AI describes the intent, 
+      Elements can declare actions that your application handles. The AI describes the intent,
       and your handlers execute the logic.
     </p>
     <CodeBlock
@@ -337,7 +694,7 @@ const catalog = createKumoCatalog({
   <ComponentSection>
     <h2 class="mb-4 text-2xl font-bold">Validation</h2>
     <p class="mb-4 text-kumo-strong">
-      The catalog validates AI-generated JSON against auto-generated Zod schemas derived from 
+      The catalog validates AI-generated JSON against auto-generated Zod schemas derived from
       component TypeScript types.
     </p>
     <CodeBlock
@@ -365,32 +722,6 @@ catalog.hasComponent("Foobar"); // false
 // List all component names
 console.log(catalog.componentNames);
 // ["Badge", "Banner", "Button", ...]`}
-      lang="ts"
-    />
-  </ComponentSection>
-
-  <ComponentSection>
-    <h2 class="mb-4 text-2xl font-bold">AI Prompt Generation</h2>
-    <p class="mb-4 text-kumo-strong">
-      Generate prompts describing the catalog for AI models:
-    </p>
-    <CodeBlock
-      code={`const prompt = catalog.generatePrompt();
-
-// Returns markdown describing:
-// - Available components
-// - Available actions (if any)
-// - Output format (UITree schema)
-// - Dynamic value syntax
-
-// Use in your LLM prompt
-const systemPrompt = \`
-You are a UI generation assistant.
-
-\${catalog.generatePrompt()}
-
-Generate UI based on the user's request.
-\`;`}
       lang="ts"
     />
   </ComponentSection>
@@ -435,127 +766,33 @@ Generate UI based on the user's request.
   </ComponentSection>
 
   <ComponentSection>
-    <h2 class="mb-4 text-2xl font-bold">Full Example</h2>
-    <p class="mb-4 text-kumo-strong">
-      A complete example showing catalog creation, validation, and rendering:
-    </p>
-    <CodeBlock
-      code={`import {
-  createKumoCatalog,
-  initCatalog,
-  resolveProps,
-  evaluateVisibility,
-  createVisibilityContext,
-} from "@cloudflare/kumo/catalog";
-import { Button, Text, Surface } from "@cloudflare/kumo";
-
-// 1. Create and initialize catalog
-const catalog = createKumoCatalog({
-  actions: {
-    greet: { description: "Show a greeting" }
-  }
-});
-await initCatalog(catalog);
-
-// 2. Validate AI-generated JSON
-const aiJson = {
-  root: "container",
-  elements: {
-    container: {
-      key: "container",
-      type: "Surface",
-      props: { className: "p-4 space-y-4" },
-      children: ["greeting", "action-btn"]
-    },
-    greeting: {
-      key: "greeting",
-      type: "Text",
-      props: {
-        variant: "heading2",
-        children: { path: "/user/name" }
-      },
-      parentKey: "container",
-      visible: { auth: "signedIn" }
-    },
-    "action-btn": {
-      key: "action-btn",
-      type: "Button",
-      props: {
-        variant: "primary",
-        children: "Say Hello"
-      },
-      parentKey: "container",
-      action: { name: "greet" }
-    }
-  }
-};
-
-const result = catalog.validateTree(aiJson);
-if (!result.success) {
-  throw new Error("Invalid UI tree");
-}
-
-// 3. Set up rendering context
-const dataModel = {
-  user: { name: "Alice", preferences: { theme: "dark" } }
-};
-const visibilityCtx = createVisibilityContext(dataModel, { isSignedIn: true });
-
-// 4. Render function
-function renderElement(element, elements) {
-  // Check visibility
-  if (!evaluateVisibility(element.visible, visibilityCtx)) {
-    return null;
-  }
-
-  // Resolve dynamic props
-  const props = resolveProps(element.props, dataModel);
-
-  // Render children
-  const children = element.children?.map(
-    key => renderElement(elements[key], elements)
-  );
-
-  // Map to components
-  const Component = { Surface, Text, Button }[element.type];
-  return <Component {...props}>{children}</Component>;
-}
-
-// 5. Render the tree
-const tree = result.data;
-const ui = renderElement(tree.elements[tree.root], tree.elements);`}
-      lang="tsx"
-    />
-  </ComponentSection>
-
-  <ComponentSection>
     <h2 class="mb-4 text-2xl font-bold">Key Benefits</h2>
     <div class="grid gap-4 md:grid-cols-2">
       <div class="rounded-lg border border-kumo-line bg-kumo-elevated p-4">
         <h3 class="mb-2 font-semibold">Auto-Generated Schemas</h3>
         <p class="text-sm text-kumo-strong">
-          Validation schemas are derived directly from component TypeScript types. 
+          Validation schemas are derived directly from component TypeScript types.
           No separate schema definitions to maintain.
         </p>
       </div>
       <div class="rounded-lg border border-kumo-line bg-kumo-elevated p-4">
         <h3 class="mb-2 font-semibold">Always in Sync</h3>
         <p class="text-sm text-kumo-strong">
-          When you update component props, the schemas update automatically via the 
+          When you update component props, the schemas update automatically via the
           component registry codegen process.
         </p>
       </div>
       <div class="rounded-lg border border-kumo-line bg-kumo-elevated p-4">
         <h3 class="mb-2 font-semibold">Streaming-Friendly</h3>
         <p class="text-sm text-kumo-strong">
-          Flat tree structure enables progressive rendering as LLM responses stream in 
+          Flat tree structure enables progressive rendering as LLM responses stream in
           token-by-token.
         </p>
       </div>
       <div class="rounded-lg border border-kumo-line bg-kumo-elevated p-4">
         <h3 class="mb-2 font-semibold">Type Safety</h3>
         <p class="text-sm text-kumo-strong">
-          Full TypeScript support with exported types for UIElement, UITree, 
+          Full TypeScript support with exported types for UIElement, UITree,
           DynamicValue, and more.
         </p>
       </div>
