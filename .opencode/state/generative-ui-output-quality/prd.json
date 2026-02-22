@@ -80,7 +80,7 @@
         "Registered in COMPONENT_MAP overriding direct Grid mapping",
         "Has displayName set"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "generative-2",
@@ -93,7 +93,7 @@
         "Registered in COMPONENT_MAP overriding direct Stack mapping",
         "Has displayName set"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "generative-3",
@@ -106,7 +106,7 @@
         "Registered in COMPONENT_MAP overriding direct Text mapping",
         "Has displayName set"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "validator-1",

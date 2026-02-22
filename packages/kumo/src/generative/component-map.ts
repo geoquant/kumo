@@ -31,6 +31,9 @@ import {
   GenerativeInputArea,
   GenerativeCloudflareLogo,
   GenerativeSelect,
+  GenerativeGrid,
+  GenerativeStack,
+  GenerativeText,
 } from "./generative-wrappers.js";
 
 // Dynamic rendering bridge: LLM-generated props are unknown at compile time
@@ -85,6 +88,9 @@ map["Textarea"] = GenerativeInputArea as AnyComponent;
 map["InputArea"] = GenerativeInputArea as AnyComponent;
 map["CloudflareLogo"] = GenerativeCloudflareLogo as AnyComponent;
 map["Select"] = GenerativeSelect as AnyComponent;
+map["Grid"] = GenerativeGrid as AnyComponent;
+map["Stack"] = GenerativeStack as AnyComponent;
+map["Text"] = GenerativeText as AnyComponent;
 
 // 5. Stateful wrappers — controlled-only components get internal state
 map["Checkbox"] = StatefulCheckbox as AnyComponent;
