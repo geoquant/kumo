@@ -24,7 +24,7 @@ Started: 2026-02-21
 | testing-1     | Structural graders + fixtures       | DONE    |
 | prompt-1      | 3 new few-shot examples             | DONE    |
 | prompt-2      | Anti-patterns + composition recipes | DONE    |
-| prompt-3      | Prompt builder enhancements         | MISSING |
+| prompt-3      | Prompt builder enhancements         | DONE    |
 | generative-1  | GenerativeGrid wrapper              | MISSING |
 | generative-2  | GenerativeStack wrapper             | MISSING |
 | generative-3  | GenerativeText wrapper              | MISSING |
@@ -84,3 +84,18 @@ Started: 2026-02-21
   - Surface does NOT have a `color` prop in Zod schema — the PRD step "Surface.color" is aspirational; real guidance focuses on Surface as container (delegate layout to inner Stack/Grid)
   - Placing anti-patterns before examples is strategic: LLMs weigh early instructions more heavily
   - Composition recipes as a markdown table is efficient for token usage vs. prose explanations
+
+## Task - prompt-3
+- Added `LAYOUT_CRITICAL_PROP_NAMES` set (`gap`, `justify`) with +2 scoring tier to `prompt-builder.ts`
+- Moved `gap` and `justify` from INTERESTING_PROP_NAMES to LAYOUT_CRITICAL_PROP_NAMES (avoids double-counting)
+- Added `color` and `layout` to INTERESTING_PROP_NAMES (+1 tier)
+- Updated `scoreProp()` to sum: required(+3) + enum(+2) + layout-critical(+2) + interesting(+1)
+- Added `COMPOSITION_HINTS` record mapping Surface, Grid, Stack, Cluster to usage hint strings
+- Hints render as `  Hint: ...` line right after the component description in buildComponentDocs() output
+- Verified: gap and justify now appear in top-N props for Stack (score=4), Grid (score=4), Cluster (score=4)
+- Files changed:
+  - `packages/kumo/src/catalog/prompt-builder.ts` (LAYOUT_CRITICAL_PROP_NAMES, COMPOSITION_HINTS, scoreProp update, hint rendering)
+- **Learnings:**
+  - Scoring tiers: required(+3) > enum(+2) = layout-critical(+2) > interesting(+1). A required enum prop scores 5; an optional layout-critical enum scores 4.
+  - `gap` and `justify` were already in INTERESTING_PROP_NAMES — moved to LAYOUT_CRITICAL to avoid double-counting (+2 replaces +1, net gain +1)
+  - Hints are indented with 2 spaces to visually nest under the component description bullet
