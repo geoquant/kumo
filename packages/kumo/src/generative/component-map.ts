@@ -33,7 +33,7 @@ import {
   GenerativeSelect,
 } from "./generative-wrappers.js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic rendering bridge
+// Dynamic rendering bridge: LLM-generated props are unknown at compile time
 type AnyComponent = React.ComponentType<any>;
 
 /**
