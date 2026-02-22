@@ -52,7 +52,7 @@
         "Composition Recipes table added with 6 patterns (section header, stat grid, form group, action bar, key-value pair, status list row)",
         "Prop usage guidance added for Stack.gap, Grid.variant, Cluster.justify, Surface.color"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "prompt-3",
