@@ -271,7 +271,7 @@
         "Verify: rate limit returns 429 after 20 requests",
         "Verify: graceful error response if Workers AI unavailable"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-3",
