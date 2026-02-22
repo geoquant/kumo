@@ -17,6 +17,7 @@ Started: 2026-02-21
 - oxlint `no-base-to-string`: `String(unknownValue)` fails lint — type-narrow to string/number/boolean first, fall back to `JSON.stringify`
 - Codegen-as-manifest pattern: generate pure data (arrays/objects) not React components; hand-written code imports manifest. Drift detection tests compare manifest against registry.
 - `Object.assign(StatefulSelectInner, { Option: Select.Option })` pattern for compound function components (avoids `.Option` property type issue on plain functions)
+- Cross-module imports: generative→streaming uses `../streaming/X`, generative→ai uses `../../ai/schemas.js` (relative, not `@cloudflare/kumo/ai/schemas`)
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -126,3 +127,14 @@ Started: 2026-02-21
 - 40 entries in COMPONENT_MAP: 18 direct + 12 sub-component aliases + 5 stateful wrappers + 5 generative wrappers + 1 type alias (Textarea) + 1 synthetic (Div) — with overlaps from overrides
 - Files changed: `scripts/component-registry/generative-map-generator.ts` (new), `scripts/component-registry/index.ts` (wiring), `src/generative/` (5 new files + 1 generated)
 - **Learnings:** Generate data manifests not React code as strings. Hand-written React files import the manifest. `REGISTRY_COMPONENT_NAMES` in manifest enables drift detection in separate test task (generative-4).
+
+## Task - generative-2
+- Ported UITreeRenderer and element validator to `packages/kumo/src/generative/`
+- New files: `ui-tree-renderer.tsx`, `element-validator.ts`
+- Updated `index.ts` barrel with: UITreeRenderer, isRenderableTree, getUnknownTypes, normalizeSiblingFormRowGrids, validateElement, logValidationError, ElementValidationResult
+- UITreeRenderer: recursive renderer with error boundaries, schema validation, action dispatch, runtime value capture, URL policy, Grid→GridItem wrapping, form-row normalization
+- Element validator: validates props against Zod schemas from `ai/schemas.ts`, handles type aliases (Textarea→InputArea), skips sub-components with no schema
+- Import changes: `./types` → `../streaming/types`, `./component-map` → `./component-map.js`, `./action-handler` → `../streaming/action-handler`, `./element-validator` → `./element-validator.js`, `./runtime-value-store*` → `../streaming/runtime-value-store*`, `./url-policy` → `../streaming/url-policy`, `@cloudflare/kumo/ai/schemas` → `../../ai/schemas.js`
+- Changed `[kumo-stream]` console.warn → `[kumo]` in URL policy blocked link warning
+- generative-wrappers.tsx already existed from generative-1 (no changes needed)
+- **Learnings:** Cross-module imports within package use relative paths — `../streaming/` from generative, `../../ai/` from generative to ai schemas. The `ai/` directory is in tsconfig include so TS resolves it correctly.

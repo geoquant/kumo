@@ -2,8 +2,9 @@
  * @cloudflare/kumo/generative — Generative UI rendering module.
  *
  * Maps UITree element types from LLM output to Kumo React components.
- * Includes stateful wrappers for controlled-only components and
- * generative wrappers with sensible styling defaults.
+ * Includes stateful wrappers for controlled-only components,
+ * generative wrappers with sensible styling defaults, element validation,
+ * and the UITreeRenderer for rendering UITree structures.
  */
 
 export { COMPONENT_MAP, KNOWN_TYPES } from "./component-map.js";
@@ -36,3 +37,16 @@ export {
   EXCLUDED_COMPONENTS,
   REGISTRY_COMPONENT_NAMES,
 } from "./component-manifest.js";
+
+// Element validator
+export { validateElement, logValidationError } from "./element-validator.js";
+
+export type { ElementValidationResult } from "./element-validator.js";
+
+// UITreeRenderer
+export {
+  UITreeRenderer,
+  isRenderableTree,
+  getUnknownTypes,
+  normalizeSiblingFormRowGrids,
+} from "./ui-tree-renderer.js";
