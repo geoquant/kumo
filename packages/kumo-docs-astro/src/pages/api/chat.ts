@@ -59,6 +59,7 @@ const PROMPT_COMPONENTS = [
   "Badge",
   "Banner",
   "Code",
+  "ClipboardText",
   // Interactive
   "Button",
   "Input",
@@ -71,6 +72,8 @@ const PROMPT_COMPONENTS = [
   "Collapsible",
   "RadioGroup",
   "RadioItem",
+  "Field",
+  "Label",
   // Data display
   "Table",
   "TableHeader",
@@ -100,7 +103,7 @@ async function getSystemPrompt(): Promise<string> {
     await initCatalog(catalog);
     const prompt = catalog.generatePrompt({
       components: [...PROMPT_COMPONENTS],
-      maxPropsPerComponent: 6,
+      maxPropsPerComponent: 8,
     });
     systemPromptCache = prompt;
     return prompt;
