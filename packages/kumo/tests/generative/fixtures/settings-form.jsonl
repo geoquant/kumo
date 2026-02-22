@@ -1,0 +1,8 @@
+{"op":"add","path":"/root","value":"card"}
+{"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["stack"]}}
+{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["title","email-input","name-input","notifications","save-btn"],"parentKey":"card"}}
+{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Account settings","variant":"heading2"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/email-input","value":{"key":"email-input","type":"Input","props":{"label":"Email address","placeholder":"you@example.com"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/name-input","value":{"key":"name-input","type":"Input","props":{"label":"Display name","placeholder":"Your name"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/notifications","value":{"key":"notifications","type":"Switch","props":{"label":"Email notifications"},"parentKey":"stack"}}
+{"op":"add","path":"/elements/save-btn","value":{"key":"save-btn","type":"Button","props":{"children":"Save changes","variant":"primary"},"parentKey":"stack","action":{"name":"submit_form","params":{"form_type":"settings"}}}}
