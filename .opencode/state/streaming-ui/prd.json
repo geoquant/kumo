@@ -307,7 +307,7 @@
         "Verify: streaming page renders with live demo",
         "Verify: 'Streaming UI' appears in sidebar navigation"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "release-1",
