@@ -33,7 +33,10 @@ export interface ActionResultCallbacks {
 
 /** Default implementation opens a URL in a new tab. */
 function defaultOpenExternal(url: string, target: string): void {
-  window.open(url, target);
+  if (typeof window === "undefined") return;
+  const safeTarget = target === "_self" ? "_self" : "_blank";
+  const w = window.open(url, safeTarget, "noopener,noreferrer");
+  if (w) w.opener = null;
 }
 
 // =============================================================================

@@ -87,6 +87,8 @@ async function readSSEStream(
   let buffer = "";
   let sawDone = false;
 
+  let pendingDataLines: string[] = [];
+
   function emitFromDataPayload(payload: string): void {
     const trimmed = payload.trim();
     if (trimmed === "") return;
@@ -140,18 +142,53 @@ async function readSSEStream(
     }
   }
 
-  function processLine(rawLine: string): void {
-    const trimmed = rawLine.trim();
-    if (trimmed === "") return;
-    if (trimmed.startsWith(":")) return; // SSE comment
-    if (!trimmed.startsWith("data:")) return;
+  function maybeEmitPendingBlock(): void {
+    if (pendingDataLines.length === 0) return;
+    const combined = pendingDataLines.join("\n");
+    const trimmed = combined.trim();
 
-    const payload = trimmed.slice("data:".length).trimStart();
-    if (payload === "[DONE]") {
+    // Terminator event.
+    if (trimmed === "[DONE]") {
+      pendingDataLines = [];
       sawDone = true;
       return;
     }
-    emitFromDataPayload(payload);
+
+    // If the block is parseable JSON, emit it. This handles both single-line
+    // events and multi-line `data:` events (SSE spec) without requiring `\n\n`.
+    try {
+      JSON.parse(trimmed);
+      emitFromDataPayload(combined);
+      pendingDataLines = [];
+      return;
+    } catch {
+      // If the first line doesn't look like JSON, treat it as a raw token.
+      // Many providers stream `data: <token>` (plain text) per line.
+      if (
+        pendingDataLines.length === 1 &&
+        !trimmed.startsWith("{") &&
+        !trimmed.startsWith("[")
+      ) {
+        onToken(combined);
+        pendingDataLines = [];
+      }
+    }
+  }
+
+  function processLine(rawLine: string): void {
+    const line = rawLine.replace(/\r/g, "");
+    if (line.trim() === "") {
+      // Blank line ends an SSE event block.
+      maybeEmitPendingBlock();
+      return;
+    }
+    if (line.startsWith(":")) return; // SSE comment
+    if (!line.startsWith("data:")) return;
+
+    const payload = line.slice("data:".length).trimStart();
+    pendingDataLines.push(payload);
+    // Progress even when intermediaries omit the blank-line delimiter.
+    maybeEmitPendingBlock();
   }
 
   try {
@@ -160,11 +197,9 @@ async function readSSEStream(
       const { done, value } = await reader.read();
       if (done) break;
 
-      buffer += decoder.decode(value, { stream: true }).replace(/\r/g, "");
+      buffer += decoder.decode(value, { stream: true });
 
       // Parse incrementally by lines.
-      // Some intermediaries/providers omit the blank-line event delimiter ("\n\n").
-      // Treat each `data:` line as a token payload.
       for (;;) {
         const newline = buffer.indexOf("\n");
         if (newline === -1) break;
@@ -177,6 +212,7 @@ async function readSSEStream(
 
     // Best-effort flush for streams that don't end with a newline.
     if (buffer.length > 0) processLine(buffer);
+    maybeEmitPendingBlock();
     if (sawDone) return;
   } finally {
     reader.releaseLock();
@@ -393,7 +429,7 @@ export function StreamingDemo() {
 
   // --- Refs ---
   const abortRef = useRef<AbortController | null>(null);
-  const accumulatedTextRef = useRef("");
+  const runIdRef = useRef(0);
 
   // --- Hooks ---
   const runtimeValueStore = useRuntimeValueStore();
@@ -432,7 +468,9 @@ export function StreamingDemo() {
         handleSubmitRef.current(undefined, content);
       },
       openExternal: (url: string, target: string) => {
-        window.open(url, target);
+        const safeTarget = target === "_self" ? "_self" : "_blank";
+        const w = window.open(url, safeTarget, "noopener,noreferrer");
+        if (w) w.opener = null;
       },
     });
   }, []);
@@ -451,10 +489,13 @@ export function StreamingDemo() {
     (e?: FormEvent, overrideMessage?: string) => {
       if (e) e.preventDefault();
       const msg = overrideMessage ?? inputValue.trim();
-      if (!msg || status === "streaming") return;
+      if (!msg) return;
 
       // Abort any in-flight stream
       abortRef.current?.abort();
+
+      const runId = runIdRef.current + 1;
+      runIdRef.current = runId;
 
       // Reset everything for a fresh response
       setLastPrompt(msg);
@@ -463,7 +504,6 @@ export function StreamingDemo() {
       setErrorMessage(null);
       setStatus("streaming");
       setInputValue("");
-      accumulatedTextRef.current = "";
 
       // Create fresh parser for this stream
       const parser = createJsonlParser();
@@ -497,7 +537,6 @@ export function StreamingDemo() {
           await readSSEStream(
             response,
             (token) => {
-              accumulatedTextRef.current += token;
               const ops = parser.push(token);
               if (ops.length > 0) {
                 applyPatches(ops);
@@ -512,7 +551,9 @@ export function StreamingDemo() {
             applyPatches(remaining);
           }
 
-          setStatus("idle");
+          if (runIdRef.current === runId) {
+            setStatus("idle");
+          }
         } catch (err: unknown) {
           if (err instanceof DOMException && err.name === "AbortError") return;
 
@@ -526,12 +567,18 @@ export function StreamingDemo() {
 
           const errMessage =
             err instanceof Error ? err.message : "Something went wrong";
-          setErrorMessage(errMessage);
-          setStatus("error");
+          if (runIdRef.current === runId) {
+            setErrorMessage(errMessage);
+            setStatus("error");
+          }
+        } finally {
+          if (runIdRef.current === runId) {
+            abortRef.current = null;
+          }
         }
       })();
     },
-    [inputValue, status, runtimeValueStore, reset, applyPatches],
+    [inputValue, runtimeValueStore, reset, applyPatches],
   );
 
   // Keep handleSubmitRef in sync

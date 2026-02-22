@@ -56,3 +56,6 @@ coverage/
 
 # Overseer task DB (local-only)
 .overseer/
+
+# OpenCode plans (local-only)
+.opencode/plans/
