@@ -27,6 +27,7 @@ Started: 2026-02-21
 - Cloudflare SSR wrangler config: needs `main`, `compatibility_flags: ["nodejs_compat"]`, `assets.binding: "ASSETS"` in addition to `assets.directory`
 - `env.d.ts` for Cloudflare bindings: define minimal type interfaces inline (WorkersAi, WorkersRateLimit) rather than importing from `@cloudflare/workers-types` which may not be a direct dependency
 - `public/.assetsignore` with `_worker.js` is required for Cloudflare Workers deployment to exclude the worker script from static asset serving
+- Astro SSR API routes: `export const prerender = false` + `APIRoute` type + `locals.runtime.env` for Cloudflare bindings. Workers AI streaming: `env.AI.run(model, { messages, stream: true })` → `ReadableStream` → `new Response(stream, { headers: { "Content-Type": "text/event-stream" } })`
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -225,3 +226,16 @@ Started: 2026-02-21
 - Pre-existing typecheck (SearchDialog.tsx:316) and lint errors (TabsDemo a11y, sort() warnings) confirmed unchanged
 - Files changed: `astro.config.mjs`, `wrangler.jsonc`, `package.json`, `pnpm-lock.yaml`, `src/env.d.ts` (new), `public/.assetsignore` (new)
 - **Learnings:** Astro 5 with `@astrojs/cloudflare` doesn't require `output: 'server'` — the adapter enables SSR capability while keeping static prerender as default. Future SSR pages use `export const prerender = false`. The `platformProxy: { enabled: true }` option enables `Astro.locals.runtime.env` access during local dev.
+
+## Task - docs-2
+- Created `src/pages/api/chat.ts` — POST SSE streaming endpoint for Kumo generative UI
+- `export const prerender = false` opts this route out of static generation (SSR on Workers)
+- Rate limiting: 20 req/min per IP via `CHAT_RATE_LIMIT` binding, keyed on `cf-connecting-ip` header
+- System prompt: `createKumoCatalog()` + `initCatalog()` + `generatePrompt()` — cached after first cold start
+- Workers AI: `@cf/zai-org/glm-4.7-flash` with `stream: true` returns `ReadableStream` in SSE format
+- Conversation history: accepts `history` array, clamped to last 20 turns to avoid token overflow
+- Graceful error handling: 400 for bad request, 429 for rate limit, 500 for AI unavailability
+- Non-streaming fallback: wraps non-stream response in manual SSE format (defensive, shouldn't trigger)
+- Input validation: `parseChatRequest()` validates body shape without type assertions
+- Files changed: `src/pages/api/chat.ts` (new)
+- **Learnings:** Workers AI `env.AI.run(model, { messages, stream: true })` returns a `ReadableStream` that can be passed directly to `new Response()` with `text/event-stream` content-type. The SSE wire format is `data: {"response":"...token..."}\n\n` ending with `data: [DONE]\n\n`. Astro `APIRoute` receives `locals.runtime.env` for Cloudflare bindings via the adapter.
