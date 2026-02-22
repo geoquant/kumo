@@ -268,3 +268,15 @@ Started: 2026-02-21
 - Docs site build succeeds; streaming page renders at `/streaming/index.html`
 - Files changed: `src/pages/streaming.astro`, `src/components/SidebarNav.tsx`, `src/components/docs/CodeBlock.astro`
 - **Learnings:** CodeBlock.astro `lang` prop is a strict union — must add new languages to the type explicitly. `client:load` is correct for the StreamingDemo since it's interactive and at the top of the page (not a lazy demo below the fold where `client:visible` would be better).
+
+## Task - release-1
+- Created changeset `streaming-ui-modules.md` with `@cloudflare/kumo: minor`
+- All verification steps pass:
+  - `pnpm --filter @cloudflare/kumo build` — produces streaming.js, generative.js, catalog.js, all dist types
+  - `pnpm --filter @cloudflare/kumo build:loadable` — produces kumo-loadable.umd.js (1010KB) + style.css (74KB)
+  - `pnpm --filter @cloudflare/kumo test` — 881 tests pass (41 test files)
+  - `pnpm --filter @cloudflare/kumo typecheck` — clean
+  - `pnpm --filter @cloudflare/kumo-docs-astro build` — 51 pages prerendered + SSR worker entry
+  - `pnpm lint` — 0 errors (8 pre-existing sort() warnings)
+- Files changed: `.changeset/streaming-ui-modules.md` (new)
+- **Learnings:** Changeset format: YAML frontmatter with `"@cloudflare/kumo": minor`, markdown body. Pre-existing lint warnings (sort(), TabsDemo a11y, SearchDialog type) are stable and pre-date this branch.
