@@ -382,7 +382,7 @@ Checkbox component
 
 **Colors (kumo tokens used):**
 
-`bg-kumo-base`, `bg-kumo-contrast`, `border-kumo-line`, `ring-kumo-danger`, `ring-kumo-line`, `ring-kumo-ring`, `text-kumo-danger`, `text-kumo-default`, `text-kumo-inverse`, `text-kumo-subtle`
+`bg-kumo-base`, `bg-kumo-contrast`, `border-kumo-line`, `ring-kumo-contrast`, `ring-kumo-danger`, `ring-kumo-line`, `ring-kumo-ring`, `text-kumo-danger`, `text-kumo-default`, `text-kumo-inverse`, `text-kumo-subtle`
 
 **Styling:**
 
@@ -2240,6 +2240,7 @@ Close sub-component
                 variant="secondary"
                 shape="square"
                 icon={<X />}
+                aria-label="Close"
               />
             )}
           />
@@ -2268,6 +2269,7 @@ Close sub-component
                 variant="secondary"
                 shape="square"
                 icon={<X />}
+                aria-label="Close"
               />
             )}
           />

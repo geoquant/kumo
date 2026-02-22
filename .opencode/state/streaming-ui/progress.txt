@@ -15,6 +15,8 @@ Started: 2026-02-21
 - New module export pattern: vite entry `name: resolve(__dirname, "src/name/index.ts")` → package.json `"./name": { "types": "./dist/src/name/index.d.ts", "import": "./dist/name.js" }`
 - Defensive JSON parsing: registry JSON types are untrustworthy at module boundaries — use `isRecord()` guards, not type assertions
 - oxlint `no-base-to-string`: `String(unknownValue)` fails lint — type-narrow to string/number/boolean first, fall back to `JSON.stringify`
+- Codegen-as-manifest pattern: generate pure data (arrays/objects) not React components; hand-written code imports manifest. Drift detection tests compare manifest against registry.
+- `Object.assign(StatefulSelectInner, { Option: Select.Option })` pattern for compound function components (avoids `.Option` property type issue on plain functions)
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -109,3 +111,18 @@ Started: 2026-02-21
 - Exported `GeneratePromptOptions` type and `loadRegistry` from barrel
 - Files changed: `catalog.ts`, `types.ts`, `index.ts`
 - **Learnings:** `initCatalog()` is the natural place to load both schemas and registry JSON — the registry is needed for prompt generation but not validation, so loading it eagerly in `initCatalog` avoids a second async boundary at `generatePrompt` call time
+
+## Task - generative-1
+- Created generative map codegen script and `src/generative/` module
+- Architecture: manifest-based codegen (pure data) + hand-written React wrappers
+  - `scripts/component-registry/generative-map-generator.ts` — generator that reads registry, outputs manifest
+  - `src/generative/component-manifest.ts` — AUTO-GENERATED manifest declaring direct components, sub-component aliases, type aliases, wrapper targets, excluded components, registry snapshot
+  - `src/generative/stateful-wrappers.tsx` — hand-written: StatefulSelect, StatefulCheckbox, StatefulSwitch, StatefulTabs, StatefulCollapsible (ported from kumo-stream)
+  - `src/generative/generative-wrappers.tsx` — hand-written: GenerativeSurface, GenerativeInput, GenerativeInputArea, GenerativeCloudflareLogo, GenerativeSelect (extracted from kumo-stream component-map)
+  - `src/generative/component-map.ts` — assembles COMPONENT_MAP and KNOWN_TYPES from manifest + wrappers
+  - `src/generative/index.ts` — barrel export
+- Wired generator into `scripts/component-registry/index.ts` main() — runs atomically with registry/schemas/markdown
+- 13 excluded components with documented reasons (complex overlays, portals, host-state-dependent)
+- 40 entries in COMPONENT_MAP: 18 direct + 12 sub-component aliases + 5 stateful wrappers + 5 generative wrappers + 1 type alias (Textarea) + 1 synthetic (Div) — with overlaps from overrides
+- Files changed: `scripts/component-registry/generative-map-generator.ts` (new), `scripts/component-registry/index.ts` (wiring), `src/generative/` (5 new files + 1 generated)
+- **Learnings:** Generate data manifests not React code as strings. Hand-written React files import the manifest. `REGISTRY_COMPONENT_NAMES` in manifest enables drift detection in separate test task (generative-4).
