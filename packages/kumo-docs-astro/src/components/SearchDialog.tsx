@@ -312,7 +312,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
         if (!response.ok) {
           throw new Error(`Failed to fetch registry: ${response.status}`);
         }
-        const data = await response.json();
+        const data: ComponentRegistry = await response.json();
         setRegistry(data);
         setError(null);
       } catch (err) {

@@ -9,7 +9,7 @@ pre-commit:
   commands:
     oxlint:
       glob: "*.{ts,tsx,js,jsx,astro}"
-      run: pnpm oxlint {staged_files}
+      run: pnpm oxlint --config .oxlintrc.json {staged_files}
 
 pre-push:
   skip:

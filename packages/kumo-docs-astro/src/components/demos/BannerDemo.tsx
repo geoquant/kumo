@@ -104,3 +104,5 @@ export function BannerLegacyDemo() {
     <Banner icon={<Info />}>This is a simple banner using children.</Banner>
   );
 }
+// test2
+// test2
