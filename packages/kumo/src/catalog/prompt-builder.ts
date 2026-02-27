@@ -10,10 +10,15 @@
  * - **Top-N props**: at most `maxPropsPerComponent` (default 10) per entry
  * - **Category grouping**: Layout / Content / Interactive / Data Display / Navigation / Action / Feedback / Brand
  * - **Sub-component docs**: Select.Option, Table.Row, Breadcrumbs.Link, etc.
- * - **Type aliases**: Textarea → InputArea, RadioGroup → Radio.Group
+ * - **Type aliases**: derived from generative manifest SSOT (e.g. Textarea → InputArea)
  *
  * @module
  */
+
+import {
+  TYPE_ALIASES,
+  TYPE_RESOLUTION_MAP,
+} from "../generative/component-manifest.js";
 
 // =============================================================================
 // Custom component definition (prompt-relevant fields only)
@@ -104,31 +109,23 @@ interface RegistryRef {
 
 /**
  * Maps UI type names (as the LLM emits them) to their registry location.
+ * Derived from the generative manifest's {@link TYPE_RESOLUTION_MAP} SSOT.
+ *
  * Aliases point to a different component name; sub-component refs point
  * into the parent's `subComponents` map.
  */
-const UI_TYPE_TO_REGISTRY_REF: Readonly<Record<string, RegistryRef>> = {
-  // Aliases
-  Textarea: { component: "InputArea" },
-  RadioGroup: { component: "Radio" },
-
-  // Sub-components
-  SelectOption: { component: "Select", subComponent: "Option" },
-
-  BreadcrumbsLink: { component: "Breadcrumbs", subComponent: "Link" },
-  BreadcrumbsCurrent: { component: "Breadcrumbs", subComponent: "Current" },
-  BreadcrumbsSeparator: {
-    component: "Breadcrumbs",
-    subComponent: "Separator",
-  },
-
-  TableHeader: { component: "Table", subComponent: "Header" },
-  TableHead: { component: "Table", subComponent: "Head" },
-  TableBody: { component: "Table", subComponent: "Body" },
-  TableRow: { component: "Table", subComponent: "Row" },
-  TableCell: { component: "Table", subComponent: "Cell" },
-  TableFooter: { component: "Table", subComponent: "Footer" },
-};
+const UI_TYPE_TO_REGISTRY_REF: Readonly<Record<string, RegistryRef>> =
+  Object.fromEntries(
+    Object.entries(TYPE_RESOLUTION_MAP).map(([uiType, entry]) => [
+      uiType,
+      {
+        component: entry.registryComponent,
+        ...("subComponent" in entry
+          ? { subComponent: entry.subComponent }
+          : {}),
+      },
+    ]),
+  );
 
 // =============================================================================
 // Category grouping
@@ -641,13 +638,9 @@ export function buildComponentDocs(
     const entry = resolveRegistryEntry(registry, ref);
     if (!entry) continue;
 
-    // Alias annotation
-    const aliasNote =
-      uiType === "Textarea"
-        ? " (alias of InputArea)"
-        : uiType === "RadioGroup"
-          ? " (alias of Radio)"
-          : "";
+    // Alias annotation — derived from manifest TYPE_ALIASES
+    const aliasTarget = TYPE_ALIASES[uiType as keyof typeof TYPE_ALIASES];
+    const aliasNote = aliasTarget ? ` (alias of ${aliasTarget})` : "";
 
     const group = groupForType(uiType, entry.category);
     const lines = grouped.get(group);
