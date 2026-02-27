@@ -30,6 +30,7 @@ const SIMPLE_LAYOUT_MAX_ELEMENTS = 12;
 export const COMPOSITION_RULE_NAMES = [
   "has-visual-hierarchy",
   "has-responsive-layout",
+  "surface-hierarchy-correct",
 ] as const;
 
 export type CompositionRuleName = (typeof COMPOSITION_RULE_NAMES)[number];
@@ -45,6 +46,7 @@ export type CompositionRuleName = (typeof COMPOSITION_RULE_NAMES)[number];
 export function gradeComposition(tree: UITree): GradeReport {
   const hierarchyViolations: string[] = [];
   const layoutViolations: string[] = [];
+  const surfaceViolations: string[] = [];
 
   // Track which heading levels are present
   let hasAnyHeading = false;
@@ -57,7 +59,7 @@ export function gradeComposition(tree: UITree): GradeReport {
 
   let elementCount = 0;
 
-  walkTree(tree, (element) => {
+  walkTree(tree, (element, _depth, parentKey) => {
     elementCount++;
     const { type, props } = element;
     const p = props as Record<string, unknown>;
@@ -79,6 +81,16 @@ export function gradeComposition(tree: UITree): GradeReport {
         hasGridWithVariant = true;
       } else {
         hasGridWithoutVariant = true;
+      }
+    }
+
+    // surface-hierarchy-correct: Surface must not be a direct child of Surface
+    if (type === "Surface" && parentKey != null) {
+      const parent = tree.elements[parentKey];
+      if (parent?.type === "Surface") {
+        surfaceViolations.push(
+          `Surface "${element.key}" is a direct child of Surface "${parentKey}" — insert a layout element (Stack, Grid) between them`,
+        );
       }
     }
   });
@@ -125,6 +137,11 @@ export function gradeComposition(tree: UITree): GradeReport {
       rule: "has-responsive-layout",
       pass: layoutViolations.length === 0,
       violations: layoutViolations,
+    },
+    {
+      rule: "surface-hierarchy-correct",
+      pass: surfaceViolations.length === 0,
+      violations: surfaceViolations,
     },
   ];
 
