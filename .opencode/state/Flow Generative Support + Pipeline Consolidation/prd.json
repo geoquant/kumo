@@ -36,7 +36,7 @@
       "id": "d5-prompt-from-manifest",
       "category": "integration",
       "description": "Switch prompt-builder to import aliases from manifest",
-      "passes": false
+      "passes": true
     },
     {
       "id": "d6-validator-from-manifest",

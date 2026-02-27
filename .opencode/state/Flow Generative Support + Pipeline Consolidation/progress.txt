@@ -8,6 +8,7 @@ Started: 2026-02-27
 - Manifest derivation pattern: emit unified runtime lookup tables from existing manifest primitives (`TYPE_ALIASES`, `SUB_COMPONENT_ALIASES`) so prompt/validator/map consumers read one generated SSOT.
 - Prompt scope pattern: derive prompt component allowlist from `ALL_GENERATIVE_TYPES` and control token budget via a local `EXCLUDED_FROM_PROMPT` set, default-include everything else.
 - Registry coverage pattern: add discovery integration tests that assert both detection and assigned category so codegen inclusion regressions fail fast.
+- Manifest import pattern: cross-module imports from `catalog/` → `generative/component-manifest.js` are safe (no circular deps); use `TYPE_RESOLUTION_MAP` for registry ref derivation, `TYPE_ALIASES` for alias annotations.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -43,3 +44,10 @@ Started: 2026-02-27
 - Files changed: `packages/kumo/tests/generative/component-map-new-entries.test.tsx`
 - Verification: 1013 tests pass (7 new), typecheck clean
 - **Learnings:** compound components wired via manifest loops don't appear by name in component-map.ts source — explicit per-component rendering tests are needed to catch sub-component resolution failures (e.g. `Flow.Node` not accessible on the namespace import).
+
+## Task - [d5-prompt-from-manifest]
+- Replaced hardcoded `UI_TYPE_TO_REGISTRY_REF` in `prompt-builder.ts` with derivation from manifest's `TYPE_RESOLUTION_MAP`. Replaced hardcoded alias annotations (`uiType === "Textarea"` conditionals) with dynamic lookup from `TYPE_ALIASES`.
+- Files changed: `packages/kumo/src/catalog/prompt-builder.ts`
+- Behavioral changes: FlowNode/FlowParallel/RadioItem now in resolution map; RadioGroup resolves as `Radio.Group` sub-component (correct semantic) rather than aliasing to `Radio` parent. RadioGroup won't show prompt docs if registry lacks `Radio.Group` sub-component entry, but `Radio` itself covers the parent docs.
+- Verification: 1013 tests pass, typecheck clean, lint 0 errors
+- **Learnings:** `TYPE_RESOLUTION_MAP` field names differ from prompt-builder's `RegistryRef` (`registryComponent` vs `component`); mapping at derivation time avoids leaking manifest field names into consumers.
