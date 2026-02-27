@@ -1,0 +1,88 @@
+# Progress Log
+PRD: custom-components
+Started: 2026-02-22
+
+## Codebase Patterns
+- **Type imports**: `import type { ElementType } from "react"`, `import type { ZodType } from "zod"` — Zod is optional peer dep, type-only imports safe
+- **catalog/types.ts sections**: Delimited by `// ===...` banners with descriptive headers
+- **catalog/index.ts**: Type re-exports grouped by category with comments
+- **Zod 4**: Classic API exports `ZodType` from `zod` (via `v4/classic/schemas`). No `z.ZodType` prefix needed.
+- **ESM imports in generative/**: Always use `.js` extension for relative imports (e.g. `"./define-custom-component.js"`)
+- **RenderElement threading**: Any new prop must be added to all 4 recursive `<RenderElement>` call sites: repair re-render, Div children map, structural children loop, and root call from UITreeRendererImpl
+- **component-map.ts**: `COMPONENT_MAP` is `Readonly<Record<string, AnyComponent>>` (`AnyComponent = React.ComponentType<any>`). `KNOWN_TYPES` is a `ReadonlySet` of the same keys, used only for `getUnknownTypes()` debugging
+- **Validation cache**: `WeakMap<UIElement, ElementValidation>` keyed by element ref. Must bypass when context-dependent params (like customSchemas) are provided
+- **Structural typing in prompt-builder.ts**: Uses `*Like` interfaces (e.g. `CustomComponentDefinitionLike`) instead of importing from types.ts — avoids pulling React/Zod deps into the prompt builder module. TypeScript structural compat handles the rest.
+
+---
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - types-1
+- Added `CustomPropDefinition` interface: `type` (string, required), `description`, `optional`, `values` (readonly string[]), `default` (unknown)
+- Added `CustomComponentDefinition` interface: `component` (ElementType, required), `propsSchema` (ZodType, optional), `description`, `props` (Record<string, CustomPropDefinition>), `category`
+- Files changed: `packages/kumo/src/catalog/types.ts`, `packages/kumo/src/catalog/index.ts`
+- **Learnings:** Zod 4 in this repo is v4.3.6; `ZodType` available from top-level `"zod"` import. Types placed in new "Custom Components" section before "Catalog Types" section.
+
+## Task - helper-1
+- Created `defineCustomComponent()` factory in `src/generative/define-custom-component.ts`
+- Takes `CustomComponentDefinition`, returns `Readonly<CustomComponentDefinition>` via `Object.freeze`
+- Exported from `@cloudflare/kumo/generative` via `src/generative/index.ts`
+- Files changed: `packages/kumo/src/generative/define-custom-component.ts` (new), `packages/kumo/src/generative/index.ts`
+- **Learnings:** generative/index.ts uses `.js` extensions for imports (ESM convention). Import catalog types via relative `../catalog/types.js`.
+
+## Task - renderer-1
+- Added `customComponents` prop to `UITreeRendererProps` (optional `Readonly<Record<string, CustomComponentDefinition>>`)
+- Added `mergeComponentMaps()` function: merges built-in COMPONENT_MAP with custom component `.component` fields; custom wins on collision
+- Added `ResolvedComponentMap` type alias for the merged map
+- Threaded `componentMap` through all `RenderElement` call sites (4 locations: repair re-render, Div children, structural children, root call)
+- `UITreeRendererImpl` computes merged map via `useMemo([customComponents])` and passes to root `RenderElement`
+- Custom props pass through existing `sanitizeProps()` (no changes needed — all components use the same pipeline)
+- Unknown types not in merged map still render yellow warning (existing fallback)
+- Files changed: `packages/kumo/src/generative/ui-tree-renderer.tsx`
+- **Learnings:** `RenderElement` uses `COMPONENT_MAP` directly — threading a resolved map required adding a required `componentMap` prop and updating 4 recursive call sites. `KNOWN_TYPES` set is only for the debugging `getUnknownTypes()` function, not for rendering decisions.
+
+## Task - validation-1
+- Extended `validateElement()` with optional 2nd param `customSchemas?: Readonly<Record<string, ZodType>> | null`
+- Custom schema validation runs after built-in checks, before "unknown type" passthrough — uses `schema.safeParse(props)` and feeds through same `toResult()` converter
+- Added `extractCustomSchemas()` helper in ui-tree-renderer.tsx — extracts `.propsSchema` from custom component definitions, returns null when none have schemas
+- Threaded `customSchemas` through `RenderElement` (all 4 call sites + root)
+- `getElementValidation()` skips WeakMap cache when customSchemas provided (different renderer instances may have different schemas for same element)
+- Files changed: `packages/kumo/src/generative/element-validator.ts`, `packages/kumo/src/generative/ui-tree-renderer.tsx`
+- **Learnings:** Zod 4 classic `ZodType.safeParse()` returns same shape as `SafeParseResult<T>` from `ai/schemas.ts` — cast via `as SafeParseResult<unknown>` to satisfy `toResult()`. Validation cache bypass for custom schemas prevents cross-instance cache pollution.
+
+## Task - prompt-1
+- Added `customComponents?` field to `CatalogConfig` interface in `src/catalog/types.ts`
+- Updated `createKumoCatalog()` to merge custom component names into `componentNames` (Set-based dedup + sort)
+- Extended `PromptBuilderOptions` with `customComponents` field using structural `CustomComponentDefinitionLike` type (avoids React/Zod deps in prompt builder)
+- Added `renderCustomComponentDocs()` helper in prompt-builder.ts — converts `CustomPropDefinitionLike` to `RegistryProp` shape, reuses `renderPropsLines()` for consistent formatting
+- `buildComponentDocs()` appends `### Custom` section when customComponents provided; no-op when absent
+- `generatePrompt()` in catalog.ts passes `customComponents` through to `buildComponentDocs()`
+- Files changed: `packages/kumo/src/catalog/types.ts`, `packages/kumo/src/catalog/catalog.ts`, `packages/kumo/src/catalog/prompt-builder.ts`
+- **Learnings:** prompt-builder.ts uses structural interfaces (`CustomComponentDefinitionLike`) rather than importing `CustomComponentDefinition` directly — keeps the module free of React/Zod imports. The `RegistryProp` scoring/rendering pipeline is reusable for custom props by mapping `values`+type to an "enum" type string.
+
+## Task - devwarn-1
+- Added dev-mode `console.warn` in `mergeComponentMaps()` when a custom component name collides with a `COMPONENT_MAP` key
+- Guard: `process.env.NODE_ENV !== "production"` — no-op in prod builds (tree-shaken by bundlers)
+- Override still works: custom component assigned to merged map regardless of warning
+- Files changed: `packages/kumo/src/generative/ui-tree-renderer.tsx` (lines 738-742)
+- **Learnings:** `COMPONENT_MAP` is a plain `Readonly<Record<string, AnyComponent>>`, so `type in COMPONENT_MAP` is the correct collision check. `process.env.NODE_ENV` is the standard guard for dev-only warnings in this codebase (bundlers dead-code-eliminate the branch in production).
+
+## Task - exports-1
+- Verified all exports already in place from prior tasks (types-1, helper-1)
+- `defineCustomComponent` exported at `src/generative/index.ts:64`
+- `CustomComponentDefinition` type exported at `src/catalog/index.ts:63`
+- `CustomPropDefinition` type exported at `src/catalog/index.ts:64`
+- No code changes needed — verification-only task
+- Files verified: `packages/kumo/src/generative/index.ts`, `packages/kumo/src/catalog/index.ts`
+- **Learnings:** Export wiring was done incrementally during implementation tasks. Verification tasks like this confirm the contract holds end-to-end. Typecheck + test suite passing is sufficient proof.
+
+## Task - docs-1
+- Added "Custom Components" section to `packages/kumo-docs-astro/src/pages/streaming.astro`
+- Placed between "Component Map" and "System Prompt Generation" sections (natural reading flow)
+- Three-layer model explained via 3-column grid (Render, Validation, Prompt)
+- Quick Start example: `defineCustomComponent` + `UITreeRenderer` (render-only, minimal)
+- Full example: Zod schema + `createKumoCatalog` + `generatePrompt()` (all 3 layers)
+- Caveats section: define outside render, consumer manages prompts, no auto-codegen
+- Security section: sanitizeProps pipeline + consumer responsibility for internals
+- Callout about name collision behavior (dev warning, custom wins)
+- Files changed: `packages/kumo-docs-astro/src/pages/streaming.astro`
+- **Learnings:** Docs use `ComponentSection` for grouping, `CodeBlock` for examples, `Callout` for info boxes. Astro pages can embed JSX-like expressions in attributes via `code={...}` template literals. Build verification (`pnpm build`) is the docs equivalent of typecheck.
