@@ -53,10 +53,3 @@ coverage/
 
 # Overseer task DB (local-only)
 .overseer/
-
-# OpenCode (local-only)
-.opencode/plans/
-.opencode/state/
-
-# Specs / PRDs (local planning artifacts)
-specs/

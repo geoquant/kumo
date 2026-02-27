@@ -1,0 +1,141 @@
+{
+  "prdName": "custom-components",
+  "branch": "geoquant/streaming-ui",
+  "tasks": [
+    {
+      "id": "types-1",
+      "category": "types",
+      "description": "CustomComponentDefinition and CustomPropDefinition types in src/catalog/types.ts",
+      "steps": [
+        "CustomComponentDefinition interface exists in src/catalog/types.ts with fields: component (React.ElementType, required), propsSchema (ZodType, optional), description (string, optional), props (Record<string, CustomPropDefinition>, optional), category (string, optional)",
+        "CustomPropDefinition interface exists in src/catalog/types.ts with fields: type (string, required), description (string, optional), optional (boolean, optional), values (readonly string[], optional), default (unknown, optional)",
+        "Both types are exported from @cloudflare/kumo/catalog (via src/catalog/index.ts)",
+        "pnpm --filter @cloudflare/kumo typecheck passes with the new types"
+      ],
+      "passes": true
+    },
+    {
+      "id": "helper-1",
+      "category": "functional",
+      "description": "defineCustomComponent() helper factory in src/generative/define-custom-component.ts",
+      "steps": [
+        "defineCustomComponent(definition) exists and returns Readonly<CustomComponentDefinition>",
+        "Returned object is frozen (Object.isFrozen returns true)",
+        "Exported from @cloudflare/kumo/generative (via src/generative/index.ts)",
+        "TypeScript errors if component field is missing from definition argument",
+        "pnpm --filter @cloudflare/kumo typecheck passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "renderer-1",
+      "category": "functional",
+      "description": "UITreeRenderer accepts customComponents prop and merges into render pipeline",
+      "steps": [
+        "UITreeRendererProps has customComponents?: Readonly<Record<string, CustomComponentDefinition>>",
+        "Custom components are merged over COMPONENT_MAP via mergeComponentMaps (consumer wins on collision)",
+        "If both components and customComponents provide same type, customComponents takes precedence",
+        "Custom component props pass through sanitizeProps() (same security pipeline as built-ins)",
+        "Unknown types not in custom map still render yellow 'Unknown component' warning",
+        "pnpm --filter @cloudflare/kumo typecheck passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "validation-1",
+      "category": "functional",
+      "description": "validateElement() extended to validate custom component props against consumer-provided Zod schemas",
+      "steps": [
+        "validateElement() accepts optional second parameter: customSchemas?: Readonly<Record<string, ZodType>> | null",
+        "When custom Zod schema exists for a type, props are validated against it",
+        "Validation failures produce same ElementValidationResult shape as built-in failures",
+        "When no custom schema exists for a type, behavior unchanged (returns VALID for unknown types)",
+        "UITreeRenderer passes extracted custom schemas into validateElement calls",
+        "pnpm --filter @cloudflare/kumo typecheck passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "prompt-1",
+      "category": "functional",
+      "description": "CatalogConfig accepts customComponents; generatePrompt() includes custom component docs",
+      "steps": [
+        "CatalogConfig interface has customComponents?: Readonly<Record<string, CustomComponentDefinition>>",
+        "createKumoCatalog({ customComponents }) includes custom component names in catalog.componentNames",
+        "catalog.generatePrompt() includes custom component docs under '### Custom' heading in Available Components section",
+        "Custom component docs follow format: '- **TypeName** — description' with prop lines",
+        "buildComponentDocs() accepts optional customComponents parameter and appends custom docs",
+        "When no customComponents provided, prompt generation is identical to current behavior",
+        "pnpm --filter @cloudflare/kumo typecheck passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "devwarn-1",
+      "category": "functional",
+      "description": "Dev-mode console.warn when custom component name collides with built-in",
+      "steps": [
+        "When NODE_ENV !== 'production' and a custom component name matches a COMPONENT_MAP key, console.warn is called",
+        "Warning message includes the colliding component name",
+        "Override still works (custom component renders, not the built-in)",
+        "No warning fires in production (NODE_ENV === 'production')",
+        "No warning fires when custom component name does not collide"
+      ],
+      "passes": true
+    },
+    {
+      "id": "exports-1",
+      "category": "functional",
+      "description": "Public exports updated for both @cloudflare/kumo/generative and @cloudflare/kumo/catalog",
+      "steps": [
+        "defineCustomComponent exported from @cloudflare/kumo/generative (src/generative/index.ts)",
+        "CustomComponentDefinition type exported from @cloudflare/kumo/catalog (src/catalog/index.ts)",
+        "CustomPropDefinition type exported from @cloudflare/kumo/catalog (src/catalog/index.ts)",
+        "pnpm --filter @cloudflare/kumo typecheck passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "docs-1",
+      "category": "docs",
+      "description": "Custom Components documentation section in streaming.astro page",
+      "steps": [
+        "'Custom Components' section exists in packages/kumo-docs-astro/src/pages/streaming.astro",
+        "Section explains the three-layer extension model (render, validation, prompt)",
+        "Includes minimal quick-start example showing defineCustomComponent + UITreeRenderer (render-only)",
+        "Includes full example with Zod schema + createKumoCatalog prompt generation",
+        "Documents caveats: define outside render, consumer manages prompts, no auto-codegen",
+        "Documents security: props are sanitized, consumers responsible for component internals",
+        "pnpm dev builds without errors"
+      ],
+      "passes": true
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Render extension: UITreeRenderer.components prop + mergeComponentMaps() at src/generative/ui-tree-renderer.tsx:709",
+      "Action extension: createHandlerMap(custom?) at src/streaming/action-registry.ts:397",
+      "Validation passthrough: element-validator.ts:228-229 returns VALID for unknown types",
+      "Prompt building: buildComponentDocs() at src/catalog/prompt-builder.ts:528-594"
+    ],
+    "keyFiles": [
+      "packages/kumo/src/generative/ui-tree-renderer.tsx",
+      "packages/kumo/src/generative/component-map.ts",
+      "packages/kumo/src/generative/element-validator.ts",
+      "packages/kumo/src/generative/index.ts",
+      "packages/kumo/src/catalog/types.ts",
+      "packages/kumo/src/catalog/catalog.ts",
+      "packages/kumo/src/catalog/prompt-builder.ts",
+      "packages/kumo/src/catalog/system-prompt.ts",
+      "packages/kumo/src/catalog/index.ts",
+      "packages/kumo-docs-astro/src/pages/streaming.astro"
+    ],
+    "nonGoals": [
+      "Auto-codegen for custom components (no changes to component-registry.json or ai/schemas.ts)",
+      "Custom component scaffolding CLI",
+      "Runtime schema generation from TypeScript types",
+      "Custom normalizers for UITreeRenderer",
+      "Branch changes (stay on geoquant/streaming-ui)"
+    ]
+  }
+}
