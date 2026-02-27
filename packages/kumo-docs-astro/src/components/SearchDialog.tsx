@@ -89,6 +89,13 @@ const STATIC_PAGES: Array<{
     category: "Guides",
   },
   {
+    name: "Playground",
+    description:
+      "Interactive playground for generating and previewing AI-driven Kumo UI.",
+    url: "/playground",
+    category: "Guides",
+  },
+  {
     name: "Figma",
     description: "Using Kumo components in Figma with the Kumo Figma plugin.",
     url: "/figma",

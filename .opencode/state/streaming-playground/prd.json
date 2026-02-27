@@ -216,7 +216,7 @@
         "SearchDialog.tsx has playground in static pages array",
         "/streaming page has visible cross-link to /playground above the demo section"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {

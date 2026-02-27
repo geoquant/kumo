@@ -206,4 +206,14 @@ Started: 2026-02-26
 - Files changed:
   - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` (added ErrorBanner ~40 lines, handleCancel/handleDismissError callbacks, lastSubmittedRef, conditional Send/Cancel buttons, shimmer bar, error rollback in catch)
   - `packages/kumo-docs-astro/src/styles/global.css` (added @keyframes shimmer)
-- **Learnings:** When retry re-submits a message, the user message added during the original failed attempt must be rolled back first — otherwise conversation history accumulates duplicate entries. Storing `lastSubmittedRef` is simpler than trying to recover from the messages array.
+- **Learnings:** When retry re-submits a message, the user message added during the original failed attempt must be rolled back first �� otherwise conversation history accumulates duplicate entries. Storing `lastSubmittedRef` is simpler than trying to recover from the messages array.
+
+## Task - nav-1
+- Added "Playground" entry to sidebar navigation after "Streaming"
+- Added "Playground" to SearchDialog STATIC_PAGES array under "Guides" category
+- Added cross-link callout on /streaming page above the Live Demo section, linking to /playground
+- Files changed:
+  - `packages/kumo-docs-astro/src/components/SidebarNav.tsx` (1 line added to staticPages array)
+  - `packages/kumo-docs-astro/src/components/SearchDialog.tsx` (6 lines added to STATIC_PAGES array)
+  - `packages/kumo-docs-astro/src/pages/streaming.astro` (8 lines added — playground cross-link callout)
+- **Learnings:** SidebarNav and SearchDialog have separate static page arrays — both need updating when adding a new page. Cross-link styling reuses existing `border-kumo-brand/30 bg-kumo-brand/5` pattern from the streaming page's own callout boxes.
