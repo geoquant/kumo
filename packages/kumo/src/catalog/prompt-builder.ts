@@ -240,6 +240,7 @@ const COMPOSITION_HINTS: Readonly<Record<string, string>> = {
     "Hint: Set gap explicitly (sm for tight groups, base for standard, lg for sections). Use inside Surface.",
   Cluster:
     "Hint: Set justify (start, end, between). Use for button groups and inline items.",
+  Flow: "Hint: Children must be FlowNode or FlowParallel. Use FlowParallel to branch nodes side-by-side.",
 };
 
 /** Props that score higher in the ranking (+1). */
@@ -478,6 +479,8 @@ function renderPropsLines(
 interface SyntheticEntry {
   readonly description: string;
   readonly propsLines: string[];
+  /** Registry category override for prompt grouping. Defaults to "Other". */
+  readonly category?: string;
 }
 
 const SYNTHETIC_TYPES: Readonly<Record<string, SyntheticEntry>> = {
@@ -498,6 +501,18 @@ const SYNTHETIC_TYPES: Readonly<Record<string, SyntheticEntry>> = {
       "  - value: string",
       "  - disabled?: boolean",
     ],
+  },
+  FlowNode: {
+    description:
+      "A step node in a Flow diagram. Wrap content in FlowNode children.",
+    category: "Layout",
+    propsLines: ["  - children?: ReactNode", "  - disabled?: boolean"],
+  },
+  FlowParallel: {
+    description:
+      "Groups sibling FlowNode elements into a parallel (side-by-side) branch.",
+    category: "Layout",
+    propsLines: ["  - children: ReactNode", '  - align?: "start" | "end"'],
   },
 };
 
@@ -624,7 +639,7 @@ export function buildComponentDocs(
     // Handle synthetic types first
     const synthetic = SYNTHETIC_TYPES[uiType];
     if (synthetic) {
-      const group = groupForType(uiType, "Other");
+      const group = groupForType(uiType, synthetic.category ?? "Other");
       const lines = grouped.get(group);
       if (!lines) continue;
 

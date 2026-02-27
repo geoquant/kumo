@@ -9,6 +9,7 @@ Started: 2026-02-27
 - Prompt scope pattern: derive prompt component allowlist from `ALL_GENERATIVE_TYPES` and control token budget via a local `EXCLUDED_FROM_PROMPT` set, default-include everything else.
 - Registry coverage pattern: add discovery integration tests that assert both detection and assigned category so codegen inclusion regressions fail fast.
 - Manifest import pattern: cross-module imports from `catalog/` → `generative/component-manifest.js` are safe (no circular deps); use `TYPE_RESOLUTION_MAP` for registry ref derivation, `TYPE_ALIASES` for alias annotations.
+- Synthetic sub-component pattern: sub-components without registry `subComponents` entries need `SYNTHETIC_TYPES` entries in prompt-builder with `category` field for correct prompt grouping; test via `buildComponentDocs` with component filter.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -58,3 +59,9 @@ Started: 2026-02-27
 - Behavioral changes: new sub-components from manifest (FlowNode, FlowParallel, BreadcrumbsCurrent, BreadcrumbsLink, BreadcrumbsSeparator) now skip validation explicitly rather than falling through as unknown types. Net behavior identical.
 - Verification: 1013 tests pass, typecheck clean, lint 0 errors
 - **Learnings:** sub-component → parent schema validation only makes sense when the sub-component conceptually wraps the parent (RadioGroup → Radio). Structural sub-components (TableRow, SelectOption) have no prop overlap with parent schemas — validating them against the parent would cause false failures.
+
+## Task - [d9-flow-prompt-docs]
+- Added `FlowNode` and `FlowParallel` synthetic entries to prompt-builder's `SYNTHETIC_TYPES` with `category: "Layout"` for correct grouping. Extended `SyntheticEntry` interface with optional `category` field. Added Flow composition hint. Added 4 prompt contract tests verifying Flow docs appear under Layout heading.
+- Files changed: `packages/kumo/src/catalog/prompt-builder.ts`, `packages/kumo/tests/generative/prompt-contracts.test.ts`
+- Verification: 1017 tests pass (4 new), typecheck clean, lint 0 errors
+- **Learnings:** sub-components without registry `subComponents` entries resolve to `null` in `resolveRegistryEntry` and are silently dropped from prompt output — they MUST have synthetic entries or they won't appear in LLM context. The `category` field on synthetics enables proper prompt group assignment without hardcoding type names in `groupForType`.

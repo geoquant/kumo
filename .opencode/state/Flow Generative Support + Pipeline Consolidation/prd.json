@@ -54,7 +54,7 @@
       "id": "d9-flow-prompt-docs",
       "category": "integration",
       "description": "Add Flow prompt docs with synthetic sub-component entries",
-      "passes": false
+      "passes": true
     },
     {
       "id": "d10-workers-flow-preset",
