@@ -23,6 +23,7 @@ Started: 2026-02-26
 - **Select component**: Compound pattern `<Select onValueChange={...}><Select.Option value="x">Label</Select.Option></Select>`. `onValueChange` types value as `unknown` — guard with `typeof v === "string"` before using.
 - **Streaming pipeline in playground**: `AuthenticatedState` owns `useUITree`, `useRuntimeValueStore`, `createJsonlParser`, `readSSEStream`. `handleSubmit` accepts `(e?, overrideMessage?)` — preset pills call with `onSubmit(undefined, preset.prompt)`. `runIdRef` prevents stale closures across concurrent streams.
 - **Kumo Tabs component**: Navigation-only — renders tab bar + animated indicator, no panels. Use controlled `value`/`onValueChange` with own content switching. `tabs` prop expects mutable `TabsItem[]`. `variant="underline"` for content tabs, `"segmented"` (default) for toggle-style.
+- **Error banner pattern**: Dismissible banner between tab bar and content — never replaces content (user may want to see partial streaming result). Store `lastSubmittedRef` for retry capability; roll back user message on error to prevent duplicates.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -193,3 +194,16 @@ Started: 2026-02-26
 - Files changed:
   - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` (added ~85 lines: imports, PlaygroundBottomBar component, STATUS_CONFIG, followUpValue state, handleFollowUp callback, bottom bar in render)
 - **Learnings:** phosphor-icons v2 exports `CircleIcon`, `SpinnerIcon`, `WarningCircleIcon` with `Icon` suffix. `weight="fill"` on CircleIcon gives a solid dot — good for status indicators.
+
+## Task - ui-10
+- Refactored error handling: moved from tab-content-replacing error to dismissible `ErrorBanner` between tab bar and content
+- `ErrorBanner`: shows error message, dismiss button (XCircleIcon), and retry button (ArrowCounterClockwiseIcon) when possible
+- Retry uses `lastSubmittedRef` to replay the last submitted message; user message is rolled back on error to prevent duplication
+- Cancel button: `StopCircleIcon` replaces Send button during streaming in both top bar and bottom bar
+- `handleCancel` aborts the AbortController and resets status to idle
+- Streaming progress indicator: animated shimmer bar (0.5px) between tab bar and content, uses `@keyframes shimmer` in global.css
+- Input disable during streaming already existed; cancel button gives users escape hatch mid-stream
+- Files changed:
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` (added ErrorBanner ~40 lines, handleCancel/handleDismissError callbacks, lastSubmittedRef, conditional Send/Cancel buttons, shimmer bar, error rollback in catch)
+  - `packages/kumo-docs-astro/src/styles/global.css` (added @keyframes shimmer)
+- **Learnings:** When retry re-submits a message, the user message added during the original failed attempt must be rolled back first — otherwise conversation history accumulates duplicate entries. Storing `lastSubmittedRef` is simpler than trying to recover from the messages array.

@@ -26,13 +26,16 @@ import {
 } from "@cloudflare/kumo";
 import type { TabsItem } from "@cloudflare/kumo";
 import {
+  ArrowCounterClockwiseIcon,
   CheckIcon,
   CircleIcon,
   CopyIcon,
   LockKeyIcon,
   PaperPlaneRightIcon,
   SpinnerIcon,
+  StopCircleIcon,
   WarningCircleIcon,
+  XCircleIcon,
 } from "@phosphor-icons/react";
 import {
   useUITree,
@@ -281,6 +284,7 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
   const [status, setStatus] = useState<StreamStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const lastSubmittedRef = useRef<string | null>(null);
 
   // --- Refs ---
   const abortRef = useRef<AbortController | null>(null);
@@ -298,6 +302,19 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
   }, []);
 
   const isStreaming = status === "streaming";
+
+  // --- Cancel in-flight stream ---
+  const handleCancel = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setStatus("idle");
+  }, []);
+
+  // --- Dismiss error banner ---
+  const handleDismissError = useCallback(() => {
+    setErrorMessage(null);
+    setStatus("idle");
+  }, []);
 
   // --- Submit handler ---
   const handleSubmit = useCallback(
@@ -318,6 +335,7 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
       setErrorMessage(null);
       setStatus("streaming");
       setInputValue("");
+      lastSubmittedRef.current = msg;
 
       // Track conversation
       const newUserMessage: ChatMessage = { role: "user", content: msg };
@@ -394,6 +412,12 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
           }
 
           if (runIdRef.current === runId) {
+            // Roll back the user message added at submit — retry will re-add it
+            setMessages((prev) => {
+              const last = prev[prev.length - 1];
+              if (last && last.role === "user") return prev.slice(0, -1);
+              return prev;
+            });
             setErrorMessage(
               err instanceof Error ? err.message : "Something went wrong",
             );
@@ -443,6 +467,7 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
         onModelChange={setSelectedModel}
         isStreaming={isStreaming}
         onSubmit={handleSubmit}
+        onCancel={handleCancel}
       />
 
       {/* Tabbed content area */}
@@ -459,6 +484,37 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
           />
         </div>
 
+        {/* Error banner — dismissible, sits above tab content */}
+        {status === "error" && errorMessage && (
+          <ErrorBanner
+            message={errorMessage}
+            onDismiss={handleDismissError}
+            onRetry={() => {
+              const retryMsg = lastSubmittedRef.current;
+              if (retryMsg) {
+                handleDismissError();
+                handleSubmit(undefined, retryMsg);
+              }
+            }}
+            canRetry={lastSubmittedRef.current !== null}
+          />
+        )}
+
+        {/* Streaming progress indicator */}
+        {isStreaming && (
+          <div
+            className="h-0.5 w-full shrink-0 bg-kumo-brand/30"
+            aria-label="Streaming in progress"
+          >
+            <div
+              className="h-full w-1/3 bg-kumo-brand"
+              style={{
+                animation: "shimmer 1.5s ease-in-out infinite",
+              }}
+            />
+          </div>
+        )}
+
         {/* Tab content — fills remaining viewport height */}
         <div className="flex-1 overflow-auto">
           <PlaygroundTabContent
@@ -467,8 +523,6 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
             tree={tree}
             runtimeValueStore={runtimeValueStore}
             isStreaming={isStreaming}
-            status={status}
-            errorMessage={errorMessage}
             apiKey={apiKey}
           />
         </div>
@@ -481,6 +535,7 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
             isStreaming={isStreaming}
             status={status}
             onSubmit={handleFollowUp}
+            onCancel={handleCancel}
             turnCount={messages.length}
           />
         )}
@@ -499,14 +554,12 @@ interface PlaygroundTabContentProps {
   readonly tree: UITree;
   readonly runtimeValueStore: RuntimeValueStore;
   readonly isStreaming: boolean;
-  readonly status: StreamStatus;
-  readonly errorMessage: string | null;
   readonly apiKey: string | null;
 }
 
 /**
  * Renders the active tab's content panel.
- * Each tab's full implementation is in subsequent tasks (ui-6 through ui-8).
+ * Error handling is done via the ErrorBanner above, not here.
  */
 function PlaygroundTabContent({
   activeTab,
@@ -514,19 +567,8 @@ function PlaygroundTabContent({
   tree,
   runtimeValueStore,
   isStreaming,
-  status,
-  errorMessage,
   apiKey,
 }: PlaygroundTabContentProps) {
-  // Error banner takes priority in any tab
-  if (status === "error" && errorMessage) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-4">
-        <p className="text-kumo-danger">{errorMessage}</p>
-      </div>
-    );
-  }
-
   switch (activeTab) {
     case "preview":
       return showTree ? (
@@ -850,6 +892,54 @@ function GradingTabContent({
 }
 
 // =============================================================================
+// Error banner
+// =============================================================================
+
+interface ErrorBannerProps {
+  readonly message: string;
+  readonly onDismiss: () => void;
+  readonly onRetry: () => void;
+  readonly canRetry: boolean;
+}
+
+/** Dismissible error banner with retry action. Renders between tab bar and content. */
+function ErrorBanner({
+  message,
+  onDismiss,
+  onRetry,
+  canRetry,
+}: ErrorBannerProps) {
+  return (
+    <div className="flex shrink-0 items-center gap-3 border-b border-kumo-line bg-kumo-recessed px-4 py-2">
+      <WarningCircleIcon
+        size={16}
+        weight="fill"
+        className="shrink-0 text-kumo-danger"
+      />
+      <p className="flex-1 text-sm text-kumo-danger">{message}</p>
+      {canRetry && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onRetry}
+          icon={<ArrowCounterClockwiseIcon />}
+        >
+          Retry
+        </Button>
+      )}
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="shrink-0 rounded p-1 text-kumo-subtle transition-colors hover:bg-kumo-elevated hover:text-kumo-default"
+        aria-label="Dismiss error"
+      >
+        <XCircleIcon size={16} />
+      </button>
+    </div>
+  );
+}
+
+// =============================================================================
 // Top bar
 // =============================================================================
 
@@ -860,9 +950,10 @@ interface PlaygroundTopBarProps {
   readonly onModelChange: (value: string) => void;
   readonly isStreaming: boolean;
   readonly onSubmit: (e?: FormEvent, overrideMessage?: string) => void;
+  readonly onCancel: () => void;
 }
 
-/** Top bar: prompt input, model selector, send button, preset pills. */
+/** Top bar: prompt input, model selector, send/cancel button, preset pills. */
 function PlaygroundTopBar({
   inputValue,
   onInputChange,
@@ -870,6 +961,7 @@ function PlaygroundTopBar({
   onModelChange,
   isStreaming,
   onSubmit,
+  onCancel,
 }: PlaygroundTopBarProps) {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -913,15 +1005,27 @@ function PlaygroundTopBar({
             ))}
           </Select>
         </div>
-        <Button
-          type="submit"
-          variant="primary"
-          size="sm"
-          disabled={isStreaming || !inputValue.trim()}
-          icon={<PaperPlaneRightIcon />}
-        >
-          {isStreaming ? "Streaming..." : "Send"}
-        </Button>
+        {isStreaming ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onCancel}
+            icon={<StopCircleIcon />}
+          >
+            Cancel
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            disabled={!inputValue.trim()}
+            icon={<PaperPlaneRightIcon />}
+          >
+            Send
+          </Button>
+        )}
       </form>
 
       {/* Preset prompt pills */}
@@ -974,6 +1078,7 @@ interface PlaygroundBottomBarProps {
   readonly isStreaming: boolean;
   readonly status: StreamStatus;
   readonly onSubmit: (e?: FormEvent, overrideMessage?: string) => void;
+  readonly onCancel: () => void;
   readonly turnCount: number;
 }
 
@@ -984,6 +1089,7 @@ function PlaygroundBottomBar({
   isStreaming,
   status,
   onSubmit,
+  onCancel,
   turnCount,
 }: PlaygroundBottomBarProps) {
   const handleKeyDown = useCallback(
@@ -1014,15 +1120,27 @@ function PlaygroundBottomBar({
             size="sm"
           />
         </div>
-        <Button
-          type="submit"
-          variant="primary"
-          size="sm"
-          disabled={isStreaming || !followUpValue.trim()}
-          icon={<PaperPlaneRightIcon />}
-        >
-          Send
-        </Button>
+        {isStreaming ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onCancel}
+            icon={<StopCircleIcon />}
+          >
+            Cancel
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            disabled={!followUpValue.trim()}
+            icon={<PaperPlaneRightIcon />}
+          >
+            Send
+          </Button>
+        )}
       </form>
 
       {/* Status indicator + turn count */}
