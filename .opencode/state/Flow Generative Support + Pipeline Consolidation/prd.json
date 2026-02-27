@@ -30,7 +30,7 @@
       "id": "d4-manifest-ssot",
       "category": "architecture",
       "description": "Consolidate alias/sub-component data into manifest SSOT",
-      "passes": false
+      "passes": true
     },
     {
       "id": "d5-prompt-from-manifest",
