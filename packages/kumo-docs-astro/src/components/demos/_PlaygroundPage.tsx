@@ -29,8 +29,10 @@ import {
   useUITree,
   useRuntimeValueStore,
   createJsonlParser,
+  type RuntimeValueStore,
 } from "@cloudflare/kumo/streaming";
-import { isRenderableTree } from "@cloudflare/kumo/generative";
+import type { UITree } from "@cloudflare/kumo/streaming";
+import { UITreeRenderer, isRenderableTree } from "@cloudflare/kumo/generative";
 import { readSSEStream } from "~/lib/read-sse-stream";
 
 // =============================================================================
@@ -423,6 +425,9 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
           <PlaygroundTabContent
             activeTab={activeTab}
             showTree={showTree}
+            tree={tree}
+            runtimeValueStore={runtimeValueStore}
+            isStreaming={isStreaming}
             status={status}
             errorMessage={errorMessage}
           />
@@ -439,17 +444,23 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
 interface PlaygroundTabContentProps {
   readonly activeTab: PlaygroundTab;
   readonly showTree: boolean;
+  readonly tree: UITree;
+  readonly runtimeValueStore: RuntimeValueStore;
+  readonly isStreaming: boolean;
   readonly status: StreamStatus;
   readonly errorMessage: string | null;
 }
 
 /**
  * Renders the active tab's content panel.
- * Each tab's full implementation is in subsequent tasks (ui-5 through ui-8).
+ * Each tab's full implementation is in subsequent tasks (ui-6 through ui-8).
  */
 function PlaygroundTabContent({
   activeTab,
   showTree,
+  tree,
+  runtimeValueStore,
+  isStreaming,
   status,
   errorMessage,
 }: PlaygroundTabContentProps) {
@@ -464,7 +475,15 @@ function PlaygroundTabContent({
 
   switch (activeTab) {
     case "preview":
-      return showTree ? null : (
+      return showTree ? (
+        <div className="p-4">
+          <UITreeRenderer
+            tree={tree}
+            streaming={isStreaming}
+            runtimeValueStore={runtimeValueStore}
+          />
+        </div>
+      ) : (
         <div className="flex h-full items-center justify-center">
           <p className="text-kumo-subtle">Enter a prompt to generate UI</p>
         </div>
