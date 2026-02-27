@@ -1,0 +1,259 @@
+{
+  "prdName": "streaming-playground",
+  "tasks": [
+    {
+      "id": "lib-1",
+      "category": "lib",
+      "description": "uiTreeToJsx() converter: pure function that converts UITree to idiomatic JSX string with @cloudflare/kumo imports",
+      "steps": [
+        "packages/kumo/src/generative/ui-tree-to-jsx.ts exists and exports uiTreeToJsx(tree, options?)",
+        "uiTreeToJsx is re-exported from @cloudflare/kumo/generative barrel",
+        "Given UITree with Surface > Stack > [Text, Button], outputs valid JSX with correct nesting",
+        "Compound components use dot notation (Table.Header not TableHeader) using SUB_COMPONENT_ALIASES",
+        "Import statement includes only used components, deduplicated and sorted",
+        "Internal-only props (action, visible, parentKey, key) are excluded from output",
+        "8-pass normalization pipeline is applied before conversion (same as UITreeRenderer)",
+        "Empty/missing trees return export function GeneratedUI() { return null; }",
+        "Props serialize correctly: strings as \"value\", booleans as {true}, numbers as {123}",
+        "Synthetic Div type maps to <div> in output",
+        "Unit tests exist at packages/kumo/tests/generative/ui-tree-to-jsx.test.ts and pass"
+      ],
+      "passes": true
+    },
+    {
+      "id": "lib-2",
+      "category": "lib",
+      "description": "Extract readSSEStream from _StreamingDemo.tsx to shared utility",
+      "steps": [
+        "packages/kumo-docs-astro/src/lib/read-sse-stream.ts exists and exports readSSEStream",
+        "_StreamingDemo.tsx imports readSSEStream from src/lib/read-sse-stream",
+        "_StreamingDemo.tsx works identically after extraction (no behavior change)",
+        "No duplicated readSSEStream code remains in _StreamingDemo.tsx"
+      ],
+      "passes": true
+    },
+    {
+      "id": "api-1",
+      "category": "api",
+      "description": "Add X-Playground-Key header authentication to /api/chat with PLAYGROUND_SECRET env var",
+      "steps": [
+        "PLAYGROUND_SECRET documented in wrangler.jsonc comment and .dev.vars example",
+        "X-Playground-Key header validated against PLAYGROUND_SECRET env var",
+        "Valid key: rate limit relaxed (100/min vs 20/min)",
+        "Invalid key with playground features requested: returns 403",
+        "Missing key: existing behavior unchanged (backward compatible)"
+      ],
+      "passes": true
+    },
+    {
+      "id": "api-2",
+      "category": "api",
+      "description": "Extend /api/chat to accept messages array for multi-turn conversation (playground-auth required)",
+      "steps": [
+        "POST /api/chat with { message: 'hello' } works identically (backward compatible)",
+        "POST /api/chat with { message: 'hello', history: [{role:'user',content:'prior'}] } and valid X-Playground-Key sends history to Workers AI",
+        "Without X-Playground-Key, history field is ignored silently",
+        "Message validation limits still apply (MAX_HISTORY_ENTRIES, MAX_TOTAL_MESSAGE_CHARS)"
+      ],
+      "passes": true
+    },
+    {
+      "id": "api-3",
+      "category": "api",
+      "description": "Extend /api/chat to accept model override parameter (playground-auth required)",
+      "steps": [
+        "POST /api/chat with { message: 'hello', model: '@cf/meta/llama-4-scout-17b-16e-instruct' } and valid X-Playground-Key uses specified model",
+        "Without X-Playground-Key, model field is ignored and default model used",
+        "Invalid/unknown model returns appropriate error",
+        "Only allowlisted models accepted: glm-4.7-flash, llama-4-scout-17b-16e-instruct, gemma-3-27b-it"
+      ],
+      "passes": true
+    },
+    {
+      "id": "api-4",
+      "category": "api",
+      "description": "New GET /api/chat/prompt endpoint returns assembled system prompt (playground-auth required)",
+      "steps": [
+        "packages/kumo-docs-astro/src/pages/api/chat/prompt.ts exists",
+        "GET /api/chat/prompt with valid X-Playground-Key returns { prompt: string }",
+        "GET /api/chat/prompt without valid key returns 403",
+        "Returned prompt matches what would be sent to Workers AI"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "Playground Astro page at /playground using BaseLayout (full-width, no sidebar)",
+      "steps": [
+        "packages/kumo-docs-astro/src/pages/playground.astro exists",
+        "Page uses BaseLayout (not DocLayout or MainLayout)",
+        "Page renders PlaygroundPage React component with client:load",
+        "Page is full-width with no sidebar and no max-width constraint"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "PlaygroundPage auth gate: checks ?key= query param and gates all functionality",
+      "steps": [
+        "Component reads ?key= from URL on mount",
+        "Valid key: playground UI renders normally",
+        "Missing/invalid key: shows 'Access restricted' message, all inputs disabled",
+        "Key is stored and sent as X-Playground-Key header on all API requests"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ui-3",
+      "category": "ui",
+      "description": "PlaygroundPage top bar: prompt input, model selector, send button, preset prompts",
+      "steps": [
+        "Top bar has InputArea for prompt entry",
+        "Send button triggers generation (also Enter key submits)",
+        "Model selector dropdown with 3 models showing friendly names",
+        "Preset prompts dropdown/pills with 8 presets (5 existing card-level + 3 page-level: DNS management, tunnel config, WAF overview)",
+        "All inputs disabled during streaming"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ui-4",
+      "category": "ui",
+      "description": "PlaygroundPage 4-tab system: Preview, Code, Grading, System Prompt",
+      "steps": [
+        "4 tabs rendered: Preview, Code, Grading, System Prompt",
+        "Preview is default active tab",
+        "Tab selection persists across generations (starting new stream does not change active tab)",
+        "Tab content area fills remaining viewport height (no fixed max-height)"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ui-5",
+      "category": "ui",
+      "description": "Preview tab: full-width UITreeRenderer with live streaming",
+      "steps": [
+        "UITreeRenderer renders current UITree full-width, scrollable",
+        "Updates live during streaming via useUITree with batchPatches: true",
+        "Empty state shown when no tree ('Enter a prompt to generate UI')",
+        "No constrained container or fixed max-height"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ui-6",
+      "category": "ui",
+      "description": "Code tab: live uiTreeToJsx() output with copy button",
+      "steps": [
+        "Displays uiTreeToJsx(tree) output in <pre> with monospace font",
+        "Updates live during streaming as tree changes",
+        "Copy button copies full JSX to clipboard via navigator.clipboard.writeText",
+        "Empty state when no tree ('Generate UI to see code')",
+        "Output is valid JSX pasteable into a React app with @cloudflare/kumo"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ui-7",
+      "category": "ui",
+      "description": "Grading tab: live gradeTree() results with score and per-rule breakdown",
+      "steps": [
+        "Displays gradeTree(tree) results: overall score (pass count / 8)",
+        "Per-rule breakdown showing rule name, pass/fail, violation details",
+        "Element count and max tree depth shown",
+        "Debounced during streaming (max every 500ms), final run on stream complete",
+        "Empty state when no tree"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ui-8",
+      "category": "ui",
+      "description": "System Prompt tab: read-only display fetched from /api/chat/prompt",
+      "steps": [
+        "Fetches prompt from GET /api/chat/prompt on playground load (with X-Playground-Key)",
+        "Displays in scrollable <pre> with monospace font",
+        "Read-only (no editing capability)",
+        "Shows loading state while fetching",
+        "Shows error if fetch fails (e.g., 403 for bad key)"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ui-9",
+      "category": "ui",
+      "description": "Multi-turn conversation: bottom follow-up input with message history",
+      "steps": [
+        "After first generation completes, follow-up input appears at bottom",
+        "Follow-up sends full messages array (conversation history) to /api/chat",
+        "Tree resets on each new generation (full rebuild, not incremental)",
+        "Messages state tracks all user/assistant turns (client-side)",
+        "Status indicator in bottom bar: idle, streaming, error"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ui-10",
+      "category": "ui",
+      "description": "Error handling and streaming lifecycle",
+      "steps": [
+        "Error banner displayed when stream fails with error message",
+        "User can retry after error (inputs re-enabled)",
+        "Streaming indicator visible during generation",
+        "Abort/cancel mid-flight works via AbortController",
+        "Input disabled during streaming, re-enabled on complete or error"
+      ],
+      "passes": false
+    },
+    {
+      "id": "nav-1",
+      "category": "nav",
+      "description": "Navigation updates: sidebar, search, cross-link from /streaming",
+      "steps": [
+        "SidebarNav.tsx has 'Playground' entry linking to /playground",
+        "SearchDialog.tsx has playground in static pages array",
+        "/streaming page has visible cross-link to /playground above the demo section"
+      ],
+      "passes": false
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Streaming pipeline: createJsonlParser().push(token) -> RFC6902 patches -> useUITree().applyPatches() -> UITreeRenderer (packages/kumo/src/streaming/ + packages/kumo/src/generative/)",
+      "SSE streaming: readSSEStream() in _StreamingDemo.tsx handles Workers AI and OpenAI-compatible formats",
+      "Structural grading: gradeTree(tree) in packages/kumo/src/generative/structural-graders.ts — 8 rules returning GradeReport",
+      "Component manifest: SUB_COMPONENT_ALIASES in packages/kumo/src/generative/component-manifest.ts maps flat names to dot notation",
+      "System prompt: createKumoCatalog().generatePrompt() in packages/kumo/src/catalog/",
+      "Astro pages: .astro files in src/pages/, React islands with client:load",
+      "Demo component naming: _StreamingDemo.tsx — underscore prefix for client-only components",
+      "Layout hierarchy: BaseLayout (full-width) -> MainLayout (sidebar) -> DocLayout (sidebar + header + max-w-5xl)"
+    ],
+    "keyFiles": [
+      "packages/kumo/src/generative/ui-tree-renderer.tsx",
+      "packages/kumo/src/generative/structural-graders.ts",
+      "packages/kumo/src/generative/component-manifest.ts",
+      "packages/kumo/src/catalog/system-prompt.ts",
+      "packages/kumo/src/catalog/types.ts",
+      "packages/kumo-docs-astro/src/pages/api/chat.ts",
+      "packages/kumo-docs-astro/src/components/demos/_StreamingDemo.tsx",
+      "packages/kumo-docs-astro/src/layouts/BaseLayout.astro",
+      "packages/kumo-docs-astro/src/components/SidebarNav.tsx",
+      "packages/kumo-docs-astro/src/components/SearchDialog.tsx",
+      "packages/kumo-docs-astro/wrangler.jsonc"
+    ],
+    "nonGoals": [
+      "Editable system prompt (read-only only)",
+      "Syntax highlighting library (Shiki/Prism) — v2",
+      "Custom component support in playground",
+      "Saving/sharing generated UIs",
+      "Cloudflare Containers/Sandboxes",
+      "Dynamic model discovery from Workers AI API",
+      "Server-side UITree rendering",
+      "Action/event log panel",
+      "AI prompt engineering / output quality (style-layer plan)",
+      "Mobile responsiveness"
+    ]
+  }
+}
