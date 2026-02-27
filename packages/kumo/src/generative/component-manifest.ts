@@ -98,6 +98,72 @@ export const SUB_COMPONENT_ALIASES = {
 } as const;
 
 // =============================================================================
+// Unified type resolution — generative type → registry component lookup
+// =============================================================================
+
+export const TYPE_RESOLUTION_MAP = {
+  "BreadcrumbsCurrent": {
+    "registryComponent": "Breadcrumbs",
+    "subComponent": "Current"
+  },
+  "BreadcrumbsLink": {
+    "registryComponent": "Breadcrumbs",
+    "subComponent": "Link"
+  },
+  "BreadcrumbsSeparator": {
+    "registryComponent": "Breadcrumbs",
+    "subComponent": "Separator"
+  },
+  "FlowNode": {
+    "registryComponent": "Flow",
+    "subComponent": "Node"
+  },
+  "FlowParallel": {
+    "registryComponent": "Flow",
+    "subComponent": "Parallel"
+  },
+  "RadioGroup": {
+    "registryComponent": "Radio",
+    "subComponent": "Group"
+  },
+  "RadioItem": {
+    "registryComponent": "Radio",
+    "subComponent": "Item"
+  },
+  "SelectOption": {
+    "registryComponent": "Select",
+    "subComponent": "Option"
+  },
+  "TableBody": {
+    "registryComponent": "Table",
+    "subComponent": "Body"
+  },
+  "TableCell": {
+    "registryComponent": "Table",
+    "subComponent": "Cell"
+  },
+  "TableFooter": {
+    "registryComponent": "Table",
+    "subComponent": "Footer"
+  },
+  "TableHead": {
+    "registryComponent": "Table",
+    "subComponent": "Head"
+  },
+  "TableHeader": {
+    "registryComponent": "Table",
+    "subComponent": "Header"
+  },
+  "TableRow": {
+    "registryComponent": "Table",
+    "subComponent": "Row"
+  },
+  "Textarea": {
+    "registryComponent": "InputArea"
+  }
+} as const;
+
+// =============================================================================
 // Type aliases — LLM output name → Kumo export name
 // =============================================================================
 
@@ -132,6 +198,48 @@ export const GENERATIVE_WRAPPER_TARGETS = [
 export const SYNTHETIC_TYPES = {
   "Div": "Generic container element rendered as a <div>"
 } as const;
+
+// =============================================================================
+// All generative types — direct + aliases + sub-components + synthetic
+// =============================================================================
+
+export const ALL_GENERATIVE_TYPES = [
+  "Badge",
+  "Banner",
+  "Breadcrumbs",
+  "BreadcrumbsCurrent",
+  "BreadcrumbsLink",
+  "BreadcrumbsSeparator",
+  "Button",
+  "ClipboardText",
+  "Cluster",
+  "Code",
+  "Div",
+  "Empty",
+  "Field",
+  "Flow",
+  "FlowNode",
+  "FlowParallel",
+  "Grid",
+  "Label",
+  "Link",
+  "Loader",
+  "Meter",
+  "Radio",
+  "RadioGroup",
+  "RadioItem",
+  "SelectOption",
+  "Stack",
+  "Table",
+  "TableBody",
+  "TableCell",
+  "TableFooter",
+  "TableHead",
+  "TableHeader",
+  "TableRow",
+  "Text",
+  "Textarea"
+] as const;
 
 // =============================================================================
 // Excluded components — intentionally not in generative map

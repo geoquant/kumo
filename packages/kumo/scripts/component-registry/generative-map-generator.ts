@@ -132,12 +132,58 @@ function computeDirectComponents(registryNames: readonly string[]): string[] {
   );
 }
 
+function computeTypeResolutionMap(): Record<
+  string,
+  { registryComponent: string; subComponent?: string }
+> {
+  const merged: Record<
+    string,
+    { registryComponent: string; subComponent?: string }
+  > = {};
+
+  for (const [name, registryComponent] of Object.entries(TYPE_ALIASES)) {
+    merged[name] = { registryComponent };
+  }
+
+  for (const [name, { parent, sub }] of Object.entries(
+    SUB_COMPONENT_OVERRIDES,
+  )) {
+    merged[name] = { registryComponent: parent, subComponent: sub };
+  }
+
+  return Object.fromEntries(
+    Object.keys(merged)
+      .toSorted((a, b) => a.localeCompare(b))
+      .map((name) => [name, merged[name]]),
+  );
+}
+
+function computeAllGenerativeTypes(
+  directComponents: readonly string[],
+): string[] {
+  const allTypes = new Set<string>(directComponents);
+
+  for (const key of Object.keys(SUB_COMPONENT_OVERRIDES)) {
+    allTypes.add(key);
+  }
+  for (const key of Object.keys(TYPE_ALIASES)) {
+    allTypes.add(key);
+  }
+  for (const key of Object.keys(SYNTHETIC_TYPES)) {
+    allTypes.add(key);
+  }
+
+  return Array.from(allTypes).toSorted((a, b) => a.localeCompare(b));
+}
+
 /**
  * Generate the content of `src/generative/component-manifest.ts`.
  */
 export function generateComponentManifest(registry: ComponentRegistry): string {
   const registryNames = Object.keys(registry.components).toSorted();
   const directComponents = computeDirectComponents(registryNames);
+  const typeResolutionMap = computeTypeResolutionMap();
+  const allGenerativeTypes = computeAllGenerativeTypes(directComponents);
 
   const lines: string[] = [
     "/**",
@@ -163,6 +209,12 @@ export function generateComponentManifest(registry: ComponentRegistry): string {
     `export const SUB_COMPONENT_ALIASES = ${JSON.stringify(SUB_COMPONENT_OVERRIDES, null, 2)} as const;`,
     "",
     "// =============================================================================",
+    "// Unified type resolution — generative type → registry component lookup",
+    "// =============================================================================",
+    "",
+    `export const TYPE_RESOLUTION_MAP = ${JSON.stringify(typeResolutionMap, null, 2)} as const;`,
+    "",
+    "// =============================================================================",
     "// Type aliases — LLM output name → Kumo export name",
     "// =============================================================================",
     "",
@@ -181,6 +233,12 @@ export function generateComponentManifest(registry: ComponentRegistry): string {
     "// =============================================================================",
     "",
     `export const SYNTHETIC_TYPES = ${JSON.stringify(SYNTHETIC_TYPES, null, 2)} as const;`,
+    "",
+    "// =============================================================================",
+    "// All generative types — direct + aliases + sub-components + synthetic",
+    "// =============================================================================",
+    "",
+    `export const ALL_GENERATIVE_TYPES = ${JSON.stringify(allGenerativeTypes, null, 2)} as const;`,
     "",
     "// =============================================================================",
     "// Excluded components — intentionally not in generative map",
