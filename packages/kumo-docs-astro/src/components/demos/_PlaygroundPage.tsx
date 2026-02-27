@@ -102,6 +102,14 @@ function extractErrorMessage(body: unknown): string | null {
   return typeof err === "string" ? err : null;
 }
 
+/** Extract `prompt` string from an unknown JSON body, or null. */
+function extractPromptString(body: unknown): string | null {
+  if (typeof body !== "object" || body === null) return null;
+  if (!("prompt" in body)) return null;
+  const val: unknown = (body as { prompt: unknown }).prompt;
+  return typeof val === "string" ? val : null;
+}
+
 // =============================================================================
 // Constants
 // =============================================================================
@@ -443,6 +451,7 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
             isStreaming={isStreaming}
             status={status}
             errorMessage={errorMessage}
+            apiKey={apiKey}
           />
         </div>
       </div>
@@ -462,6 +471,7 @@ interface PlaygroundTabContentProps {
   readonly isStreaming: boolean;
   readonly status: StreamStatus;
   readonly errorMessage: string | null;
+  readonly apiKey: string | null;
 }
 
 /**
@@ -476,6 +486,7 @@ function PlaygroundTabContent({
   isStreaming,
   status,
   errorMessage,
+  apiKey,
 }: PlaygroundTabContentProps) {
   // Error banner takes priority in any tab
   if (status === "error" && errorMessage) {
@@ -515,12 +526,92 @@ function PlaygroundTabContent({
       );
 
     case "system-prompt":
-      return (
-        <div className="flex h-full items-center justify-center">
-          <p className="text-kumo-subtle">Loading system prompt…</p>
-        </div>
-      );
+      return <SystemPromptTabContent apiKey={apiKey} />;
   }
+}
+
+// =============================================================================
+// System Prompt tab
+// =============================================================================
+
+/** Fetch state for the system prompt. */
+type PromptFetchState =
+  | { readonly status: "loading" }
+  | { readonly status: "loaded"; readonly prompt: string }
+  | { readonly status: "error"; readonly message: string };
+
+/**
+ * Fetches and displays the assembled system prompt from /api/chat/prompt.
+ * Read-only — shows the exact prompt that would be sent to Workers AI.
+ */
+function SystemPromptTabContent({
+  apiKey,
+}: {
+  readonly apiKey: string | null;
+}) {
+  const [state, setState] = useState<PromptFetchState>({ status: "loading" });
+
+  useEffect(() => {
+    if (!apiKey) {
+      setState({ status: "error", message: "No API key available." });
+      return;
+    }
+
+    const controller = new AbortController();
+    setState({ status: "loading" });
+
+    fetch("/api/chat/prompt", {
+      headers: { "X-Playground-Key": apiKey },
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body: unknown = await res.json().catch(() => null);
+          const errMsg =
+            extractErrorMessage(body) ??
+            `Failed to fetch prompt (${String(res.status)})`;
+          throw new Error(errMsg);
+        }
+        const data: unknown = await res.json();
+        const prompt = extractPromptString(data);
+        if (prompt === null) {
+          throw new Error("Unexpected response format.");
+        }
+        setState({ status: "loaded", prompt });
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setState({
+          status: "error",
+          message:
+            err instanceof Error ? err.message : "Failed to fetch prompt.",
+        });
+      });
+
+    return () => controller.abort();
+  }, [apiKey]);
+
+  if (state.status === "loading") {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader size="sm" />
+      </div>
+    );
+  }
+
+  if (state.status === "error") {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-kumo-danger">{state.message}</p>
+      </div>
+    );
+  }
+
+  return (
+    <pre className="h-full overflow-auto whitespace-pre-wrap p-4 font-mono text-sm text-kumo-default">
+      {state.prompt}
+    </pre>
+  );
 }
 
 // =============================================================================
