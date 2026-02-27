@@ -205,7 +205,7 @@
         "Abort/cancel mid-flight works via AbortController",
         "Input disabled during streaming, re-enabled on complete or error"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "nav-1",
