@@ -7,6 +7,51 @@ import {
 
 export const prerender = false;
 
+// ---------------------------------------------------------------------------
+// Playground authentication
+// ---------------------------------------------------------------------------
+
+/**
+ * Playground auth state derived from the X-Playground-Key header.
+ *
+ * - `authenticated`: valid key, playground features enabled, relaxed rate limit
+ * - `unauthenticated`: no key sent, regular anonymous user
+ * - `invalid`: key sent but doesn't match PLAYGROUND_SECRET → 403
+ */
+type PlaygroundAuth = "authenticated" | "unauthenticated" | "invalid";
+
+/**
+ * Validate the X-Playground-Key header against the PLAYGROUND_SECRET env var.
+ * Uses constant-time comparison to prevent timing attacks.
+ */
+function validatePlaygroundKey(
+  header: string | null,
+  secret: string | undefined,
+): PlaygroundAuth {
+  if (!header) return "unauthenticated";
+  if (!secret) return "invalid";
+
+  const encoder = new TextEncoder();
+  const a = encoder.encode(header);
+  const b = encoder.encode(secret);
+
+  if (a.byteLength !== b.byteLength) return "invalid";
+
+  // Constant-time byte comparison — XOR accumulator over raw buffers
+  // prevents early-exit timing leaks.
+  const viewA = new DataView(a.buffer, a.byteOffset, a.byteLength);
+  const viewB = new DataView(b.buffer, b.byteOffset, b.byteLength);
+  let diff = 0;
+  for (let i = 0; i < a.byteLength; i++) {
+    diff |= viewA.getUint8(i) ^ viewB.getUint8(i);
+  }
+  return diff === 0 ? "authenticated" : "invalid";
+}
+
+// ---------------------------------------------------------------------------
+// Validation constants
+// ---------------------------------------------------------------------------
+
 /** Maximum length (in characters) for a single user message. */
 const MAX_MESSAGE_LENGTH = 2000;
 
@@ -198,19 +243,34 @@ async function getSystemPrompt(): Promise<string> {
  * Accepts: { message: string; history?: Array<{ role, content }> }
  * Returns: text/event-stream with Workers AI text generation output
  *
- * Rate limited: 20 req/min per IP via CHAT_RATE_LIMIT binding.
+ * Rate limited: 20 req/min (anonymous) or 100/min (valid X-Playground-Key).
  */
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = locals.runtime.env;
 
+  // --- Playground authentication ---
+  const playgroundKey = request.headers.get("x-playground-key");
+  const auth = validatePlaygroundKey(playgroundKey, env.PLAYGROUND_SECRET);
+
+  if (auth === "invalid") {
+    return new Response(JSON.stringify({ error: "Invalid playground key." }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   // --- Rate limiting ---
+  // Authenticated playground users get a relaxed 100 req/min limit;
+  // anonymous users get the standard 20 req/min limit.
+  const rateLimiter =
+    auth === "authenticated" ? env.PLAYGROUND_RATE_LIMIT : env.CHAT_RATE_LIMIT;
   const clientIp = request.headers.get("cf-connecting-ip");
 
   try {
     // In dev/preview, this header is often missing; avoid collapsing
     // all users into a single "unknown" rate-limit bucket.
     if (clientIp) {
-      const { success } = await env.CHAT_RATE_LIMIT.limit({ key: clientIp });
+      const { success } = await rateLimiter.limit({ key: clientIp });
       if (!success) {
         return new Response(
           JSON.stringify({ error: "Rate limited. Try again in a minute." }),
