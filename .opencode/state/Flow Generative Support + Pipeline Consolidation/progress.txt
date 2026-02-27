@@ -1,0 +1,15 @@
+# Progress Log
+PRD: Flow Generative Support + Pipeline Consolidation
+Started: 2026-02-27
+
+## Codebase Patterns
+<!-- Consolidate reusable patterns here -->
+- Discovery fallback pattern: resolve from `index.ts` exports first, then map export/import identifiers to source files; this handles non-conventional component filenames safely.
+
+---
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - [d1-discovery-fallback]
+- Implemented and validated discovery fallback coverage for non-conventional components exported via `index.ts`.
+- Files changed: `packages/kumo/scripts/component-registry/discovery.ts`, `packages/kumo/scripts/component-registry/discovery.test.ts`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/prd.json`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/progress.txt`.
+- **Learnings:** fallback resolution should check `.tsx` and `.ts` source targets to avoid coupling discovery to UI-only file extensions.

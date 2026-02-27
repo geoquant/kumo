@@ -1,0 +1,91 @@
+{
+  "prdName": "Flow Generative Support + Pipeline Consolidation",
+  "branch": "geoquant/streaming-ui",
+  "tasks": [
+    {
+      "id": "d1-discovery-fallback",
+      "category": "architecture",
+      "description": "Relax discovery for non-conventional components",
+      "passes": true
+    },
+    {
+      "id": "d2-flow-registry",
+      "category": "integration",
+      "description": "Add Flow to registry/category map",
+      "passes": false
+    },
+    {
+      "id": "d3-flow-subcomponents",
+      "category": "integration",
+      "description": "Add Flow sub-components to generative map generator",
+      "passes": false
+    },
+    {
+      "id": "d8-flow-component-map",
+      "category": "integration",
+      "description": "Verify Flow is wired in component-map",
+      "passes": false
+    },
+    {
+      "id": "d4-manifest-ssot",
+      "category": "architecture",
+      "description": "Consolidate alias/sub-component data into manifest SSOT",
+      "passes": false
+    },
+    {
+      "id": "d5-prompt-from-manifest",
+      "category": "integration",
+      "description": "Switch prompt-builder to import aliases from manifest",
+      "passes": false
+    },
+    {
+      "id": "d6-validator-from-manifest",
+      "category": "integration",
+      "description": "Switch element-validator to import aliases from manifest",
+      "passes": false
+    },
+    {
+      "id": "d7-prompt-components-auto",
+      "category": "architecture",
+      "description": "Auto-derive PROMPT_COMPONENTS with excludelist",
+      "passes": false
+    },
+    {
+      "id": "d9-flow-prompt-docs",
+      "category": "integration",
+      "description": "Add Flow prompt docs with synthetic sub-component entries",
+      "passes": false
+    },
+    {
+      "id": "d10-workers-flow-preset",
+      "category": "feature",
+      "description": "Add Workers flow pill preset to playground",
+      "passes": false
+    },
+    {
+      "id": "d11-drift-detection",
+      "category": "spike",
+      "description": "Add codegen drift detection for discovery vs registry",
+      "passes": false
+    },
+    {
+      "id": "verify-manifest-integration",
+      "category": "verification",
+      "description": "Add integration test for manifest-derived validator/prompt data",
+      "passes": false
+    },
+    {
+      "id": "verify-playground-flow",
+      "category": "verification",
+      "description": "Add end-to-end verification for Flow in playground",
+      "passes": false
+    }
+  ],
+  "context": {
+    "sourceSpec": "specs/flow-generative-pipeline-consolidation.md",
+    "notes": [
+      "Generated from existing spec and Overseer milestone task breakdown",
+      "Use this file for /complete-next-task selection and pass tracking"
+    ]
+  }
+}

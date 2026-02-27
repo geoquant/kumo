@@ -409,7 +409,7 @@ export function resolveMainFile(
     // Direct re-export: export { ComponentName } from "./file"
     const directSource = identifierSources.get(detected.componentName);
     if (directSource) {
-      return resolveRelativeTsx(dirPath, directSource);
+      return resolveRelativeSourceFile(dirPath, directSource);
     }
 
     // Indirect: const Component = Object.assign(Imported, { ... })
@@ -423,7 +423,7 @@ export function resolveMainFile(
       const sourceId = assignMatch[1];
       const source = identifierSources.get(sourceId);
       if (source) {
-        return resolveRelativeTsx(dirPath, source);
+        return resolveRelativeSourceFile(dirPath, source);
       }
     }
 
@@ -432,7 +432,7 @@ export function resolveMainFile(
       [...identifierSources.values()].filter((p) => !p.endsWith(".css")),
     );
     if (tsxSources.size === 1) {
-      return resolveRelativeTsx(dirPath, [...tsxSources][0]);
+      return resolveRelativeSourceFile(dirPath, [...tsxSources][0]);
     }
 
     return null;
@@ -442,15 +442,19 @@ export function resolveMainFile(
 }
 
 /**
- * Resolve a relative import path (e.g. "./diagram") to an absolute .tsx file path.
+ * Resolve a relative import path (e.g. "./diagram") to an absolute source file path.
  */
-function resolveRelativeTsx(
+function resolveRelativeSourceFile(
   dirPath: string,
   relativePath: string,
 ): string | null {
   // Try with .tsx extension
   const withTsx = join(dirPath, `${relativePath}.tsx`);
   if (existsSync(withTsx)) return withTsx;
+
+  // Try with .ts extension
+  const withTs = join(dirPath, `${relativePath}.ts`);
+  if (existsSync(withTs)) return withTs;
 
   // Try as-is (might already have extension)
   const asIs = join(dirPath, relativePath);
@@ -459,6 +463,10 @@ function resolveRelativeTsx(
   // Try /index.tsx
   const indexFile = join(dirPath, relativePath, "index.tsx");
   if (existsSync(indexFile)) return indexFile;
+
+  // Try /index.ts
+  const indexTsFile = join(dirPath, relativePath, "index.ts");
+  if (existsSync(indexTsFile)) return indexTsFile;
 
   return null;
 }
