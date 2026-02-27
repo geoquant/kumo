@@ -13,6 +13,7 @@ import {
   type SafeParseResult,
 } from "../../ai/schemas.js";
 import type { UIElement } from "../streaming/types";
+import { TYPE_ALIASES, SUB_COMPONENT_ALIASES } from "./component-manifest.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -117,11 +118,21 @@ export function coerceElementProps(element: UIElement): UIElement {
 // ---------------------------------------------------------------------------
 
 /**
+ * Sub-component aliases whose generative props should validate against
+ * the parent schema. Most sub-components (e.g. TableRow, SelectOption) are
+ * structural wrappers with no meaningful overlap with the parent schema,
+ * so they skip validation. Components in this set are conceptual wrappers
+ * around the parent (e.g. RadioGroup wraps Radio.Group — same `legend` prop).
+ */
+const VALIDATED_SUB_COMPONENTS: ReadonlySet<string> = new Set(["RadioGroup"]);
+
+/**
  * Maps COMPONENT_MAP type names to ComponentPropsSchemas keys.
  *
- * kumo uses aliases (Textarea→InputArea, RadioGroup→Radio) and
- * compound sub-components (TableRow, SelectOption) that don't have their
- * own top-level schemas. This map resolves the indirection.
+ * Derived from the generative manifest's {@link TYPE_ALIASES} and
+ * {@link SUB_COMPONENT_ALIASES} SSOT. Aliases map to their target schema;
+ * sub-components either map to their parent schema (when in
+ * {@link VALIDATED_SUB_COMPONENTS}) or `null` (skip validation).
  *
  * Types not in this map AND not in ComponentPropsSchemas are skipped
  * (no schema validation = pass through).
@@ -131,18 +142,19 @@ const TYPE_TO_SCHEMA_KEY: Record<
   keyof typeof ComponentPropsSchemas | null
 > = {
   // Aliases — generative type → kumo schema name
-  Textarea: "InputArea",
-  RadioGroup: "Radio",
+  ...Object.fromEntries(
+    Object.entries(TYPE_ALIASES).map(([alias, target]) => [alias, target]),
+  ),
 
-  // Sub-components — no top-level schema exists, skip validation
-  RadioItem: null,
-  SelectOption: null,
-  TableHeader: null,
-  TableHead: null,
-  TableBody: null,
-  TableRow: null,
-  TableCell: null,
-  TableFooter: null,
+  // Sub-components — skip validation unless in VALIDATED_SUB_COMPONENTS
+  ...Object.fromEntries(
+    Object.entries(SUB_COMPONENT_ALIASES).map(([name, { parent }]) => [
+      name,
+      VALIDATED_SUB_COMPONENTS.has(name)
+        ? (parent as keyof typeof ComponentPropsSchemas)
+        : null,
+    ]),
+  ),
 };
 
 // ---------------------------------------------------------------------------
