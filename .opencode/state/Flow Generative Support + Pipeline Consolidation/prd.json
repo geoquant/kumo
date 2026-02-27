@@ -18,7 +18,7 @@
       "id": "d3-flow-subcomponents",
       "category": "integration",
       "description": "Add Flow sub-components to generative map generator",
-      "passes": false
+      "passes": true
     },
     {
       "id": "d8-flow-component-map",
