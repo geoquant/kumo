@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { validatePlaygroundKey, getSystemPrompt } from "~/lib/playground";
+import { getSkillContents } from "~/lib/skills-data.generated";
 
 export const prerender = false;
 
@@ -39,6 +40,7 @@ const DEFAULT_MODEL_ID = "@cf/zai-org/glm-4.7-flash";
  * values are the full Workers AI model identifiers.
  */
 const ALLOWED_MODELS: ReadonlyMap<string, string> = new Map([
+  ["gpt-oss-120b", "@cf/openai/gpt-oss-120b"],
   ["glm-4.7-flash", "@cf/zai-org/glm-4.7-flash"],
   ["llama-4-scout-17b-16e-instruct", "@cf/meta/llama-4-scout-17b-16e-instruct"],
   ["gemma-3-27b-it", "@cf/google/gemma-3-27b-it"],
@@ -49,11 +51,15 @@ const FULL_ID_TO_SHORT = new Map(
   [...ALLOWED_MODELS.entries()].map(([short, full]) => [full, short]),
 );
 
+/** Maximum number of skills that can be enabled at once. */
+const MAX_SKILL_IDS = 5;
+
 /** Chat request body schema. */
 interface ChatRequest {
   message: string;
   history?: Array<{ role: string; content: string }>;
   model?: string;
+  skillIds?: string[];
 }
 
 /** Workers AI text-generation message format. */
@@ -96,7 +102,19 @@ function parseChatRequest(body: unknown): ChatRequest | null {
   // Model is validated downstream (only used for authenticated users).
   const model = typeof obj.model === "string" ? obj.model.trim() : undefined;
 
-  return { message, history, model: model || undefined };
+  // Skill IDs for system prompt injection (authenticated users only).
+  let skillIds: string[] | undefined;
+  if (Array.isArray(obj.skillIds)) {
+    if (obj.skillIds.length > MAX_SKILL_IDS) return null;
+    const allStrings = obj.skillIds.every(
+      (id: unknown) =>
+        typeof id === "string" && id.length > 0 && id.length < 100,
+    );
+    if (!allStrings) return null;
+    skillIds = obj.skillIds as string[];
+  }
+
+  return { message, history, model: model || undefined, skillIds };
 }
 
 /**
@@ -184,6 +202,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       JSON.stringify({ error: "Failed to generate system prompt." }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
+  }
+
+  // Inject selected skills into the system prompt (authenticated only).
+  if (
+    auth === "authenticated" &&
+    chatRequest.skillIds &&
+    chatRequest.skillIds.length > 0
+  ) {
+    const skillContent = getSkillContents(chatRequest.skillIds);
+    if (skillContent) {
+      systemPrompt += `\n\n# Additional Design Skills\n\nThe following design skills should heavily influence your output. Apply their principles when generating UI:\n\n${skillContent}`;
+    }
   }
 
   const messages: AiMessage[] = [{ role: "system", content: systemPrompt }];

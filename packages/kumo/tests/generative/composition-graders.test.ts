@@ -187,7 +187,7 @@ describe("gradeComposition", () => {
     });
 
     it("correctly reports allPass based on all rules", () => {
-      // Tree that passes has-visual-hierarchy
+      // Tree that passes has-visual-hierarchy (simple layout, so responsive exempt)
       const passingTree = buildTree("root", {
         root: {
           type: "Surface",
@@ -214,6 +214,189 @@ describe("gradeComposition", () => {
       });
 
       expect(gradeComposition(failingTree).allPass).toBe(false);
+    });
+  });
+
+  // ===========================================================================
+  // has-responsive-layout
+  // ===========================================================================
+
+  describe("has-responsive-layout", () => {
+    it("passes when tree contains Grid with variant prop", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["heading", "grid"] },
+        heading: {
+          type: "Text",
+          props: { variant: "heading2", children: "Dashboard" },
+        },
+        grid: {
+          type: "Grid",
+          props: { variant: "2up", gap: "base" },
+          children: ["card1", "card2"],
+        },
+        card1: { type: "Surface", children: ["s1"] },
+        s1: { type: "Stack", children: ["t1", "t2"] },
+        t1: {
+          type: "Text",
+          props: { variant: "heading3", children: "Card 1" },
+        },
+        t2: {
+          type: "Text",
+          props: { variant: "body", children: "Content 1" },
+        },
+        card2: { type: "Surface", children: ["s2"] },
+        s2: { type: "Stack", children: ["t3", "t4"] },
+        t3: {
+          type: "Text",
+          props: { variant: "heading3", children: "Card 2" },
+        },
+        t4: {
+          type: "Text",
+          props: { variant: "body", children: "Content 2" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find(
+        (r) => r.rule === "has-responsive-layout",
+      );
+      expect(rule?.pass).toBe(true);
+      expect(rule?.violations).toHaveLength(0);
+    });
+
+    it("fails when Grid exists without variant prop (complex layout)", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["heading", "grid"] },
+        heading: {
+          type: "Text",
+          props: { variant: "heading2", children: "Dashboard" },
+        },
+        grid: {
+          type: "Grid",
+          props: { gap: "base" },
+          children: ["c1", "c2"],
+        },
+        c1: { type: "Surface", children: ["s1"] },
+        s1: { type: "Stack", children: ["t1", "t2"] },
+        t1: {
+          type: "Text",
+          props: { variant: "heading3", children: "Card 1" },
+        },
+        t2: {
+          type: "Text",
+          props: { variant: "body", children: "Content 1" },
+        },
+        c2: { type: "Surface", children: ["s2"] },
+        s2: { type: "Stack", children: ["t3", "t4"] },
+        t3: {
+          type: "Text",
+          props: { variant: "heading3", children: "Card 2" },
+        },
+        t4: {
+          type: "Text",
+          props: { variant: "body", children: "Content 2" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find(
+        (r) => r.rule === "has-responsive-layout",
+      );
+      expect(rule?.pass).toBe(false);
+      expect(rule?.violations[0]).toContain("no variant prop");
+    });
+
+    it("passes for simple card layouts (Grid not required)", () => {
+      // A small tree (<=12 elements) is exempt from needing a Grid
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["heading", "body", "btn"] },
+        heading: {
+          type: "Text",
+          props: { variant: "heading2", children: "Welcome" },
+        },
+        body: {
+          type: "Text",
+          props: { variant: "body", children: "Simple card content" },
+        },
+        btn: { type: "Button", props: { children: "Action" } },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find(
+        (r) => r.rule === "has-responsive-layout",
+      );
+      expect(rule?.pass).toBe(true);
+      expect(rule?.violations).toHaveLength(0);
+    });
+
+    it("fails for complex layout without any Grid element", () => {
+      // Build a tree with >12 elements but no Grid
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: {
+          type: "Stack",
+          children: ["h", "s1", "s2", "s3", "s4"],
+        },
+        h: {
+          type: "Text",
+          props: { variant: "heading2", children: "Page" },
+        },
+        s1: { type: "Surface", children: ["sk1"] },
+        sk1: { type: "Stack", children: ["t1", "t2"] },
+        t1: {
+          type: "Text",
+          props: { variant: "heading3", children: "Sec 1" },
+        },
+        t2: { type: "Text", props: { variant: "body", children: "A" } },
+        s2: { type: "Surface", children: ["sk2"] },
+        sk2: { type: "Stack", children: ["t3", "t4"] },
+        t3: {
+          type: "Text",
+          props: { variant: "heading3", children: "Sec 2" },
+        },
+        t4: { type: "Text", props: { variant: "body", children: "B" } },
+        s3: { type: "Surface", children: ["sk3"] },
+        sk3: { type: "Stack", children: ["t5"] },
+        t5: { type: "Text", props: { variant: "body", children: "C" } },
+        s4: { type: "Surface", children: ["sk4"] },
+        sk4: { type: "Stack", children: ["t6"] },
+        t6: { type: "Text", props: { variant: "body", children: "D" } },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find(
+        (r) => r.rule === "has-responsive-layout",
+      );
+      expect(rule?.pass).toBe(false);
+      expect(rule?.violations[0]).toContain("no Grid element with variant");
+    });
+
+    it("still fails for simple layout with misconfigured Grid (no variant)", () => {
+      // Even small trees fail if Grid is present but missing variant
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["h", "grid"] },
+        h: {
+          type: "Text",
+          props: { variant: "heading2", children: "Small" },
+        },
+        grid: {
+          type: "Grid",
+          props: {},
+          children: ["c1"],
+        },
+        c1: { type: "Text", props: { variant: "body", children: "Item" } },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find(
+        (r) => r.rule === "has-responsive-layout",
+      );
+      expect(rule?.pass).toBe(false);
+      expect(rule?.violations[0]).toContain("no variant prop");
     });
   });
 });
