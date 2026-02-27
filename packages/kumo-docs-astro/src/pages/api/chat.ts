@@ -76,12 +76,29 @@ const MAX_TOTAL_MESSAGE_CHARS = 40_000;
  */
 const AI_GATEWAY_ID = "kumo-docs";
 
-const MODEL_ID = "@cf/zai-org/glm-4.7-flash";
+const DEFAULT_MODEL_ID = "@cf/zai-org/glm-4.7-flash";
+
+/**
+ * Models available to authenticated playground users.
+ * Keys are the short names accepted in the `model` request field;
+ * values are the full Workers AI model identifiers.
+ */
+const ALLOWED_MODELS: ReadonlyMap<string, string> = new Map([
+  ["glm-4.7-flash", "@cf/zai-org/glm-4.7-flash"],
+  ["llama-4-scout-17b-16e-instruct", "@cf/meta/llama-4-scout-17b-16e-instruct"],
+  ["gemma-3-27b-it", "@cf/google/gemma-3-27b-it"],
+]);
+
+/** Reverse index: full Workers AI model IDs → short names for lookup. */
+const FULL_ID_TO_SHORT = new Map(
+  [...ALLOWED_MODELS.entries()].map(([short, full]) => [full, short]),
+);
 
 /** Chat request body schema. */
 interface ChatRequest {
   message: string;
   history?: Array<{ role: string; content: string }>;
+  model?: string;
 }
 
 /** Workers AI text-generation message format. */
@@ -121,7 +138,10 @@ function parseChatRequest(body: unknown): ChatRequest | null {
     history = obj.history as ChatRequest["history"];
   }
 
-  return { message, history };
+  // Model is validated downstream (only used for authenticated users).
+  const model = typeof obj.model === "string" ? obj.model.trim() : undefined;
+
+  return { message, history, model: model || undefined };
 }
 
 /**
@@ -356,6 +376,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   }
 
+  // --- Resolve model ---
+  // Authenticated playground users may select a model from the allowlist.
+  // Accepts both short names ("gemma-3-27b-it") and full Workers AI IDs
+  // ("@cf/google/gemma-3-27b-it"). Without a valid key, the model field
+  // is silently ignored.
+  let resolvedModelId = DEFAULT_MODEL_ID;
+  if (auth === "authenticated" && chatRequest.model) {
+    const byShort = ALLOWED_MODELS.get(chatRequest.model);
+    const byFull = FULL_ID_TO_SHORT.has(chatRequest.model)
+      ? chatRequest.model
+      : undefined;
+    const fullId = byShort ?? byFull;
+    if (!fullId) {
+      return new Response(
+        JSON.stringify({
+          error: `Unknown model "${chatRequest.model}". Allowed: ${[...ALLOWED_MODELS.keys()].join(", ")}`,
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    resolvedModelId = fullId;
+  }
+
   // --- Stream from Workers AI ---
   try {
     const aiOptions = import.meta.env.DEV
@@ -368,7 +411,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         };
 
     const stream = await env.AI.run(
-      MODEL_ID,
+      resolvedModelId,
       {
         messages,
         stream: true,
