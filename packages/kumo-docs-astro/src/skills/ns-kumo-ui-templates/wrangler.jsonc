@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ns-kumo-ui-templates",
+  "compatibility_date": "2025-01-01",
+  "main": "./workers/app.ts",
+  "assets": {
+    "directory": "./build/client"
+  }
+}

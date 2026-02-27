@@ -8,8 +8,9 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "pnpm run codegen:demos && astro build",
+    "build": "pnpm run codegen:demos && pnpm run codegen:skills && astro build",
     "codegen:demos": "tsx scripts/extract-demo-examples.ts",
+    "codegen:skills": "tsx scripts/extract-skills.ts",
     "preview": "astro preview",
     "astro": "astro",
     "typecheck": "astro check",
@@ -27,6 +28,7 @@
     "match-sorter": "^8.2.0",
     "react-markdown": "10.1.0",
     "remark-gfm": "4.0.1",
+    "shiki": "^3.23.0",
     "tailwind-merge": "catalog:"
   },
   "devDependencies": {

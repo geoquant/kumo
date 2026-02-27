@@ -13,6 +13,7 @@ import {
 } from "./component-manifest.js";
 import {
   normalizeNestedSurfaces,
+  normalizePropsChildrenToStructural,
   normalizeEmptySelects,
   normalizeDuplicateFieldLabels,
   normalizeCheckboxGroupGrids,
@@ -108,7 +109,11 @@ function normalizeTree(tree: UITree): UITree {
         normalizeSiblingFormRowGrids(
           normalizeCheckboxGroupGrids(
             normalizeDuplicateFieldLabels(
-              normalizeEmptySelects(normalizeNestedSurfaces(tree)),
+              normalizeEmptySelects(
+                normalizePropsChildrenToStructural(
+                  normalizeNestedSurfaces(tree),
+                ),
+              ),
             ),
           ),
         ),

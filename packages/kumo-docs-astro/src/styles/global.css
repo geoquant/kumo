@@ -22,6 +22,129 @@ html {
   font-display: optional;
 }
 
+/* Client-side Shiki highlighted code (playground) —
+   mirrors CodeBlock.astro theme-switching via shiki CSS variables */
+.highlighted-code .shiki,
+.highlighted-code .shiki span {
+  color: var(--shiki-light) !important;
+  background-color: var(--shiki-light-bg) !important;
+}
+
+[data-mode="dark"] .highlighted-code .shiki,
+[data-mode="dark"] .highlighted-code .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+}
+
+.highlighted-code .shiki {
+  padding: 1rem;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+/* Markdown prose styles for system prompt tab */
+.markdown-prose {
+  font-size: 0.875rem;
+  line-height: 1.625;
+}
+
+.markdown-prose h1,
+.markdown-prose h2,
+.markdown-prose h3,
+.markdown-prose h4 {
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.markdown-prose h1 {
+  font-size: 1.5rem;
+}
+
+.markdown-prose h2 {
+  font-size: 1.25rem;
+}
+
+.markdown-prose h3 {
+  font-size: 1.125rem;
+}
+
+.markdown-prose p {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.markdown-prose ul,
+.markdown-prose ol {
+  padding-left: 1.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.markdown-prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.markdown-prose ul {
+  list-style-type: disc;
+}
+
+.markdown-prose ol {
+  list-style-type: decimal;
+}
+
+.markdown-prose code:not(.shiki code) {
+  font-size: 0.85em;
+  padding: 0.15em 0.35em;
+  border-radius: 0.25rem;
+  background-color: var(--kumo-color-bg-recessed);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+.markdown-prose pre {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--kumo-color-border-line);
+}
+
+.markdown-prose strong {
+  font-weight: 600;
+}
+
+.markdown-prose hr {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  border-color: var(--kumo-color-border-line);
+}
+
+.markdown-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.markdown-prose th,
+.markdown-prose td {
+  padding: 0.5em 0.75em;
+  border: 1px solid var(--kumo-color-border-line);
+  text-align: left;
+}
+
+.markdown-prose th {
+  font-weight: 600;
+}
+
 /* Streaming progress bar animation (playground) */
 @keyframes shimmer {
   0% {

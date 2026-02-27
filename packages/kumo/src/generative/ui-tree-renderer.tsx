@@ -591,6 +591,69 @@ export function normalizeFormActionBars(tree: UITree): UITree {
 }
 
 /**
+ * Normalize elements where the LLM placed structural child keys inside
+ * `props.children` (as an array) instead of the top-level `children` field.
+ *
+ * This is a common LLM mistake — the system prompt distinguishes between
+ * `props.children` (scalar text content) and `UIElement.children` (key
+ * references), but models sometimes conflate them.
+ *
+ * For each element whose `props.children` is an array of strings that look
+ * like element keys (i.e. they exist in `tree.elements`), this pass:
+ * 1. Moves the keys to `element.children` (merging with any existing)
+ * 2. Strips the array from `props.children`
+ *
+ * Must run **before** `normalizeEmptySelects` so a Select with mis-placed
+ * option keys recovers its children before the empty-check downgrades it.
+ */
+export function normalizePropsChildrenToStructural(tree: UITree): UITree {
+  const elements = tree.elements;
+  let changed = false;
+  let nextElements: Record<string, UIElement> | null = null;
+
+  for (const el of Object.values(elements)) {
+    if (!el) continue;
+    const props = el.props as Record<string, unknown>;
+    const propsChildren = props["children"];
+
+    // Only act when props.children is an array of strings referencing real keys
+    if (!Array.isArray(propsChildren)) continue;
+    const keyRefs = propsChildren.filter(
+      (v): v is string => typeof v === "string" && v in elements,
+    );
+    if (keyRefs.length === 0) continue;
+
+    if (nextElements == null) nextElements = { ...elements };
+
+    // Merge into structural children (existing children first, then new refs)
+    const existing = el.children ?? [];
+    const merged = [
+      ...existing,
+      ...keyRefs.filter((k) => !existing.includes(k)),
+    ];
+
+    // Strip the array from props — keep non-key scalars if any remain
+    const remaining = propsChildren.filter(
+      (v) => !(typeof v === "string" && v in elements),
+    );
+    const { children: _discard, ...restProps } = props;
+    const nextProps =
+      remaining.length === 1 && typeof remaining[0] === "string"
+        ? { ...restProps, children: remaining[0] }
+        : remaining.length > 1
+          ? { ...restProps, children: remaining }
+          : restProps;
+
+    nextElements[el.key] = { ...el, props: nextProps, children: merged };
+    changed = true;
+  }
+
+  return changed && nextElements != null
+    ? { ...tree, elements: nextElements }
+    : tree;
+}
+
+/**
  * Normalize Select elements missing SelectOption children.
  *
  * A Select with no options is effectively unusable. Rather than rendering an
@@ -1202,7 +1265,9 @@ function UITreeRendererImpl({
             normalizeCheckboxGroupGrids(
               normalizeDuplicateFieldLabels(
                 normalizeEmptySelects(
-                  normalizeNestedSurfaces(treeForNormalize),
+                  normalizePropsChildrenToStructural(
+                    normalizeNestedSurfaces(treeForNormalize),
+                  ),
                 ),
               ),
             ),

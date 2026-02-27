@@ -2951,6 +2951,56 @@
         "text-kumo-subtle"
       ]
     },
+    "Flow": {
+      "name": "Flow",
+      "type": "component",
+      "description": "Flow component",
+      "importPath": "@cloudflare/kumo",
+      "category": "Layout",
+      "props": {
+        "orientation": {
+          "type": "enum",
+          "optional": true,
+          "values": [
+            "horizontal",
+            "vertical"
+          ]
+        },
+        "align": {
+          "type": "enum",
+          "optional": true,
+          "description": "Controls vertical alignment of nodes in horizontal orientation.\n- `start`: Nodes align to the top (default)\n- `center`: Nodes are vertically centered",
+          "values": [
+            "start",
+            "center"
+          ]
+        },
+        "className": {
+          "type": "string",
+          "optional": true
+        },
+        "children": {
+          "type": "ReactNode",
+          "optional": true
+        }
+      },
+      "examples": [
+        "<Flow>\n      <Flow.Node>Step 1</Flow.Node>\n      <Flow.Node>Step 2</Flow.Node>\n      <Flow.Node>Step 3</Flow.Node>\n    </Flow>",
+        "<Flow>\n      <Flow.Node>Start</Flow.Node>\n      <Flow.Parallel>\n        <Flow.Node>Branch A</Flow.Node>\n        <Flow.Node>Branch B</Flow.Node>\n        <Flow.Node>Branch C</Flow.Node>\n      </Flow.Parallel>\n      <Flow.Node>End</Flow.Node>\n    </Flow>",
+        "<Flow>\n      <Flow.Node render={<li className=\"rounded-full size-4 bg-kumo-ring\" />} />\n      <Flow.Node\n        render={\n          <li className=\"bg-kumo-contrast text-kumo-inverse rounded-lg font-medium py-2 px-3\">\n            my-worker\n          </li>\n        }\n      />\n    </Flow>",
+        "<Flow>\n      <Flow.Parallel>\n        <Flow.Node>HTTP Trigger</Flow.Node>\n        <Flow.Node>Cron Trigger</Flow.Node>\n      </Flow.Parallel>\n      <Flow.Node>Process Request</Flow.Node>\n      <Flow.Parallel>\n        <Flow.Node>Log Analytics</Flow.Node>\n        <Flow.Node>Update Cache</Flow.Node>\n        <Flow.Node>Send Notification</Flow.Node>\n      </Flow.Parallel>\n      <Flow.Node>Complete</Flow.Node>\n    </Flow>",
+        "<Flow>\n      <Flow.Node>Load balancer</Flow.Node>\n      <Flow.Node\n        render={\n          <li className=\"shadow-none rounded-lg ring ring-kumo-line bg-kumo-overlay\">\n            <Flow.Anchor\n              type=\"end\"\n              render={\n                <div className=\"text-kumo-subtle h-10 flex items-center px-2.5\">\n                  my-worker\n                </div>\n              }\n            />\n            <Flow.Anchor\n              type=\"start\"\n              render={\n                <div className=\"bg-kumo-base rounded ring ring-kumo-line shadow px-2 py-1.5 m-1.5 mt-0\">\n                  Bindings\n                  <span className=\"text-kumo-subtle w-5 ml-3\">2</span>\n                </div>\n              }\n            />\n          </li>\n        }\n      />\n      <Flow.Parallel>\n        <Flow.Node>DATABASE</Flow.Node>\n        <Flow.Node>OTHER_SERVICE</Flow.Node>\n      </Flow.Parallel>\n    </Flow>",
+        "<Flow align=\"center\">\n      <Flow.Node render={<li className=\"rounded-full size-4 bg-kumo-ring\" />} />\n      <Flow.Node>my-worker</Flow.Node>\n      <Flow.Node\n        render={\n          <li className=\"py-6 px-3 rounded-md shadow bg-kumo-base ring ring-kumo-line\">\n            Taller node\n          </li>\n        }\n      />\n    </Flow>",
+        "<Flow className=\"rounded-lg border border-kumo-line\">\n      <Flow.Node>Start</Flow.Node>\n      <Flow.Node>Authenticate</Flow.Node>\n      <Flow.Node>Validate</Flow.Node>\n      <Flow.Node>Transform</Flow.Node>\n      <Flow.Node>Process</Flow.Node>\n      <Flow.Node>Store</Flow.Node>\n      <Flow.Node>Notify</Flow.Node>\n      <Flow.Node>Log</Flow.Node>\n      <Flow.Node>Complete</Flow.Node>\n      <Flow.Node>End</Flow.Node>\n    </Flow>",
+        "<Flow>\n      <Flow.Node>Request</Flow.Node>\n      <Flow.Parallel>\n        <Flow.Node>Primary Handler</Flow.Node>\n        <Flow.Node disabled>Backup Handler (disabled)</Flow.Node>\n      </Flow.Parallel>\n      <Flow.Node>Response</Flow.Node>\n    </Flow>",
+        "<Flow>\n      <Flow.Node>Start</Flow.Node>\n      <Flow.Parallel align=\"end\">\n        <Flow.Node>Short</Flow.Node>\n        <Flow.Node>Medium Length</Flow.Node>\n        <Flow.Node>Very Long Node Name</Flow.Node>\n      </Flow.Parallel>\n      <Flow.Node>End</Flow.Node>\n    </Flow>",
+        "<Flow>\n      <Flow.Parallel>\n        <Flow.List>\n          <Flow.Node>Client Users</Flow.Node>\n          <Flow.Node>Engineering Team Access</Flow.Node>\n        </Flow.List>\n        <Flow.List>\n          <Flow.Parallel>\n            <Flow.Node>All Authenticated Users</Flow.Node>\n            <Flow.Node>Client Users</Flow.Node>\n            <Flow.Node>Site Users</Flow.Node>\n          </Flow.Parallel>\n          <Flow.Node>Contractor Access</Flow.Node>\n        </Flow.List>\n      </Flow.Parallel>\n      <Flow.Node>Destinations</Flow.Node>\n    </Flow>"
+      ],
+      "colors": [
+        "bg-kumo-fill",
+        "bg-kumo-line"
+      ]
+    },
     "Grid": {
       "name": "Grid",
       "type": "component",
@@ -3772,7 +3822,7 @@
         }
       },
       "examples": [
-        "<Popover>\n      <Popover.Trigger asChild>\n        <Button shape=\"square\" icon={BellIcon} />\n      </Popover.Trigger>\n      <Popover.Content>\n        <Popover.Title>Notifications</Popover.Title>\n        <Popover.Description>\n          You are all caught up. Good job!\n        </Popover.Description>\n      </Popover.Content>\n    </Popover>",
+        "<Popover>\n      <Popover.Trigger asChild>\n        <Button shape=\"square\" icon={BellIcon} aria-label=\"Notifications\" />\n      </Popover.Trigger>\n      <Popover.Content>\n        <Popover.Title>Notifications</Popover.Title>\n        <Popover.Description>\n          You are all caught up. Good job!\n        </Popover.Description>\n      </Popover.Content>\n    </Popover>",
         "<Popover>\n      <Popover.Trigger asChild>\n        <Button>Open Popover</Button>\n      </Popover.Trigger>\n      <Popover.Content>\n        <Popover.Title>Popover Title</Popover.Title>\n        <Popover.Description>\n          This is a basic popover with a title and description.\n        </Popover.Description>\n      </Popover.Content>\n    </Popover>",
         "<Popover>\n      <Popover.Trigger asChild>\n        <Button>Open Settings</Button>\n      </Popover.Trigger>\n      <Popover.Content>\n        <Popover.Title>Settings</Popover.Title>\n        <Popover.Description>\n          Configure your preferences below.\n        </Popover.Description>\n        <div className=\"mt-3\">\n          <Popover.Close asChild>\n            <Button variant=\"secondary\" size=\"sm\">\n              Close\n            </Button>\n          </Popover.Close>\n        </div>\n      </Popover.Content>\n    </Popover>",
         "<div className=\"flex flex-wrap gap-4\">\n      <Popover>\n        <Popover.Trigger asChild>\n          <Button variant=\"secondary\">Bottom</Button>\n        </Popover.Trigger>\n        <Popover.Content side=\"bottom\">\n          <Popover.Title>Bottom</Popover.Title>\n          <Popover.Description>\n            Popover on bottom (default).\n          </Popover.Description>\n        </Popover.Content>\n      </Popover>\n\n      <Popover>\n        <Popover.Trigger asChild>\n          <Button variant=\"secondary\">Top</Button>\n        </Popover.Trigger>\n        <Popover.Content side=\"top\">\n          <Popover.Title>Top</Popover.Title>\n          <Popover.Description>Popover on top.</Popover.Description>\n        </Popover.Content>\n      </Popover>\n\n      <Popover>\n        <Popover.Trigger asChild>\n          <Button variant=\"secondary\">Left</Button>\n        </Popover.Trigger>\n        <Popover.Content side=\"left\">\n          <Popover.Title>Left</Popover.Title>\n          <Popover.Description>Popover on left.</Popover.Description>\n        </Popover.Content>\n      </Popover>\n\n      <Popover>\n        <Popover.Trigger asChild>\n          <Button variant=\"secondary\">Right</Button>\n        </Popover.Trigger>\n        <Popover.Content side=\"right\">\n          <Popover.Title>Right</Popover.Title>\n          <Popover.Description>Popover on right.</Popover.Description>\n        </Popover.Content>\n      </Popover>\n    </div>",
@@ -5245,6 +5295,7 @@
         "Tooltip"
       ],
       "Layout": [
+        "Flow",
         "Grid",
         "Surface",
         "PageHeader",
@@ -5271,6 +5322,7 @@
       "DropdownMenu",
       "Empty",
       "Field",
+      "Flow",
       "Grid",
       "Input",
       "Label",
@@ -5315,6 +5367,7 @@
         "DropdownMenu",
         "Empty",
         "Field",
+        "Flow",
         "Grid",
         "Input",
         "Label",

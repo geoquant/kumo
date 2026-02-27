@@ -7,6 +7,7 @@ import {
   normalizeFormActionBars,
   normalizeDuplicateFieldLabels,
   normalizeCheckboxGroupGrids,
+  normalizePropsChildrenToStructural,
 } from "../../src/generative/ui-tree-renderer";
 import type { UITree, UIElement } from "../../src/streaming/types";
 
@@ -205,5 +206,97 @@ describe("layout normalization", () => {
     const normalized = normalizeCheckboxGroupGrids(tree);
     expect(normalized.elements["row"]?.type).toBe("Stack");
     expect(normalized.elements["row"]?.children).toEqual(["label", "choices"]);
+  });
+});
+
+describe("normalizePropsChildrenToStructural", () => {
+  it("moves element-key arrays from props.children to structural children", () => {
+    // Reproduces the exact LLM mistake: Select has option keys in props.children
+    const tree: UITree = {
+      root: "form",
+      elements: {
+        form: el("form", "Div", {}, ["frequency"]),
+        frequency: {
+          key: "frequency",
+          type: "Select",
+          props: {
+            label: "Email frequency",
+            placeholder: "Choose",
+            children: ["freq-rt", "freq-daily", "freq-weekly"],
+          },
+          parentKey: "form",
+        },
+        "freq-rt": el("freq-rt", "SelectOption", {
+          value: "realtime",
+          children: "Real-time",
+        }),
+        "freq-daily": el("freq-daily", "SelectOption", {
+          value: "daily",
+          children: "Daily",
+        }),
+        "freq-weekly": el("freq-weekly", "SelectOption", {
+          value: "weekly",
+          children: "Weekly",
+        }),
+      },
+    };
+
+    const normalized = normalizePropsChildrenToStructural(tree);
+    const freq = normalized.elements["frequency"];
+
+    // Keys moved to structural children
+    expect(freq?.children).toEqual(["freq-rt", "freq-daily", "freq-weekly"]);
+    // Array removed from props
+    expect(freq?.props["children"]).toBeUndefined();
+    // Other props preserved
+    expect(freq?.props["label"]).toBe("Email frequency");
+    expect(freq?.props["placeholder"]).toBe("Choose");
+  });
+
+  it("merges with existing structural children without duplicates", () => {
+    const tree: UITree = {
+      root: "form",
+      elements: {
+        form: el("form", "Div", {}, ["sel"]),
+        sel: {
+          key: "sel",
+          type: "Select",
+          props: { label: "Pick", children: ["opt-a", "opt-b"] },
+          children: ["opt-a"],
+        },
+        "opt-a": el("opt-a", "SelectOption", { value: "a", children: "A" }),
+        "opt-b": el("opt-b", "SelectOption", { value: "b", children: "B" }),
+      },
+    };
+
+    const normalized = normalizePropsChildrenToStructural(tree);
+    expect(normalized.elements["sel"]?.children).toEqual(["opt-a", "opt-b"]);
+  });
+
+  it("is a no-op when props.children is a scalar string", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Div", {}, ["title"]),
+        title: el("title", "Text", { children: "Hello", variant: "heading2" }),
+      },
+    };
+
+    const normalized = normalizePropsChildrenToStructural(tree);
+    // Identity — no changes
+    expect(normalized).toBe(tree);
+  });
+
+  it("is a no-op when props.children array contains no element keys", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Div", {}, ["badge"]),
+        badge: el("badge", "Badge", { children: ["not-a-key"] }),
+      },
+    };
+
+    const normalized = normalizePropsChildrenToStructural(tree);
+    expect(normalized).toBe(tree);
   });
 });

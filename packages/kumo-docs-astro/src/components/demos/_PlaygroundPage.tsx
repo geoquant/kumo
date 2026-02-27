@@ -18,18 +18,24 @@ import {
 } from "react";
 import {
   Button,
+  Checkbox,
+  CloudflareLogo,
   Empty,
   InputArea,
   Loader,
   Select,
+  Stack,
   Tabs,
 } from "@cloudflare/kumo";
 import type { TabsItem } from "@cloudflare/kumo";
 import {
   ArrowCounterClockwiseIcon,
+  CaretDownIcon,
+  CaretUpIcon,
   CheckIcon,
   CircleIcon,
   CopyIcon,
+  LightningIcon,
   LockKeyIcon,
   PaperPlaneRightIcon,
   SpinnerIcon,
@@ -41,18 +47,60 @@ import {
   useUITree,
   useRuntimeValueStore,
   createJsonlParser,
+  BUILTIN_HANDLERS,
+  dispatchAction,
+  processActionResult,
+  type ActionEvent,
+  type JsonPatchOp,
   type RuntimeValueStore,
 } from "@cloudflare/kumo/streaming";
-import type { UITree } from "@cloudflare/kumo/streaming";
+import type { UITree, UIElement } from "@cloudflare/kumo/streaming";
 import {
   UITreeRenderer,
   isRenderableTree,
   uiTreeToJsx,
   gradeTree,
   walkTree,
+  defineCustomComponent,
 } from "@cloudflare/kumo/generative";
 import type { GradeReport } from "@cloudflare/kumo/generative";
+import type { CustomComponentDefinition } from "@cloudflare/kumo/catalog";
+import { DemoButton } from "./DemoButton";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { readSSEStream } from "~/lib/read-sse-stream";
+import { HighlightedCode } from "~/components/HighlightedCode";
+import { ThemeToggle } from "~/components/ThemeToggle";
+import type { BundledLanguage } from "shiki";
+
+// =============================================================================
+// Custom components — must match the metadata in lib/playground.ts so the
+// renderer can instantiate what the LLM is told about in the system prompt.
+// =============================================================================
+
+const demoButtonDef = defineCustomComponent({
+  component: DemoButton,
+  description: "A fancy button with a rainbow conic-gradient hover effect",
+  props: {
+    children: { type: "string", description: "Button label text" },
+    variant: {
+      type: "string",
+      description: "Visual variant",
+      values: ["light", "dark"] as const,
+      default: "light",
+      optional: true,
+    },
+  },
+});
+
+const CUSTOM_COMPONENTS: Readonly<Record<string, CustomComponentDefinition>> = {
+  DemoButton: demoButtonDef,
+};
+
+/** Custom type names for the grader so it doesn't flag them as unknown. */
+const CUSTOM_COMPONENT_TYPES: ReadonlySet<string> = new Set(
+  Object.keys(CUSTOM_COMPONENTS),
+);
 
 // =============================================================================
 // Types
@@ -70,14 +118,22 @@ type AuthState = "checking" | "authenticated" | "denied";
 type StreamStatus = "idle" | "streaming" | "error";
 
 /** Playground tab identifiers. */
-type PlaygroundTab = "preview" | "code" | "grading" | "system-prompt";
+type PlaygroundTab =
+  | "preview"
+  | "code"
+  | "jsonl"
+  | "system-prompt"
+  | "actions"
+  | "grading";
 
 /** Tab definitions for the playground content area. */
 const PLAYGROUND_TABS: TabsItem[] = [
   { value: "preview", label: "Preview" },
   { value: "code", label: "Code" },
-  { value: "grading", label: "Grading" },
+  { value: "jsonl", label: "JSONL" },
   { value: "system-prompt", label: "System Prompt" },
+  { value: "actions", label: "Actions" },
+  { value: "grading", label: "Grading" },
 ];
 
 const PLAYGROUND_TAB_VALUES = new Set<string>(
@@ -93,6 +149,12 @@ function isPlaygroundTab(value: string): value is PlaygroundTab {
 interface ChatMessage {
   readonly role: "user" | "assistant";
   readonly content: string;
+}
+
+/** Logged action event with timestamp. */
+interface ActionLogEntry {
+  readonly timestamp: string;
+  readonly event: ActionEvent;
 }
 
 // =============================================================================
@@ -122,6 +184,7 @@ function extractPromptString(body: unknown): string | null {
 
 /** Models available in the playground, matching ALLOWED_MODELS in /api/chat. */
 const MODELS = [
+  { value: "gpt-oss-120b", label: "GPT OSS 120B" },
   { value: "glm-4.7-flash", label: "GLM 4.7 Flash" },
   { value: "llama-4-scout-17b-16e-instruct", label: "Llama 4 Scout 17B" },
   { value: "gemma-3-27b-it", label: "Gemma 3 27B" },
@@ -137,7 +200,8 @@ const PRESET_PROMPTS = [
   // Card-level presets (from existing demo)
   {
     label: "User card",
-    prompt: "Show me a user profile card with name, email, and role",
+    prompt:
+      "Show a user profile card: heading with the person's name, a role Badge and department text on one line (Cluster), and a 2-column Grid for email and join date key-value pairs. No buttons.",
   },
   {
     label: "Settings form",
@@ -225,6 +289,56 @@ function usePlaygroundAuth(): { auth: AuthState; apiKey: string | null } {
 }
 
 // =============================================================================
+// Skills hook
+// =============================================================================
+
+/** Skill metadata returned by /api/chat/skills. */
+interface SkillMeta {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+}
+
+/**
+ * Fetches available skills from the API on mount.
+ * Returns the list of skills (empty array on failure).
+ */
+function usePlaygroundSkills(apiKey: string | null): readonly SkillMeta[] {
+  const [skills, setSkills] = useState<readonly SkillMeta[]>([]);
+
+  useEffect(() => {
+    if (!apiKey) return;
+
+    const controller = new AbortController();
+
+    fetch("/api/chat/skills", {
+      headers: { "X-Playground-Key": apiKey },
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data: unknown = await res.json();
+        if (
+          typeof data === "object" &&
+          data !== null &&
+          "skills" in data &&
+          Array.isArray((data as { skills: unknown }).skills)
+        ) {
+          setSkills((data as { skills: SkillMeta[] }).skills);
+        }
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        console.warn("[playground] Failed to load skills:", err);
+      });
+
+    return () => controller.abort();
+  }, [apiKey]);
+
+  return skills;
+}
+
+// =============================================================================
 // Component
 // =============================================================================
 
@@ -232,7 +346,7 @@ export function PlaygroundPage() {
   const { auth, apiKey } = usePlaygroundAuth();
 
   return (
-    <div className="flex h-screen flex-col bg-kumo-base text-kumo-default">
+    <div className="flex h-dvh flex-col overflow-hidden bg-kumo-base text-kumo-default">
       {auth === "checking" && <CheckingState />}
       {auth === "denied" && <DeniedState />}
       {auth === "authenticated" && <AuthenticatedState apiKey={apiKey} />}
@@ -270,11 +384,16 @@ function DeniedState() {
 // Authenticated playground
 // =============================================================================
 
-/** Main playground UI. Renders top bar + tabbed content area. */
+/** Main playground UI. Side-by-side layout: content left, chat right. */
 function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
+  // --- Skills ---
+  const availableSkills = usePlaygroundSkills(apiKey);
+  const [enabledSkillIds, setEnabledSkillIds] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+
   // --- Input state ---
   const [inputValue, setInputValue] = useState("");
-  const [followUpValue, setFollowUpValue] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
 
   // --- Tab state (persists across generations) ---
@@ -284,15 +403,64 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
   const [status, setStatus] = useState<StreamStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [rawJsonl, setRawJsonl] = useState("");
   const lastSubmittedRef = useRef<string | null>(null);
+
+  // --- Action log ---
+  const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
+  const clearActionLog = useCallback(() => setActionLog([]), []);
 
   // --- Refs ---
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Stable refs for action handler closures (avoids stale captures)
+  const treeRef = useRef<UITree>({ root: "", elements: {} });
+  const applyPatchesRef = useRef<(patches: readonly JsonPatchOp[]) => void>(
+    () => {},
+  );
+  const handleSubmitRef = useRef<
+    (e?: FormEvent, overrideMessage?: string) => void
+  >(() => {});
+
+  // --- Action handler ---
+  const handleAction = useCallback((event: ActionEvent) => {
+    setActionLog((prev) => [
+      ...prev,
+      { timestamp: new Date().toISOString(), event },
+    ]);
+
+    // Don't actually submit forms in the playground — just log + preview
+    if (event.actionName === "submit_form") return;
+
+    const result = dispatchAction(BUILTIN_HANDLERS, event, treeRef.current);
+    if (result === null) return;
+    processActionResult(result, {
+      applyPatches: (patches: readonly JsonPatchOp[]) => {
+        applyPatchesRef.current(patches);
+      },
+      sendMessage: (content: string) => {
+        handleSubmitRef.current(undefined, content);
+      },
+      openExternal: (url: string, target: string) => {
+        const safeTarget = target === "_self" ? "_self" : "_blank";
+        const w = window.open(url, safeTarget, "noopener,noreferrer");
+        if (w) w.opener = null;
+      },
+    });
+  }, []);
 
   // --- UITree hooks ---
   const runtimeValueStore = useRuntimeValueStore();
-  const { tree, applyPatches, reset } = useUITree({ batchPatches: true });
+  const { tree, applyPatches, reset } = useUITree({
+    batchPatches: true,
+    onAction: handleAction,
+  });
+
+  // Keep stable refs in sync
+  treeRef.current = tree;
+  applyPatchesRef.current = applyPatches;
 
   // --- Cleanup on unmount ---
   useEffect(() => {
@@ -300,6 +468,11 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
       abortRef.current?.abort();
     };
   }, []);
+
+  // --- Auto-scroll chat to bottom on new messages ---
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, status]);
 
   const isStreaming = status === "streaming";
 
@@ -335,6 +508,8 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
       setErrorMessage(null);
       setStatus("streaming");
       setInputValue("");
+      setRawJsonl("");
+      setActionLog([]);
       lastSubmittedRef.current = msg;
 
       // Track conversation
@@ -361,6 +536,9 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
               message: msg,
               model: selectedModel,
               ...(history ? { history } : {}),
+              ...(enabledSkillIds.size > 0
+                ? { skillIds: [...enabledSkillIds] }
+                : {}),
             }),
             signal: controller.signal,
           });
@@ -379,6 +557,7 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
             response,
             (token) => {
               fullResponse += token;
+              setRawJsonl((prev) => prev + token);
               const ops = parser.push(token);
               if (ops.length > 0) {
                 applyPatches(ops);
@@ -435,56 +614,75 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
       selectedModel,
       messages,
       apiKey,
+      enabledSkillIds,
       runtimeValueStore,
       reset,
       applyPatches,
     ],
   );
 
+  // Keep handleSubmit ref in sync for action dispatch
+  handleSubmitRef.current = handleSubmit;
+
+  // --- Auto-regenerate when skills change ---
+  // Tracks whether the initial mount has passed so the effect only fires
+  // on actual skill toggle changes, not on the initial render.
+  const skillsInitRef = useRef(false);
+  useEffect(() => {
+    if (!skillsInitRef.current) {
+      skillsInitRef.current = true;
+      return;
+    }
+    const lastPrompt = lastSubmittedRef.current;
+    if (lastPrompt && !isStreaming) {
+      // Clear conversation history so regeneration is a fresh single-turn
+      // with the same prompt but different skills context.
+      setMessages([]);
+      handleSubmit(undefined, lastPrompt);
+    }
+    // Only fire when enabledSkillIds changes — handleSubmit and isStreaming
+    // are intentionally omitted to avoid looping.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabledSkillIds]);
+
   const showTree = isRenderableTree(tree);
 
-  /** Whether a prior generation has completed (show follow-up bar). */
-  const hasConversation = messages.length > 0;
-
-  /** Submit from the follow-up bar at the bottom. */
-  const handleFollowUp = useCallback(
-    (e?: FormEvent, overrideMessage?: string) => {
-      const msg = overrideMessage ?? followUpValue.trim();
-      if (!msg) return;
-      setFollowUpValue("");
-      handleSubmit(e, msg);
-    },
-    [followUpValue, handleSubmit],
-  );
-
   return (
-    <>
-      {/* Top bar */}
-      <PlaygroundTopBar
-        inputValue={inputValue}
-        onInputChange={setInputValue}
-        selectedModel={selectedModel}
-        onModelChange={setSelectedModel}
-        isStreaming={isStreaming}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-      />
-
-      {/* Tabbed content area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Tab bar */}
-        <div className="shrink-0 border-b border-kumo-line px-4 pt-2">
-          <Tabs
-            variant="underline"
-            tabs={PLAYGROUND_TABS}
-            value={activeTab}
-            onValueChange={(v) => {
-              if (isPlaygroundTab(v)) setActiveTab(v);
-            }}
-          />
+    <div className="flex flex-1 overflow-hidden">
+      {/* Left: tabbed content area */}
+      <div className="flex flex-1 min-w-0 flex-col">
+        {/* Tab bar — h-[61px] matches sidebar header */}
+        <div className="flex h-[61px] shrink-0 items-center justify-between border-b border-kumo-line px-4">
+          <div className="flex items-center gap-3">
+            <CloudflareLogo variant="glyph" className="h-5 w-auto shrink-0" />
+            <Tabs
+              variant="segmented"
+              tabs={PLAYGROUND_TABS}
+              value={activeTab}
+              onValueChange={(v) => {
+                if (isPlaygroundTab(v)) setActiveTab(v);
+              }}
+            />
+          </div>
+          <ThemeToggle />
         </div>
 
-        {/* Error banner — dismissible, sits above tab content */}
+        {/* Preset pills — always visible, horizontally scrollable */}
+        <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-kumo-line px-4 py-2">
+          {PRESET_PROMPTS.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              disabled={isStreaming}
+              onClick={() => handleSubmit(undefined, preset.prompt)}
+              className="shrink-0 rounded-full border border-kumo-line bg-kumo-base px-2.5 py-1 text-xs text-kumo-subtle transition-colors hover:border-kumo-brand hover:text-kumo-brand disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Error banner */}
         {status === "error" && errorMessage && (
           <ErrorBanner
             message={errorMessage}
@@ -500,23 +698,22 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
           />
         )}
 
-        {/* Streaming progress indicator */}
-        {isStreaming && (
-          <div
-            className="h-0.5 w-full shrink-0 bg-kumo-brand/30"
-            aria-label="Streaming in progress"
-          >
+        {/* Tab content */}
+        <div className="relative flex-1 overflow-auto">
+          {/* Streaming progress indicator — pinned to top of content area */}
+          {isStreaming && (
             <div
-              className="h-full w-1/3 bg-kumo-brand"
-              style={{
-                animation: "shimmer 1.5s ease-in-out infinite",
-              }}
-            />
-          </div>
-        )}
-
-        {/* Tab content — fills remaining viewport height */}
-        <div className="flex-1 overflow-auto">
+              className="sticky top-0 z-10 h-0.5 w-full bg-kumo-brand/30"
+              aria-label="Streaming in progress"
+            >
+              <div
+                className="h-full w-1/3 bg-kumo-brand"
+                style={{
+                  animation: "shimmer 1.5s ease-in-out infinite",
+                }}
+              />
+            </div>
+          )}
           <PlaygroundTabContent
             activeTab={activeTab}
             showTree={showTree}
@@ -524,23 +721,30 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
             runtimeValueStore={runtimeValueStore}
             isStreaming={isStreaming}
             apiKey={apiKey}
+            rawJsonl={rawJsonl}
+            actionLog={actionLog}
+            onClearActionLog={clearActionLog}
           />
         </div>
-
-        {/* Bottom bar: follow-up input + status (visible after first generation) */}
-        {hasConversation && (
-          <PlaygroundBottomBar
-            followUpValue={followUpValue}
-            onFollowUpChange={setFollowUpValue}
-            isStreaming={isStreaming}
-            status={status}
-            onSubmit={handleFollowUp}
-            onCancel={handleCancel}
-            turnCount={messages.length}
-          />
-        )}
       </div>
-    </>
+
+      {/* Right: chat sidebar */}
+      <PlaygroundChatSidebar
+        inputValue={inputValue}
+        onInputChange={setInputValue}
+        selectedModel={selectedModel}
+        onModelChange={setSelectedModel}
+        isStreaming={isStreaming}
+        status={status}
+        messages={messages}
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        messagesEndRef={messagesEndRef}
+        availableSkills={availableSkills}
+        enabledSkillIds={enabledSkillIds}
+        onSkillToggle={setEnabledSkillIds}
+      />
+    </div>
   );
 }
 
@@ -555,6 +759,9 @@ interface PlaygroundTabContentProps {
   readonly runtimeValueStore: RuntimeValueStore;
   readonly isStreaming: boolean;
   readonly apiKey: string | null;
+  readonly rawJsonl: string;
+  readonly actionLog: readonly ActionLogEntry[];
+  readonly onClearActionLog: () => void;
 }
 
 /**
@@ -568,6 +775,9 @@ function PlaygroundTabContent({
   runtimeValueStore,
   isStreaming,
   apiKey,
+  rawJsonl,
+  actionLog,
+  onClearActionLog,
 }: PlaygroundTabContentProps) {
   switch (activeTab) {
     case "preview":
@@ -577,6 +787,7 @@ function PlaygroundTabContent({
             tree={tree}
             streaming={isStreaming}
             runtimeValueStore={runtimeValueStore}
+            customComponents={CUSTOM_COMPONENTS}
           />
         </div>
       ) : (
@@ -588,6 +799,22 @@ function PlaygroundTabContent({
     case "code":
       return <CodeTabContent tree={tree} showTree={showTree} />;
 
+    case "jsonl":
+      return <JsonTabContent rawJsonl={rawJsonl} />;
+
+    case "system-prompt":
+      return <SystemPromptTabContent apiKey={apiKey} />;
+
+    case "actions":
+      return (
+        <ActionsTabContent
+          tree={tree}
+          runtimeValueStore={runtimeValueStore}
+          actionLog={actionLog}
+          onClearActionLog={onClearActionLog}
+        />
+      );
+
     case "grading":
       return (
         <GradingTabContent
@@ -596,10 +823,264 @@ function PlaygroundTabContent({
           isStreaming={isStreaming}
         />
       );
-
-    case "system-prompt":
-      return <SystemPromptTabContent apiKey={apiKey} />;
   }
+}
+
+// =============================================================================
+// Actions tab
+// =============================================================================
+
+/** Format ISO timestamp as HH:MM:SS.mmm. */
+function formatActionTimestamp(iso: string): string {
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  const ms = String(d.getMilliseconds()).padStart(3, "0");
+  return `${hh}:${mm}:${ss}.${ms}`;
+}
+
+/** Single action log row with timestamp, action name, source, params. */
+function ActionLogRow({ entry }: { readonly entry: ActionLogEntry }) {
+  const { event, timestamp } = entry;
+  const ts = formatActionTimestamp(timestamp);
+
+  const detailParts: string[] = [];
+  if (event.params != null) {
+    detailParts.push(`params=${JSON.stringify(event.params)}`);
+  }
+  if (event.context != null) {
+    detailParts.push(`ctx=${JSON.stringify(event.context)}`);
+  }
+  const detail = detailParts.length > 0 ? ` ${detailParts.join(" ")}` : "";
+
+  return (
+    <div className="flex flex-col gap-0.5 border-b border-kumo-line py-1.5 font-mono text-xs last:border-0">
+      <div className="flex items-baseline gap-1.5 flex-wrap">
+        <span className="text-kumo-subtle">{ts}</span>
+        <span className="font-semibold text-kumo-brand">
+          {event.actionName}
+        </span>
+        <span className="text-kumo-subtle">from</span>
+        <span className="text-kumo-default">{event.sourceKey}</span>
+        {detail && <span className="text-kumo-subtle break-all">{detail}</span>}
+      </div>
+      {event.actionName === "submit_form" && (
+        <div className="mt-0.5 text-kumo-subtle">
+          {"-> POST /api/actions "}
+          {JSON.stringify({
+            actionName: event.actionName,
+            sourceKey: event.sourceKey,
+            ...(event.params != null ? { params: event.params } : undefined),
+            ...(event.context != null ? { context: event.context } : undefined),
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Finds the first submit_form action in the tree. */
+function findSubmitAction(tree: UITree): {
+  readonly sourceKey: string;
+  readonly action: NonNullable<UIElement["action"]>;
+} | null {
+  for (const [key, el] of Object.entries(tree.elements)) {
+    if (!el?.action) continue;
+    if (el.action.name !== "submit_form") continue;
+    return { sourceKey: key, action: el.action };
+  }
+  return null;
+}
+
+/**
+ * Actions tab: split view with action event log (top) and live submit
+ * payload preview (bottom). Mirrors the action panels from _StreamingDemo.
+ */
+function ActionsTabContent({
+  tree,
+  runtimeValueStore,
+  actionLog,
+  onClearActionLog,
+}: {
+  readonly tree: UITree;
+  readonly runtimeValueStore: RuntimeValueStore;
+  readonly actionLog: readonly ActionLogEntry[];
+  readonly onClearActionLog: () => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll action log
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [actionLog]);
+
+  // --- Submit payload preview ---
+  const submit = useMemo(() => findSubmitAction(tree), [tree]);
+
+  const [runtimeValues, setRuntimeValues] = useState<
+    Readonly<Record<string, unknown>>
+  >({});
+
+  useEffect(() => {
+    const update = () => setRuntimeValues(runtimeValueStore.snapshotAll());
+    update();
+    return runtimeValueStore.subscribe(update);
+  }, [runtimeValueStore]);
+
+  const payloadText = useMemo(() => {
+    if (!submit) return "";
+    const body: Record<string, unknown> = {
+      actionName: "submit_form",
+      sourceKey: submit.sourceKey,
+      context: { runtimeValues },
+    };
+    if (submit.action.params != null) {
+      body.params = submit.action.params;
+    }
+    return JSON.stringify(body, null, 2);
+  }, [submit, runtimeValues]);
+
+  const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCopyPayload = useCallback(() => {
+    if (!payloadText) return;
+    void navigator.clipboard.writeText(payloadText).then(() => {
+      setCopied(true);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    });
+  }, [payloadText]);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
+  return (
+    <div className="flex h-full flex-col gap-4 p-4">
+      {/* Action event log */}
+      <div className="flex flex-1 flex-col rounded-lg border border-kumo-line bg-kumo-elevated overflow-hidden">
+        <div className="flex items-center justify-between border-b border-kumo-line px-3 py-2">
+          <span className="text-xs font-semibold text-kumo-default">
+            Action Events
+          </span>
+          <button
+            type="button"
+            onClick={onClearActionLog}
+            className="text-[10px] text-kumo-subtle hover:text-kumo-default"
+          >
+            Clear
+          </button>
+        </div>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-1.5">
+          {actionLog.length === 0 ? (
+            <span className="text-xs text-kumo-subtle">
+              Interact with generated UI to see action events here.
+            </span>
+          ) : (
+            actionLog.map((entry, i) => <ActionLogRow key={i} entry={entry} />)
+          )}
+        </div>
+      </div>
+
+      {/* Submit payload preview */}
+      <div className="flex flex-1 flex-col rounded-lg border border-kumo-line bg-kumo-elevated overflow-hidden">
+        <div className="flex items-center justify-between border-b border-kumo-line px-3 py-2">
+          <span className="text-xs font-semibold text-kumo-default">
+            Submit Payload
+          </span>
+          <button
+            type="button"
+            onClick={handleCopyPayload}
+            disabled={!payloadText}
+            className="text-[10px] text-kumo-subtle hover:text-kumo-default disabled:opacity-40"
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {payloadText ? (
+            <HighlightedCode code={payloadText} lang="json" />
+          ) : (
+            <p className="px-3 py-1.5 text-xs text-kumo-subtle">
+              No submit_form action in current tree.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// JSON tab
+// =============================================================================
+
+/**
+ * Pretty-prints each JSONL line and renders with syntax highlighting.
+ * Shows the raw RFC 6902 JSON Patch operations streamed from the LLM.
+ */
+function JsonTabContent({ rawJsonl }: { readonly rawJsonl: string }) {
+  const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const formattedJson = useMemo(() => {
+    if (!rawJsonl.trim()) return "";
+    return rawJsonl
+      .split("\n")
+      .filter((line) => line.trim())
+      .map((line) => {
+        try {
+          return JSON.stringify(JSON.parse(line), null, 2);
+        } catch {
+          return line;
+        }
+      })
+      .join("\n");
+  }, [rawJsonl]);
+
+  const handleCopy = useCallback(() => {
+    void navigator.clipboard.writeText(formattedJson).then(() => {
+      setCopied(true);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    });
+  }, [formattedJson]);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
+  if (!formattedJson) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-kumo-subtle">Generate UI to see JSON output</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-full">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleCopy}
+        icon={copied ? <CheckIcon /> : <CopyIcon />}
+        className="absolute right-4 top-4 z-10"
+      >
+        {copied ? "Copied" : "Copy"}
+      </Button>
+      <div className="h-full overflow-auto">
+        <HighlightedCode code={formattedJson} lang="json" />
+      </div>
+    </div>
+  );
 }
 
 // =============================================================================
@@ -613,6 +1094,46 @@ type PromptFetchState =
   | { readonly status: "error"; readonly message: string };
 
 /**
+ * Languages loaded in the Shiki highlighter. If the markdown fenced block
+ * specifies an unknown language we fall back to plain text rendering.
+ */
+const LOADED_LANGS = new Set<string>([
+  "tsx",
+  "typescript",
+  "json",
+  "markdown",
+  "bash",
+  "css",
+  "html",
+]);
+
+/** Markdown code-block renderer — uses HighlightedCode for fenced blocks. */
+function MarkdownCodeBlock({
+  className,
+  children,
+}: {
+  readonly className?: string;
+  readonly children?: React.ReactNode;
+}) {
+  const match = /language-(\w+)/.exec(className ?? "");
+  const code = String(children).replace(/\n$/, "");
+
+  if (match && LOADED_LANGS.has(match[1])) {
+    return <HighlightedCode code={code} lang={match[1] as BundledLanguage} />;
+  }
+  // Inline code or unknown language — render as plain <code>
+  return <code className={className}>{children}</code>;
+}
+
+/** Shared remark plugins — stable reference to avoid re-renders. */
+const REMARK_PLUGINS = [remarkGfm];
+
+/** Shared component overrides for react-markdown. */
+const MARKDOWN_COMPONENTS = {
+  code: MarkdownCodeBlock,
+} as const;
+
+/**
  * Fetches and displays the assembled system prompt from /api/chat/prompt.
  * Read-only — shows the exact prompt that would be sent to Workers AI.
  */
@@ -622,6 +1143,8 @@ function SystemPromptTabContent({
   readonly apiKey: string | null;
 }) {
   const [state, setState] = useState<PromptFetchState>({ status: "loading" });
+  const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!apiKey) {
@@ -663,6 +1186,22 @@ function SystemPromptTabContent({
     return () => controller.abort();
   }, [apiKey]);
 
+  const handleCopy = useCallback(() => {
+    if (state.status !== "loaded") return;
+    void navigator.clipboard.writeText(state.prompt).then(() => {
+      setCopied(true);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    });
+  }, [state]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
   if (state.status === "loading") {
     return (
       <div className="flex h-full items-center justify-center">
@@ -680,9 +1219,25 @@ function SystemPromptTabContent({
   }
 
   return (
-    <pre className="h-full overflow-auto whitespace-pre-wrap p-4 font-mono text-sm text-kumo-default">
-      {state.prompt}
-    </pre>
+    <div className="relative h-full">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleCopy}
+        icon={copied ? <CheckIcon /> : <CopyIcon />}
+        className="absolute right-4 top-4 z-10"
+      >
+        {copied ? "Copied" : "Copy"}
+      </Button>
+      <div className="markdown-prose h-full overflow-auto p-4 text-kumo-default">
+        <Markdown
+          remarkPlugins={REMARK_PLUGINS}
+          components={MARKDOWN_COMPONENTS}
+        >
+          {state.prompt}
+        </Markdown>
+      </div>
+    </div>
   );
 }
 
@@ -740,9 +1295,9 @@ function CodeTabContent({
       >
         {copied ? "Copied" : "Copy"}
       </Button>
-      <pre className="h-full overflow-auto p-4 font-mono text-sm text-kumo-default">
-        {jsxCode}
-      </pre>
+      <div className="h-full overflow-auto">
+        <HighlightedCode code={jsxCode} lang="tsx" />
+      </div>
     </div>
   );
 }
@@ -767,6 +1322,21 @@ function computeTreeStats(tree: UITree): TreeStats {
   });
   return { elementCount, maxDepth };
 }
+
+/** Human-readable description for each grading rule. */
+const RULE_DESCRIPTIONS: Readonly<Record<string, string>> = {
+  "valid-component-types": "Every element's type is in KNOWN_TYPES",
+  "valid-prop-values": "Enum prop values pass Zod schema validation",
+  "required-props": "Text has children; form elements have label/aria-label",
+  "canonical-layout": "Root Surface wraps children in a single Stack",
+  "no-orphan-nodes":
+    "Every non-root element is referenced by a parent's children",
+  "a11y-labels":
+    "Form elements (Input, Textarea, Select, Checkbox, Switch, RadioGroup) have labels",
+  "depth-limit": "No element exceeds depth 8",
+  "no-redundant-children":
+    "props.children is never an array (structural children go in UIElement.children)",
+};
 
 /** Debounce interval for grading during streaming (ms). */
 const GRADE_DEBOUNCE_MS = 500;
@@ -799,7 +1369,7 @@ function GradingTabContent({
     }
 
     const runGrade = () => {
-      setReport(gradeTree(tree));
+      setReport(gradeTree(tree, { customTypes: CUSTOM_COMPONENT_TYPES }));
       setStats(computeTreeStats(tree));
       lastGradedRef.current = Date.now();
     };
@@ -875,6 +1445,11 @@ function GradingTabContent({
                 {result.rule}
               </span>
             </div>
+            {RULE_DESCRIPTIONS[result.rule] && (
+              <p className="mt-1 text-xs text-kumo-subtle">
+                {RULE_DESCRIPTIONS[result.rule]}
+              </p>
+            )}
             {result.violations.length > 0 && (
               <ul className="mt-2 space-y-1">
                 {result.violations.map((v, i) => (
@@ -940,114 +1515,49 @@ function ErrorBanner({
 }
 
 // =============================================================================
-// Top bar
+// Assistant message summary
 // =============================================================================
 
-interface PlaygroundTopBarProps {
-  readonly inputValue: string;
-  readonly onInputChange: (value: string) => void;
-  readonly selectedModel: string;
-  readonly onModelChange: (value: string) => void;
-  readonly isStreaming: boolean;
-  readonly onSubmit: (e?: FormEvent, overrideMessage?: string) => void;
-  readonly onCancel: () => void;
-}
+/**
+ * Summarises an assistant JSONL response as a short human-readable line
+ * instead of dumping the raw patch operations into the chat bubble.
+ */
+function AssistantMessageSummary({ content }: { readonly content: string }) {
+  const summary = useMemo(() => {
+    const lines = content.split("\n").filter((l) => l.trim());
+    const types = new Set<string>();
 
-/** Top bar: prompt input, model selector, send/cancel button, preset pills. */
-function PlaygroundTopBar({
-  inputValue,
-  onInputChange,
-  selectedModel,
-  onModelChange,
-  isStreaming,
-  onSubmit,
-  onCancel,
-}: PlaygroundTopBarProps) {
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        onSubmit();
+    for (const line of lines) {
+      try {
+        const parsed: unknown = JSON.parse(line);
+        if (
+          typeof parsed === "object" &&
+          parsed !== null &&
+          "op" in parsed &&
+          (parsed as { op: string }).op === "add" &&
+          "value" in parsed
+        ) {
+          const value: unknown = (parsed as { value: unknown }).value;
+          if (typeof value === "object" && value !== null && "type" in value) {
+            types.add((value as { type: string }).type);
+          }
+        }
+      } catch {
+        // not JSON — skip
       }
-    },
-    [onSubmit],
-  );
+    }
 
-  return (
-    <div className="shrink-0 border-b border-kumo-line bg-kumo-elevated px-4 py-3 space-y-2">
-      {/* Input row: prompt + model selector + send button */}
-      <form onSubmit={(e) => onSubmit(e)} className="flex items-end gap-2">
-        <div className="flex-1">
-          <InputArea
-            value={inputValue}
-            onValueChange={onInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Describe the UI you want..."
-            disabled={isStreaming}
-            aria-label="Prompt"
-            rows={1}
-            size="sm"
-          />
-        </div>
-        <div className="w-48 shrink-0">
-          <Select
-            value={selectedModel}
-            onValueChange={(v) => {
-              if (typeof v === "string") onModelChange(v);
-            }}
-            disabled={isStreaming}
-            aria-label="Model"
-          >
-            {MODELS.map((m) => (
-              <Select.Option key={m.value} value={m.value}>
-                {m.label}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-        {isStreaming ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onCancel}
-            icon={<StopCircleIcon />}
-          >
-            Cancel
-          </Button>
-        ) : (
-          <Button
-            type="submit"
-            variant="primary"
-            size="sm"
-            disabled={!inputValue.trim()}
-            icon={<PaperPlaneRightIcon />}
-          >
-            Send
-          </Button>
-        )}
-      </form>
+    if (types.size === 0) return `Generated ${String(lines.length)} patch ops`;
+    const typeList = [...types].slice(0, 4).join(", ");
+    const suffix = types.size > 4 ? `, +${String(types.size - 4)} more` : "";
+    return `Generated UI with ${typeList}${suffix}`;
+  }, [content]);
 
-      {/* Preset prompt pills */}
-      <div className="flex flex-wrap gap-1.5">
-        {PRESET_PROMPTS.map((preset) => (
-          <button
-            key={preset.label}
-            type="button"
-            disabled={isStreaming}
-            onClick={() => onSubmit(undefined, preset.prompt)}
-            className="rounded-full border border-kumo-line bg-kumo-base px-2.5 py-1 text-xs text-kumo-subtle transition-colors hover:border-kumo-brand hover:text-kumo-brand disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {preset.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+  return <p className="text-kumo-subtle italic text-xs">{summary}</p>;
 }
 
 // =============================================================================
-// Bottom bar
+// Chat sidebar (right panel)
 // =============================================================================
 
 /** Status indicator label + icon mapping. */
@@ -1072,26 +1582,41 @@ const STATUS_CONFIG: Record<
   },
 };
 
-interface PlaygroundBottomBarProps {
-  readonly followUpValue: string;
-  readonly onFollowUpChange: (value: string) => void;
+interface PlaygroundChatSidebarProps {
+  readonly inputValue: string;
+  readonly onInputChange: (value: string) => void;
+  readonly selectedModel: string;
+  readonly onModelChange: (value: string) => void;
   readonly isStreaming: boolean;
   readonly status: StreamStatus;
+  readonly messages: readonly ChatMessage[];
   readonly onSubmit: (e?: FormEvent, overrideMessage?: string) => void;
   readonly onCancel: () => void;
-  readonly turnCount: number;
+  readonly messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  readonly availableSkills: readonly SkillMeta[];
+  readonly enabledSkillIds: ReadonlySet<string>;
+  readonly onSkillToggle: (
+    updater: (prev: ReadonlySet<string>) => ReadonlySet<string>,
+  ) => void;
 }
 
-/** Bottom bar: follow-up input for multi-turn + streaming status indicator. */
-function PlaygroundBottomBar({
-  followUpValue,
-  onFollowUpChange,
+/** Right-hand chat panel: model selector, messages, skills, input. */
+function PlaygroundChatSidebar({
+  inputValue,
+  onInputChange,
+  selectedModel,
+  onModelChange,
   isStreaming,
   status,
+  messages,
   onSubmit,
   onCancel,
-  turnCount,
-}: PlaygroundBottomBarProps) {
+  messagesEndRef,
+  availableSkills,
+  enabledSkillIds,
+  onSkillToggle,
+}: PlaygroundChatSidebarProps) {
+  const [skillsExpanded, setSkillsExpanded] = useState(false);
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -1103,57 +1628,187 @@ function PlaygroundBottomBar({
   );
 
   const statusInfo = STATUS_CONFIG[status];
+  const turnCount = messages.length;
+  const hasMessages = messages.length > 0;
 
   return (
-    <div className="shrink-0 border-t border-kumo-line bg-kumo-elevated px-4 py-2 space-y-1.5">
-      {/* Follow-up input row */}
-      <form onSubmit={(e) => onSubmit(e)} className="flex items-end gap-2">
+    <aside
+      className="hidden md:flex h-full w-[380px] shrink-0 flex-col border-l border-kumo-line bg-kumo-overlay"
+      aria-label="Chat sidebar"
+    >
+      {/* Header: model selector + status — h-[61px] matches left panel tab bar */}
+      <div className="flex h-[61px] shrink-0 items-center gap-2 px-4">
         <div className="flex-1">
-          <InputArea
-            value={followUpValue}
-            onValueChange={onFollowUpChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Follow-up message…"
+          <Select
+            value={selectedModel}
+            onValueChange={(v) => {
+              if (typeof v === "string") onModelChange(v);
+            }}
             disabled={isStreaming}
-            aria-label="Follow-up prompt"
-            rows={1}
-            size="sm"
-          />
+            aria-label="Model"
+          >
+            {MODELS.map((m) => (
+              <Select.Option key={m.value} value={m.value}>
+                {m.label}
+              </Select.Option>
+            ))}
+          </Select>
         </div>
-        {isStreaming ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onCancel}
-            icon={<StopCircleIcon />}
-          >
-            Cancel
-          </Button>
-        ) : (
-          <Button
-            type="submit"
-            variant="primary"
-            size="sm"
-            disabled={!followUpValue.trim()}
-            icon={<PaperPlaneRightIcon />}
-          >
-            Send
-          </Button>
-        )}
-      </form>
-
-      {/* Status indicator + turn count */}
-      <div className="flex items-center gap-3 text-xs">
-        <span className={`flex items-center gap-1.5 ${statusInfo.className}`}>
+        <span
+          className={`flex items-center gap-1.5 text-xs ${statusInfo.className}`}
+        >
           {statusInfo.icon}
           {statusInfo.label}
         </span>
-        <span className="text-kumo-subtle">
-          {Math.ceil(turnCount / 2)}{" "}
-          {Math.ceil(turnCount / 2) === 1 ? "turn" : "turns"}
-        </span>
+        {turnCount > 0 && (
+          <span className="text-xs text-kumo-subtle">
+            {Math.ceil(turnCount / 2)}{" "}
+            {Math.ceil(turnCount / 2) === 1 ? "turn" : "turns"}
+          </span>
+        )}
       </div>
-    </div>
+
+      {/* Messages area */}
+      <div className="flex-1 overflow-auto px-4 py-3 space-y-3">
+        {!hasMessages && (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm text-kumo-subtle">
+              Describe the UI you want to generate
+            </p>
+          </div>
+        )}
+
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={
+              msg.role === "user" ? "flex justify-end" : "flex justify-start"
+            }
+          >
+            <div
+              className={
+                msg.role === "user"
+                  ? "max-w-[85%] rounded-lg bg-kumo-brand px-3 py-2 text-sm text-white"
+                  : "max-w-[85%] rounded-lg bg-kumo-elevated border border-kumo-line px-3 py-2 text-sm text-kumo-default"
+              }
+            >
+              {msg.role === "assistant" ? (
+                <AssistantMessageSummary content={msg.content} />
+              ) : (
+                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {/* Streaming indicator in chat */}
+        {isStreaming && (
+          <div className="flex justify-start">
+            <div className="rounded-lg bg-kumo-elevated border border-kumo-line px-3 py-2">
+              <SpinnerIcon size={14} className="animate-spin text-kumo-brand" />
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Skills panel */}
+      {availableSkills.length > 0 && (
+        <div className="shrink-0 border-t border-kumo-line">
+          <button
+            type="button"
+            onClick={() => setSkillsExpanded((prev) => !prev)}
+            className="flex w-full items-center gap-2 px-4 py-2 text-xs text-kumo-subtle transition-colors hover:text-kumo-default"
+          >
+            <LightningIcon size={14} />
+            <span className="flex-1 text-left font-medium">
+              Skills
+              {enabledSkillIds.size > 0 && (
+                <span className="ml-1.5 text-kumo-brand">
+                  ({String(enabledSkillIds.size)})
+                </span>
+              )}
+            </span>
+            {skillsExpanded ? (
+              <CaretUpIcon size={12} />
+            ) : (
+              <CaretDownIcon size={12} />
+            )}
+          </button>
+          {skillsExpanded && (
+            <div className="max-h-[200px] overflow-auto px-4 pb-2">
+              <Stack gap="xs">
+                {availableSkills.map((skill) => {
+                  const checked = enabledSkillIds.has(skill.id);
+                  return (
+                    <Checkbox
+                      key={skill.id}
+                      label={
+                        <span title={skill.description}>{skill.name}</span>
+                      }
+                      checked={checked}
+                      onCheckedChange={() => {
+                        onSkillToggle((prev) => {
+                          const next = new Set(prev);
+                          if (checked) {
+                            next.delete(skill.id);
+                          } else {
+                            next.add(skill.id);
+                          }
+                          return next;
+                        });
+                      }}
+                      disabled={isStreaming}
+                      aria-label={`Enable ${skill.name} skill`}
+                    />
+                  );
+                })}
+              </Stack>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Input area at bottom */}
+      <div className="shrink-0 border-t border-kumo-line px-4 py-3 space-y-2">
+        <form onSubmit={(e) => onSubmit(e)} className="flex flex-col gap-2">
+          <InputArea
+            value={inputValue}
+            onValueChange={onInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              hasMessages ? "Follow up…" : "Describe the UI you want..."
+            }
+            disabled={isStreaming}
+            aria-label="Prompt"
+            rows={2}
+          />
+          <div className="flex justify-end">
+            {isStreaming ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onCancel}
+                icon={<StopCircleIcon />}
+              >
+                Cancel
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                disabled={!inputValue.trim()}
+                icon={<PaperPlaneRightIcon />}
+              >
+                Send
+              </Button>
+            )}
+          </div>
+        </form>
+      </div>
+    </aside>
   );
 }

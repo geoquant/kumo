@@ -1,0 +1,12 @@
+[
+  { "id": 1, "name": "IP prefix 1", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 2, "name": "IP prefix 2", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 3, "name": "IP prefix 3", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 4, "name": "IP prefix 4", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 5, "name": "IP prefix 5", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 6, "name": "IP prefix 6", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 7, "name": "IP prefix 7", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 8, "name": "IP prefix 8", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 9, "name": "IP prefix 9", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 10, "name": "IP prefix 10", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" }
+]

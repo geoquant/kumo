@@ -118,11 +118,25 @@ export function walkTree(tree: UITree, visitor: WalkVisitor): void {
 // gradeTree — run all 8 structural rules
 // =============================================================================
 
+/** Options for gradeTree. */
+export interface GradeOptions {
+  /**
+   * Additional component types to accept as valid beyond the built-in
+   * KNOWN_TYPES set. Useful for custom components registered via
+   * defineCustomComponent.
+   */
+  readonly customTypes?: ReadonlySet<string>;
+}
+
 /**
  * Grade a UITree against all 8 structural rules.
  * Returns per-rule pass/fail + collected violations.
  */
-export function gradeTree(tree: UITree): GradeReport {
+export function gradeTree(tree: UITree, options?: GradeOptions): GradeReport {
+  const knownTypes =
+    options?.customTypes && options.customTypes.size > 0
+      ? new Set([...KNOWN_TYPES, ...options.customTypes])
+      : KNOWN_TYPES;
   // Accumulators for each rule
   const validComponentViolations: string[] = [];
   const validPropViolations: string[] = [];
@@ -149,7 +163,7 @@ export function gradeTree(tree: UITree): GradeReport {
     const p = props as Record<string, unknown>;
 
     // 1. valid-component-types
-    if (!KNOWN_TYPES.has(type)) {
+    if (!knownTypes.has(type)) {
       validComponentViolations.push(`${key}: unknown type "${type}"`);
     }
 

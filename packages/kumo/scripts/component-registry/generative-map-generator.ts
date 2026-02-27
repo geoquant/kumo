@@ -92,6 +92,8 @@ const SUB_COMPONENT_OVERRIDES: Record<string, { parent: string; sub: string }> =
     BreadcrumbsCurrent: { parent: "Breadcrumbs", sub: "Current" },
     BreadcrumbsLink: { parent: "Breadcrumbs", sub: "Link" },
     BreadcrumbsSeparator: { parent: "Breadcrumbs", sub: "Separator" },
+    FlowNode: { parent: "Flow", sub: "Node" },
+    FlowParallel: { parent: "Flow", sub: "Parallel" },
     RadioGroup: { parent: "Radio", sub: "Group" },
     RadioItem: { parent: "Radio", sub: "Item" },
     SelectOption: { parent: "Select", sub: "Option" },

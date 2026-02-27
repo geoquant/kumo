@@ -22,6 +22,7 @@ export const DIRECT_COMPONENTS = [
   "Code",
   "Empty",
   "Field",
+  "Flow",
   "Grid",
   "Label",
   "Link",
@@ -49,6 +50,14 @@ export const SUB_COMPONENT_ALIASES = {
   "BreadcrumbsSeparator": {
     "parent": "Breadcrumbs",
     "sub": "Separator"
+  },
+  "FlowNode": {
+    "parent": "Flow",
+    "sub": "Node"
+  },
+  "FlowParallel": {
+    "parent": "Flow",
+    "sub": "Parallel"
   },
   "RadioGroup": {
     "parent": "Radio",
@@ -167,6 +176,7 @@ export const REGISTRY_COMPONENT_NAMES = [
   "DropdownMenu",
   "Empty",
   "Field",
+  "Flow",
   "Grid",
   "Input",
   "InputArea",

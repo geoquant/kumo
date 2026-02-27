@@ -30,7 +30,7 @@ export interface SystemPromptOptions {
 
 const DESIGN_RULES = `## Design Rules
 
-- One primary action per UI (one prominent variant="primary" button)
+- At most one primary action per UI — only include a variant="primary" button when the user's request implies an action (form submit, navigation, mutation). Display-only UIs (tables, cards, dashboards) should have NO buttons unless the user explicitly asks for them.
 - Headlines sound human; buttons describe outcomes
 - No emoji/unicode icon characters in any visible text
 
@@ -198,6 +198,7 @@ For \`navigate\`, include the URL in \`params\`:
 Any action name NOT in this list is a **custom action** — the host logs it to the action event panel but does not crash.
 
 ### Rules
+- **Do NOT add buttons or actions unless the user's prompt implies interactivity** (e.g. "form", "submit", "navigate", "edit"). If the user asks to "show" or "display" data, produce a read-only UI with no buttons.
 - Only add \`action\` to elements where the host needs to react (e.g. form submission, navigation, data mutation)
 - Not every interactive element needs an action — pure display-only controls can omit it
 - Use descriptive snake_case action names: "submit_form", "toggle_setting", "select_plan"

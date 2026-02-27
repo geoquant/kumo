@@ -2717,6 +2717,130 @@ Form field wrapper that provides a label, optional description, and error displa
 
 ---
 
+### Flow
+
+Flow component
+
+**Type:** component
+
+**Import:** `import { Flow } from "@cloudflare/kumo";`
+
+**Category:** Layout
+
+**Props:**
+
+- `orientation`: enum
+- `align`: enum
+  Controls vertical alignment of nodes in horizontal orientation.
+- `start`: Nodes align to the top (default)
+- `center`: Nodes are vertically centered
+- `className`: string
+- `children`: ReactNode
+
+**Colors (kumo tokens used):**
+
+`bg-kumo-fill`, `bg-kumo-line`
+
+**Examples:**
+
+```tsx
+<Flow>
+      <Flow.Node>Step 1</Flow.Node>
+      <Flow.Node>Step 2</Flow.Node>
+      <Flow.Node>Step 3</Flow.Node>
+    </Flow>
+```
+
+```tsx
+<Flow>
+      <Flow.Node render={<li className="rounded-full size-4 bg-kumo-ring" />} />
+      <Flow.Node
+        render={
+          <li className="bg-kumo-contrast text-kumo-inverse rounded-lg font-medium py-2 px-3">
+            my-worker
+          </li>
+        }
+      />
+    </Flow>
+```
+
+```tsx
+<Flow>
+      <Flow.Node>Load balancer</Flow.Node>
+      <Flow.Node
+        render={
+          <li className="shadow-none rounded-lg ring ring-kumo-line bg-kumo-overlay">
+            <Flow.Anchor
+              type="end"
+              render={
+                <div className="text-kumo-subtle h-10 flex items-center px-2.5">
+                  my-worker
+                </div>
+              }
+            />
+            <Flow.Anchor
+              type="start"
+              render={
+                <div className="bg-kumo-base rounded ring ring-kumo-line shadow px-2 py-1.5 m-1.5 mt-0">
+                  Bindings
+                  <span className="text-kumo-subtle w-5 ml-3">2</span>
+                </div>
+              }
+            />
+          </li>
+        }
+      />
+      <Flow.Parallel>
+        <Flow.Node>DATABASE</Flow.Node>
+        <Flow.Node>OTHER_SERVICE</Flow.Node>
+      </Flow.Parallel>
+    </Flow>
+```
+
+```tsx
+<Flow align="center">
+      <Flow.Node render={<li className="rounded-full size-4 bg-kumo-ring" />} />
+      <Flow.Node>my-worker</Flow.Node>
+      <Flow.Node
+        render={
+          <li className="py-6 px-3 rounded-md shadow bg-kumo-base ring ring-kumo-line">
+            Taller node
+          </li>
+        }
+      />
+    </Flow>
+```
+
+```tsx
+<Flow className="rounded-lg border border-kumo-line">
+      <Flow.Node>Start</Flow.Node>
+      <Flow.Node>Authenticate</Flow.Node>
+      <Flow.Node>Validate</Flow.Node>
+      <Flow.Node>Transform</Flow.Node>
+      <Flow.Node>Process</Flow.Node>
+      <Flow.Node>Store</Flow.Node>
+      <Flow.Node>Notify</Flow.Node>
+      <Flow.Node>Log</Flow.Node>
+      <Flow.Node>Complete</Flow.Node>
+      <Flow.Node>End</Flow.Node>
+    </Flow>
+```
+
+```tsx
+<Flow>
+      <Flow.Node>Start</Flow.Node>
+      <Flow.Parallel align="end">
+        <Flow.Node>Short</Flow.Node>
+        <Flow.Node>Medium Length</Flow.Node>
+        <Flow.Node>Very Long Node Name</Flow.Node>
+      </Flow.Parallel>
+      <Flow.Node>End</Flow.Node>
+    </Flow>
+```
+
+
+---
+
 ### Grid
 
 Responsive CSS grid layout container with preset column configurations.
@@ -3787,7 +3911,7 @@ Close sub-component
 ```tsx
 <Popover>
       <Popover.Trigger asChild>
-        <Button shape="square" icon={BellIcon} />
+        <Button shape="square" icon={BellIcon} aria-label="Notifications" />
       </Popover.Trigger>
       <Popover.Content>
         <Popover.Title>Notifications</Popover.Title>
@@ -5329,4 +5453,4 @@ Multi-line textarea input with Input variants and InputArea-specific dimensions
 - **Other:** CloudflareLogo, Cluster, DatePicker, Label, Link, SensitiveInput, Stack, Table, DeleteResource
 - **Navigation:** CommandPalette, MenuBar, Pagination, Tabs
 - **Overlay:** Dialog, DropdownMenu, Popover, Tooltip
-- **Layout:** Grid, Surface, PageHeader, ResourceListPage
+- **Layout:** Flow, Grid, Surface, PageHeader, ResourceListPage

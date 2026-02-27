@@ -57,6 +57,7 @@ export type {
   WalkVisitor,
   GradeResult,
   GradeReport,
+  GradeOptions,
   RuleName,
 } from "./structural-graders.js";
 

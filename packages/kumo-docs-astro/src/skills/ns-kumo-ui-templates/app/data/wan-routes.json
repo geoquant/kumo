@@ -1,0 +1,8 @@
+[
+  { "id": 1, "name": "WAN route 1", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 2, "name": "WAN route 2", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 3, "name": "WAN route 3", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 4, "name": "WAN route 4", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 5, "name": "WAN route 5", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" },
+  { "id": 6, "name": "WAN route 6", "status": "Healthy", "attribute1": "#", "attribute2": "Tag example", "attribute3": "Attribute value" }
+]
