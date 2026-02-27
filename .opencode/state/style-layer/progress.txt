@@ -1,0 +1,36 @@
+# Progress Log
+PRD: style-layer
+Started: 2026-02-27
+
+## Codebase Patterns
+- Grader pattern: accumulate violations in `string[]`, build `GradeResult[]` at end, return `GradeReport` with `allPass`
+- `walkTree(tree, visitor)` from structural-graders.ts for depth-first traversal — reuse in composition graders
+- Types `GradeReport`, `GradeResult`, `WalkVisitor` all exported from structural-graders.ts — import, don't duplicate
+- Text heading variants: `heading1`, `heading2`, `heading3` — check via `props.variant`
+- Test helper: inline `buildTree(rootKey, elements)` for creating UITree fixtures without JSONL files
+- Path aliases (`@/`) resolve at vitest runtime but not in LSP — pre-existing, not a concern
+- Simple layout heuristic: ≤12 elements = simple (exempt from complex-only rules like responsive grid requirement)
+- Parent-child type check: `walkTree(tree, (el, _depth, parentKey) => { if (parentKey) tree.elements[parentKey].type ... })` — no extra data structure needed
+
+---
+
+## Task - grader-1
+- Created `packages/kumo/src/generative/composition-graders.ts` with `gradeComposition()` and `has-visual-hierarchy` rule
+- Rule passes when any Text has heading variant; warns (fails) when heading1 exists without heading2 (flat hierarchy)
+- Created `packages/kumo/tests/generative/composition-graders.test.ts` with 7 tests
+- **Files changed:** `composition-graders.ts` (new), `composition-graders.test.ts` (new)
+- **Learnings:** GradeReport/GradeResult types are cleanly importable from structural-graders; walkTree handles the traversal; composition graders follow identical structure pattern
+
+## Task - grader-2
+- Added `has-responsive-layout` rule to `gradeComposition()`
+- Rule passes when Grid has `variant` prop; exempt for simple layouts (≤12 elements); always fails for Grid without variant
+- Added 5 unit tests: Grid+variant passes, Grid-no-variant fails, simple card exempt, complex-no-Grid fails, simple-with-bad-Grid fails
+- **Files changed:** `composition-graders.ts` (modified), `composition-graders.test.ts` (modified)
+- **Learnings:** Simple layout heuristic via element count (≤12) is clean and testable; Grid without variant is always a bug regardless of layout complexity
+
+## Task - grader-3
+- Added `surface-hierarchy-correct` rule to `gradeComposition()`
+- Rule uses walkTree's `parentKey` param to look up parent type; fails when Surface is direct child of Surface
+- Added 5 unit tests: Surface>Stack>Surface passes, Surface>Grid>Surface passes, Surface>Surface fails, multiple violations reported, single nesting fails
+- **Files changed:** `composition-graders.ts` (modified), `composition-graders.test.ts` (modified)
+- **Learnings:** walkTree's `parentKey` + `tree.elements[parentKey]` is the clean pattern for parent-child type checks; no need for separate parent tracking data structure

@@ -1,0 +1,202 @@
+{
+  "prdName": "style-layer",
+  "tasks": [
+    {
+      "id": "grader-1",
+      "category": "grader",
+      "description": "Create composition-graders.ts with gradeComposition() function and has-visual-hierarchy rule",
+      "steps": [
+        "packages/kumo/src/generative/composition-graders.ts exists",
+        "Exports gradeComposition(tree: UITree): GradeReport",
+        "Uses same GradeReport type imported from structural-graders.ts",
+        "Rule has-visual-hierarchy: passes when tree has at least one Text element with heading variant",
+        "Rule has-visual-hierarchy: warns if heading1 exists but no heading2 (flat hierarchy)",
+        "Unit test: tree with heading2 Text passes; tree with only body Text fails"
+      ],
+      "passes": true
+    },
+    {
+      "id": "grader-2",
+      "category": "grader",
+      "description": "Add has-responsive-layout rule to gradeComposition",
+      "steps": [
+        "Rule has-responsive-layout: passes when tree contains at least one Grid element with variant prop",
+        "Rule has-responsive-layout: passes for single-card layouts (Grid not required for simple UIs)",
+        "Unit test: tree with Grid(variant='2up') passes; tree with Grid(no variant) fails; simple card tree passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "grader-3",
+      "category": "grader",
+      "description": "Add surface-hierarchy-correct rule to gradeComposition",
+      "steps": [
+        "Rule surface-hierarchy-correct: fails when Surface element has a direct Surface child",
+        "Rule surface-hierarchy-correct: passes when Surface children are Stack, Grid, or other non-Surface types",
+        "Uses walkTree to check parent-child relationships",
+        "Unit test: Surface > Stack > Surface passes; Surface > Surface fails"
+      ],
+      "passes": true
+    },
+    {
+      "id": "grader-4",
+      "category": "grader",
+      "description": "Add spacing-consistency rule to gradeComposition",
+      "steps": [
+        "Rule spacing-consistency: checks sibling Stack elements under same parent use consistent gap values",
+        "Allows variation within one step (sm+base OK, xs+lg not OK)",
+        "Unit test: parent with children Stack(gap=sm) and Stack(gap=base) passes; Stack(gap=xs) and Stack(gap=lg) fails"
+      ],
+      "passes": false
+    },
+    {
+      "id": "grader-5",
+      "category": "grader",
+      "description": "Add content-density and action-completeness rules to gradeComposition",
+      "steps": [
+        "Rule content-density: fails if total element count <3 (too simple) or >100 (too complex)",
+        "Rule action-completeness: fails if form elements (Input, Select, Textarea, Checkbox, Switch) exist but no Button exists",
+        "Rule action-completeness: passes if no form elements exist (non-form UIs are fine)",
+        "Unit test: tree with 5 elements passes density; tree with 1 element fails; tree with Input+Button passes action; tree with Input only fails"
+      ],
+      "passes": false
+    },
+    {
+      "id": "grader-6",
+      "category": "grader",
+      "description": "Export gradeComposition from @cloudflare/kumo/generative barrel",
+      "steps": [
+        "gradeComposition is exported from packages/kumo/src/generative/index.ts",
+        "import { gradeComposition } from '@cloudflare/kumo/generative' resolves correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "prompt-1",
+      "category": "prompt",
+      "description": "Add PAGE_COMPOSITION section to system prompt with surface hierarchy and page layout rules",
+      "steps": [
+        "buildSystemPrompt() output includes a PAGE_COMPOSITION section",
+        "Section positioned between COMPOSITION_RECIPES and ACCESSIBILITY",
+        "Surface hierarchy rules present: Surface root, Surface(color='neutral') for insets, no direct Surface>Surface nesting",
+        "Page-level layout rules present: root Surface > Stack, two-column via Grid, sidebar patterns",
+        "Spacing density grammar present: xs (key-value), sm (headers/actions), base (standard sections), lg (top-level divisions)",
+        "Content reading order documented: title -> context -> data -> actions"
+      ],
+      "passes": false
+    },
+    {
+      "id": "prompt-2",
+      "category": "prompt",
+      "description": "Add Product Overview page-level JSONL example (Example 8) to system prompt",
+      "steps": [
+        "Example 8 added after existing 7 card-level examples in buildSystemPrompt()",
+        "User prompt describes a product overview page with metrics, resource table, doc links",
+        "JSONL output shows two-column layout: main content + metrics sidebar",
+        "Uses Surface(color='neutral') for inset stat cards in sidebar",
+        "parseJsonlToTree() produces valid UITree from the example JSONL",
+        "Example passes both gradeTree() and gradeComposition()"
+      ],
+      "passes": false
+    },
+    {
+      "id": "prompt-3",
+      "category": "prompt",
+      "description": "Add Service Detail page-level JSONL example (Example 9) to system prompt",
+      "steps": [
+        "Example 9 added after Example 8",
+        "User prompt describes a service detail page with header, actions, table, empty state",
+        "JSONL output shows header section with title+description+action buttons, then table content",
+        "parseJsonlToTree() produces valid UITree from the example JSONL",
+        "Example passes both gradeTree() and gradeComposition()"
+      ],
+      "passes": false
+    },
+    {
+      "id": "prompt-4",
+      "category": "prompt",
+      "description": "Add Service Tabs page-level JSONL example (Example 10) to system prompt",
+      "steps": [
+        "Example 10 added after Example 9",
+        "User prompt describes a multi-tab service page with different content per tab",
+        "JSONL output shows header with Tabs component and content sections",
+        "parseJsonlToTree() produces valid UITree from the example JSONL",
+        "Example passes both gradeTree() and gradeComposition()"
+      ],
+      "passes": false
+    },
+    {
+      "id": "prompt-5",
+      "category": "prompt",
+      "description": "Verify existing 7 card-level examples still pass gradeTree() after prompt changes",
+      "steps": [
+        "All 7 existing card-level examples (user card, counter, notification form, pricing table, dashboard, deployment list, empty state) still pass gradeTree()",
+        "No regressions in structural grading from the new PAGE_COMPOSITION section or examples"
+      ],
+      "passes": false
+    },
+    {
+      "id": "eval-1",
+      "category": "eval",
+      "description": "Create eval prompt fixtures file with 10-15 natural language prompts",
+      "steps": [
+        "packages/kumo/src/generative/eval/eval-prompts.ts exists",
+        "Exports EVAL_PROMPTS: ReadonlyArray<EvalPrompt>",
+        "EvalPrompt type has: id, prompt, expectedPattern, requiredElements[], requiredPatterns[]",
+        "At least 10 prompts present",
+        "Prompts cover product-overview, service-detail, service-tabs, dashboard, form, table patterns",
+        "Prompts are natural language (describe intent, not template names)",
+        "3-5 prompts with expectedPattern 'novel' for layouts that don't match any template"
+      ],
+      "passes": false
+    },
+    {
+      "id": "eval-2",
+      "category": "eval",
+      "description": "Create eval harness Vitest test suite with env-gating and grading pipeline",
+      "steps": [
+        "packages/kumo/tests/generative/eval/composition-eval.test.ts exists",
+        "Tests skip when EVAL_ENABLED env var is not set (describe.skipIf or similar)",
+        "When enabled: loads EVAL_PROMPTS, generates output for each prompt",
+        "Parses generated JSONL to UITree via parseJsonlToTree()",
+        "Grades each tree with gradeTree() (structural) and gradeComposition() (composition)",
+        "Checks requiredElements exist in the tree",
+        "Reports per-prompt pass/fail and aggregate score to console",
+        "Supports offline mode: can load pre-generated JSONL fixtures instead of calling API"
+      ],
+      "passes": false
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Structural graders: gradeTree(tree) in packages/kumo/src/generative/structural-graders.ts — GradeReport type, walkTree utility, 8 inlined rules",
+      "System prompt: buildSystemPrompt(options) in packages/kumo/src/catalog/system-prompt.ts — sections: DESIGN_RULES, LAYOUT_ANTI_PATTERNS, COMPOSITION_RECIPES, ACCESSIBILITY, EXAMPLES",
+      "Worked examples: 7 card-level examples inline as template literals, each with 'User:' prompt + JSONL output",
+      "JSONL parsing: parseJsonlToTree(jsonl) in structural-graders.ts — production parser + patch engine",
+      "NS template surface pattern: bg-kumo-elevated (page) -> bg-kumo-base (inset cards)",
+      "NS template layout: max-w-[1400px] mx-auto, p-6 md:p-8 lg:px-10, two-column with sticky sidebar",
+      "NS template spacing: gap-2 (titles), gap-4 (sections), gap-5 (columns), gap-6/8 (major divisions)"
+    ],
+    "keyFiles": [
+      "packages/kumo/src/generative/structural-graders.ts",
+      "packages/kumo/src/catalog/system-prompt.ts",
+      "packages/kumo/src/catalog/types.ts",
+      "packages/kumo/src/generative/component-manifest.ts",
+      "packages/kumo/src/generative/index.ts",
+      "inspo/ns-kumo-ui-templates/app/components/templates/ProductOverview.tsx",
+      "inspo/ns-kumo-ui-templates/app/components/templates/ServiceDetail.tsx",
+      "inspo/ns-kumo-ui-templates/app/routes/service-tabs-example.tsx"
+    ],
+    "nonGoals": [
+      "LLM-as-judge for eval (deterministic only in v1)",
+      "Visual diff / screenshot comparison",
+      "Dial system (DESIGN_VARIANCE, MOTION_INTENSITY)",
+      "Encouraging deviation from semantic tokens",
+      "CI-integrated eval runs (too expensive, too flaky)",
+      "Modifying existing 8 structural graders",
+      "Custom component support in eval",
+      "Responsive rendering verification (no headless browser)",
+      "Loading/empty states grading (v2 composition rules)"
+    ]
+  }
+}
