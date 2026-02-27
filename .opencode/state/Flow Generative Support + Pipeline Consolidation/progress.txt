@@ -6,6 +6,7 @@ Started: 2026-02-27
 <!-- Consolidate reusable patterns here -->
 - Discovery fallback pattern: resolve from `index.ts` exports first, then map export/import identifiers to source files; this handles non-conventional component filenames safely.
 - Manifest derivation pattern: emit unified runtime lookup tables from existing manifest primitives (`TYPE_ALIASES`, `SUB_COMPONENT_ALIASES`) so prompt/validator/map consumers read one generated SSOT.
+- Prompt scope pattern: derive prompt component allowlist from `ALL_GENERATIVE_TYPES` and control token budget via a local `EXCLUDED_FROM_PROMPT` set, default-include everything else.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -19,3 +20,8 @@ Started: 2026-02-27
 - Implemented unified manifest derivations in codegen: `TYPE_RESOLUTION_MAP` (alias + sub-component lookup) and `ALL_GENERATIVE_TYPES` (deduped sorted union).
 - Files changed: `packages/kumo/scripts/component-registry/generative-map-generator.ts`, `packages/kumo/src/generative/component-manifest.ts`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/prd.json`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/progress.txt`.
 - **Learnings:** keeping generated manifest tables sorted stabilizes downstream diffs and makes drift checks deterministic.
+
+## Task - [d7-prompt-components-auto]
+- Replaced manual prompt component list with a manifest-derived allowlist (`ALL_GENERATIVE_TYPES`) filtered by `EXCLUDED_FROM_PROMPT`; exported `ALL_GENERATIVE_TYPES` from the generative barrel for docs usage.
+- Files changed: `packages/kumo-docs-astro/src/lib/playground.ts`, `packages/kumo/src/generative/index.ts`, `packages/kumo-docs-astro/src/components/SearchDialog.tsx`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/prd.json`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/progress.txt`.
+- **Learnings:** docs package consumes `@cloudflare/kumo/generative` through built type exports, so barrel export updates must propagate to dist types before Astro typecheck resolves new symbols.
