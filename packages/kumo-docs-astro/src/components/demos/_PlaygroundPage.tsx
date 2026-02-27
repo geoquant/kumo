@@ -15,7 +15,15 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import { Button, Empty, InputArea, Loader, Select } from "@cloudflare/kumo";
+import {
+  Button,
+  Empty,
+  InputArea,
+  Loader,
+  Select,
+  Tabs,
+} from "@cloudflare/kumo";
+import type { TabsItem } from "@cloudflare/kumo";
 import { LockKeyIcon, PaperPlaneRightIcon } from "@phosphor-icons/react";
 import {
   useUITree,
@@ -39,6 +47,26 @@ type AuthState = "checking" | "authenticated" | "denied";
 
 /** Streaming lifecycle state. */
 type StreamStatus = "idle" | "streaming" | "error";
+
+/** Playground tab identifiers. */
+type PlaygroundTab = "preview" | "code" | "grading" | "system-prompt";
+
+/** Tab definitions for the playground content area. */
+const PLAYGROUND_TABS: TabsItem[] = [
+  { value: "preview", label: "Preview" },
+  { value: "code", label: "Code" },
+  { value: "grading", label: "Grading" },
+  { value: "system-prompt", label: "System Prompt" },
+];
+
+const PLAYGROUND_TAB_VALUES = new Set<string>(
+  PLAYGROUND_TABS.map((t) => t.value),
+);
+
+/** Type guard for PlaygroundTab values. */
+function isPlaygroundTab(value: string): value is PlaygroundTab {
+  return PLAYGROUND_TAB_VALUES.has(value);
+}
 
 /** Conversation message for multi-turn. */
 interface ChatMessage {
@@ -213,11 +241,14 @@ function DeniedState() {
 // Authenticated playground
 // =============================================================================
 
-/** Main playground UI. Renders top bar + content area (tabs in future tasks). */
+/** Main playground UI. Renders top bar + tabbed content area. */
 function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
   // --- Input state ---
   const [inputValue, setInputValue] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
+
+  // --- Tab state (persists across generations) ---
+  const [activeTab, setActiveTab] = useState<PlaygroundTab>("preview");
 
   // --- Streaming state ---
   const [status, setStatus] = useState<StreamStatus>("idle");
@@ -373,22 +404,93 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
         onSubmit={handleSubmit}
       />
 
-      {/* Content area — tabs will be added in ui-4 */}
+      {/* Tabbed content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {!showTree && status !== "error" && (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-kumo-subtle">Enter a prompt to generate UI</p>
-          </div>
-        )}
+        {/* Tab bar */}
+        <div className="shrink-0 border-b border-kumo-line px-4 pt-2">
+          <Tabs
+            variant="underline"
+            tabs={PLAYGROUND_TABS}
+            value={activeTab}
+            onValueChange={(v) => {
+              if (isPlaygroundTab(v)) setActiveTab(v);
+            }}
+          />
+        </div>
 
-        {status === "error" && errorMessage && (
-          <div className="flex flex-1 items-center justify-center p-4">
-            <p className="text-kumo-danger">{errorMessage}</p>
-          </div>
-        )}
+        {/* Tab content — fills remaining viewport height */}
+        <div className="flex-1 overflow-auto">
+          <PlaygroundTabContent
+            activeTab={activeTab}
+            showTree={showTree}
+            status={status}
+            errorMessage={errorMessage}
+          />
+        </div>
       </div>
     </>
   );
+}
+
+// =============================================================================
+// Tab content
+// =============================================================================
+
+interface PlaygroundTabContentProps {
+  readonly activeTab: PlaygroundTab;
+  readonly showTree: boolean;
+  readonly status: StreamStatus;
+  readonly errorMessage: string | null;
+}
+
+/**
+ * Renders the active tab's content panel.
+ * Each tab's full implementation is in subsequent tasks (ui-5 through ui-8).
+ */
+function PlaygroundTabContent({
+  activeTab,
+  showTree,
+  status,
+  errorMessage,
+}: PlaygroundTabContentProps) {
+  // Error banner takes priority in any tab
+  if (status === "error" && errorMessage) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-4">
+        <p className="text-kumo-danger">{errorMessage}</p>
+      </div>
+    );
+  }
+
+  switch (activeTab) {
+    case "preview":
+      return showTree ? null : (
+        <div className="flex h-full items-center justify-center">
+          <p className="text-kumo-subtle">Enter a prompt to generate UI</p>
+        </div>
+      );
+
+    case "code":
+      return (
+        <div className="flex h-full items-center justify-center">
+          <p className="text-kumo-subtle">Generate UI to see code</p>
+        </div>
+      );
+
+    case "grading":
+      return (
+        <div className="flex h-full items-center justify-center">
+          <p className="text-kumo-subtle">Generate UI to see grading</p>
+        </div>
+      );
+
+    case "system-prompt":
+      return (
+        <div className="flex h-full items-center justify-center">
+          <p className="text-kumo-subtle">Loading system prompt…</p>
+        </div>
+      );
+  }
 }
 
 // =============================================================================
