@@ -28,6 +28,7 @@ export {
 } from "./generative-wrappers.js";
 
 export {
+  ALL_GENERATIVE_TYPES,
   DIRECT_COMPONENTS,
   SUB_COMPONENT_ALIASES,
   TYPE_ALIASES,

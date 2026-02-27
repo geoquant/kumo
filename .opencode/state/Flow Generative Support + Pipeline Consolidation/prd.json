@@ -48,7 +48,7 @@
       "id": "d7-prompt-components-auto",
       "category": "architecture",
       "description": "Auto-derive PROMPT_COMPONENTS with excludelist",
-      "passes": false
+      "passes": true
     },
     {
       "id": "d9-flow-prompt-docs",
