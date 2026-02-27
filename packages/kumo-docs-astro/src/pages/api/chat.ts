@@ -326,9 +326,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const messages: AiMessage[] = [{ role: "system", content: systemPrompt }];
 
-  // Append conversation history (clamp to last 20 turns to avoid token overflow)
+  // Append conversation history only for authenticated playground users.
+  // Without a valid key, history is silently ignored — the request degrades
+  // to a single-turn prompt, preserving backward compatibility.
   const MAX_HISTORY_TURNS = 20;
-  if (chatRequest.history) {
+  if (auth === "authenticated" && chatRequest.history) {
     const recentHistory = chatRequest.history.slice(-MAX_HISTORY_TURNS);
     for (const entry of recentHistory) {
       if (entry.role === "user" || entry.role === "assistant") {
