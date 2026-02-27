@@ -70,3 +70,7 @@ export {
   getUnknownTypes,
   normalizeSiblingFormRowGrids,
 } from "./ui-tree-renderer.js";
+
+// UITree → JSX converter
+export { uiTreeToJsx } from "./ui-tree-to-jsx.js";
+export type { UiTreeToJsxOptions } from "./ui-tree-to-jsx.js";
