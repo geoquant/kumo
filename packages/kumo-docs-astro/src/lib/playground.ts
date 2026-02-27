@@ -9,6 +9,7 @@ import {
   initCatalog,
   type CustomComponentDefinition,
 } from "@cloudflare/kumo/catalog";
+import { ALL_GENERATIVE_TYPES } from "@cloudflare/kumo/generative";
 
 // ---------------------------------------------------------------------------
 // Playground authentication
@@ -56,52 +57,19 @@ export function validatePlaygroundKey(
 // ---------------------------------------------------------------------------
 
 /**
- * Components included in the system prompt. Pruned to keep token budget
- * manageable — only types that appear in the generative component map and
- * are useful for freeform UI generation.
+ * Types excluded from playground prompt to control token budget.
+ * Everything in the generative manifest is included unless listed here.
  */
-const PROMPT_COMPONENTS = [
-  // Layout
-  "Surface",
-  "Stack",
-  "Cluster",
-  "Grid",
-  "Div",
-  // Content
-  "Text",
-  "Badge",
-  "Banner",
-  "Code",
-  "ClipboardText",
-  // Interactive
-  "Button",
-  "Input",
-  "Textarea",
-  "Select",
-  "SelectOption",
-  "Checkbox",
-  "Switch",
-  "Tabs",
-  "Collapsible",
-  "RadioGroup",
-  "RadioItem",
-  "Field",
-  "Label",
-  // Data display
-  "Table",
-  "TableHeader",
-  "TableHead",
-  "TableBody",
-  "TableRow",
-  "TableCell",
-  "TableFooter",
-  "Meter",
-  // Navigation
-  "Link",
-  // Feedback
-  "Loader",
-  "Empty",
-] as const;
+const EXCLUDED_FROM_PROMPT: ReadonlySet<string> = new Set([
+  "Breadcrumbs",
+  "BreadcrumbsCurrent",
+  "BreadcrumbsLink",
+  "BreadcrumbsSeparator",
+]);
+
+const PROMPT_COMPONENTS = ALL_GENERATIVE_TYPES.filter(
+  (typeName) => !EXCLUDED_FROM_PROMPT.has(typeName),
+);
 
 /**
  * Custom component metadata for prompt generation. The actual React component

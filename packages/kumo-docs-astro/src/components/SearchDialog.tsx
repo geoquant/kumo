@@ -171,6 +171,12 @@ interface ComponentRegistry {
   components: Record<string, ComponentRegistryEntry>;
 }
 
+function isComponentRegistry(value: unknown): value is ComponentRegistry {
+  if (typeof value !== "object" || value === null) return false;
+  if (!("version" in value) || !("components" in value)) return false;
+  return true;
+}
+
 interface SearchItem {
   name: string;
   type: "component" | "block" | "layout" | "page";
@@ -320,6 +326,9 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
           throw new Error(`Failed to fetch registry: ${response.status}`);
         }
         const data = await response.json();
+        if (!isComponentRegistry(data)) {
+          throw new Error("Invalid component registry payload");
+        }
         setRegistry(data);
         setError(null);
       } catch (err) {
