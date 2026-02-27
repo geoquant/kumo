@@ -11,6 +11,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
@@ -24,7 +25,12 @@ import {
   Tabs,
 } from "@cloudflare/kumo";
 import type { TabsItem } from "@cloudflare/kumo";
-import { LockKeyIcon, PaperPlaneRightIcon } from "@phosphor-icons/react";
+import {
+  CheckIcon,
+  CopyIcon,
+  LockKeyIcon,
+  PaperPlaneRightIcon,
+} from "@phosphor-icons/react";
 import {
   useUITree,
   useRuntimeValueStore,
@@ -32,7 +38,11 @@ import {
   type RuntimeValueStore,
 } from "@cloudflare/kumo/streaming";
 import type { UITree } from "@cloudflare/kumo/streaming";
-import { UITreeRenderer, isRenderableTree } from "@cloudflare/kumo/generative";
+import {
+  UITreeRenderer,
+  isRenderableTree,
+  uiTreeToJsx,
+} from "@cloudflare/kumo/generative";
 import { readSSEStream } from "~/lib/read-sse-stream";
 
 // =============================================================================
@@ -490,11 +500,7 @@ function PlaygroundTabContent({
       );
 
     case "code":
-      return (
-        <div className="flex h-full items-center justify-center">
-          <p className="text-kumo-subtle">Generate UI to see code</p>
-        </div>
-      );
+      return <CodeTabContent tree={tree} showTree={showTree} />;
 
     case "grading":
       return (
@@ -510,6 +516,67 @@ function PlaygroundTabContent({
         </div>
       );
   }
+}
+
+// =============================================================================
+// Code tab
+// =============================================================================
+
+/** Renders live uiTreeToJsx() output with a copy-to-clipboard button. */
+function CodeTabContent({
+  tree,
+  showTree,
+}: {
+  readonly tree: UITree;
+  readonly showTree: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const jsxCode = useMemo(
+    () => (showTree ? uiTreeToJsx(tree) : ""),
+    [tree, showTree],
+  );
+
+  const handleCopy = useCallback(() => {
+    void navigator.clipboard.writeText(jsxCode).then(() => {
+      setCopied(true);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    });
+  }, [jsxCode]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
+  if (!showTree) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-kumo-subtle">Generate UI to see code</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-full">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleCopy}
+        icon={copied ? <CheckIcon /> : <CopyIcon />}
+        className="absolute right-4 top-4 z-10"
+      >
+        {copied ? "Copied" : "Copy"}
+      </Button>
+      <pre className="h-full overflow-auto p-4 font-mono text-sm text-kumo-default">
+        {jsxCode}
+      </pre>
+    </div>
+  );
 }
 
 // =============================================================================
