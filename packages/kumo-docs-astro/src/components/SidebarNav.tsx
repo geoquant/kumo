@@ -30,6 +30,7 @@ const staticPages: NavItem[] = [
   { label: "CLI", href: "/cli" },
   { label: "Registry", href: "/registry" },
   { label: "Streaming", href: "/streaming" },
+  { label: "Playground", href: "/playground" },
 ];
 
 const componentItems: NavItem[] = [
