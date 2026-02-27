@@ -51,3 +51,10 @@ Started: 2026-02-27
 - Behavioral changes: FlowNode/FlowParallel/RadioItem now in resolution map; RadioGroup resolves as `Radio.Group` sub-component (correct semantic) rather than aliasing to `Radio` parent. RadioGroup won't show prompt docs if registry lacks `Radio.Group` sub-component entry, but `Radio` itself covers the parent docs.
 - Verification: 1013 tests pass, typecheck clean, lint 0 errors
 - **Learnings:** `TYPE_RESOLUTION_MAP` field names differ from prompt-builder's `RegistryRef` (`registryComponent` vs `component`); mapping at derivation time avoids leaking manifest field names into consumers.
+
+## Task - [d6-validator-from-manifest]
+- Replaced hardcoded `TYPE_TO_SCHEMA_KEY` in `element-validator.ts` with derivation from manifest's `TYPE_ALIASES` and `SUB_COMPONENT_ALIASES`. Added `VALIDATED_SUB_COMPONENTS` set for sub-components that should validate against parent schema (RadioGroup → Radio).
+- Files changed: `packages/kumo/src/generative/element-validator.ts`
+- Behavioral changes: new sub-components from manifest (FlowNode, FlowParallel, BreadcrumbsCurrent, BreadcrumbsLink, BreadcrumbsSeparator) now skip validation explicitly rather than falling through as unknown types. Net behavior identical.
+- Verification: 1013 tests pass, typecheck clean, lint 0 errors
+- **Learnings:** sub-component → parent schema validation only makes sense when the sub-component conceptually wraps the parent (RadioGroup → Radio). Structural sub-components (TableRow, SelectOption) have no prop overlap with parent schemas — validating them against the parent would cause false failures.

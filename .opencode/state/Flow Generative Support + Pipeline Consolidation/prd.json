@@ -42,7 +42,7 @@
       "id": "d6-validator-from-manifest",
       "category": "integration",
       "description": "Switch element-validator to import aliases from manifest",
-      "passes": false
+      "passes": true
     },
     {
       "id": "d7-prompt-components-auto",
