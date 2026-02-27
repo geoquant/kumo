@@ -33,6 +33,9 @@ interface WorkersRateLimit {
 type KumoDocsEnv = {
   AI: WorkersAi;
   CHAT_RATE_LIMIT: WorkersRateLimit;
+  PLAYGROUND_RATE_LIMIT: WorkersRateLimit;
+  /** Secret key for playground auth. Set via `wrangler secret put` or .dev.vars. */
+  PLAYGROUND_SECRET?: string;
 };
 
 type Runtime = import("@astrojs/cloudflare").Runtime<KumoDocsEnv>;
