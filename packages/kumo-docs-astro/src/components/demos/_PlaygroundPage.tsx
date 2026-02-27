@@ -42,7 +42,10 @@ import {
   UITreeRenderer,
   isRenderableTree,
   uiTreeToJsx,
+  gradeTree,
+  walkTree,
 } from "@cloudflare/kumo/generative";
+import type { GradeReport } from "@cloudflare/kumo/generative";
 import { readSSEStream } from "~/lib/read-sse-stream";
 
 // =============================================================================
@@ -504,9 +507,11 @@ function PlaygroundTabContent({
 
     case "grading":
       return (
-        <div className="flex h-full items-center justify-center">
-          <p className="text-kumo-subtle">Generate UI to see grading</p>
-        </div>
+        <GradingTabContent
+          tree={tree}
+          showTree={showTree}
+          isStreaming={isStreaming}
+        />
       );
 
     case "system-prompt":
@@ -575,6 +580,150 @@ function CodeTabContent({
       <pre className="h-full overflow-auto p-4 font-mono text-sm text-kumo-default">
         {jsxCode}
       </pre>
+    </div>
+  );
+}
+
+// =============================================================================
+// Grading tab
+// =============================================================================
+
+/** Tree statistics: element count and max depth. */
+interface TreeStats {
+  readonly elementCount: number;
+  readonly maxDepth: number;
+}
+
+/** Compute element count and max depth via walkTree. */
+function computeTreeStats(tree: UITree): TreeStats {
+  let elementCount = 0;
+  let maxDepth = 0;
+  walkTree(tree, (_element, depth) => {
+    elementCount++;
+    if (depth > maxDepth) maxDepth = depth;
+  });
+  return { elementCount, maxDepth };
+}
+
+/** Debounce interval for grading during streaming (ms). */
+const GRADE_DEBOUNCE_MS = 500;
+
+/**
+ * Renders gradeTree() results with debouncing during streaming.
+ *
+ * During streaming, grades are recomputed at most every 500ms.
+ * A final run fires when streaming completes to ensure accuracy.
+ */
+function GradingTabContent({
+  tree,
+  showTree,
+  isStreaming,
+}: {
+  readonly tree: UITree;
+  readonly showTree: boolean;
+  readonly isStreaming: boolean;
+}) {
+  const [report, setReport] = useState<GradeReport | null>(null);
+  const [stats, setStats] = useState<TreeStats | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastGradedRef = useRef(0);
+
+  useEffect(() => {
+    if (!showTree) {
+      setReport(null);
+      setStats(null);
+      return;
+    }
+
+    const runGrade = () => {
+      setReport(gradeTree(tree));
+      setStats(computeTreeStats(tree));
+      lastGradedRef.current = Date.now();
+    };
+
+    if (!isStreaming) {
+      // Final run — no debounce
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      runGrade();
+      return;
+    }
+
+    // Debounce during streaming
+    const elapsed = Date.now() - lastGradedRef.current;
+    if (elapsed >= GRADE_DEBOUNCE_MS) {
+      runGrade();
+    } else if (!debounceRef.current) {
+      debounceRef.current = setTimeout(() => {
+        debounceRef.current = null;
+        runGrade();
+      }, GRADE_DEBOUNCE_MS - elapsed);
+    }
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, [tree, showTree, isStreaming]);
+
+  if (!showTree || !report) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-kumo-subtle">Generate UI to see grading</p>
+      </div>
+    );
+  }
+
+  const passCount = report.results.filter((r) => r.pass).length;
+  const totalRules = report.results.length;
+
+  return (
+    <div className="space-y-4 p-4">
+      {/* Overall score + stats */}
+      <div className="flex items-baseline gap-4">
+        <span className="text-2xl font-semibold text-kumo-default">
+          {passCount}/{totalRules}
+        </span>
+        <span className="text-sm text-kumo-subtle">rules passing</span>
+        {stats && (
+          <span className="ml-auto text-sm text-kumo-subtle">
+            {stats.elementCount} elements &middot; max depth {stats.maxDepth}
+          </span>
+        )}
+      </div>
+
+      {/* Per-rule breakdown */}
+      <div className="space-y-2">
+        {report.results.map((result) => (
+          <div
+            key={result.rule}
+            className="rounded-lg border border-kumo-line p-3"
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className={
+                  result.pass ? "text-kumo-success" : "text-kumo-danger"
+                }
+              >
+                {result.pass ? "PASS" : "FAIL"}
+              </span>
+              <span className="font-mono text-sm text-kumo-default">
+                {result.rule}
+              </span>
+            </div>
+            {result.violations.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {result.violations.map((v, i) => (
+                  <li key={i} className="font-mono text-xs text-kumo-subtle">
+                    {v}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
