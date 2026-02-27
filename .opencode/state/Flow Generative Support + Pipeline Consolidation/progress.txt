@@ -5,6 +5,7 @@ Started: 2026-02-27
 ## Codebase Patterns
 <!-- Consolidate reusable patterns here -->
 - Discovery fallback pattern: resolve from `index.ts` exports first, then map export/import identifiers to source files; this handles non-conventional component filenames safely.
+- Manifest derivation pattern: emit unified runtime lookup tables from existing manifest primitives (`TYPE_ALIASES`, `SUB_COMPONENT_ALIASES`) so prompt/validator/map consumers read one generated SSOT.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -13,3 +14,8 @@ Started: 2026-02-27
 - Implemented and validated discovery fallback coverage for non-conventional components exported via `index.ts`.
 - Files changed: `packages/kumo/scripts/component-registry/discovery.ts`, `packages/kumo/scripts/component-registry/discovery.test.ts`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/prd.json`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/progress.txt`.
 - **Learnings:** fallback resolution should check `.tsx` and `.ts` source targets to avoid coupling discovery to UI-only file extensions.
+
+## Task - [d4-manifest-ssot]
+- Implemented unified manifest derivations in codegen: `TYPE_RESOLUTION_MAP` (alias + sub-component lookup) and `ALL_GENERATIVE_TYPES` (deduped sorted union).
+- Files changed: `packages/kumo/scripts/component-registry/generative-map-generator.ts`, `packages/kumo/src/generative/component-manifest.ts`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/prd.json`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/progress.txt`.
+- **Learnings:** keeping generated manifest tables sorted stabilizes downstream diffs and makes drift checks deterministic.
