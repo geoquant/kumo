@@ -1,0 +1,195 @@
+# Progress Log
+PRD: streaming-playground
+Started: 2026-02-26
+
+## Codebase Patterns
+<!-- Consolidate reusable patterns here -->
+
+- **UITree shape**: `{ root: string, elements: Record<string, UIElement> }` — flat map with key-based children references. Defined in `packages/kumo/src/catalog/types.ts`.
+- **Normalization pipeline**: 8 nested function calls (innermost first): normalizeNestedSurfaces -> normalizeEmptySelects -> normalizeDuplicateFieldLabels -> normalizeCheckboxGroupGrids -> normalizeSiblingFormRowGrids -> normalizeSurfaceOrphans -> normalizeCounterStacks -> normalizeFormActionBars. All exported from `ui-tree-renderer.tsx`.
+- **Sub-component dot notation**: `SUB_COMPONENT_ALIASES` in `component-manifest.ts` maps flat names (TableHeader) to parent.sub (Table.Header). Import only parent.
+- **Type aliases**: `TYPE_ALIASES` maps LLM output names to canonical Kumo names (Textarea -> InputArea).
+- **Synthetic types**: `SYNTHETIC_TYPES` has "Div" -> maps to `<div>` in output, no import needed.
+- **Internal-only props**: `action`, `visible`, `parentKey`, `key` — structural UIElement fields, not React props.
+- **Test helper pattern**: `el(key, type, props, children?)` factory used across generative tests.
+- **Barrel re-export pattern**: `generative/index.ts` groups exports by module with section comments.
+- **Docs path alias**: `~` maps to `src/` in kumo-docs-astro. Use `~/lib/...` for shared utilities.
+- **Env types**: `KumoDocsEnv` in `src/env.d.ts` and `Cloudflare.Env` in `worker-configuration.d.ts` — both must be updated when adding new bindings. Secrets are `string | undefined` since they're set via `wrangler secret put` not wrangler.jsonc.
+- **Playground auth pattern**: `validatePlaygroundKey(header, secret)` returns discriminated `"authenticated" | "unauthenticated" | "invalid"`. Check at top of handler, 403 on invalid, select rate limiter by auth state.
+- **Shared playground module**: `~/lib/playground.ts` exports `validatePlaygroundKey`, `getSystemPrompt`, and `PlaygroundAuth` type. Import in all `/api/chat/*` endpoints.
+- **Astro sub-routes**: Move `foo.ts` → `foo/index.ts` + add `foo/bar.ts` for nested API routes under same prefix.
+- **Playground page pattern**: `_PlaygroundPage.tsx` (underscore prefix for client-only) + `playground.astro` using BaseLayout directly (no DocLayout/MainLayout). `client:load` for immediate hydration. Full-viewport layout with `h-screen flex flex-col`.
+- **Playground auth hook**: `usePlaygroundAuth()` returns `{ auth: AuthState, apiKey: string | null }`. Validates `?key=` from URL by probing `GET /api/chat/prompt`. `apiKey` is non-null when `auth === "authenticated"`. Pass `apiKey` to child components for `X-Playground-Key` header.
+- **Select component**: Compound pattern `<Select onValueChange={...}><Select.Option value="x">Label</Select.Option></Select>`. `onValueChange` types value as `unknown` — guard with `typeof v === "string"` before using.
+- **Streaming pipeline in playground**: `AuthenticatedState` owns `useUITree`, `useRuntimeValueStore`, `createJsonlParser`, `readSSEStream`. `handleSubmit` accepts `(e?, overrideMessage?)` — preset pills call with `onSubmit(undefined, preset.prompt)`. `runIdRef` prevents stale closures across concurrent streams.
+- **Kumo Tabs component**: Navigation-only — renders tab bar + animated indicator, no panels. Use controlled `value`/`onValueChange` with own content switching. `tabs` prop expects mutable `TabsItem[]`. `variant="underline"` for content tabs, `"segmented"` (default) for toggle-style.
+
+---
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - lib-1
+- Implemented `uiTreeToJsx(tree, options?)` pure function converting UITree to idiomatic JSX string
+- Applies same 8-pass normalization pipeline as UITreeRenderer (opt-out via `skipNormalization`)
+- Handles: dot notation for compound components, TYPE_ALIASES, synthetic Div->div, internal prop exclusion
+- Generates sorted/deduplicated `@cloudflare/kumo` import statement
+- Props serialize: strings as `"value"`, booleans as shorthand/`{false}`, numbers as `{123}`, objects as JSON
+- Empty/null trees return `export function GeneratedUI() { return null; }`
+- Files changed:
+  - `packages/kumo/src/generative/ui-tree-to-jsx.ts` (new, ~270 lines)
+  - `packages/kumo/src/generative/index.ts` (added barrel re-export)
+  - `packages/kumo/tests/generative/ui-tree-to-jsx.test.ts` (new, 33 tests)
+- **Learnings:** Double quotes in JSX text content are valid — no escaping needed (unlike JSX attributes).
+
+## Task - lib-2
+- Extracted `readSSEStream` from `_StreamingDemo.tsx` to `src/lib/read-sse-stream.ts`
+- Pure extract — function body unchanged, added JSDoc module comment
+- `_StreamingDemo.tsx` now imports via `~/lib/read-sse-stream` path alias
+- Files changed:
+  - `packages/kumo-docs-astro/src/lib/read-sse-stream.ts` (new, ~150 lines)
+  - `packages/kumo-docs-astro/src/components/demos/_StreamingDemo.tsx` (removed ~145 lines, added 1 import)
+- **Learnings:** Astro docs uses `~` path alias for `src/` — use `~/lib/...` for shared utilities.
+
+## Task - api-1
+- Added `X-Playground-Key` header auth to `/api/chat` with `PLAYGROUND_SECRET` env var
+- `PlaygroundAuth` discriminated union: `"authenticated" | "unauthenticated" | "invalid"`
+- Constant-time key comparison via XOR accumulator over DataView (avoids `!` non-null assertions)
+- Dual rate limiting: `PLAYGROUND_RATE_LIMIT` (100/min) for authenticated, `CHAT_RATE_LIMIT` (20/min) for anonymous
+- Invalid key → immediate 403 before rate limiting or body parsing
+- Missing key → existing behavior unchanged (backward compatible)
+- Files changed:
+  - `packages/kumo-docs-astro/src/pages/api/chat.ts` (added auth logic, ~45 lines)
+  - `packages/kumo-docs-astro/wrangler.jsonc` (added PLAYGROUND_RATE_LIMIT binding + PLAYGROUND_SECRET comment)
+  - `packages/kumo-docs-astro/src/env.d.ts` (added PLAYGROUND_RATE_LIMIT + PLAYGROUND_SECRET to KumoDocsEnv)
+  - `packages/kumo-docs-astro/worker-configuration.d.ts` (added PLAYGROUND_RATE_LIMIT + PLAYGROUND_SECRET to Cloudflare.Env)
+  - `packages/kumo-docs-astro/.dev.vars.example` (new, documents PLAYGROUND_SECRET)
+- **Learnings:** `crypto.subtle.timingSafeEqual` exists in Workers runtime but isn't in Astro's TS types. Use DataView XOR accumulator as portable alternative. Both `env.d.ts` (KumoDocsEnv) and `worker-configuration.d.ts` (Cloudflare.Env) need updating for new bindings.
+
+## Task - api-2
+- Gated history usage behind `auth === "authenticated"` — without valid X-Playground-Key, history field is silently ignored and request degrades to single-turn
+- Parsing infrastructure (ChatRequest interface, parseChatRequest, validation constants) was already in place from api-1
+- Single-line condition change: `if (chatRequest.history)` → `if (auth === "authenticated" && chatRequest.history)`
+- Backward compat preserved: `{ message: 'hello' }` works identically regardless of auth state
+- Validation limits (MAX_HISTORY_ENTRIES=50, MAX_TOTAL_MESSAGE_CHARS=40000, MAX_HISTORY_ENTRY_LENGTH=4000) enforced in parseChatRequest before auth check
+- Files changed:
+  - `packages/kumo-docs-astro/src/pages/api/chat.ts` (1 condition added + comment update)
+- **Learnings:** Much of api-2's infrastructure was pre-built during api-1. The parsing/validation was already there; only the auth gate for *using* history was missing. Good example of incremental task design.
+
+## Task - api-3
+- Added model override parameter to `/api/chat` gated behind playground auth
+- `ALLOWED_MODELS` ReadonlyMap: short names → full Workers AI model IDs (3 models)
+- `FULL_ID_TO_SHORT` reverse index so both short names and full IDs are accepted
+- `ChatRequest.model` parsed in `parseChatRequest`, validated downstream after auth check
+- Without valid X-Playground-Key, `model` field silently ignored → `DEFAULT_MODEL_ID` used
+- Invalid/unknown model → 400 with error listing allowed model names
+- Files changed:
+  - `packages/kumo-docs-astro/src/pages/api/chat.ts` (~35 lines added)
+- **Learnings:** PRD examples may use full model IDs while UI sends short names. Supporting both via a reverse index avoids coupling the API contract to a single format.
+
+## Task - api-4
+- Created GET `/api/chat/prompt` endpoint returning assembled system prompt (playground-auth required)
+- Extracted shared code (`validatePlaygroundKey`, `getSystemPrompt`, `PlaygroundAuth` type, `PROMPT_COMPONENTS`, `CUSTOM_COMPONENTS`, catalog setup) from `chat.ts` into `~/lib/playground.ts`
+- Moved `chat.ts` → `chat/index.ts` to cleanly nest `chat/prompt.ts` under the same route prefix
+- `prompt.ts` is minimal (~39 lines): auth check → `getSystemPrompt()` → JSON response
+- `auth !== "authenticated"` → 403 (both missing key and invalid key rejected, unlike `/api/chat` which allows unauthenticated)
+- Files changed:
+  - `packages/kumo-docs-astro/src/lib/playground.ts` (new, ~173 lines — extracted shared module)
+  - `packages/kumo-docs-astro/src/pages/api/chat.ts` → `chat/index.ts` (renamed, removed ~159 lines of duplicated code)
+  - `packages/kumo-docs-astro/src/pages/api/chat/prompt.ts` (new, ~39 lines)
+- **Learnings:** When adding sub-routes under an existing file-based route in Astro, move `foo.ts` → `foo/index.ts` then add `foo/bar.ts`. Astro handles both patterns but the directory form is cleaner. Extracting shared auth/prompt logic to `~/lib/playground.ts` prevents duplication across endpoints.
+
+## Task - ui-1
+- Created `/playground` Astro page using BaseLayout (full-width, no sidebar, no max-width)
+- Created `_PlaygroundPage.tsx` React component shell with full-viewport flex layout
+- Component renders empty state placeholder; future tasks (ui-2..ui-10) build upon this shell
+- Files changed:
+  - `packages/kumo-docs-astro/src/pages/playground.astro` (new, 8 lines)
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` (new, 20 lines)
+- **Learnings:** BaseLayout is a bare `<html>` wrapper with theme init script — no layout chrome at all. For full-viewport pages, apply `h-screen flex flex-col` on the root div inside the React component, not in the Astro page.
+
+## Task - ui-2
+- Implemented auth gate for PlaygroundPage: reads `?key=` from URL, validates against `/api/chat/prompt`
+- `usePlaygroundAuth` hook: 3-state machine (`checking` → `authenticated` | `denied`) with AbortController cleanup
+- `CheckingState`: centered Loader spinner during key validation
+- `DeniedState`: Empty component with LockKeyIcon, "Access restricted" message
+- `AuthenticatedState`: shell component receiving `apiKey` prop for future tasks to use
+- Validation strategy: GET `/api/chat/prompt` with `X-Playground-Key` header — 200 = valid, anything else = denied
+- Files changed:
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` (rewritten, ~130 lines)
+- **Learnings:** phosphor-icons v2 renames icons with `Icon` suffix — `LockKey` is deprecated, use `LockKeyIcon`. Using an existing auth-requiring endpoint (`/api/chat/prompt`) as a validation probe avoids needing a dedicated `/api/auth/check` endpoint.
+
+## Task - ui-3
+- Implemented PlaygroundTopBar: InputArea prompt input, Select model dropdown (3 models), Button send, 8 preset prompt pills
+- Full streaming pipeline wired: fetch → readSSEStream → createJsonlParser → applyPatches → useUITree
+- Conversation history tracked in `messages` state for multi-turn (used in later tasks)
+- All inputs disabled during streaming via `isStreaming` flag
+- 8 presets: 5 card-level from _StreamingDemo + 3 page-level (DNS management, tunnel config, WAF overview)
+- Extracted `extractErrorMessage()` helper to avoid unsafe `as` casts on error bodies
+- Files changed:
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` (rewritten from 129 → 477 lines)
+- **Learnings:** Kumo `Select.onValueChange` types value as `unknown` — use runtime `typeof` guard instead of `as string` cast. `PaperPlaneRightIcon` from phosphor-icons works well for send buttons.
+
+## Task - ui-4
+- Added 4-tab system (Preview, Code, Grading, System Prompt) using Kumo `Tabs` component in controlled mode
+- `Tabs` is navigation-only — renders tab bar with animated indicator but no panels; content panels managed via `switch` on `activeTab`
+- Tab state (`activeTab`) is independent of streaming/tree state — persists across generations
+- Content area uses `flex-1 overflow-auto` to fill remaining viewport height
+- `PlaygroundTabContent` component renders placeholder empty states per tab; full implementations in ui-5 through ui-8
+- Type-safe tab values via `PlaygroundTab` union type + `isPlaygroundTab()` type guard (avoids `as` cast on `onValueChange`)
+- Files changed:
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` (added ~80 lines: imports, types, constants, PlaygroundTabContent component, tab bar in AuthenticatedState)
+- **Learnings:** Kumo `Tabs` is navigation-only (no built-in panels). Use controlled `value`/`onValueChange` + own content switching. `variant="underline"` fits well for content-area tabs. `tabs` prop expects mutable `TabsItem[]`, not `readonly` — avoid `as const` on the array.
+
+## Task - ui-5
+- Wired `UITreeRenderer` into the Preview tab with live streaming support
+- Added `tree`, `runtimeValueStore`, `isStreaming` props to `PlaygroundTabContent`
+- Preview tab renders `UITreeRenderer` full-width (no constrained container) inside `p-4` wrapper
+- Empty state shows "Enter a prompt to generate UI" when `isRenderableTree(tree)` is false
+- `streaming` prop passed through so missing child keys render as null during stream (not error divs)
+- `batchPatches: true` already set on `useUITree` in `AuthenticatedState` — live updates work out of the box
+- Files changed:
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` (added imports for `UITreeRenderer`, `UITree`, `RuntimeValueStore`; expanded `PlaygroundTabContentProps`; wired preview case)
+- **Learnings:** `UITreeRenderer` only requires `tree` + `streaming` + `runtimeValueStore` for basic rendering. `onAction` and `customComponents` are optional — playground doesn't need them since it's a preview-only context. The `isRenderableTree` guard already existed in `AuthenticatedState`; reusing its `showTree` boolean avoids redundant checks.
+
+## Task - ui-6
+- Added `CodeTabContent` component: renders `uiTreeToJsx(tree)` in `<pre>` with monospace font, updates live as tree changes during streaming
+- Copy button uses `navigator.clipboard.writeText` with 2-second "Copied" feedback (CheckIcon swap)
+- `useMemo` on `uiTreeToJsx(tree)` — recomputes on each tree change (batched via `batchPatches: true`)
+- Empty state: "Generate UI to see code" when no renderable tree
+- Timer ref cleaned up on unmount to prevent memory leaks
+- Output is valid JSX with `@cloudflare/kumo` imports, pasteable into a React app
+- Files changed:
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` (added `CodeTabContent` component ~57 lines, wired into switch, added imports for `useMemo`, `uiTreeToJsx`, `CopyIcon`, `CheckIcon`)
+- **Learnings:** `uiTreeToJsx` accepts `UITree | null | undefined` and returns a string — no need for null guards. Since `batchPatches: true` batches React state updates, the `useMemo` on tree recomputes at animation-frame granularity, not per-patch — efficient enough without debouncing.
+
+## Task - ui-7
+- Added `GradingTabContent` component with debounced `gradeTree()` during streaming (500ms), final run on stream complete
+- Overall score displayed as `passCount/8 rules passing`
+- Per-rule breakdown: rule name, PASS/FAIL badge, violation details list
+- `computeTreeStats()` via `walkTree` shows element count + max depth
+- State resets to null when tree is cleared (empty state: "Generate UI to see grading")
+- Files changed:
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` (added `GradingTabContent` ~120 lines, `computeTreeStats` helper, imports for `gradeTree`, `walkTree`, `GradeReport`)
+- **Learnings:** `gradeTree` is synchronous and cheap — debouncing at 500ms during streaming is a UX choice not a perf necessity. `walkTree` provides depth-first traversal with `(element, depth, parentKey)` visitor — easy to compute stats.
+
+## Task - ui-8
+- Added `SystemPromptTabContent` component: fetches prompt from `GET /api/chat/prompt` with `X-Playground-Key`, displays in read-only `<pre>`
+- `PromptFetchState` discriminated union: `loading | loaded | error` — clean state machine with no invalid states
+- Loading: centered `Loader` spinner. Error: `text-kumo-danger` message. Loaded: scrollable monospace `<pre>` with `whitespace-pre-wrap`
+- `extractPromptString()` helper for safe unknown-to-string response parsing (matches `extractErrorMessage` pattern)
+- `apiKey` prop threaded through `PlaygroundTabContent` → `SystemPromptTabContent`
+- AbortController cleanup on unmount prevents stale state updates
+- Files changed:
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` (added `SystemPromptTabContent` ~80 lines, `extractPromptString` helper, `apiKey` prop to `PlaygroundTabContentProps`)
+- **Learnings:** After TS `in` narrowing, accessing the property still needs a cast — `(body as { prompt: unknown }).prompt` is the accepted pattern in this codebase (same as `extractErrorMessage`). Discriminated unions for fetch state (`loading | loaded | error`) make exhaustive handling clean with early returns.
+
+## Task - ui-9
+- Added `PlaygroundBottomBar` component: follow-up input + send button + streaming status indicator
+- Bottom bar appears after first generation completes (`messages.length > 0`)
+- `followUpValue` state separate from top bar `inputValue` — each input has its own controlled state
+- `handleFollowUp` callback clears follow-up input then delegates to `handleSubmit` with override message
+- `STATUS_CONFIG` record maps `StreamStatus` → label + icon + className (idle=CircleIcon, streaming=SpinnerIcon animate-spin, error=WarningCircleIcon)
+- Turn counter shows `Math.ceil(messages.length / 2)` (user+assistant = 1 turn)
+- Conversation history already wired from prior tasks: `messages` state, `history` in fetch body, tree reset per generation
+- Files changed:
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` (added ~85 lines: imports, PlaygroundBottomBar component, STATUS_CONFIG, followUpValue state, handleFollowUp callback, bottom bar in render)
+- **Learnings:** phosphor-icons v2 exports `CircleIcon`, `SpinnerIcon`, `WarningCircleIcon` with `Icon` suffix. `weight="fill"` on CircleIcon gives a solid dot — good for status indicators.
