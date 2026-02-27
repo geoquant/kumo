@@ -24,7 +24,7 @@
       "id": "d8-flow-component-map",
       "category": "integration",
       "description": "Verify Flow is wired in component-map",
-      "passes": false
+      "passes": true
     },
     {
       "id": "d4-manifest-ssot",

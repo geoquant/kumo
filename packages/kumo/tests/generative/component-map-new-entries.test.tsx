@@ -59,6 +59,18 @@ describe("KNOWN_TYPES", () => {
   it("includes Label", () => {
     expect(KNOWN_TYPES.has("Label")).toBe(true);
   });
+
+  it("includes Flow", () => {
+    expect(KNOWN_TYPES.has("Flow")).toBe(true);
+  });
+
+  it("includes FlowNode", () => {
+    expect(KNOWN_TYPES.has("FlowNode")).toBe(true);
+  });
+
+  it("includes FlowParallel", () => {
+    expect(KNOWN_TYPES.has("FlowParallel")).toBe(true);
+  });
 });
 
 // =============================================================================
@@ -94,6 +106,22 @@ describe("COMPONENT_MAP entries", () => {
 
   it("Label maps to a defined component", () => {
     expect(COMPONENT_MAP.Label).toBeDefined();
+  });
+
+  it("Flow maps to a defined component", () => {
+    expect(COMPONENT_MAP.Flow).toBeDefined();
+  });
+
+  it("FlowNode maps to a defined component (Flow.Node)", () => {
+    expect(COMPONENT_MAP.FlowNode).toBeDefined();
+    const t = typeof COMPONENT_MAP.FlowNode;
+    expect(t === "function" || t === "object").toBe(true);
+  });
+
+  it("FlowParallel maps to a defined component (Flow.Parallel)", () => {
+    expect(COMPONENT_MAP.FlowParallel).toBeDefined();
+    const t = typeof COMPONENT_MAP.FlowParallel;
+    expect(t === "function" || t === "object").toBe(true);
   });
 });
 
@@ -140,6 +168,26 @@ describe("UITreeRenderer: Textarea", () => {
     const { container } = render(<UITreeRenderer tree={tree} />);
 
     // Should NOT have "Unknown component" warning — type is recognized
+    const unknownWarning = container.querySelector(".text-kumo-warning");
+    expect(unknownWarning).toBeNull();
+  });
+});
+
+describe("UITreeRenderer: Flow + FlowNode + FlowParallel", () => {
+  it("resolves Flow, FlowNode, and FlowParallel types (no 'Unknown component' error)", () => {
+    const tree = mkTree("flow", {
+      flow: el("flow", "Flow", {}, ["step1", "step2", "parallel", "step3"]),
+      step1: el("step1", "FlowNode", { children: "Step 1" }),
+      step2: el("step2", "FlowNode", { children: "Step 2" }),
+      parallel: el("parallel", "FlowParallel", {}, ["branchA", "branchB"]),
+      branchA: el("branchA", "FlowNode", { children: "Branch A" }),
+      branchB: el("branchB", "FlowNode", { children: "Branch B" }),
+      step3: el("step3", "FlowNode", { children: "Step 3" }),
+    });
+
+    const { container } = render(<UITreeRenderer tree={tree} />);
+
+    // Should NOT have "Unknown component" warning — all types are recognized
     const unknownWarning = container.querySelector(".text-kumo-warning");
     expect(unknownWarning).toBeNull();
   });

@@ -37,3 +37,9 @@ Started: 2026-02-27
 - Files verified: `packages/kumo/scripts/component-registry/generative-map-generator.ts`, `packages/kumo/src/generative/component-manifest.ts`, `packages/kumo/src/generative/component-map.ts`
 - Verification: 1006 tests pass, typecheck clean, drift-detection.test.ts confirms "every sub-component alias has a map entry"
 - **Learnings:** task was implemented in prior session but PRD not updated; compound components need entries in SUB_COMPONENT_OVERRIDES to be flattened as top-level generative types.
+
+## Task - [d8-flow-component-map]
+- Added explicit Flow wiring verification to `component-map-new-entries.test.tsx`: 3 KNOWN_TYPES assertions (Flow, FlowNode, FlowParallel), 3 COMPONENT_MAP entry assertions with type checks, and 1 UITreeRenderer rendering test with nested Flow → FlowNode → FlowParallel tree.
+- Files changed: `packages/kumo/tests/generative/component-map-new-entries.test.tsx`
+- Verification: 1013 tests pass (7 new), typecheck clean
+- **Learnings:** compound components wired via manifest loops don't appear by name in component-map.ts source — explicit per-component rendering tests are needed to catch sub-component resolution failures (e.g. `Flow.Node` not accessible on the namespace import).
