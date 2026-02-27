@@ -12,7 +12,7 @@
       "id": "d2-flow-registry",
       "category": "integration",
       "description": "Add Flow to registry/category map",
-      "passes": false
+      "passes": true
     },
     {
       "id": "d3-flow-subcomponents",

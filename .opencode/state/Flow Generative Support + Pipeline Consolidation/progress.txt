@@ -7,6 +7,7 @@ Started: 2026-02-27
 - Discovery fallback pattern: resolve from `index.ts` exports first, then map export/import identifiers to source files; this handles non-conventional component filenames safely.
 - Manifest derivation pattern: emit unified runtime lookup tables from existing manifest primitives (`TYPE_ALIASES`, `SUB_COMPONENT_ALIASES`) so prompt/validator/map consumers read one generated SSOT.
 - Prompt scope pattern: derive prompt component allowlist from `ALL_GENERATIVE_TYPES` and control token budget via a local `EXCLUDED_FROM_PROMPT` set, default-include everything else.
+- Registry coverage pattern: add discovery integration tests that assert both detection and assigned category so codegen inclusion regressions fail fast.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -25,3 +26,8 @@ Started: 2026-02-27
 - Replaced manual prompt component list with a manifest-derived allowlist (`ALL_GENERATIVE_TYPES`) filtered by `EXCLUDED_FROM_PROMPT`; exported `ALL_GENERATIVE_TYPES` from the generative barrel for docs usage.
 - Files changed: `packages/kumo-docs-astro/src/lib/playground.ts`, `packages/kumo/src/generative/index.ts`, `packages/kumo-docs-astro/src/components/SearchDialog.tsx`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/prd.json`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/progress.txt`.
 - **Learnings:** docs package consumes `@cloudflare/kumo/generative` through built type exports, so barrel export updates must propagate to dist types before Astro typecheck resolves new symbols.
+
+## Task - [d2-flow-registry]
+- Added discovery regression coverage for Flow fallback resolution to verify `discoverFromDir` emits `Flow` in `Layout` and preserves `flow/diagram.tsx` source mapping.
+- Files changed: `packages/kumo/scripts/component-registry/discovery.test.ts`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/prd.json`, `.opencode/state/Flow Generative Support + Pipeline Consolidation/progress.txt`.
+- **Learnings:** category assignment should be asserted at discovery-layer tests, not only in generated artifacts, to catch mapping drift earlier than codegen snapshots.
