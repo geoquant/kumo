@@ -27,9 +27,12 @@ import {
 import type { TabsItem } from "@cloudflare/kumo";
 import {
   CheckIcon,
+  CircleIcon,
   CopyIcon,
   LockKeyIcon,
   PaperPlaneRightIcon,
+  SpinnerIcon,
+  WarningCircleIcon,
 } from "@phosphor-icons/react";
 import {
   useUITree,
@@ -268,6 +271,7 @@ function DeniedState() {
 function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
   // --- Input state ---
   const [inputValue, setInputValue] = useState("");
+  const [followUpValue, setFollowUpValue] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
 
   // --- Tab state (persists across generations) ---
@@ -415,6 +419,20 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
 
   const showTree = isRenderableTree(tree);
 
+  /** Whether a prior generation has completed (show follow-up bar). */
+  const hasConversation = messages.length > 0;
+
+  /** Submit from the follow-up bar at the bottom. */
+  const handleFollowUp = useCallback(
+    (e?: FormEvent, overrideMessage?: string) => {
+      const msg = overrideMessage ?? followUpValue.trim();
+      if (!msg) return;
+      setFollowUpValue("");
+      handleSubmit(e, msg);
+    },
+    [followUpValue, handleSubmit],
+  );
+
   return (
     <>
       {/* Top bar */}
@@ -454,6 +472,18 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
             apiKey={apiKey}
           />
         </div>
+
+        {/* Bottom bar: follow-up input + status (visible after first generation) */}
+        {hasConversation && (
+          <PlaygroundBottomBar
+            followUpValue={followUpValue}
+            onFollowUpChange={setFollowUpValue}
+            isStreaming={isStreaming}
+            status={status}
+            onSubmit={handleFollowUp}
+            turnCount={messages.length}
+          />
+        )}
       </div>
     </>
   );
@@ -907,6 +937,104 @@ function PlaygroundTopBar({
             {preset.label}
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Bottom bar
+// =============================================================================
+
+/** Status indicator label + icon mapping. */
+const STATUS_CONFIG: Record<
+  StreamStatus,
+  { label: string; className: string; icon: React.ReactNode }
+> = {
+  idle: {
+    label: "Ready",
+    className: "text-kumo-subtle",
+    icon: <CircleIcon size={12} weight="fill" />,
+  },
+  streaming: {
+    label: "Streaming…",
+    className: "text-kumo-brand",
+    icon: <SpinnerIcon size={12} className="animate-spin" />,
+  },
+  error: {
+    label: "Error",
+    className: "text-kumo-danger",
+    icon: <WarningCircleIcon size={12} weight="fill" />,
+  },
+};
+
+interface PlaygroundBottomBarProps {
+  readonly followUpValue: string;
+  readonly onFollowUpChange: (value: string) => void;
+  readonly isStreaming: boolean;
+  readonly status: StreamStatus;
+  readonly onSubmit: (e?: FormEvent, overrideMessage?: string) => void;
+  readonly turnCount: number;
+}
+
+/** Bottom bar: follow-up input for multi-turn + streaming status indicator. */
+function PlaygroundBottomBar({
+  followUpValue,
+  onFollowUpChange,
+  isStreaming,
+  status,
+  onSubmit,
+  turnCount,
+}: PlaygroundBottomBarProps) {
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        onSubmit();
+      }
+    },
+    [onSubmit],
+  );
+
+  const statusInfo = STATUS_CONFIG[status];
+
+  return (
+    <div className="shrink-0 border-t border-kumo-line bg-kumo-elevated px-4 py-2 space-y-1.5">
+      {/* Follow-up input row */}
+      <form onSubmit={(e) => onSubmit(e)} className="flex items-end gap-2">
+        <div className="flex-1">
+          <InputArea
+            value={followUpValue}
+            onValueChange={onFollowUpChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Follow-up message…"
+            disabled={isStreaming}
+            aria-label="Follow-up prompt"
+            rows={1}
+            size="sm"
+          />
+        </div>
+        <Button
+          type="submit"
+          variant="primary"
+          size="sm"
+          disabled={isStreaming || !followUpValue.trim()}
+          icon={<PaperPlaneRightIcon />}
+        >
+          Send
+        </Button>
+      </form>
+
+      {/* Status indicator + turn count */}
+      <div className="flex items-center gap-3 text-xs">
+        <span className={`flex items-center gap-1.5 ${statusInfo.className}`}>
+          {statusInfo.icon}
+          {statusInfo.label}
+        </span>
+        <span className="text-kumo-subtle">
+          {Math.ceil(turnCount / 2)}{" "}
+          {Math.ceil(turnCount / 2) === 1 ? "turn" : "turns"}
+        </span>
       </div>
     </div>
   );
