@@ -399,4 +399,133 @@ describe("gradeComposition", () => {
       expect(rule?.violations[0]).toContain("no variant prop");
     });
   });
+
+  // ===========================================================================
+  // surface-hierarchy-correct
+  // ===========================================================================
+
+  describe("surface-hierarchy-correct", () => {
+    it("passes when Surface children are Stack, Grid, or other non-Surface types", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["heading", "inner"] },
+        heading: {
+          type: "Text",
+          props: { variant: "heading2", children: "Title" },
+        },
+        inner: { type: "Surface", children: ["s2"] },
+        s2: { type: "Stack", children: ["body"] },
+        body: {
+          type: "Text",
+          props: { variant: "body", children: "Content" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find(
+        (r) => r.rule === "surface-hierarchy-correct",
+      );
+      expect(rule?.pass).toBe(true);
+      expect(rule?.violations).toHaveLength(0);
+    });
+
+    it("passes when Surface > Stack > Surface (layout element between)", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["card1", "card2"] },
+        card1: { type: "Surface", children: ["s1"] },
+        s1: { type: "Stack", children: ["h1"] },
+        h1: {
+          type: "Text",
+          props: { variant: "heading2", children: "Card 1" },
+        },
+        card2: { type: "Surface", children: ["s2"] },
+        s2: { type: "Stack", children: ["h2"] },
+        h2: {
+          type: "Text",
+          props: { variant: "heading3", children: "Card 2" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find(
+        (r) => r.rule === "surface-hierarchy-correct",
+      );
+      expect(rule?.pass).toBe(true);
+    });
+
+    it("fails when Surface has a direct Surface child", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["nested"] },
+        nested: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["h"] },
+        h: {
+          type: "Text",
+          props: { variant: "heading2", children: "Nested" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find(
+        (r) => r.rule === "surface-hierarchy-correct",
+      );
+      expect(rule?.pass).toBe(false);
+      expect(rule?.violations).toHaveLength(1);
+      expect(rule?.violations[0]).toContain("direct child of Surface");
+    });
+
+    it("reports multiple violations for multiple direct Surface>Surface nesting", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["a", "b"] },
+        a: { type: "Surface", children: ["sa"] },
+        sa: { type: "Stack", children: ["h1"] },
+        h1: {
+          type: "Text",
+          props: { variant: "heading2", children: "A" },
+        },
+        b: { type: "Surface", children: ["sb"] },
+        sb: { type: "Stack", children: ["h2"] },
+        h2: {
+          type: "Text",
+          props: { variant: "heading3", children: "B" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find(
+        (r) => r.rule === "surface-hierarchy-correct",
+      );
+      expect(rule?.pass).toBe(false);
+      expect(rule?.violations).toHaveLength(2);
+    });
+
+    it("passes when Surface > Grid > Surface (Grid separates them)", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["grid"] },
+        grid: {
+          type: "Grid",
+          props: { variant: "2up" },
+          children: ["card1", "card2"],
+        },
+        card1: { type: "Surface", children: ["s1"] },
+        s1: { type: "Stack", children: ["h1"] },
+        h1: {
+          type: "Text",
+          props: { variant: "heading2", children: "Left" },
+        },
+        card2: { type: "Surface", children: ["s2"] },
+        s2: { type: "Stack", children: ["h2"] },
+        h2: {
+          type: "Text",
+          props: { variant: "heading3", children: "Right" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find(
+        (r) => r.rule === "surface-hierarchy-correct",
+      );
+      expect(rule?.pass).toBe(true);
+    });
+  });
 });
