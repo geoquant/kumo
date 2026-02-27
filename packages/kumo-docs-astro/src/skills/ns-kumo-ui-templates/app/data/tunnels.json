@@ -1,0 +1,442 @@
+{
+  "tunnels": [
+    {
+      "name": "Corporate Apps Server",
+      "tunnelId": "D2fG5hI8jK1lM4nO7pQ0rS3tU6vW9xY2zB5",
+      "tunnelType": "cloudflared",
+      "status": "Healthy",
+      "replicas": [
+        {
+          "replicaId": "D2fG5hI8jK",
+          "originIp": "104.31.18.58",
+          "edgeLocations": ["dfw09", "dfw08", "dfw08", "dfw14"],
+          "version": "2025.11.1",
+          "architecture": "linux_amd64",
+          "uptime": "19 days"
+        },
+        {
+          "replicaId": "A1bC3dE5fG",
+          "originIp": "104.31.18.59",
+          "edgeLocations": ["dfw09", "dfw14"],
+          "version": "2025.11.1",
+          "architecture": "linux_amd64",
+          "uptime": "12 days"
+        }
+      ],
+      "routes": [
+        {
+          "routeType": "Published application",
+          "destination": "intranet.skyflash.co",
+          "destinationHref": "https://intranet.skyflash.co",
+          "service": "http://localhost:8080",
+          "description": "-"
+        },
+        {
+          "routeType": "Published application",
+          "destination": "pgadmin.skyflash.co",
+          "destinationHref": "https://pgadmin.skyflash.co",
+          "service": "http://localhost:3004",
+          "description": "-"
+        },
+        {
+          "routeType": "Published application",
+          "destination": "crm.skyflash.cc",
+          "destinationHref": "https://crm.skyflash.cc",
+          "service": "http://localhost:8080",
+          "description": "-"
+        },
+        {
+          "routeType": "Private CIDR",
+          "destination": "10.128.15.234/32",
+          "service": "-",
+          "description": "Access only to local host of apps server."
+        },
+        {
+          "routeType": "Private hostname",
+          "destination": "helper.local",
+          "destinationHref": "https://helper.local",
+          "service": "-",
+          "description": "-"
+        },
+        {
+          "routeType": "VPC",
+          "destination": "local-docs",
+          "destinationHref": "#",
+          "service": "localhost:1111",
+          "description": "-"
+        }
+      ]
+    },
+    {
+      "name": "Staging Environment",
+      "tunnelId": "E3gH6iJ9kL2mN5oP8qR1sT4uV7wX0yZ3aC6",
+      "tunnelType": "cloudflared",
+      "status": "Healthy",
+      "replicas": [
+        {
+          "replicaId": "E3gH6iJ9kL",
+          "originIp": "172.16.0.12",
+          "edgeLocations": ["sjc01", "sjc03"],
+          "version": "2025.11.1",
+          "architecture": "linux_amd64",
+          "uptime": "7 days"
+        }
+      ],
+      "routes": [
+        {
+          "routeType": "Published application",
+          "destination": "staging.skyflash.co",
+          "destinationHref": "https://staging.skyflash.co",
+          "service": "http://localhost:3000",
+          "description": "Staging web app"
+        },
+        {
+          "routeType": "Published application",
+          "destination": "staging-api.skyflash.co",
+          "destinationHref": "https://staging-api.skyflash.co",
+          "service": "http://localhost:4000",
+          "description": "Staging API server"
+        },
+        {
+          "routeType": "Private CIDR",
+          "destination": "10.0.2.0/24",
+          "service": "-",
+          "description": "Staging subnet"
+        }
+      ]
+    },
+    {
+      "name": "Production Database",
+      "tunnelId": "F4hI7jK0lM3nO6pQ9rS2tU5vW8xY1zA4bC7",
+      "tunnelType": "cloudflared",
+      "status": "Healthy",
+      "replicas": [
+        {
+          "replicaId": "F4hI7jK0lM",
+          "originIp": "10.0.1.50",
+          "edgeLocations": ["iad01", "iad02", "iad05"],
+          "version": "2025.10.3",
+          "architecture": "linux_amd64",
+          "uptime": "45 days"
+        },
+        {
+          "replicaId": "G5iJ8kL1mN",
+          "originIp": "10.0.1.51",
+          "edgeLocations": ["iad01", "iad02"],
+          "version": "2025.10.3",
+          "architecture": "linux_amd64",
+          "uptime": "45 days"
+        },
+        {
+          "replicaId": "H6jK9lM2nO",
+          "originIp": "10.0.1.52",
+          "edgeLocations": ["iad05"],
+          "version": "2025.10.3",
+          "architecture": "linux_arm64",
+          "uptime": "30 days"
+        }
+      ],
+      "routes": [
+        {
+          "routeType": "Private CIDR",
+          "destination": "10.0.1.50/32",
+          "service": "-",
+          "description": "Primary DB host"
+        },
+        {
+          "routeType": "Private CIDR",
+          "destination": "10.0.1.51/32",
+          "service": "-",
+          "description": "Read replica DB host"
+        },
+        {
+          "routeType": "Private hostname",
+          "destination": "db.internal",
+          "destinationHref": "https://db.internal",
+          "service": "-",
+          "description": "Database internal hostname"
+        }
+      ]
+    },
+    {
+      "name": "Dev Workspace",
+      "tunnelId": "G5iJ8kL1mN4oP7qR0sT3uV6wX9yZ2aB5cD8",
+      "tunnelType": "cloudflared",
+      "status": "Degraded",
+      "replicas": [
+        {
+          "replicaId": "I7kL0mN3oP",
+          "originIp": "192.168.1.100",
+          "edgeLocations": ["lax01"],
+          "version": "2025.11.1",
+          "architecture": "darwin_arm64",
+          "uptime": "2 days"
+        }
+      ],
+      "routes": [
+        {
+          "routeType": "Published application",
+          "destination": "dev.skyflash.co",
+          "destinationHref": "https://dev.skyflash.co",
+          "service": "http://localhost:5173",
+          "description": "Local dev server"
+        },
+        {
+          "routeType": "Published application",
+          "destination": "dev-api.skyflash.co",
+          "destinationHref": "https://dev-api.skyflash.co",
+          "service": "http://localhost:8787",
+          "description": "Local API dev server"
+        }
+      ]
+    },
+    {
+      "name": "CI/CD Pipeline",
+      "tunnelId": "H6jK9lM2nO5pQ8rS1tU4vW7xY0zA3bC6dE9",
+      "tunnelType": "cloudflared",
+      "status": "Healthy",
+      "replicas": [
+        {
+          "replicaId": "J8lM1nO4pQ",
+          "originIp": "10.10.0.5",
+          "edgeLocations": ["ord01", "ord02"],
+          "version": "2025.11.1",
+          "architecture": "linux_amd64",
+          "uptime": "60 days"
+        },
+        {
+          "replicaId": "K9mN2oP5qR",
+          "originIp": "10.10.0.6",
+          "edgeLocations": ["ord01"],
+          "version": "2025.11.1",
+          "architecture": "linux_amd64",
+          "uptime": "60 days"
+        }
+      ],
+      "routes": [
+        {
+          "routeType": "Published application",
+          "destination": "ci.skyflash.co",
+          "destinationHref": "https://ci.skyflash.co",
+          "service": "http://localhost:8080",
+          "description": "Jenkins dashboard"
+        },
+        {
+          "routeType": "Private CIDR",
+          "destination": "10.10.0.0/24",
+          "service": "-",
+          "description": "CI/CD network segment"
+        },
+        {
+          "routeType": "Private hostname",
+          "destination": "artifacts.internal",
+          "destinationHref": "https://artifacts.internal",
+          "service": "-",
+          "description": "Build artifact storage"
+        },
+        {
+          "routeType": "VPC",
+          "destination": "ci-runners",
+          "destinationHref": "#",
+          "service": "localhost:9090",
+          "description": "Runner pool"
+        }
+      ]
+    },
+    {
+      "name": "Monitoring Stack",
+      "tunnelId": "I7kL0mN3oP6qR9sT2uV5wX8yZ1aB4cD7eF0",
+      "tunnelType": "cloudflared",
+      "status": "Healthy",
+      "replicas": [
+        {
+          "replicaId": "L0nO3pQ6rS",
+          "originIp": "10.20.0.10",
+          "edgeLocations": ["fra01", "fra02"],
+          "version": "2025.11.1",
+          "architecture": "linux_amd64",
+          "uptime": "90 days"
+        }
+      ],
+      "routes": [
+        {
+          "routeType": "Published application",
+          "destination": "grafana.skyflash.co",
+          "destinationHref": "https://grafana.skyflash.co",
+          "service": "http://localhost:3000",
+          "description": "Grafana dashboards"
+        },
+        {
+          "routeType": "Published application",
+          "destination": "prometheus.skyflash.co",
+          "destinationHref": "https://prometheus.skyflash.co",
+          "service": "http://localhost:9090",
+          "description": "Prometheus UI"
+        },
+        {
+          "routeType": "Private hostname",
+          "destination": "alertmanager.internal",
+          "destinationHref": "https://alertmanager.internal",
+          "service": "-",
+          "description": "Alert manager"
+        }
+      ]
+    },
+    {
+      "name": "Edge Cache Proxy",
+      "tunnelId": "J8lM1nO4pQ7rS0tU3vW6xY9zA2bC5dE8fG1",
+      "tunnelType": "WARP",
+      "status": "Healthy",
+      "replicas": [
+        {
+          "replicaId": "M1oP4qR7sT",
+          "originIp": "10.30.0.20",
+          "edgeLocations": ["ams01", "ams02", "ams03"],
+          "version": "2025.11.1",
+          "architecture": "linux_amd64",
+          "uptime": "14 days"
+        },
+        {
+          "replicaId": "N2pQ5rS8tU",
+          "originIp": "10.30.0.21",
+          "edgeLocations": ["ams01", "ams02"],
+          "version": "2025.11.1",
+          "architecture": "linux_amd64",
+          "uptime": "14 days"
+        }
+      ],
+      "routes": [
+        {
+          "routeType": "Published application",
+          "destination": "cdn.skyflash.co",
+          "destinationHref": "https://cdn.skyflash.co",
+          "service": "http://localhost:8081",
+          "description": "CDN origin"
+        },
+        {
+          "routeType": "VPC",
+          "destination": "cache-cluster",
+          "destinationHref": "#",
+          "service": "localhost:6379",
+          "description": "Redis cache cluster"
+        }
+      ]
+    },
+    {
+      "name": "Partner API Gateway",
+      "tunnelId": "K9mN2oP5qR8sT1uV4wX7yZ0aB3cD6eF9gH2",
+      "tunnelType": "cloudflared",
+      "status": "Healthy",
+      "replicas": [
+        {
+          "replicaId": "O3qR6sT9uV",
+          "originIp": "10.40.0.30",
+          "edgeLocations": ["nrt01", "nrt02"],
+          "version": "2025.10.3",
+          "architecture": "linux_arm64",
+          "uptime": "25 days"
+        }
+      ],
+      "routes": [
+        {
+          "routeType": "Published application",
+          "destination": "api.partners.skyflash.co",
+          "destinationHref": "https://api.partners.skyflash.co",
+          "service": "http://localhost:5000",
+          "description": "Partner-facing API"
+        },
+        {
+          "routeType": "Published application",
+          "destination": "webhooks.skyflash.co",
+          "destinationHref": "https://webhooks.skyflash.co",
+          "service": "http://localhost:5001",
+          "description": "Webhook receiver"
+        },
+        {
+          "routeType": "Private CIDR",
+          "destination": "10.40.0.0/24",
+          "service": "-",
+          "description": "Partner API subnet"
+        }
+      ]
+    },
+    {
+      "name": "Internal Wiki",
+      "tunnelId": "L0nO3pQ6rS9tU2vW5xY8zA1bC4dE7fG0hI3",
+      "tunnelType": "cloudflared",
+      "status": "Down",
+      "replicas": [
+        {
+          "replicaId": "P4rS7tU0vW",
+          "originIp": "192.168.10.5",
+          "edgeLocations": ["lhr01"],
+          "version": "2025.9.2",
+          "architecture": "linux_amd64",
+          "uptime": "0 days"
+        }
+      ],
+      "routes": [
+        {
+          "routeType": "Published application",
+          "destination": "wiki.skyflash.co",
+          "destinationHref": "https://wiki.skyflash.co",
+          "service": "http://localhost:8090",
+          "description": "Confluence instance"
+        },
+        {
+          "routeType": "Private hostname",
+          "destination": "wiki.internal",
+          "destinationHref": "https://wiki.internal",
+          "service": "-",
+          "description": "Internal wiki hostname"
+        }
+      ]
+    },
+    {
+      "name": "Backup Gateway",
+      "tunnelId": "M1oP4qR7sT0uV3wX6yZ9aB2cD5eF8gH1iJ4",
+      "tunnelType": "cloudflared",
+      "status": "Healthy",
+      "replicas": [
+        {
+          "replicaId": "Q5sT8uV1wX",
+          "originIp": "10.50.0.40",
+          "edgeLocations": ["sin01", "sin02"],
+          "version": "2025.11.1",
+          "architecture": "linux_amd64",
+          "uptime": "33 days"
+        },
+        {
+          "replicaId": "R6tU9vW2xY",
+          "originIp": "10.50.0.41",
+          "edgeLocations": ["sin01"],
+          "version": "2025.11.1",
+          "architecture": "linux_amd64",
+          "uptime": "33 days"
+        }
+      ],
+      "routes": [
+        {
+          "routeType": "Private CIDR",
+          "destination": "10.50.0.0/24",
+          "service": "-",
+          "description": "Backup network segment"
+        },
+        {
+          "routeType": "Private hostname",
+          "destination": "backup.internal",
+          "destinationHref": "https://backup.internal",
+          "service": "-",
+          "description": "Backup service endpoint"
+        },
+        {
+          "routeType": "VPC",
+          "destination": "backup-storage",
+          "destinationHref": "#",
+          "service": "localhost:9000",
+          "description": "MinIO object storage"
+        }
+      ]
+    }
+  ]
+}

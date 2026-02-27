@@ -54,6 +54,7 @@ export const CATEGORY_MAP: Record<string, string> = {
   select: "Input",
   switch: "Input",
   // Layout
+  flow: "Layout",
   grid: "Layout",
   surface: "Layout",
   // Navigation
@@ -337,21 +338,149 @@ export function extractDescription(
 }
 
 // =============================================================================
+// Main File Resolution
+// =============================================================================
+
+/**
+ * Resolve the main component source file for a component directory.
+ *
+ * Resolution order:
+ * 1. `{dirName}/{dirName}.tsx` — standard convention (e.g. button/button.tsx)
+ * 2. Parse `index.ts` re-exports to find the file containing the main component
+ *    (e.g. flow/index.ts → `import { FlowDiagram } from "./diagram"` → flow/diagram.tsx)
+ *
+ * Returns the absolute path to the main file, or null if not resolvable.
+ */
+export function resolveMainFile(
+  dirPath: string,
+  dirName: string,
+): string | null {
+  // 1. Standard convention: {dirName}/{dirName}.tsx
+  const conventionalFile = join(dirPath, `${dirName}.tsx`);
+  if (existsSync(conventionalFile)) {
+    return conventionalFile;
+  }
+
+  // 2. Fallback: parse index.ts to find the source file for the main export
+  const indexPath = join(dirPath, "index.ts");
+  if (!existsSync(indexPath)) {
+    return null;
+  }
+
+  try {
+    const content = readFileSync(indexPath, "utf-8");
+    const detected = detectExportsFromIndex(dirPath);
+    if (!detected.componentName) {
+      return null;
+    }
+
+    // Find which file the main component is imported from.
+    // Handles patterns:
+    //   import { FlowDiagram } from "./diagram"
+    //   export { Button } from "./button"
+    //   const Flow = Object.assign(FlowDiagram, { ... })  → trace FlowDiagram import
+    //
+    // Strategy: find all `import { ... } from "./file"` and `export { ... } from "./file"`,
+    // then check which one contains the main component name or its source identifier.
+
+    // Collect all import/export-from mappings: identifier → relative path
+    const identifierSources = new Map<string, string>();
+    const importExportPattern =
+      /(?:import|export)\s*\{([^}]+)\}\s*from\s*["'](\.[^"']+)["']/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = importExportPattern.exec(content)) !== null) {
+      const names = match[1]
+        .split(",")
+        .map((s) => s.trim().replace(/^type\s+/, ""));
+      const relativePath = match[2];
+      for (const raw of names) {
+        // Handle "Foo as Bar" — we care about the local name (Bar) and the original (Foo)
+        const asMatch = raw.match(/^(\w+)\s+as\s+(\w+)/);
+        if (asMatch) {
+          identifierSources.set(asMatch[1], relativePath);
+          identifierSources.set(asMatch[2], relativePath);
+        } else if (raw) {
+          identifierSources.set(raw, relativePath);
+        }
+      }
+    }
+
+    // Direct re-export: export { ComponentName } from "./file"
+    const directSource = identifierSources.get(detected.componentName);
+    if (directSource) {
+      return resolveRelativeTsx(dirPath, directSource);
+    }
+
+    // Indirect: const Component = Object.assign(Imported, { ... })
+    // or const Component = forwardRef(...)
+    // Find what identifier is assigned to the component name
+    const assignPattern = new RegExp(
+      `(?:const|let)\\s+${detected.componentName}\\s*=\\s*(?:Object\\.assign\\(\\s*(\\w+)|forwardRef)`,
+    );
+    const assignMatch = content.match(assignPattern);
+    if (assignMatch?.[1]) {
+      const sourceId = assignMatch[1];
+      const source = identifierSources.get(sourceId);
+      if (source) {
+        return resolveRelativeTsx(dirPath, source);
+      }
+    }
+
+    // Last resort: if there's only one .tsx import source, use that
+    const tsxSources = new Set(
+      [...identifierSources.values()].filter((p) => !p.endsWith(".css")),
+    );
+    if (tsxSources.size === 1) {
+      return resolveRelativeTsx(dirPath, [...tsxSources][0]);
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve a relative import path (e.g. "./diagram") to an absolute .tsx file path.
+ */
+function resolveRelativeTsx(
+  dirPath: string,
+  relativePath: string,
+): string | null {
+  // Try with .tsx extension
+  const withTsx = join(dirPath, `${relativePath}.tsx`);
+  if (existsSync(withTsx)) return withTsx;
+
+  // Try as-is (might already have extension)
+  const asIs = join(dirPath, relativePath);
+  if (existsSync(asIs)) return asIs;
+
+  // Try /index.tsx
+  const indexFile = join(dirPath, relativePath, "index.tsx");
+  if (existsSync(indexFile)) return indexFile;
+
+  return null;
+}
+
+// =============================================================================
 // Directory Discovery
 // =============================================================================
 
 /**
  * Discover all component directories in a given source directory.
- * Returns array of directory names (kebab-case)
+ * Returns array of directory names (kebab-case).
+ *
+ * A directory is considered a component if:
+ * 1. It contains `{dirName}/{dirName}.tsx` (standard convention), OR
+ * 2. It contains `index.ts` with a PascalCase component export
  */
 export function discoverDirs(sourceDir: string): string[] {
   const entries = readdirSync(sourceDir);
   return entries.filter((entry) => {
     const fullPath = join(sourceDir, entry);
     if (!statSync(fullPath).isDirectory()) return false;
-    // Check if main component file exists
-    const mainFile = join(fullPath, `${entry}.tsx`);
-    return existsSync(mainFile);
+    return resolveMainFile(fullPath, entry) !== null;
   });
 }
 
@@ -374,7 +503,8 @@ export async function discoverFromDir(
 
   for (const dirName of dirs) {
     const dirPath = join(sourceDir, dirName);
-    const mainFile = join(dirPath, `${dirName}.tsx`);
+    const mainFile =
+      resolveMainFile(dirPath, dirName) ?? join(dirPath, `${dirName}.tsx`);
     const override = COMPONENT_OVERRIDES[dirName] || {};
 
     // Auto-detect component name and props type from index.ts
@@ -415,7 +545,9 @@ export async function discoverFromDir(
     configs.push({
       name: componentName,
       propsType,
-      sourceFile: `${dirName}/${dirName}.tsx`,
+      sourceFile: mainFile.startsWith(sourceDir)
+        ? mainFile.slice(sourceDir.length + 1)
+        : `${dirName}/${dirName}.tsx`,
       dirName,
       sourceDir,
       type,

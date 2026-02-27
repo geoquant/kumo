@@ -1,0 +1,61 @@
+@source "../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
+@import "@cloudflare/kumo/styles";
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
+
+@theme {
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  --color-color: light-dark(
+    var(--color-neutral-200, oklch(92.2% 0 0)),
+    var(--color-neutral-800, oklch(26.9% 0 0))
+  );
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  font-display: optional;
+}
+
+body {
+  overflow-y: scroll;
+}
+
+#root {
+  min-height: 100vh;
+  contain: layout style paint;
+}
+
+/* Bounce-once animation for the documentation-only TemplatePill */
+@keyframes bounce-once {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-8px);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+  70% {
+    transform: translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-bounce-once {
+  animation: bounce-once 0.6s ease-out forwards;
+}
