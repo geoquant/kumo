@@ -1,5 +1,5 @@
 # Progress Log
-PRD: style-layer
+PRD: geoquant/streaming-ui
 Started: 2026-02-27
 
 ## Codebase Patterns
