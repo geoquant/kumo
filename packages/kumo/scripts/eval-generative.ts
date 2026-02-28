@@ -1,9 +1,9 @@
 #!/usr/bin/env tsx
 /**
- * Eval harness — tests actual LLM output against structural graders.
+ * Eval harness — tests actual LLM output against structural + composition graders.
  *
  * Sends eval prompts to the /api/chat SSE endpoint, parses SSE → JSONL → UITree,
- * runs gradeTree(), and reports per-rule pass rates.
+ * runs gradeTree() + gradeComposition(), and reports per-rule pass rates.
  *
  * Usage:
  *   tsx scripts/eval-generative.ts [options]
@@ -27,6 +27,10 @@ import {
   RULE_NAMES,
 } from "../src/generative/structural-graders.js";
 import type { GradeReport } from "../src/generative/structural-graders.js";
+import {
+  gradeComposition,
+  COMPOSITION_RULE_NAMES,
+} from "../src/generative/composition-graders.js";
 import { EVAL_PROMPTS } from "../src/generative/eval/eval-prompts.js";
 
 // =============================================================================
@@ -178,6 +182,7 @@ interface RunResult {
   promptName: string;
   runIndex: number;
   report: GradeReport | null;
+  compositionReport: GradeReport | null;
   error: string | null;
   jsonl: string;
 }
@@ -188,6 +193,7 @@ interface PromptAggregate {
   successfulRuns: number;
   errors: number;
   rulePassRates: Record<string, number>;
+  compositionPassRates: Record<string, number>;
   allPassRate: number;
 }
 
@@ -196,6 +202,7 @@ interface Baseline {
   args: Omit<CliArgs, "saveBaseline" | "compare" | "saveJsonl" | "verbose">;
   prompts: ReadonlyArray<PromptAggregate>;
   overall: Record<string, number>;
+  overallComposition: Record<string, number>;
   overallAllPass: number;
 }
 
@@ -235,19 +242,25 @@ async function runEval(args: CliArgs): Promise<void> {
 
         const tree = parseJsonlToTree(jsonl);
         const report = gradeTree(tree);
+        const compositionReport = gradeComposition(tree);
 
         allResults.push({
           promptName: prompt.id,
           runIndex: run,
           report,
+          compositionReport,
           error: null,
           jsonl,
         });
 
-        process.stdout.write(report.allPass ? " ✓" : " ✗");
+        const bothPass = report.allPass && compositionReport.allPass;
+        process.stdout.write(bothPass ? " ✓" : " ✗");
 
-        if (verbose && !report.allPass) {
-          const failures = report.results.filter((r) => !r.pass);
+        if (verbose && !bothPass) {
+          const failures = [
+            ...report.results.filter((r) => !r.pass),
+            ...compositionReport.results.filter((r) => !r.pass),
+          ];
           for (const f of failures) {
             console.log(`\n    [${f.rule}] ${f.violations.join("; ")}`);
           }
@@ -258,6 +271,7 @@ async function runEval(args: CliArgs): Promise<void> {
           promptName: prompt.id,
           runIndex: run,
           report: null,
+          compositionReport: null,
           error: message,
           jsonl: "",
         });
@@ -294,7 +308,22 @@ async function runEval(args: CliArgs): Promise<void> {
       }
     }
 
-    const allPassCount = successful.filter((r) => r.report?.allPass).length;
+    const compositionPassRates: Record<string, number> = {};
+    for (const rule of COMPOSITION_RULE_NAMES) {
+      if (successful.length === 0) {
+        compositionPassRates[rule] = 0;
+      } else {
+        const passing = successful.filter(
+          (r) =>
+            r.compositionReport?.results.find((res) => res.rule === rule)?.pass,
+        ).length;
+        compositionPassRates[rule] = passing / successful.length;
+      }
+    }
+
+    const allPassCount = successful.filter(
+      (r) => r.report?.allPass && r.compositionReport?.allPass,
+    ).length;
 
     promptAggregates.push({
       promptName: prompt.id,
@@ -302,6 +331,7 @@ async function runEval(args: CliArgs): Promise<void> {
       successfulRuns: successful.length,
       errors: promptResults.length - successful.length,
       rulePassRates,
+      compositionPassRates,
       allPassRate: successful.length > 0 ? allPassCount / successful.length : 0,
     });
   }
@@ -321,35 +351,51 @@ async function runEval(args: CliArgs): Promise<void> {
     }
   }
 
+  const overallComposition: Record<string, number> = {};
+  for (const rule of COMPOSITION_RULE_NAMES) {
+    if (successfulResults.length === 0) {
+      overallComposition[rule] = 0;
+    } else {
+      const passing = successfulResults.filter(
+        (r) =>
+          r.compositionReport?.results.find((res) => res.rule === rule)?.pass,
+      ).length;
+      overallComposition[rule] = passing / successfulResults.length;
+    }
+  }
+
   const overallAllPass =
     successfulResults.length > 0
-      ? successfulResults.filter((r) => r.report?.allPass).length /
-        successfulResults.length
+      ? successfulResults.filter(
+          (r) => r.report?.allPass && r.compositionReport?.allPass,
+        ).length / successfulResults.length
       : 0;
 
   // ==========================================================================
   // Print report
   // ==========================================================================
 
+  const ALL_RULES = [...RULE_NAMES, ...COMPOSITION_RULE_NAMES];
   const COL_W = 32; // prompt ID column width
-  const LINE_W = COL_W + 6 + RULE_NAMES.length * 9 + 4;
+  const RULE_COL_W = 9;
+  const LINE_W = COL_W + 6 + ALL_RULES.length * RULE_COL_W + 4;
 
   console.log("\n" + "═".repeat(LINE_W));
   console.log("  RESULTS");
   console.log("═".repeat(LINE_W));
 
-  // Per-prompt summary
-  console.log("\n  Per-prompt pass rates:");
-  console.log("  " + "─".repeat(LINE_W - 2));
+  // Per-prompt summary — structural rules
+  console.log("\n  Structural rules (8):");
+  console.log("  " + "─".repeat(COL_W + 6 + RULE_NAMES.length * RULE_COL_W));
   console.log(
-    `  ${"Prompt".padEnd(COL_W)} ${"All".padStart(6)} ${RULE_NAMES.map((r) => r.slice(0, 8).padStart(9)).join("")}`,
+    `  ${"Prompt".padEnd(COL_W)} ${"All".padStart(6)} ${RULE_NAMES.map((r) => r.slice(0, 8).padStart(RULE_COL_W)).join("")}`,
   );
-  console.log("  " + "─".repeat(LINE_W - 2));
+  console.log("  " + "─".repeat(COL_W + 6 + RULE_NAMES.length * RULE_COL_W));
 
   for (const agg of promptAggregates) {
     const allStr = pct(agg.allPassRate);
     const ruleStrs = RULE_NAMES.map((r) =>
-      pct(agg.rulePassRates[r] ?? 0).padStart(9),
+      pct(agg.rulePassRates[r] ?? 0).padStart(RULE_COL_W),
     );
     const errSuffix = agg.errors > 0 ? ` (${agg.errors}E)` : "";
     console.log(
@@ -357,16 +403,49 @@ async function runEval(args: CliArgs): Promise<void> {
     );
   }
 
-  console.log("  " + "─".repeat(LINE_W - 2));
-
-  // Overall
-  const overallRuleStrs = RULE_NAMES.map((r) =>
-    pct(overall[r] ?? 0).padStart(9),
+  console.log("  " + "─".repeat(COL_W + 6 + RULE_NAMES.length * RULE_COL_W));
+  const overallStructStrs = RULE_NAMES.map((r) =>
+    pct(overall[r] ?? 0).padStart(RULE_COL_W),
   );
   console.log(
-    `  ${"OVERALL".padEnd(COL_W)} ${pct(overallAllPass).padStart(6)} ${overallRuleStrs.join("")}`,
+    `  ${"OVERALL".padEnd(COL_W)} ${pct(overallAllPass).padStart(6)} ${overallStructStrs.join("")}`,
   );
-  console.log("  " + "─".repeat(LINE_W - 2));
+
+  // Per-prompt summary — composition rules
+  console.log("\n  Composition rules (6):");
+  console.log(
+    "  " + "─".repeat(COL_W + 6 + COMPOSITION_RULE_NAMES.length * RULE_COL_W),
+  );
+  console.log(
+    `  ${"Prompt".padEnd(COL_W)} ${"All".padStart(6)} ${COMPOSITION_RULE_NAMES.map((r) => r.slice(0, 8).padStart(RULE_COL_W)).join("")}`,
+  );
+  console.log(
+    "  " + "��".repeat(COL_W + 6 + COMPOSITION_RULE_NAMES.length * RULE_COL_W),
+  );
+
+  for (const agg of promptAggregates) {
+    const allStr = pct(agg.allPassRate);
+    const compStrs = COMPOSITION_RULE_NAMES.map((r) =>
+      pct(agg.compositionPassRates[r] ?? 0).padStart(RULE_COL_W),
+    );
+    const errSuffix = agg.errors > 0 ? ` (${agg.errors}E)` : "";
+    console.log(
+      `  ${(agg.promptName + errSuffix).padEnd(COL_W)} ${allStr.padStart(6)} ${compStrs.join("")}`,
+    );
+  }
+
+  console.log(
+    "  " + "─".repeat(COL_W + 6 + COMPOSITION_RULE_NAMES.length * RULE_COL_W),
+  );
+  const overallCompStrs = COMPOSITION_RULE_NAMES.map((r) =>
+    pct(overallComposition[r] ?? 0).padStart(RULE_COL_W),
+  );
+  console.log(
+    `  ${"OVERALL".padEnd(COL_W)} ${pct(overallAllPass).padStart(6)} ${overallCompStrs.join("")}`,
+  );
+  console.log(
+    "  " + "─".repeat(COL_W + 6 + COMPOSITION_RULE_NAMES.length * RULE_COL_W),
+  );
 
   // Error summary
   const totalErrors = allResults.filter((r) => r.error !== null).length;
@@ -385,6 +464,7 @@ async function runEval(args: CliArgs): Promise<void> {
     args: { url, runs, delay },
     prompts: promptAggregates,
     overall,
+    overallComposition,
     overallAllPass,
   };
 
@@ -401,22 +481,42 @@ async function runEval(args: CliArgs): Promise<void> {
       console.error(`\n  Baseline not found: ${path}`);
       console.error(`  Available: run with --save-baseline <name> first`);
     } else {
-      const prev = JSON.parse(readFileSync(path, "utf-8")) as Baseline;
-      console.log(`\n  Comparison vs "${compare}" (${prev.timestamp}):`);
+      const prev = JSON.parse(readFileSync(path, "utf-8")) as Partial<Baseline>;
+      console.log(
+        `\n  Comparison vs "${compare}" (${prev.timestamp ?? "unknown"}):`,
+      );
       console.log("  " + "─".repeat(50));
 
-      const allDelta = overallAllPass - prev.overallAllPass;
+      const allDelta = overallAllPass - (prev.overallAllPass ?? 0);
       console.log(
-        `  ${"All-pass".padEnd(25)} ${pct(prev.overallAllPass).padStart(7)} → ${pct(overallAllPass).padStart(7)}  ${delta(allDelta)}`,
+        `  ${"All-pass".padEnd(25)} ${pct(prev.overallAllPass ?? 0).padStart(7)} → ${pct(overallAllPass).padStart(7)}  ${delta(allDelta)}`,
       );
 
+      // Structural rules
       for (const rule of RULE_NAMES) {
-        const prevRate = prev.overall[rule] ?? 0;
+        const prevRate = prev.overall?.[rule] ?? 0;
         const currRate = overall[rule] ?? 0;
         const d = currRate - prevRate;
         console.log(
           `  ${rule.padEnd(25)} ${pct(prevRate).padStart(7)} → ${pct(currRate).padStart(7)}  ${delta(d)}`,
         );
+      }
+
+      // Composition rules — backward compat: show N/A for old baselines
+      const hasComposition = prev.overallComposition != null;
+      for (const rule of COMPOSITION_RULE_NAMES) {
+        const currRate = overallComposition[rule] ?? 0;
+        if (hasComposition) {
+          const prevRate = prev.overallComposition?.[rule] ?? 0;
+          const d = currRate - prevRate;
+          console.log(
+            `  ${rule.padEnd(25)} ${pct(prevRate).padStart(7)} → ${pct(currRate).padStart(7)}  ${delta(d)}`,
+          );
+        } else {
+          console.log(
+            `  ${rule.padEnd(25)} ${"N/A".padStart(7)} → ${pct(currRate).padStart(7)}`,
+          );
+        }
       }
       console.log("  " + "─".repeat(50));
     }

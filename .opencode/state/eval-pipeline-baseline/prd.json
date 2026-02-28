@@ -28,7 +28,7 @@
         "--save-baseline persists composition scores",
         "--compare shows deltas for composition rules with backward compat (N/A for old baselines)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "d3-skills-flag",
