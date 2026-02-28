@@ -123,7 +123,7 @@
         "parseJsonlToTree() produces valid UITree from the example JSONL",
         "Example passes both gradeTree() and gradeComposition()"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "prompt-5",

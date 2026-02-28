@@ -19,6 +19,8 @@ Started: 2026-02-27
 - `extractExampleJsonl(prompt, title)` test helper: extracts JSONL lines from a named example in the prompt text — reuse for testing any inline example
 - Page-level examples follow pattern: `Surface > Stack(gap="lg") > [header, Grid(variant="2up") > [main-col, sidebar-col]]` — consistent two-column structure
 - Header-with-actions pattern: `Grid(variant="2up") > [Stack(gap="sm") > [heading, desc], Cluster(justify="end") > [buttons]]` — title left, actions right; satisfies responsive-layout grader for single-column pages
+- Tabs pattern in JSONL: `Tabs` element with `tabs` prop (array of `{value, label}`) + `defaultValue` — tab content as sibling Stack elements, not children of Tabs. All panels visible in static tree; runtime handles switching.
+- Spacing-consistency gotcha: sibling Stack elements under same parent must have gaps within 1 step (sm↔base OK, sm↔lg NOT OK). Tab content sections sharing a parent with the header must match gap range.
 
 ---
 
@@ -97,3 +99,14 @@ Started: 2026-02-27
 - Added 5 tests: tree validity, header structure (heading + description + buttons), table structure, gradeTree pass, gradeComposition pass
 - **Files changed:** `system-prompt.ts` (modified), `prompt-contracts.test.ts` (modified)
 - **Learnings:** Single-column service detail pages still need Grid to pass `has-responsive-layout` grader when >12 elements. Using `Grid(variant="2up")` for the header row (title-left, actions-right) is a natural pattern that satisfies the grader while matching the NS template's `flex justify-between` header design.
+
+## Task - prompt-4
+- Added `EXAMPLE_SERVICE_TABS` to system prompt: "Service Tabs Page with Multi-Tab Content"
+- 3-tab layout: Overview (stat grid with `Grid(variant="3up")` + `Surface(color="neutral")` stat cards), Traffic (request log table with Badge method/status), Settings (Input + Button form)
+- `Tabs` element uses `tabs` prop with array of `{value, label}` objects + `defaultValue="overview"`
+- Tab content panels are sibling Stack elements under same parent as Tabs (not children of Tabs)
+- Initial `tab-settings` used `gap="lg"` which violated spacing-consistency (sm↔lg = 2 steps). Fixed to `gap="base"` (sm↔base = 1 step OK).
+- Updated JSDoc to reference eleven examples
+- Added 5 tests: tree validity, Tabs element with 3 tabs, content per tab (Grid + Table + Input), gradeTree pass, gradeComposition pass
+- **Files changed:** `system-prompt.ts` (modified), `prompt-contracts.test.ts` (modified)
+- **Learnings:** Sibling Stacks sharing a parent with different semantic purposes (header vs content sections) still must respect spacing-consistency. When mixing `gap="sm"` headers with `gap="lg"` content, use `gap="base"` instead — it's within one step of both `sm` and `lg`. Tabs in JSONL: content is siblings of Tabs element, not children.

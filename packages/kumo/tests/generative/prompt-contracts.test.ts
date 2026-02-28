@@ -212,6 +212,50 @@ describe("Service Detail page example (Example 9)", () => {
   });
 });
 
+describe("Service Tabs page example (Example 10)", () => {
+  const prompt = buildSystemPrompt();
+  const jsonl = extractExampleJsonl(prompt, "Service Tabs Page");
+  const tree = parseJsonlToTree(jsonl);
+
+  it("parseJsonlToTree produces valid UITree with root and elements", () => {
+    expect(tree.root).toBeTruthy();
+    expect(Object.keys(tree.elements).length).toBeGreaterThan(0);
+  });
+
+  it("contains a Tabs element with tabs prop defining three tabs", () => {
+    const tabs = Object.values(tree.elements).find((el) => el.type === "Tabs");
+    expect(tabs).toBeDefined();
+    const tabsProp = (tabs!.props as Record<string, unknown>)["tabs"];
+    expect(Array.isArray(tabsProp)).toBe(true);
+    expect((tabsProp as unknown[]).length).toBe(3);
+  });
+
+  it("has content sections for each tab", () => {
+    // Overview tab has stat grid
+    expect(treeHasType(tree, "Grid")).toBe(true);
+    // Traffic tab has table
+    expect(treeHasType(tree, "Table")).toBe(true);
+    // Settings tab has form input
+    expect(treeHasType(tree, "Input")).toBe(true);
+  });
+
+  it("passes gradeTree() structural grading", () => {
+    const report = gradeTree(tree);
+    for (const r of report.results) {
+      expect(r.violations, `rule "${r.rule}" failed`).toEqual([]);
+    }
+    expect(report.allPass).toBe(true);
+  });
+
+  it("passes gradeComposition() composition grading", () => {
+    const report = gradeComposition(tree);
+    for (const r of report.results) {
+      expect(r.violations, `rule "${r.rule}" failed`).toEqual([]);
+    }
+    expect(report.allPass).toBe(true);
+  });
+});
+
 describe("Product Overview page example (Example 8)", () => {
   const prompt = buildSystemPrompt();
   const jsonl = extractExampleJsonl(prompt, "Product Overview Page");
