@@ -66,7 +66,7 @@
       "id": "d11-drift-detection",
       "category": "spike",
       "description": "Add codegen drift detection for discovery vs registry",
-      "passes": false
+      "passes": true
     },
     {
       "id": "verify-manifest-integration",
