@@ -1,0 +1,22 @@
+# Progress Log
+PRD: eval-pipeline-baseline
+Started: 2026-02-28
+
+## Codebase Patterns
+- CLI eval script: `packages/kumo/scripts/eval-generative.ts` — standalone tsx script, not part of library build
+- Eval prompts source of truth: `packages/kumo/src/generative/eval/eval-prompts.ts` — exports `EVAL_PROMPTS`, `EvalPrompt` type
+- CLI uses local `EvalPrompt` interface with `name`/`message` fields; shared module uses `id`/`prompt` fields
+- Composition graders: `packages/kumo/src/generative/composition-graders.ts` — exports `gradeComposition`, `COMPOSITION_RULE_NAMES`
+- Generative barrel: `packages/kumo/src/generative/index.ts` — already exports composition graders
+- Structural graders export `RULE_NAMES`, `GradeReport`, `gradeTree`, `parseJsonlToTree`
+
+---
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - d1-unify-prompts
+- Removed hardcoded `EVAL_PROMPTS` (10 prompts) and local `EvalPrompt` interface from `eval-generative.ts`
+- Imported `EVAL_PROMPTS` from `../src/generative/eval/eval-prompts.js` (13 prompts)
+- Adapted all references: `prompt.name` → `prompt.id`, `prompt.message` → `prompt.prompt`
+- Widened report table column from 22 to 32 chars to accommodate longer prompt IDs
+- Files changed: `packages/kumo/scripts/eval-generative.ts`
+- **Learnings:** CLI script is a standalone tsx script not included in the library build; the shared `EvalPrompt` type uses `id`/`prompt` while the CLI was using `name`/`message`
