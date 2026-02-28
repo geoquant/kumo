@@ -98,13 +98,23 @@ describe("playground flow e2e: JSONL parsing", () => {
     expect(flowParallels).toHaveLength(2); // security + storage
   });
 
-  it("parsed tree contains Table element for bindings", () => {
+  it("parsed tree contains structural Table element for bindings", () => {
     const tree = parseJsonlToTree(loadFixture("workers-flow"));
 
     const tables = elementsByType(tree, "Table");
     expect(tables).toHaveLength(1);
-    expect(tables[0].props).toHaveProperty("columns");
-    expect(tables[0].props).toHaveProperty("rows");
+    expect(tables[0].props).toHaveProperty("layout", "fixed");
+    expect(tables[0].children).toBeDefined();
+
+    // Structural children: TableHeader + TableBody
+    const headers = elementsByType(tree, "TableHeader");
+    const bodies = elementsByType(tree, "TableBody");
+    expect(headers).toHaveLength(1);
+    expect(bodies).toHaveLength(1);
+
+    // 4 data rows (MY_KV, MY_DB, AUTH_SERVICE, ASSETS)
+    const bodyRows = bodies[0].children ?? [];
+    expect(bodyRows).toHaveLength(4);
   });
 
   it("preserves parent-child relationships through parsing", () => {
@@ -316,10 +326,15 @@ describe("playground flow e2e: inline tree rendering", () => {
       b2: el("b2", "FlowNode", { children: "Origin" }),
       s2: el("s2", "FlowNode", { children: "Response" }),
       "table-card": el("table-card", "Surface", {}, ["tbl"]),
-      tbl: el("tbl", "Table", {
-        columns: ["Name", "Value"],
-        rows: [["KEY", "val"]],
-      }),
+      tbl: el("tbl", "Table", { layout: "fixed" }, ["thead", "tbody"]),
+      thead: el("thead", "TableHeader", {}, ["hrow"]),
+      hrow: el("hrow", "TableRow", {}, ["h1", "h2"]),
+      h1: el("h1", "TableHead", { children: "Name" }),
+      h2: el("h2", "TableHead", { children: "Value" }),
+      tbody: el("tbody", "TableBody", {}, ["row1"]),
+      row1: el("row1", "TableRow", {}, ["c1", "c2"]),
+      c1: el("c1", "TableCell", { children: "KEY" }),
+      c2: el("c2", "TableCell", { children: "val" }),
     });
 
     const { container } = render(<UITreeRenderer tree={tree} />);
@@ -368,7 +383,9 @@ describe("playground flow e2e: full pipeline coherence", () => {
     const tree = parseJsonlToTree(loadFixture("workers-flow"));
 
     // Expected: 1 page Stack, 2 Surfaces, 2 headings, 1 Flow,
-    // 7 FlowNodes, 2 FlowParallels, 1 Table = 16 elements
-    expect(Object.keys(tree.elements)).toHaveLength(16);
+    // 7 FlowNodes, 2 FlowParallels, 1 Table + 1 TableHeader +
+    // 1 TableRow(header) + 3 TableHead + 1 TableBody +
+    // 4 TableRow(body) + 12 TableCell = 38 elements
+    expect(Object.keys(tree.elements)).toHaveLength(38);
   });
 });

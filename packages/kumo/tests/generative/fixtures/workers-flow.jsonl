@@ -12,6 +12,28 @@
 {"op":"add","path":"/elements/kv-node","value":{"key":"kv-node","type":"FlowNode","props":{"children":"KV Store"},"parentKey":"storage-parallel"}}
 {"op":"add","path":"/elements/d1-node","value":{"key":"d1-node","type":"FlowNode","props":{"children":"D1 Database"},"parentKey":"storage-parallel"}}
 {"op":"add","path":"/elements/response-node","value":{"key":"response-node","type":"FlowNode","props":{"children":"Response"},"parentKey":"request-flow"}}
-{"op":"add","path":"/elements/table-section","value":{"key":"table-section","type":"Surface","props":{},"children":["table-heading","bindings-grid"],"parentKey":"page"}}
+{"op":"add","path":"/elements/table-section","value":{"key":"table-section","type":"Surface","props":{},"children":["table-heading","bindings-tbl"],"parentKey":"page"}}
 {"op":"add","path":"/elements/table-heading","value":{"key":"table-heading","type":"Text","props":{"children":"Worker Bindings","variant":"heading2"},"parentKey":"table-section"}}
-{"op":"add","path":"/elements/bindings-grid","value":{"key":"bindings-grid","type":"Table","props":{"columns":["Name","Type","Resource"],"rows":[["MY_KV","KV Namespace","production-kv"],["MY_DB","D1 Database","worker-db"],["AUTH_SERVICE","Service Binding","auth-worker"],["ASSETS","R2 Bucket","static-assets"]]},"parentKey":"table-section"}}
+{"op":"add","path":"/elements/bindings-tbl","value":{"key":"bindings-tbl","type":"Table","props":{"layout":"fixed"},"children":["bindings-thead","bindings-tbody"],"parentKey":"table-section"}}
+{"op":"add","path":"/elements/bindings-thead","value":{"key":"bindings-thead","type":"TableHeader","props":{},"children":["bindings-hrow"],"parentKey":"bindings-tbl"}}
+{"op":"add","path":"/elements/bindings-hrow","value":{"key":"bindings-hrow","type":"TableRow","props":{},"children":["h-name","h-type","h-resource"],"parentKey":"bindings-thead"}}
+{"op":"add","path":"/elements/h-name","value":{"key":"h-name","type":"TableHead","props":{"children":"Name"},"parentKey":"bindings-hrow"}}
+{"op":"add","path":"/elements/h-type","value":{"key":"h-type","type":"TableHead","props":{"children":"Type"},"parentKey":"bindings-hrow"}}
+{"op":"add","path":"/elements/h-resource","value":{"key":"h-resource","type":"TableHead","props":{"children":"Resource"},"parentKey":"bindings-hrow"}}
+{"op":"add","path":"/elements/bindings-tbody","value":{"key":"bindings-tbody","type":"TableBody","props":{},"children":["row-kv","row-db","row-auth","row-assets"],"parentKey":"bindings-tbl"}}
+{"op":"add","path":"/elements/row-kv","value":{"key":"row-kv","type":"TableRow","props":{},"children":["c-kv-name","c-kv-type","c-kv-resource"],"parentKey":"bindings-tbody"}}
+{"op":"add","path":"/elements/c-kv-name","value":{"key":"c-kv-name","type":"TableCell","props":{"children":"MY_KV"},"parentKey":"row-kv"}}
+{"op":"add","path":"/elements/c-kv-type","value":{"key":"c-kv-type","type":"TableCell","props":{"children":"KV Namespace"},"parentKey":"row-kv"}}
+{"op":"add","path":"/elements/c-kv-resource","value":{"key":"c-kv-resource","type":"TableCell","props":{"children":"production-kv"},"parentKey":"row-kv"}}
+{"op":"add","path":"/elements/row-db","value":{"key":"row-db","type":"TableRow","props":{},"children":["c-db-name","c-db-type","c-db-resource"],"parentKey":"bindings-tbody"}}
+{"op":"add","path":"/elements/c-db-name","value":{"key":"c-db-name","type":"TableCell","props":{"children":"MY_DB"},"parentKey":"row-db"}}
+{"op":"add","path":"/elements/c-db-type","value":{"key":"c-db-type","type":"TableCell","props":{"children":"D1 Database"},"parentKey":"row-db"}}
+{"op":"add","path":"/elements/c-db-resource","value":{"key":"c-db-resource","type":"TableCell","props":{"children":"worker-db"},"parentKey":"row-db"}}
+{"op":"add","path":"/elements/row-auth","value":{"key":"row-auth","type":"TableRow","props":{},"children":["c-auth-name","c-auth-type","c-auth-resource"],"parentKey":"bindings-tbody"}}
+{"op":"add","path":"/elements/c-auth-name","value":{"key":"c-auth-name","type":"TableCell","props":{"children":"AUTH_SERVICE"},"parentKey":"row-auth"}}
+{"op":"add","path":"/elements/c-auth-type","value":{"key":"c-auth-type","type":"TableCell","props":{"children":"Service Binding"},"parentKey":"row-auth"}}
+{"op":"add","path":"/elements/c-auth-resource","value":{"key":"c-auth-resource","type":"TableCell","props":{"children":"auth-worker"},"parentKey":"row-auth"}}
+{"op":"add","path":"/elements/row-assets","value":{"key":"row-assets","type":"TableRow","props":{},"children":["c-assets-name","c-assets-type","c-assets-resource"],"parentKey":"bindings-tbody"}}
+{"op":"add","path":"/elements/c-assets-name","value":{"key":"c-assets-name","type":"TableCell","props":{"children":"ASSETS"},"parentKey":"row-assets"}}
+{"op":"add","path":"/elements/c-assets-type","value":{"key":"c-assets-type","type":"TableCell","props":{"children":"R2 Bucket"},"parentKey":"row-assets"}}
+{"op":"add","path":"/elements/c-assets-resource","value":{"key":"c-assets-resource","type":"TableCell","props":{"children":"static-assets"},"parentKey":"row-assets"}}
