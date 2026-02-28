@@ -26,11 +26,26 @@ const HEADING_VARIANTS = new Set(["heading1", "heading2", "heading3"]);
  */
 const SIMPLE_LAYOUT_MAX_ELEMENTS = 12;
 
+/**
+ * Ordered gap scale for Stack elements (smallest ��� largest).
+ * Index distance ≤ 1 = consistent; >1 = inconsistent.
+ */
+const GAP_SCALE = ["none", "xs", "sm", "base", "lg", "xl"] as const;
+
+type GapValue = (typeof GAP_SCALE)[number];
+
+/** Return the index of a gap value in the ordered scale, or -1 if unknown. */
+function gapIndex(value: unknown): number {
+  if (typeof value !== "string") return -1;
+  return GAP_SCALE.indexOf(value as GapValue);
+}
+
 /** All composition rule names in evaluation order. */
 export const COMPOSITION_RULE_NAMES = [
   "has-visual-hierarchy",
   "has-responsive-layout",
   "surface-hierarchy-correct",
+  "spacing-consistency",
 ] as const;
 
 export type CompositionRuleName = (typeof COMPOSITION_RULE_NAMES)[number];
@@ -47,6 +62,7 @@ export function gradeComposition(tree: UITree): GradeReport {
   const hierarchyViolations: string[] = [];
   const layoutViolations: string[] = [];
   const surfaceViolations: string[] = [];
+  const spacingViolations: string[] = [];
 
   // Track which heading levels are present
   let hasAnyHeading = false;
@@ -56,6 +72,9 @@ export function gradeComposition(tree: UITree): GradeReport {
   // Track Grid usage
   let hasGridWithVariant = false;
   let hasGridWithoutVariant = false;
+
+  // Track Stack gap values grouped by parent key for spacing-consistency
+  const stackGapsByParent = new Map<string, { key: string; gap: string }[]>();
 
   let elementCount = 0;
 
@@ -81,6 +100,19 @@ export function gradeComposition(tree: UITree): GradeReport {
         hasGridWithVariant = true;
       } else {
         hasGridWithoutVariant = true;
+      }
+    }
+
+    // spacing-consistency: collect Stack gap values grouped by parent
+    if (type === "Stack" && parentKey != null) {
+      const gap = p["gap"];
+      if (typeof gap === "string" && gap.length > 0) {
+        let siblings = stackGapsByParent.get(parentKey);
+        if (siblings == null) {
+          siblings = [];
+          stackGapsByParent.set(parentKey, siblings);
+        }
+        siblings.push({ key: element.key, gap });
       }
     }
 
@@ -127,6 +159,32 @@ export function gradeComposition(tree: UITree): GradeReport {
     );
   }
 
+  // spacing-consistency rule evaluation
+  // For each parent, check that all sibling Stack gap values are within one step
+  for (const [parentKey, siblings] of stackGapsByParent) {
+    if (siblings.length < 2) continue;
+
+    const indices = siblings.map((s) => ({
+      key: s.key,
+      gap: s.gap,
+      idx: gapIndex(s.gap),
+    }));
+
+    // Skip unknown gap values (they'll be caught by element-validator)
+    const known = indices.filter((s) => s.idx >= 0);
+    if (known.length < 2) continue;
+
+    const minIdx = Math.min(...known.map((s) => s.idx));
+    const maxIdx = Math.max(...known.map((s) => s.idx));
+
+    if (maxIdx - minIdx > 1) {
+      const gapList = known.map((s) => `${s.key}(gap=${s.gap})`).join(", ");
+      spacingViolations.push(
+        `sibling Stacks under "${parentKey}" have inconsistent gaps: ${gapList} — keep gap values within one step (e.g. sm+base, not xs+lg)`,
+      );
+    }
+  }
+
   const results: GradeResult[] = [
     {
       rule: "has-visual-hierarchy",
@@ -142,6 +200,11 @@ export function gradeComposition(tree: UITree): GradeReport {
       rule: "surface-hierarchy-correct",
       pass: surfaceViolations.length === 0,
       violations: surfaceViolations,
+    },
+    {
+      rule: "spacing-consistency",
+      pass: spacingViolations.length === 0,
+      violations: spacingViolations,
     },
   ];
 

@@ -528,4 +528,202 @@ describe("gradeComposition", () => {
       expect(rule?.pass).toBe(true);
     });
   });
+
+  // ===========================================================================
+  // spacing-consistency
+  // ===========================================================================
+
+  describe("spacing-consistency", () => {
+    it("passes when sibling Stacks have gaps within one step (sm + base)", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["parent"] },
+        parent: {
+          type: "Stack",
+          props: { gap: "lg" },
+          children: ["heading", "a", "b"],
+        },
+        heading: {
+          type: "Text",
+          props: { variant: "heading2", children: "Title" },
+        },
+        a: {
+          type: "Stack",
+          props: { gap: "sm" },
+          children: ["t1"],
+        },
+        t1: {
+          type: "Text",
+          props: { variant: "body", children: "Content A" },
+        },
+        b: {
+          type: "Stack",
+          props: { gap: "base" },
+          children: ["t2"],
+        },
+        t2: {
+          type: "Text",
+          props: { variant: "body", children: "Content B" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "spacing-consistency");
+      expect(rule?.pass).toBe(true);
+      expect(rule?.violations).toHaveLength(0);
+    });
+
+    it("fails when sibling Stacks have gaps more than one step apart (xs + lg)", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["parent"] },
+        parent: {
+          type: "Stack",
+          props: { gap: "base" },
+          children: ["heading", "a", "b"],
+        },
+        heading: {
+          type: "Text",
+          props: { variant: "heading2", children: "Title" },
+        },
+        a: {
+          type: "Stack",
+          props: { gap: "xs" },
+          children: ["t1"],
+        },
+        t1: {
+          type: "Text",
+          props: { variant: "body", children: "Content A" },
+        },
+        b: {
+          type: "Stack",
+          props: { gap: "lg" },
+          children: ["t2"],
+        },
+        t2: {
+          type: "Text",
+          props: { variant: "body", children: "Content B" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "spacing-consistency");
+      expect(rule?.pass).toBe(false);
+      expect(rule?.violations).toHaveLength(1);
+      expect(rule?.violations[0]).toContain("inconsistent gaps");
+      expect(rule?.violations[0]).toContain("xs");
+      expect(rule?.violations[0]).toContain("lg");
+    });
+
+    it("passes when only one Stack child exists under a parent (no comparison needed)", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["parent"] },
+        parent: {
+          type: "Stack",
+          props: { gap: "base" },
+          children: ["heading", "only"],
+        },
+        heading: {
+          type: "Text",
+          props: { variant: "heading2", children: "Title" },
+        },
+        only: {
+          type: "Stack",
+          props: { gap: "xs" },
+          children: ["t1"],
+        },
+        t1: {
+          type: "Text",
+          props: { variant: "body", children: "Solo" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "spacing-consistency");
+      expect(rule?.pass).toBe(true);
+    });
+
+    it("passes when sibling Stacks have identical gap values", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["parent"] },
+        parent: {
+          type: "Stack",
+          props: { gap: "lg" },
+          children: ["heading", "a", "b", "c"],
+        },
+        heading: {
+          type: "Text",
+          props: { variant: "heading2", children: "Title" },
+        },
+        a: {
+          type: "Stack",
+          props: { gap: "base" },
+          children: ["t1"],
+        },
+        t1: {
+          type: "Text",
+          props: { variant: "body", children: "A" },
+        },
+        b: {
+          type: "Stack",
+          props: { gap: "base" },
+          children: ["t2"],
+        },
+        t2: {
+          type: "Text",
+          props: { variant: "body", children: "B" },
+        },
+        c: {
+          type: "Stack",
+          props: { gap: "base" },
+          children: ["t3"],
+        },
+        t3: {
+          type: "Text",
+          props: { variant: "body", children: "C" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "spacing-consistency");
+      expect(rule?.pass).toBe(true);
+      expect(rule?.violations).toHaveLength(0);
+    });
+
+    it("ignores Stacks without gap prop (no comparison possible)", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["parent"] },
+        parent: {
+          type: "Stack",
+          props: { gap: "base" },
+          children: ["heading", "a", "b"],
+        },
+        heading: {
+          type: "Text",
+          props: { variant: "heading2", children: "Title" },
+        },
+        a: {
+          type: "Stack",
+          props: {},
+          children: ["t1"],
+        },
+        t1: {
+          type: "Text",
+          props: { variant: "body", children: "No gap" },
+        },
+        b: {
+          type: "Stack",
+          props: { gap: "lg" },
+          children: ["t2"],
+        },
+        t2: {
+          type: "Text",
+          props: { variant: "body", children: "Has gap" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "spacing-consistency");
+      // Only one Stack has a known gap value → no comparison → passes
+      expect(rule?.pass).toBe(true);
+    });
+  });
 });
