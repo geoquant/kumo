@@ -1,6 +1,8 @@
 # PRD: Generative UI Style Layer
 
 **Date:** 2026-02-26
+**Updated:** 2026-02-27
+**Branch:** `geoquant/streaming-ui` (CRITICAL: ONLY work on this branch)
 
 ---
 
@@ -48,15 +50,18 @@ A composition quality layer for generative UI that adds: (1) 6 deterministic com
 
 When this PRD is complete, the following will be true:
 
-- [ ] `gradeComposition(tree)` exists with 6 composition rules, exported from `@cloudflare/kumo/generative`
+- [x] `gradeComposition(tree)` exists (3/6 rules: has-visual-hierarchy, has-responsive-layout, surface-hierarchy-correct — 18 tests passing)
+- [ ] Remaining 3 rules: spacing-consistency, content-density, action-completeness
+- [ ] `gradeComposition` exported from `@cloudflare/kumo/generative` barrel
 - [ ] System prompt includes PAGE_COMPOSITION section with surface hierarchy, page layout, spacing density, content reading order
 - [ ] 3 page-level JSONL worked examples exist in the system prompt (ProductOverview, ServiceDetail, ServiceTabs)
-- [ ] All 3 new examples parse to valid UITrees and pass both `gradeTree()` and `gradeComposition()`
+- [ ] All 3 new page-level examples parse to valid UITrees and pass both `gradeTree()` and `gradeComposition()`
+- [x] EXAMPLE_FLOW exists (multi-section, but not page-level pattern — no two-column/sidebar/surface hierarchy)
 - [ ] 10-15 eval prompts exist as a typed fixture file with expected patterns and required elements
 - [ ] Eval harness runs prompts, generates output, grades with structural + composition graders
 - [ ] Eval harness is env-gated (skipped unless `EVAL_ENABLED=true`)
-- [ ] Existing card-level prompts do not regress (7 existing examples still pass structural graders)
-- [ ] All work is on the `geoquant/streaming-ui` branch
+- [ ] Existing card-level prompts do not regress (8 existing examples still pass structural graders)
+- [x] All work is on the `geoquant/streaming-ui` branch
 
 ---
 
@@ -64,13 +69,13 @@ When this PRD is complete, the following will be true:
 
 ### Quantitative
 
-| Metric                                         | Current             | Target               | Measurement Method                      |
-| ---------------------------------------------- | ------------------- | -------------------- | --------------------------------------- |
-| Composition grader rules                       | 0                   | 6                    | Count rules in `gradeComposition()`     |
-| Page-level worked examples in prompt           | 0                   | 3                    | Count examples in `buildSystemPrompt()` |
-| Eval prompts with expected patterns            | 0                   | 10-15                | Count entries in eval fixture file      |
-| Page-level prompts passing composition graders | Unknown             | >60% of eval prompts | Eval harness aggregate score            |
-| Card-level prompt regression                   | 7/7 pass structural | 7/7 still pass       | Run gradeTree on existing examples      |
+| Metric                                         | Current                   | Target               | Measurement Method                                 |
+| ---------------------------------------------- | ------------------------- | -------------------- | -------------------------------------------------- |
+| Composition grader rules                       | 3                         | 6                    | Count rules in `gradeComposition()`                |
+| Page-level worked examples in prompt           | 0 (8 total, 0 page-level) | 3                    | Count page-level examples in `buildSystemPrompt()` |
+| Eval prompts with expected patterns            | 0                         | 10-15                | Count entries in eval fixture file                 |
+| Page-level prompts passing composition graders | Unknown                   | >60% of eval prompts | Eval harness aggregate score                       |
+| Card-level prompt regression                   | 8/8 pass structural       | 8/8 still pass       | Run gradeTree on existing examples                 |
 
 ### Qualitative
 
@@ -86,15 +91,15 @@ When this PRD is complete, the following will be true:
 ### Feature: Composition Graders
 
 - [ ] `gradeComposition(tree)` returns `GradeReport` with 6 rules
-- [ ] Rule `has-visual-hierarchy`: passes when tree has heading-level Text elements
-- [ ] Rule `has-responsive-layout`: passes when tree has Grid with variant prop
-- [ ] Rule `surface-hierarchy-correct`: fails when Surface is directly nested in Surface
+- [x] Rule `has-visual-hierarchy`: passes when tree has heading-level Text elements (7 tests)
+- [x] Rule `has-responsive-layout`: passes when tree has Grid with variant prop; simple layouts exempt (5 tests)
+- [x] Rule `surface-hierarchy-correct`: fails when Surface is directly nested in Surface (6 tests)
 - [ ] Rule `spacing-consistency`: warns when same-level sibling Stacks use inconsistent gaps
 - [ ] Rule `content-density`: fails when element count is <3 or >100
 - [ ] Rule `action-completeness`: fails when form elements exist without any Button
-- [ ] Each rule is independently testable with crafted UITrees
+- [x] Each implemented rule is independently testable with crafted UITrees (18 tests total)
 - [ ] Exported from `@cloudflare/kumo/generative`
-- [ ] Does not modify or depend on existing `gradeTree()` function
+- [x] Does not modify or depend on existing `gradeTree()` function
 
 ### Feature: PAGE_COMPOSITION System Prompt Section
 
@@ -107,14 +112,14 @@ When this PRD is complete, the following will be true:
 
 ### Feature: Page-Level JSONL Examples
 
-- [ ] 3 new examples appended after existing 7 card-level examples
-- [ ] Example 8: Product Overview — two-column, metrics sidebar, resource table, doc links
-- [ ] Example 9: Service Detail — header with actions, table content, empty state fallback
-- [ ] Example 10: Service Tabs — header with tab navigation, multiple content sections
+- [ ] 3 new page-level examples appended after existing 8 examples (7 card-level + 1 Flow)
+- [ ] Example 9: Product Overview — two-column, metrics sidebar, resource table, doc links
+- [ ] Example 10: Service Detail — header with actions, table content, empty state fallback
+- [ ] Example 11: Service Tabs — header with tab navigation, multiple content sections
 - [ ] Each example has a natural language user prompt and complete JSONL output
 - [ ] `parseJsonlToTree()` produces valid UITree for each example
 - [ ] Each example passes both `gradeTree()` and `gradeComposition()`
-- [ ] Existing 7 card-level examples still pass `gradeTree()` (no regression)
+- [ ] Existing 8 examples still pass `gradeTree()` (no regression)
 
 ### Feature: Eval Prompt Fixtures
 
@@ -308,5 +313,7 @@ export const EVAL_PROMPTS: ReadonlyArray<EvalPrompt>;
 - Spec: `specs/style-layer.md`
 - Paste context: https://paste.cfdata.org/xEEpgz8JaRm9 (analysis of current state + strategy)
 - Structural graders: `packages/kumo/src/generative/structural-graders.ts`
+- Composition graders (partial): `packages/kumo/src/generative/composition-graders.ts`
 - System prompt: `packages/kumo/src/catalog/system-prompt.ts`
 - NS templates: `inspo/ns-kumo-ui-templates/app/components/templates/`
+- Pre-existing eval script (structural only): `packages/kumo/scripts/eval-generative.ts`

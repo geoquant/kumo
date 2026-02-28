@@ -69,7 +69,7 @@
         "gradeComposition is exported from packages/kumo/src/generative/index.ts",
         "import { gradeComposition } from '@cloudflare/kumo/generative' resolves correctly"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "prompt-1",

@@ -13,6 +13,7 @@ Started: 2026-02-27
 - Parent-child type check: `walkTree(tree, (el, _depth, parentKey) => { if (parentKey) tree.elements[parentKey].type ... })` — no extra data structure needed
 - Sibling grouping: `Map<parentKey, sibling[]>` populated during walkTree, then iterated post-walk for cross-sibling checks (e.g. spacing consistency)
 - `allPass` test fixtures must satisfy ALL rules (≥3 elements for content-density, etc.) — update when adding new rules
+- Barrel export pattern: `packages/kumo/src/generative/index.ts` re-exports; package.json `exports["./generative"]` maps to dist — add to barrel, not package.json
 
 ---
 
@@ -55,3 +56,9 @@ Started: 2026-02-27
 - Added 9 unit tests: density pass/fail/boundary, action pass with Button, fail without, non-form passes, Select+no-Button fails, Checkbox+Button passes
 - **Files changed:** `composition-graders.ts` (modified), `composition-graders.test.ts` (modified)
 - **Learnings:** Adding new rules can break existing `allPass`-asserting tests if they use minimal fixtures — always check boundary conditions in test fixtures when tightening rules
+
+## Task - grader-6
+- Exported `gradeComposition`, `COMPOSITION_RULE_NAMES`, and `CompositionRuleName` type from `packages/kumo/src/generative/index.ts` barrel
+- `@cloudflare/kumo/generative` export path already configured in package.json pointing to the barrel
+- **Files changed:** `generative/index.ts` (modified)
+- **Learnings:** Package.json exports already mapped `./generative` → barrel; only the barrel re-export was missing. Always check package.json exports config before assuming a new entry is needed.
