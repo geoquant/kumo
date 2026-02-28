@@ -1,0 +1,17 @@
+{"op":"add","path":"/root","value":"page"}
+{"op":"add","path":"/elements/page","value":{"key":"page","type":"Stack","props":{"gap":"xl"},"children":["flow-section","table-section"]}}
+{"op":"add","path":"/elements/flow-section","value":{"key":"flow-section","type":"Surface","props":{},"children":["flow-heading","request-flow"],"parentKey":"page"}}
+{"op":"add","path":"/elements/flow-heading","value":{"key":"flow-heading","type":"Text","props":{"children":"Request Lifecycle","variant":"heading2"},"parentKey":"flow-section"}}
+{"op":"add","path":"/elements/request-flow","value":{"key":"request-flow","type":"Flow","props":{},"children":["client-node","security-parallel","worker-node","storage-parallel","response-node"],"parentKey":"flow-section"}}
+{"op":"add","path":"/elements/client-node","value":{"key":"client-node","type":"FlowNode","props":{"children":"Client Request"},"parentKey":"request-flow"}}
+{"op":"add","path":"/elements/security-parallel","value":{"key":"security-parallel","type":"FlowParallel","props":{},"children":["waf-node","rate-node"],"parentKey":"request-flow"}}
+{"op":"add","path":"/elements/waf-node","value":{"key":"waf-node","type":"FlowNode","props":{"children":"WAF Rules"},"parentKey":"security-parallel"}}
+{"op":"add","path":"/elements/rate-node","value":{"key":"rate-node","type":"FlowNode","props":{"children":"Rate Limiting"},"parentKey":"security-parallel"}}
+{"op":"add","path":"/elements/worker-node","value":{"key":"worker-node","type":"FlowNode","props":{"children":"my-worker"},"parentKey":"request-flow"}}
+{"op":"add","path":"/elements/storage-parallel","value":{"key":"storage-parallel","type":"FlowParallel","props":{},"children":["kv-node","d1-node"],"parentKey":"request-flow"}}
+{"op":"add","path":"/elements/kv-node","value":{"key":"kv-node","type":"FlowNode","props":{"children":"KV Store"},"parentKey":"storage-parallel"}}
+{"op":"add","path":"/elements/d1-node","value":{"key":"d1-node","type":"FlowNode","props":{"children":"D1 Database"},"parentKey":"storage-parallel"}}
+{"op":"add","path":"/elements/response-node","value":{"key":"response-node","type":"FlowNode","props":{"children":"Response"},"parentKey":"request-flow"}}
+{"op":"add","path":"/elements/table-section","value":{"key":"table-section","type":"Surface","props":{},"children":["table-heading","bindings-grid"],"parentKey":"page"}}
+{"op":"add","path":"/elements/table-heading","value":{"key":"table-heading","type":"Text","props":{"children":"Worker Bindings","variant":"heading2"},"parentKey":"table-section"}}
+{"op":"add","path":"/elements/bindings-grid","value":{"key":"bindings-grid","type":"Table","props":{"columns":["Name","Type","Resource"],"rows":[["MY_KV","KV Namespace","production-kv"],["MY_DB","D1 Database","worker-db"],["AUTH_SERVICE","Service Binding","auth-worker"],["ASSETS","R2 Bucket","static-assets"]]},"parentKey":"table-section"}}

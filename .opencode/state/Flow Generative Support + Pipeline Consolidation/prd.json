@@ -78,7 +78,7 @@
       "id": "verify-playground-flow",
       "category": "verification",
       "description": "Add end-to-end verification for Flow in playground",
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
