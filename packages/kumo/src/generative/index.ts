@@ -62,6 +62,14 @@ export type {
   RuleName,
 } from "./structural-graders.js";
 
+// Composition graders
+export {
+  gradeComposition,
+  COMPOSITION_RULE_NAMES,
+} from "./composition-graders.js";
+
+export type { CompositionRuleName } from "./composition-graders.js";
+
 // Custom component helper
 export { defineCustomComponent } from "./define-custom-component.js";
 

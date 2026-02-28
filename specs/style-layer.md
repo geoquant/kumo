@@ -3,19 +3,20 @@
 **Type:** Feature Plan
 **Effort:** L (1-2 days)
 **Branch:** `geoquant/streaming-ui` (CRITICAL: ONLY work on this branch)
-**Status:** Ready for implementation
-**Updated:** 2026-02-26
+**Status:** In progress — D1 partially implemented (3/6 rules); D2-D5 not started
+**Updated:** 2026-02-27
 
 ## Problem
 
 The streaming generative UI pipeline produces structurally valid output (8 structural graders pass), but the output doesn't look like the NS page templates Yelena designed. The gap is **compositional quality** — the difference between "valid components in valid positions" and "a well-composed page that follows Kumo design patterns."
 
 Concretely, the system prompt lacks:
+
 - **Surface hierarchy:** templates use `bg-kumo-elevated` (page) -> `bg-kumo-base` (inset cards), but the prompt only knows single-level `Surface`
 - **Page-level layout:** templates have `max-w-[1400px] mx-auto`, responsive `p-6 md:p-8 lg:px-10`, two-column main+sidebar, sticky navs — the prompt has no page-level structure guidance
 - **Spacing density grammar:** templates use consistent `gap-2` (titles), `gap-4` (sections), `gap-5/6` (columns), `gap-8` (major divisions) — the prompt only has abstract `"xs"/"sm"/"base"/"lg"` tokens with vague guidance
-- **Page-level few-shot examples:** all 7 worked examples are single-card level (user card, counter, form, table, dashboard, deployment list, empty state)
-- **Composition graders:** no way to check surface hierarchy, visual hierarchy, responsive patterns, spacing consistency, or content density programmatically
+- **Page-level few-shot examples:** 8 worked examples exist (7 card-level + 1 Flow diagram) but none demonstrate page-level composition (two-column, sidebar, surface hierarchy)
+- **Composition graders:** 3/6 rules implemented (`has-visual-hierarchy`, `has-responsive-layout`, `surface-hierarchy-correct`); missing `spacing-consistency`, `content-density`, `action-completeness`; not yet exported from `@cloudflare/kumo/generative` barrel
 
 The style-layer work is blocked until the playground exists (Plan 1), but the composition graders and system prompt changes can be built in parallel. The eval harness requires both playground + graders + sample prompts.
 
@@ -28,7 +29,7 @@ The style-layer work is blocked until the playground exists (Plan 1), but the co
 - No new npm dependencies for graders (pure TS functions)
 - No LLM-as-judge in v1 — all graders are deterministic
 - Existing 8 structural graders (`gradeTree()`) must not be modified — composition graders are a separate function
-- System prompt changes are inline in `system-prompt.ts` (consistent with existing 7 card-level examples)
+- System prompt changes are inline in `system-prompt.ts` (consistent with existing 8 examples: 7 card-level + 1 Flow diagram)
 - Eval harness is Vitest, gated behind env var (not run in CI by default)
 - Template conversions based on 3 NS templates: ProductOverview, ServiceDetail, ServiceTabs (composition of PageHeader + ServiceDetail/ServiceSettings tabs)
 - The `Surface` component in UITree doesn't directly map to `bg-kumo-*` classes — the renderer applies defaults. Surface hierarchy rules must work within UITree's type/props model.
@@ -37,21 +38,23 @@ The style-layer work is blocked until the playground exists (Plan 1), but the co
 
 ### 1. Composition Graders
 
-New file: `packages/kumo/src/generative/composition-graders.ts`
-Export: `gradeComposition(tree: UITree): GradeReport` (same `GradeReport` type as structural graders)
+**File:** `packages/kumo/src/generative/composition-graders.ts` (EXISTS)
+**Export:** `gradeComposition(tree: UITree): GradeReport` (same `GradeReport` type as structural graders)
 
 **6 composition rules:**
 
-| Rule | What it checks | How it's checked |
-|------|----------------|------------------|
-| `has-visual-hierarchy` | Tree has heading1 -> heading2 -> body text hierarchy | Walk tree: at least one `Text` with `variant` containing "heading" exists; if heading1 exists, heading2 should too |
-| `has-responsive-layout` | Tree uses Grid with breakpoint-aware variants | Walk tree: at least one `Grid` element exists with `variant` prop set |
-| `surface-hierarchy-correct` | Surfaces aren't nested directly (Surface > Surface) | Walk tree: no `Surface` child has a `Surface` parent (use Grid/Stack between) |
-| `spacing-consistency` | Sibling Stacks use consistent gap values | Walk tree: within each parent, collect all child Stack gap values; warn if same-level siblings use different gaps |
-| `content-density` | Tree element count is within reasonable range for complexity | Count elements; flag if <3 (too simple) or >100 (too complex for single generation) |
-| `action-completeness` | Interactive contexts have actions | If tree contains Input/Select/Textarea/Form elements, at least one Button must exist |
+| Rule                        | What it checks                                               | How it's checked                                                                                                   | Status                     |
+| --------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| `has-visual-hierarchy`      | Tree has heading1 -> heading2 -> body text hierarchy         | Walk tree: at least one `Text` with `variant` containing "heading" exists; if heading1 exists, heading2 should too | **DONE** — 7 tests passing |
+| `has-responsive-layout`     | Tree uses Grid with breakpoint-aware variants                | Walk tree: at least one `Grid` element exists with `variant` prop set; simple layouts (≤12 elements) exempt        | **DONE** — 5 tests passing |
+| `surface-hierarchy-correct` | Surfaces aren't nested directly (Surface > Surface)          | Walk tree: no `Surface` child has a `Surface` parent (use Grid/Stack between)                                      | **DONE** — 6 tests passing |
+| `spacing-consistency`       | Sibling Stacks use consistent gap values                     | Walk tree: within each parent, collect all child Stack gap values; warn if same-level siblings use different gaps  | **TODO**                   |
+| `content-density`           | Tree element count is within reasonable range for complexity | Count elements; flag if <3 (too simple) or >100 (too complex for single generation)                                | **TODO**                   |
+| `action-completeness`       | Interactive contexts have actions                            | If tree contains Input/Select/Textarea/Form elements, at least one Button must exist                               | **TODO**                   |
 
 These are **deterministic** — no model calls needed. They extend the grading vocabulary without touching `gradeTree()`.
+
+**Remaining:** Add 3 missing rules to `composition-graders.ts`, update `COMPOSITION_RULE_NAMES`, add tests, export `gradeComposition` from `generative/index.ts` barrel.
 
 ### 2. Page-Level System Prompt Additions
 
@@ -60,23 +63,27 @@ New section in `buildSystemPrompt()`: `PAGE_COMPOSITION` (inserted between COMPO
 **Content:**
 
 **Surface hierarchy rules:**
+
 - `Surface` is the outermost card container. For page-level layouts, the root Surface represents the page surface.
 - Nested content sections use `Surface(color="neutral")` for visual inset (elevated -> base effect).
 - NEVER nest Surface directly inside Surface — use Stack or Grid between them.
 
 **Page-level layout rules:**
+
 - Every page-level output needs a root Surface > Stack structure.
 - For multi-section pages: Stack(gap="lg") as the primary container.
 - For two-column pages: Stack > [header section, Grid(variant="2up") > [main content, sidebar]].
 - Sidebar content should be a Stack(gap="base") with multiple Surface(color="neutral") cards.
 
 **Spacing density grammar:**
+
 - `gap="xs"` — key-value pairs, label+value
 - `gap="sm"` — section headers (heading + subtext), action clusters, tight groups
 - `gap="base"` — standard card sections, sidebar card spacing
 - `gap="lg"` — top-level sections within a page, major content divisions
 
 **Content reading order:**
+
 - Title -> context/description -> data/content -> actions
 - Headers: Stack(gap="sm") > [Text(heading), Text(secondary text)]
 - Stat grids: Grid(variant="3up" or "4up") > [Surface(color="neutral") > Stack > stat, ...]
@@ -84,26 +91,29 @@ New section in `buildSystemPrompt()`: `PAGE_COMPOSITION` (inserted between COMPO
 
 ### 3. Page-Level Few-Shot Examples
 
-3 new worked examples added to the EXAMPLES section of `buildSystemPrompt()`:
+3 new worked examples added to the EXAMPLES section of `buildSystemPrompt()`. Current prompt has 8 examples (7 card-level + 1 Flow diagram). The 3 page-level examples below are appended after the existing set.
 
-**Example 8: Product Overview** (from NS `ProductOverview` template)
+**Example 9: Product Overview** (from NS `ProductOverview` template)
+
 - Two-column layout: main content left, metrics sidebar right
 - Header with title + description
 - Stats grid (4-up) in sidebar with Surface(color="neutral") cards
 - Resource table in main content
 - Footer with doc links
 
-**Example 9: Service Detail** (from NS `ServiceDetail` template)
+**Example 10: Service Detail** (from NS `ServiceDetail` template)
+
 - Header with title, description, action buttons
 - Main content area with table + toolbar
 - Empty state fallback
 
-**Example 10: Service Tabs** (from NS Service Tabs composition)
+**Example 11: Service Tabs** (from NS Service Tabs composition)
+
 - Header with title + tab navigation (Tabs component)
 - Tab content area rendering different content per tab
 - Demonstrates composition of multiple content types under one header
 
-Each example is a complete JSONL block showing the full UITree construction via RFC 6902 patches, following the same format as the existing 7 card-level examples.
+Each example is a complete JSONL block showing the full UITree construction via RFC 6902 patches, following the same format as the existing 8 examples.
 
 ### 4. Natural Language Eval Prompts
 
@@ -113,13 +123,20 @@ Fixture file: `packages/kumo/src/generative/eval/eval-prompts.ts`
 interface EvalPrompt {
   id: string;
   prompt: string;
-  expectedPattern: "product-overview" | "service-detail" | "service-tabs" | "dashboard" | "form" | "table";
-  requiredElements: string[];  // element types that must exist in output
-  requiredPatterns: string[];  // composition patterns that should be present
+  expectedPattern:
+    | "product-overview"
+    | "service-detail"
+    | "service-tabs"
+    | "dashboard"
+    | "form"
+    | "table";
+  requiredElements: string[]; // element types that must exist in output
+  requiredPatterns: string[]; // composition patterns that should be present
 }
 ```
 
 10-15 prompts like:
+
 - "I'm building a DNS management page. Show active zones with status, total queries metric, and doc links." -> product-overview pattern
 - "Show a tunnel configuration page: tunnel health, connected routes, replica status. I should be able to add new routes." -> service-detail pattern
 - "Create a WAF overview with attack metrics, active rules count, and recent events table." -> product-overview pattern
@@ -130,6 +147,7 @@ interface EvalPrompt {
 Vitest test suite: `packages/kumo/tests/generative/eval/composition-eval.test.ts`
 
 **Flow:**
+
 1. Load eval prompts from fixture file
 2. For each prompt:
    a. Build system prompt via `createKumoCatalog().generatePrompt()`
@@ -146,67 +164,85 @@ Vitest test suite: `packages/kumo/tests/generative/eval/composition-eval.test.ts
 
 ## Deliverables
 
-### D1: Composition graders (M)
-**Location:** `packages/kumo/src/generative/composition-graders.ts`
+### D1: Composition graders (M) — PARTIALLY DONE
+
+**Location:** `packages/kumo/src/generative/composition-graders.ts` (EXISTS, 152 lines)
 **Depends on:** nothing
-**Export from:** `@cloudflare/kumo/generative`
+**Export from:** `@cloudflare/kumo/generative` (NOT YET — missing from barrel)
 
-6 deterministic composition rules. Same `GradeReport` interface as structural graders. Separate function `gradeComposition(tree)`.
+3/6 rules implemented: `has-visual-hierarchy`, `has-responsive-layout`, `surface-hierarchy-correct`. 18 tests passing.
 
-Tests: `packages/kumo/tests/generative/composition-graders.test.ts`
+Tests: `packages/kumo/tests/generative/composition-graders.test.ts` (EXISTS, 531 lines)
+
+**Remaining work:**
+
+- Add `spacing-consistency` rule + tests
+- Add `content-density` rule + tests
+- Add `action-completeness` rule + tests
+- Update `COMPOSITION_RULE_NAMES` array to include all 6
+- Export `gradeComposition` + types from `generative/index.ts`
 
 **Acceptance:**
+
 - `gradeComposition(tree)` returns `GradeReport` with 6 rules
 - Each rule is independently testable with crafted UITrees
 - Does not modify or depend on `gradeTree()`
 - Exported from `@cloudflare/kumo/generative`
 
 ### D2: PAGE_COMPOSITION system prompt section (M)
+
 **Location:** `packages/kumo/src/catalog/system-prompt.ts`
 **Depends on:** nothing
 
 New section between COMPOSITION_RECIPES and ACCESSIBILITY with surface hierarchy rules, page-level layout patterns, spacing density grammar, and content reading order.
 
 **Acceptance:**
+
 - `buildSystemPrompt()` output includes PAGE_COMPOSITION section
 - Surface hierarchy guidance present (Surface root, Surface(color="neutral") for insets, no direct nesting)
 - Page-level layout patterns present (two-column, sidebar, header)
 - Spacing density grammar present (xs/sm/base/lg with specific use cases)
 - Content reading order documented (title -> context -> data -> actions)
 
-### D3: Page-level JSONL few-shot examples (L)
+### D3: Page-level JSONL few-shot examples (L) — NOT STARTED
+
 **Location:** `packages/kumo/src/catalog/system-prompt.ts`
 **Depends on:** D2 (examples should follow the new PAGE_COMPOSITION rules)
 
-3 new worked examples (Product Overview, Service Detail, Service Tabs) added to the EXAMPLES array in `buildSystemPrompt()`. Each is a complete JSONL block.
+3 new worked examples (Product Overview, Service Detail, Service Tabs) added to the EXAMPLES array in `buildSystemPrompt()`. Each is a complete JSONL block. Note: EXAMPLE_FLOW (recently added) is multi-section but NOT page-level — it lacks two-column layout, sidebar, and surface hierarchy patterns.
 
 **Acceptance:**
-- 3 new examples appended after existing 7 card-level examples
+
+- 3 new examples appended after existing 8 examples (7 card-level + 1 Flow)
 - Each example has a user prompt and complete JSONL output
 - JSONL is valid: `parseJsonlToTree()` produces a valid UITree
 - Examples pass both `gradeTree()` and `gradeComposition()`
 - Examples demonstrate surface hierarchy, page layout, and spacing patterns from D2
 
-### D4: Eval prompt fixtures (S)
+### D4: Eval prompt fixtures (S) — NOT STARTED
+
 **Location:** `packages/kumo/src/generative/eval/eval-prompts.ts`
 **Depends on:** nothing
 
-10-15 natural language prompts with expected template patterns and required elements.
+10-15 natural language prompts with expected template patterns and required elements. Note: `scripts/eval-generative.ts` has a pre-existing eval script with 10 prompts, but uses a different interface (no `expectedPattern`/`requiredElements`/`requiredPatterns`) and only runs structural graders. D4 is a separate, typed fixture file.
 
 **Acceptance:**
+
 - File exports typed array of `EvalPrompt` objects
 - Prompts are natural language (not "make me a product overview" — describe intent)
 - Each prompt has `expectedPattern`, `requiredElements[]`, and `requiredPatterns[]`
 - Covers all 3 template types + card-level patterns
 - At least 10 prompts
 
-### D5: Eval harness (M)
+### D5: Eval harness (M) — NOT STARTED
+
 **Location:** `packages/kumo/tests/generative/eval/composition-eval.test.ts`
 **Depends on:** D1, D3, D4
 
 Vitest test suite that runs prompts, generates output, and grades it. Gated behind `EVAL_ENABLED=true`.
 
 **Acceptance:**
+
 - Tests skip when `EVAL_ENABLED` is not set
 - When enabled, each eval prompt is run through the generation pipeline
 - Output is graded with both `gradeTree()` and `gradeComposition()`
@@ -228,19 +264,29 @@ Vitest test suite that runs prompts, generates output, and grades it. Gated behi
 
 ## Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Page-level JSONL examples are too large for context window | Med | High | Measure token count per example; trim to essential structure if needed; test with target models |
-| Composition graders too strict (fail valid creative outputs) | Med | Med | Start with warnings, not failures; tune thresholds based on eval results |
-| Spacing consistency rule has too many false positives | High | Low | Allow same-level variation within one gap-size step (e.g., "sm" and "base" OK, "xs" and "lg" not OK) |
-| Eval prompts are biased toward template patterns | Med | Med | Include 3-5 prompts that intentionally don't match any template (novel layouts) |
-| System prompt page-level guidance competes with card-level guidance | Low | Med | Page-level rules are additive; card-level rules still apply within cards; test that card-level prompts don't regress |
-| Workers AI model doesn't follow page-level examples well | High | High | This is the fundamental risk. The eval harness exists to measure this. If the model can't follow, we iterate on the prompt or switch models. |
+| Risk                                                                | Likelihood | Impact | Mitigation                                                                                                                                   |
+| ------------------------------------------------------------------- | ---------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Page-level JSONL examples are too large for context window          | Med        | High   | Measure token count per example; trim to essential structure if needed; test with target models                                              |
+| Composition graders too strict (fail valid creative outputs)        | Med        | Med    | Start with warnings, not failures; tune thresholds based on eval results                                                                     |
+| Spacing consistency rule has too many false positives               | High       | Low    | Allow same-level variation within one gap-size step (e.g., "sm" and "base" OK, "xs" and "lg" not OK)                                         |
+| Eval prompts are biased toward template patterns                    | Med        | Med    | Include 3-5 prompts that intentionally don't match any template (novel layouts)                                                              |
+| System prompt page-level guidance competes with card-level guidance | Low        | Med    | Page-level rules are additive; card-level rules still apply within cards; test that card-level prompts don't regress                         |
+| Workers AI model doesn't follow page-level examples well            | High       | High   | This is the fundamental risk. The eval harness exists to measure this. If the model can't follow, we iterate on the prompt or switch models. |
 
 ## Open Questions
 
 - None remaining
 
+## Implementation Progress
+
+| Deliverable                 | Status                                         | Completion |
+| --------------------------- | ---------------------------------------------- | ---------- |
+| D1: Composition graders     | 3/6 rules + 18 tests; not exported from barrel | ~40%       |
+| D2: PAGE_COMPOSITION prompt | Not started                                    | 0%         |
+| D3: Page-level examples     | Not started (0/3; Flow ≠ page-level)           | 0%         |
+| D4: Eval prompt fixtures    | Not started                                    | 0%         |
+| D5: Eval harness            | Not started                                    | 0%         |
+
 ---
 
-**Phase: DRAFT | Waiting for: user approval**
+**Phase: IN PROGRESS | Branch: `geoquant/streaming-ui`**
