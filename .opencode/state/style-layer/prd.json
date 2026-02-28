@@ -47,7 +47,7 @@
         "Allows variation within one step (sm+base OK, xs+lg not OK)",
         "Unit test: parent with children Stack(gap=sm) and Stack(gap=base) passes; Stack(gap=xs) and Stack(gap=lg) fails"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "grader-5",

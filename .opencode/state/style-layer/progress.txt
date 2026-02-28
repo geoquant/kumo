@@ -11,6 +11,7 @@ Started: 2026-02-27
 - Path aliases (`@/`) resolve at vitest runtime but not in LSP — pre-existing, not a concern
 - Simple layout heuristic: ≤12 elements = simple (exempt from complex-only rules like responsive grid requirement)
 - Parent-child type check: `walkTree(tree, (el, _depth, parentKey) => { if (parentKey) tree.elements[parentKey].type ... })` — no extra data structure needed
+- Sibling grouping: `Map<parentKey, sibling[]>` populated during walkTree, then iterated post-walk for cross-sibling checks (e.g. spacing consistency)
 
 ---
 
@@ -34,3 +35,12 @@ Started: 2026-02-27
 - Added 5 unit tests: Surface>Stack>Surface passes, Surface>Grid>Surface passes, Surface>Surface fails, multiple violations reported, single nesting fails
 - **Files changed:** `composition-graders.ts` (modified), `composition-graders.test.ts` (modified)
 - **Learnings:** walkTree's `parentKey` + `tree.elements[parentKey]` is the clean pattern for parent-child type checks; no need for separate parent tracking data structure
+
+## Task - grader-4
+- Added `spacing-consistency` rule to `gradeComposition()`
+- Rule groups sibling Stack elements by parent key, checks gap values are within one step on the ordered scale (none < xs < sm < base < lg < xl)
+- Added GAP_SCALE constant and `gapIndex()` helper; index distance > 1 = violation
+- Stacks without gap prop or with unknown gap values are skipped (caught by element-validator)
+- Added 5 unit tests: sm+base passes, xs+lg fails, single Stack passes, identical gaps pass, no-gap Stacks ignored
+- **Files changed:** `composition-graders.ts` (modified), `composition-graders.test.ts` (modified)
+- **Learnings:** Map<parentKey, sibling[]> grouping pattern during walkTree is clean for sibling-comparison rules; min/max index distance is simpler than pairwise comparison
