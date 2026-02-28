@@ -368,6 +368,39 @@ const TABLE_STRUCTURE = `## Table Structure (Required)
 - Column order: first cell in each body row is the row label, remaining cells correspond 1:1 with header columns left-to-right.
 - NEVER skip or omit a TableCell — if a cell has no meaningful value, use an empty string \`""\` or a dash \`"-"\`.`;
 
+const EXAMPLE_FLOW = `## Example (Flow Diagram with Table)
+
+User: "Show a request lifecycle flow and a table of worker bindings"
+
+{"op":"add","path":"/root","value":"page"}
+{"op":"add","path":"/elements/page","value":{"key":"page","type":"Stack","props":{"gap":"xl"},"children":["flow-section","table-section"]}}
+{"op":"add","path":"/elements/flow-section","value":{"key":"flow-section","type":"Surface","props":{},"children":["flow-heading","request-flow"],"parentKey":"page"}}
+{"op":"add","path":"/elements/flow-heading","value":{"key":"flow-heading","type":"Text","props":{"children":"Request lifecycle","variant":"heading2"},"parentKey":"flow-section"}}
+{"op":"add","path":"/elements/request-flow","value":{"key":"request-flow","type":"Flow","props":{},"children":["client-node","security-parallel","worker-node","response-node"],"parentKey":"flow-section"}}
+{"op":"add","path":"/elements/client-node","value":{"key":"client-node","type":"FlowNode","props":{"children":"Client Request"},"parentKey":"request-flow"}}
+{"op":"add","path":"/elements/security-parallel","value":{"key":"security-parallel","type":"FlowParallel","props":{},"children":["waf-node","rate-node"],"parentKey":"request-flow"}}
+{"op":"add","path":"/elements/waf-node","value":{"key":"waf-node","type":"FlowNode","props":{"children":"WAF Rules"},"parentKey":"security-parallel"}}
+{"op":"add","path":"/elements/rate-node","value":{"key":"rate-node","type":"FlowNode","props":{"children":"Rate Limiting"},"parentKey":"security-parallel"}}
+{"op":"add","path":"/elements/worker-node","value":{"key":"worker-node","type":"FlowNode","props":{"children":"my-worker"},"parentKey":"request-flow"}}
+{"op":"add","path":"/elements/response-node","value":{"key":"response-node","type":"FlowNode","props":{"children":"Response"},"parentKey":"request-flow"}}
+{"op":"add","path":"/elements/table-section","value":{"key":"table-section","type":"Surface","props":{},"children":["table-heading","bindings-tbl"],"parentKey":"page"}}
+{"op":"add","path":"/elements/table-heading","value":{"key":"table-heading","type":"Text","props":{"children":"Worker bindings","variant":"heading2"},"parentKey":"table-section"}}
+{"op":"add","path":"/elements/bindings-tbl","value":{"key":"bindings-tbl","type":"Table","props":{"layout":"fixed"},"children":["bindings-thead","bindings-tbody"],"parentKey":"table-section"}}
+{"op":"add","path":"/elements/bindings-thead","value":{"key":"bindings-thead","type":"TableHeader","props":{},"children":["bindings-hrow"],"parentKey":"bindings-tbl"}}
+{"op":"add","path":"/elements/bindings-hrow","value":{"key":"bindings-hrow","type":"TableRow","props":{},"children":["h-name","h-type","h-resource"],"parentKey":"bindings-thead"}}
+{"op":"add","path":"/elements/h-name","value":{"key":"h-name","type":"TableHead","props":{"children":"Name"},"parentKey":"bindings-hrow"}}
+{"op":"add","path":"/elements/h-type","value":{"key":"h-type","type":"TableHead","props":{"children":"Type"},"parentKey":"bindings-hrow"}}
+{"op":"add","path":"/elements/h-resource","value":{"key":"h-resource","type":"TableHead","props":{"children":"Resource"},"parentKey":"bindings-hrow"}}
+{"op":"add","path":"/elements/bindings-tbody","value":{"key":"bindings-tbody","type":"TableBody","props":{},"children":["row-kv","row-db"],"parentKey":"bindings-tbl"}}
+{"op":"add","path":"/elements/row-kv","value":{"key":"row-kv","type":"TableRow","props":{},"children":["c-kv-name","c-kv-type","c-kv-resource"],"parentKey":"bindings-tbody"}}
+{"op":"add","path":"/elements/c-kv-name","value":{"key":"c-kv-name","type":"TableCell","props":{"children":"MY_KV"},"parentKey":"row-kv"}}
+{"op":"add","path":"/elements/c-kv-type","value":{"key":"c-kv-type","type":"TableCell","props":{"children":"KV Namespace"},"parentKey":"row-kv"}}
+{"op":"add","path":"/elements/c-kv-resource","value":{"key":"c-kv-resource","type":"TableCell","props":{"children":"production-kv"},"parentKey":"row-kv"}}
+{"op":"add","path":"/elements/row-db","value":{"key":"row-db","type":"TableRow","props":{},"children":["c-db-name","c-db-type","c-db-resource"],"parentKey":"bindings-tbody"}}
+{"op":"add","path":"/elements/c-db-name","value":{"key":"c-db-name","type":"TableCell","props":{"children":"MY_DB"},"parentKey":"row-db"}}
+{"op":"add","path":"/elements/c-db-type","value":{"key":"c-db-type","type":"TableCell","props":{"children":"D1 Database"},"parentKey":"row-db"}}
+{"op":"add","path":"/elements/c-db-resource","value":{"key":"c-db-resource","type":"TableCell","props":{"children":"worker-db"},"parentKey":"row-db"}}`;
+
 const CLOSING_RULES = `## Important
 
 - ALWAYS respond with ONLY JSONL lines. No markdown fences, no explanations, no text before or after.
@@ -396,7 +429,7 @@ const CLOSING_RULES = `## Important
  * - JSONL/RFC 6902 response format with UITree schema
  * - Available components (injected via `componentsSection`)
  * - Action system (built-in actions, dispatch rules)
- * - Seven working examples (user card, counter, notification form, pricing table, dashboard, list, empty state)
+ * - Eight working examples (user card, counter, notification form, pricing table, dashboard, list, empty state, flow diagram)
  *
  * @example
  * ```ts
@@ -441,6 +474,7 @@ export function buildSystemPrompt(options: SystemPromptOptions = {}): string {
     EXAMPLE_DASHBOARD,
     EXAMPLE_LIST,
     EXAMPLE_EMPTY_STATE,
+    EXAMPLE_FLOW,
     CLOSING_RULES,
   ].filter(Boolean);
 
