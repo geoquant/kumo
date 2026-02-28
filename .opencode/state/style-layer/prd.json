@@ -133,7 +133,7 @@
         "All 7 existing card-level examples (user card, counter, notification form, pricing table, dashboard, deployment list, empty state) still pass gradeTree()",
         "No regressions in structural grading from the new PAGE_COMPOSITION section or examples"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "eval-1",

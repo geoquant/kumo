@@ -256,6 +256,43 @@ describe("Service Tabs page example (Example 10)", () => {
   });
 });
 
+describe("card-level examples regression (Examples 1–7)", () => {
+  const prompt = buildSystemPrompt();
+
+  const CARD_EXAMPLES = [
+    { title: "User Card with Grid Layout", label: "user card" },
+    { title: "Counter with Increment/Decrement", label: "counter" },
+    { title: "Notification Preferences Form", label: "notification form" },
+    {
+      title: "Comparison Table — Rows Are Features, Columns Are Tiers",
+      label: "pricing table",
+    },
+    { title: "Dashboard with Stat Grid", label: "dashboard" },
+    { title: "Data List with Badges and Actions", label: "deployment list" },
+    { title: "Empty State with Action", label: "empty state" },
+  ] as const;
+
+  for (const { title, label } of CARD_EXAMPLES) {
+    describe(label, () => {
+      const jsonl = extractExampleJsonl(prompt, title);
+      const tree = parseJsonlToTree(jsonl);
+
+      it("parseJsonlToTree produces valid UITree", () => {
+        expect(tree.root).toBeTruthy();
+        expect(Object.keys(tree.elements).length).toBeGreaterThan(0);
+      });
+
+      it("passes gradeTree() structural grading", () => {
+        const report = gradeTree(tree);
+        for (const r of report.results) {
+          expect(r.violations, `rule "${r.rule}" failed`).toEqual([]);
+        }
+        expect(report.allPass).toBe(true);
+      });
+    });
+  }
+});
+
 describe("Product Overview page example (Example 8)", () => {
   const prompt = buildSystemPrompt();
   const jsonl = extractExampleJsonl(prompt, "Product Overview Page");
