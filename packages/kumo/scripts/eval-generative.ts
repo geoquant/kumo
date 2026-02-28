@@ -27,6 +27,7 @@ import {
   RULE_NAMES,
 } from "../src/generative/structural-graders.js";
 import type { GradeReport } from "../src/generative/structural-graders.js";
+import { EVAL_PROMPTS } from "../src/generative/eval/eval-prompts.js";
 
 // =============================================================================
 // Config
@@ -37,71 +38,6 @@ const __dirname = dirname(__filename);
 const PKG_ROOT = resolve(__dirname, "..");
 const BASELINES_DIR = resolve(PKG_ROOT, ".eval-baselines");
 const OUTPUTS_DIR = resolve(PKG_ROOT, ".eval-outputs");
-
-// =============================================================================
-// Eval prompts
-// =============================================================================
-
-/** Each eval prompt has a name (for reporting) and a user message. */
-interface EvalPrompt {
-  readonly name: string;
-  readonly message: string;
-}
-
-const EVAL_PROMPTS: ReadonlyArray<EvalPrompt> = [
-  // 4 regression prompts (matching fixture types)
-  {
-    name: "user-card",
-    message:
-      "Create a user profile card showing name, email, role badge, and a bio section.",
-  },
-  {
-    name: "settings-form",
-    message:
-      "Build a settings form with email input, notification toggle switch, and a save button.",
-  },
-  {
-    name: "counter",
-    message:
-      "Create a simple counter with a title, a number display, and increment/decrement buttons.",
-  },
-  {
-    name: "pricing-table",
-    message:
-      "Build a pricing table with 3 tiers (Basic, Pro, Enterprise) showing features and price for each.",
-  },
-  // 6 edge case prompts
-  {
-    name: "empty-state",
-    message:
-      "Create an empty state component for when there are no search results.",
-  },
-  {
-    name: "dashboard",
-    message:
-      "Build a dashboard with a header, 3 metric cards in a grid, and a recent activity list below.",
-  },
-  {
-    name: "complex-table",
-    message:
-      "Create a data table showing server status with columns: name, region, status badge, uptime meter, and actions.",
-  },
-  {
-    name: "multi-field-form",
-    message:
-      "Build a contact form with name, email, subject select dropdown, message textarea, and submit button.",
-  },
-  {
-    name: "nested-layout",
-    message:
-      "Create a layout with a header cluster (logo + nav links), a main content area with two columns, and a footer.",
-  },
-  {
-    name: "alert-variants",
-    message:
-      "Show 4 different banner alerts: info, success, warning, and error, each with appropriate text.",
-  },
-];
 
 // =============================================================================
 // CLI arg parsing
@@ -280,7 +216,7 @@ async function runEval(args: CliArgs): Promise<void> {
   let requestCount = 0;
 
   for (const prompt of EVAL_PROMPTS) {
-    process.stdout.write(`  ${prompt.name.padEnd(20)}`);
+    process.stdout.write(`  ${prompt.id.padEnd(30)}`);
 
     for (let run = 0; run < runs; run++) {
       // Rate limit delay (skip before first request)
@@ -290,10 +226,10 @@ async function runEval(args: CliArgs): Promise<void> {
       requestCount++;
 
       try {
-        const jsonl = await fetchJsonl(url, prompt.message);
+        const jsonl = await fetchJsonl(url, prompt.prompt);
 
         if (saveJsonl) {
-          const filename = `${prompt.name}-run${run}.jsonl`;
+          const filename = `${prompt.id}-run${run}.jsonl`;
           writeFileSync(resolve(OUTPUTS_DIR, filename), jsonl, "utf-8");
         }
 
@@ -301,7 +237,7 @@ async function runEval(args: CliArgs): Promise<void> {
         const report = gradeTree(tree);
 
         allResults.push({
-          promptName: prompt.name,
+          promptName: prompt.id,
           runIndex: run,
           report,
           error: null,
@@ -319,7 +255,7 @@ async function runEval(args: CliArgs): Promise<void> {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         allResults.push({
-          promptName: prompt.name,
+          promptName: prompt.id,
           runIndex: run,
           report: null,
           error: message,
@@ -343,9 +279,7 @@ async function runEval(args: CliArgs): Promise<void> {
   const promptAggregates: PromptAggregate[] = [];
 
   for (const prompt of EVAL_PROMPTS) {
-    const promptResults = allResults.filter(
-      (r) => r.promptName === prompt.name,
-    );
+    const promptResults = allResults.filter((r) => r.promptName === prompt.id);
     const successful = promptResults.filter((r) => r.report !== null);
 
     const rulePassRates: Record<string, number> = {};
@@ -363,7 +297,7 @@ async function runEval(args: CliArgs): Promise<void> {
     const allPassCount = successful.filter((r) => r.report?.allPass).length;
 
     promptAggregates.push({
-      promptName: prompt.name,
+      promptName: prompt.id,
       totalRuns: promptResults.length,
       successfulRuns: successful.length,
       errors: promptResults.length - successful.length,
@@ -397,17 +331,20 @@ async function runEval(args: CliArgs): Promise<void> {
   // Print report
   // ==========================================================================
 
-  console.log("\n" + "═".repeat(80));
+  const COL_W = 32; // prompt ID column width
+  const LINE_W = COL_W + 6 + RULE_NAMES.length * 9 + 4;
+
+  console.log("\n" + "═".repeat(LINE_W));
   console.log("  RESULTS");
-  console.log("═".repeat(80));
+  console.log("═".repeat(LINE_W));
 
   // Per-prompt summary
   console.log("\n  Per-prompt pass rates:");
-  console.log("  " + "─".repeat(76));
+  console.log("  " + "─".repeat(LINE_W - 2));
   console.log(
-    `  ${"Prompt".padEnd(22)} ${"All".padStart(6)} ${RULE_NAMES.map((r) => r.slice(0, 8).padStart(9)).join("")}`,
+    `  ${"Prompt".padEnd(COL_W)} ${"All".padStart(6)} ${RULE_NAMES.map((r) => r.slice(0, 8).padStart(9)).join("")}`,
   );
-  console.log("  " + "─".repeat(76));
+  console.log("  " + "─".repeat(LINE_W - 2));
 
   for (const agg of promptAggregates) {
     const allStr = pct(agg.allPassRate);
@@ -416,20 +353,20 @@ async function runEval(args: CliArgs): Promise<void> {
     );
     const errSuffix = agg.errors > 0 ? ` (${agg.errors}E)` : "";
     console.log(
-      `  ${(agg.promptName + errSuffix).padEnd(22)} ${allStr.padStart(6)} ${ruleStrs.join("")}`,
+      `  ${(agg.promptName + errSuffix).padEnd(COL_W)} ${allStr.padStart(6)} ${ruleStrs.join("")}`,
     );
   }
 
-  console.log("  " + "─".repeat(76));
+  console.log("  " + "─".repeat(LINE_W - 2));
 
   // Overall
   const overallRuleStrs = RULE_NAMES.map((r) =>
     pct(overall[r] ?? 0).padStart(9),
   );
   console.log(
-    `  ${"OVERALL".padEnd(22)} ${pct(overallAllPass).padStart(6)} ${overallRuleStrs.join("")}`,
+    `  ${"OVERALL".padEnd(COL_W)} ${pct(overallAllPass).padStart(6)} ${overallRuleStrs.join("")}`,
   );
-  console.log("  " + "─".repeat(76));
+  console.log("  " + "─".repeat(LINE_W - 2));
 
   // Error summary
   const totalErrors = allResults.filter((r) => r.error !== null).length;
