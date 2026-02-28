@@ -21,8 +21,17 @@ Started: 2026-02-27
 - Header-with-actions pattern: `Grid(variant="2up") > [Stack(gap="sm") > [heading, desc], Cluster(justify="end") > [buttons]]` — title left, actions right; satisfies responsive-layout grader for single-column pages
 - Tabs pattern in JSONL: `Tabs` element with `tabs` prop (array of `{value, label}`) + `defaultValue` — tab content as sibling Stack elements, not children of Tabs. All panels visible in static tree; runtime handles switching.
 - Spacing-consistency gotcha: sibling Stack elements under same parent must have gaps within 1 step (sm↔base OK, sm↔lg NOT OK). Tab content sections sharing a parent with the header must match gap range.
+- Regression test pattern: `extractExampleJsonl(prompt, title)` + `parseJsonlToTree()` + `gradeTree()` — data-driven loop over `CARD_EXAMPLES` array with `for...of` + inner `describe` blocks. No need for separate test files per example.
 
 ---
+
+## Task - prompt-5
+- Added regression test suite "card-level examples regression (Examples 1–7)" in `prompt-contracts.test.ts`
+- Data-driven: loops over 7 card-level examples (user card, counter, notification form, pricing table, dashboard, deployment list, empty state)
+- Each example: extracts JSONL from system prompt → parses to UITree → verifies valid tree + gradeTree() passes with no violations
+- All 7 examples pass — no regressions from PAGE_COMPOSITION section or new page-level examples
+- **Files changed:** `prompt-contracts.test.ts` (modified)
+- **Learnings:** All 7 original card-level examples were already structurally sound; the PAGE_COMPOSITION section and 3 new page-level examples introduced no side effects on existing examples
 
 ## Task - grader-1
 - Created `packages/kumo/src/generative/composition-graders.ts` with `gradeComposition()` and `has-visual-hierarchy` rule
