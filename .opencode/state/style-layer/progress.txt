@@ -16,6 +16,8 @@ Started: 2026-02-27
 - Barrel export pattern: `packages/kumo/src/generative/index.ts` re-exports; package.json `exports["./generative"]` maps to dist — add to barrel, not package.json
 - System prompt sections array in `buildSystemPrompt()` — order matters; insert new sections at correct position in the array + update JSDoc
 - System prompt sections are const string template literals — new section follows same pattern as COMPOSITION_RECIPES, DESIGN_RULES etc.
+- `extractExampleJsonl(prompt, title)` test helper: extracts JSONL lines from a named example in the prompt text — reuse for testing any inline example
+- Page-level examples follow pattern: `Surface > Stack(gap="lg") > [header, Grid(variant="2up") > [main-col, sidebar-col]]` — consistent two-column structure
 
 ---
 
@@ -72,3 +74,14 @@ Started: 2026-02-27
 - Updated JSDoc on `buildSystemPrompt()` to document the new section
 - **Files changed:** `system-prompt.ts` (modified), `prompt-contracts.test.ts` (modified)
 - **Learnings:** Surface hierarchy pattern from NS templates: bg-kumo-elevated (page) → bg-kumo-base (inset cards) maps to Surface > Surface(color="neutral") in JSONL. Spacing grammar (xs/sm/base/lg) codifies what was implicit in template CSS gap values.
+
+## Task - prompt-2
+- Added `EXAMPLE_PRODUCT_OVERVIEW` to system prompt: "Product Overview Page with Metrics Sidebar"
+- Two-column layout via `Grid(variant="2up")`: main column has resource Table (3 rows × 3 cols), sidebar has 3 stat cards + doc links
+- Stat cards use `Surface(color="neutral")` for inset visual hierarchy
+- Sidebar uses `Stack(gap="base")`, stat card internals use `Stack(gap="xs")` for label/value pairs
+- Header: `Stack(gap="sm") > [Text(heading2), Text(secondary)]` following the page header pattern
+- Added `extractExampleJsonl()` helper in test file to parse JSONL from prompt sections
+- Added 5 tests: tree validity, 2up Grid check, neutral Surface check, gradeTree pass, gradeComposition pass
+- **Files changed:** `system-prompt.ts` (modified), `prompt-contracts.test.ts` (modified)
+- **Learnings:** `extractExampleJsonl()` helper is reusable for testing any inline JSONL example from the prompt. Surface `color` prop is silently stripped by Zod validation (not in schema) but passed through by GenerativeSurface `...rest` at runtime — graders don't fail on it.

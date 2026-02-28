@@ -7,6 +7,7 @@ import {
   parseJsonlToTree,
   gradeTree,
 } from "../../src/generative/structural-graders";
+import { gradeComposition } from "../../src/generative/composition-graders";
 import { buildSystemPrompt } from "../../src/catalog/system-prompt";
 import { buildComponentDocs } from "../../src/catalog/prompt-builder";
 import type { UITree } from "../../src/streaming/types";
@@ -23,6 +24,22 @@ function loadFixture(name: string): string {
 
 function treeHasType(tree: UITree, type: string): boolean {
   return Object.values(tree.elements).some((el) => el.type === type);
+}
+
+/**
+ * Extract JSONL lines from a named example section in the system prompt.
+ * Looks for the section header, then collects all `{"op":...}` lines.
+ */
+function extractExampleJsonl(prompt: string, exampleTitle: string): string {
+  const idx = prompt.indexOf(exampleTitle);
+  if (idx === -1) throw new Error(`Example "${exampleTitle}" not found`);
+  // Find the JSONL block: starts after the User: line, ends at next ## or end
+  const afterTitle = prompt.slice(idx);
+  const nextSection = afterTitle.indexOf("\n## ", 1);
+  const section =
+    nextSection > 0 ? afterTitle.slice(0, nextSection) : afterTitle;
+  const lines = section.split("\n").filter((l) => l.startsWith('{"op":'));
+  return lines.join("\n");
 }
 
 describe("system prompt contracts", () => {
@@ -137,5 +154,47 @@ describe("fixture contracts", () => {
     expect(treeHasType(tree, "Select")).toBe(true);
     expect(treeHasType(tree, "Checkbox")).toBe(true);
     expect(treeHasType(tree, "Button")).toBe(true);
+  });
+});
+
+describe("Product Overview page example (Example 8)", () => {
+  const prompt = buildSystemPrompt();
+  const jsonl = extractExampleJsonl(prompt, "Product Overview Page");
+  const tree = parseJsonlToTree(jsonl);
+
+  it("parseJsonlToTree produces valid UITree with root and elements", () => {
+    expect(tree.root).toBeTruthy();
+    expect(Object.keys(tree.elements).length).toBeGreaterThan(0);
+  });
+
+  it("uses two-column layout with Grid(variant=2up)", () => {
+    const grid = Object.values(tree.elements).find((el) => el.type === "Grid");
+    expect(grid).toBeDefined();
+    expect((grid!.props as Record<string, unknown>)["variant"]).toBe("2up");
+  });
+
+  it("uses Surface(color=neutral) for inset stat cards", () => {
+    const neutralSurfaces = Object.values(tree.elements).filter(
+      (el) =>
+        el.type === "Surface" &&
+        (el.props as Record<string, unknown>)["color"] === "neutral",
+    );
+    expect(neutralSurfaces.length).toBeGreaterThan(0);
+  });
+
+  it("passes gradeTree() structural grading", () => {
+    const report = gradeTree(tree);
+    for (const r of report.results) {
+      expect(r.violations, `rule "${r.rule}" failed`).toEqual([]);
+    }
+    expect(report.allPass).toBe(true);
+  });
+
+  it("passes gradeComposition() composition grading", () => {
+    const report = gradeComposition(tree);
+    for (const r of report.results) {
+      expect(r.violations, `rule "${r.rule}" failed`).toEqual([]);
+    }
+    expect(report.allPass).toBe(true);
   });
 });
