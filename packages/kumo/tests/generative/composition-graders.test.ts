@@ -187,10 +187,14 @@ describe("gradeComposition", () => {
     });
 
     it("correctly reports allPass based on all rules", () => {
-      // Tree that passes has-visual-hierarchy (simple layout, so responsive exempt)
+      // Tree that passes all rules (simple layout, responsive exempt, ≥3 elements)
       const passingTree = buildTree("root", {
         root: {
           type: "Surface",
+          children: ["stack"],
+        },
+        stack: {
+          type: "Stack",
           children: ["h"],
         },
         h: {
@@ -201,7 +205,7 @@ describe("gradeComposition", () => {
 
       expect(gradeComposition(passingTree).allPass).toBe(true);
 
-      // Tree that fails has-visual-hierarchy
+      // Tree that fails has-visual-hierarchy (and content-density)
       const failingTree = buildTree("root", {
         root: {
           type: "Surface",
@@ -723,6 +727,177 @@ describe("gradeComposition", () => {
       const report = gradeComposition(tree);
       const rule = report.results.find((r) => r.rule === "spacing-consistency");
       // Only one Stack has a known gap value → no comparison → passes
+      expect(rule?.pass).toBe(true);
+    });
+  });
+
+  // ===========================================================================
+  // content-density
+  // ===========================================================================
+
+  describe("content-density", () => {
+    it("passes when tree has 5 elements (within range)", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["h", "body", "btn"] },
+        h: {
+          type: "Text",
+          props: { variant: "heading2", children: "Title" },
+        },
+        body: {
+          type: "Text",
+          props: { variant: "body", children: "Content" },
+        },
+        btn: { type: "Button", props: { children: "Action" } },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "content-density");
+      expect(rule?.pass).toBe(true);
+      expect(rule?.violations).toHaveLength(0);
+    });
+
+    it("fails when tree has only 1 element (too simple)", () => {
+      const tree = buildTree("root", {
+        root: {
+          type: "Text",
+          props: { variant: "heading2", children: "Alone" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "content-density");
+      expect(rule?.pass).toBe(false);
+      expect(rule?.violations[0]).toContain("only 1 element");
+      expect(rule?.violations[0]).toContain("minimum is 3");
+    });
+
+    it("fails when tree has 2 elements (still below minimum)", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["h"] },
+        h: {
+          type: "Text",
+          props: { variant: "heading2", children: "Title" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "content-density");
+      expect(rule?.pass).toBe(false);
+      expect(rule?.violations[0]).toContain("only 2 element");
+    });
+
+    it("passes at exactly 3 elements (boundary)", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["h"] },
+        h: {
+          type: "Text",
+          props: { variant: "heading2", children: "Title" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "content-density");
+      expect(rule?.pass).toBe(true);
+    });
+  });
+
+  // ===========================================================================
+  // action-completeness
+  // ===========================================================================
+
+  describe("action-completeness", () => {
+    it("passes when tree has Input and Button", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["h", "input", "btn"] },
+        h: {
+          type: "Text",
+          props: { variant: "heading2", children: "Form" },
+        },
+        input: {
+          type: "Input",
+          props: { label: "Email", placeholder: "you@example.com" },
+        },
+        btn: { type: "Button", props: { children: "Submit" } },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "action-completeness");
+      expect(rule?.pass).toBe(true);
+      expect(rule?.violations).toHaveLength(0);
+    });
+
+    it("fails when tree has Input but no Button", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["h", "input"] },
+        h: {
+          type: "Text",
+          props: { variant: "heading2", children: "Form" },
+        },
+        input: {
+          type: "Input",
+          props: { label: "Email", placeholder: "you@example.com" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "action-completeness");
+      expect(rule?.pass).toBe(false);
+      expect(rule?.violations[0]).toContain("no Button found");
+    });
+
+    it("passes when no form elements exist (non-form UI)", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["h", "body"] },
+        h: {
+          type: "Text",
+          props: { variant: "heading2", children: "Dashboard" },
+        },
+        body: {
+          type: "Text",
+          props: { variant: "body", children: "No forms here" },
+        },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "action-completeness");
+      expect(rule?.pass).toBe(true);
+    });
+
+    it("fails when Select exists but no Button", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["h", "sel"] },
+        h: {
+          type: "Text",
+          props: { variant: "heading2", children: "Picker" },
+        },
+        sel: { type: "Select", props: { label: "Option" } },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "action-completeness");
+      expect(rule?.pass).toBe(false);
+    });
+
+    it("passes when Checkbox and Button both exist", () => {
+      const tree = buildTree("root", {
+        root: { type: "Surface", children: ["stack"] },
+        stack: { type: "Stack", children: ["h", "cb", "btn"] },
+        h: {
+          type: "Text",
+          props: { variant: "heading2", children: "Settings" },
+        },
+        cb: { type: "Checkbox", props: { label: "Enable notifications" } },
+        btn: { type: "Button", props: { children: "Save" } },
+      });
+
+      const report = gradeComposition(tree);
+      const rule = report.results.find((r) => r.rule === "action-completeness");
       expect(rule?.pass).toBe(true);
     });
   });

@@ -59,7 +59,7 @@
         "Rule action-completeness: passes if no form elements exist (non-form UIs are fine)",
         "Unit test: tree with 5 elements passes density; tree with 1 element fails; tree with Input+Button passes action; tree with Input only fails"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "grader-6",

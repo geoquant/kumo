@@ -12,6 +12,7 @@ Started: 2026-02-27
 - Simple layout heuristic: ≤12 elements = simple (exempt from complex-only rules like responsive grid requirement)
 - Parent-child type check: `walkTree(tree, (el, _depth, parentKey) => { if (parentKey) tree.elements[parentKey].type ... })` — no extra data structure needed
 - Sibling grouping: `Map<parentKey, sibling[]>` populated during walkTree, then iterated post-walk for cross-sibling checks (e.g. spacing consistency)
+- `allPass` test fixtures must satisfy ALL rules (≥3 elements for content-density, etc.) — update when adding new rules
 
 ---
 
@@ -44,3 +45,13 @@ Started: 2026-02-27
 - Added 5 unit tests: sm+base passes, xs+lg fails, single Stack passes, identical gaps pass, no-gap Stacks ignored
 - **Files changed:** `composition-graders.ts` (modified), `composition-graders.test.ts` (modified)
 - **Learnings:** Map<parentKey, sibling[]> grouping pattern during walkTree is clean for sibling-comparison rules; min/max index distance is simpler than pairwise comparison
+
+## Task - grader-5
+- Added `content-density` rule: fails if element count <3 (too simple) or >100 (too complex)
+- Added `action-completeness` rule: fails if form elements (Input, Select, Textarea, Checkbox, Switch) exist but no Button
+- Added `FORM_ELEMENT_TYPES` set, `MIN_ELEMENTS`/`MAX_ELEMENTS` constants
+- Boolean tracking (`hasFormElement`, `hasButton`) during walkTree — simplest pattern for existence checks
+- Fixed pre-existing `allPass` test: passingTree had only 2 elements, now has 3 (Surface > Stack > Text heading)
+- Added 9 unit tests: density pass/fail/boundary, action pass with Button, fail without, non-form passes, Select+no-Button fails, Checkbox+Button passes
+- **Files changed:** `composition-graders.ts` (modified), `composition-graders.test.ts` (modified)
+- **Learnings:** Adding new rules can break existing `allPass`-asserting tests if they use minimal fixtures — always check boundary conditions in test fixtures when tightening rules
