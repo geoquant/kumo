@@ -238,6 +238,18 @@ const PRESET_PROMPTS = [
     prompt:
       "Design a WAF overview dashboard with a summary card showing total requests, blocked threats, and challenge rate as meters, a recent events table with timestamp, action, rule, IP, and path columns, plus toggle switches for managed rulesets",
   },
+  {
+    label: "Workers flow",
+    prompt:
+      "Build a Cloudflare Workers page with two sections stacked vertically. " +
+      "Top section: a Flow diagram showing the request lifecycle — " +
+      "a 'Client Request' node, then a FlowParallel with 'WAF Rules' and 'Rate Limiting' nodes, " +
+      "then a 'my-worker' node, then a FlowParallel with 'KV Store' and 'D1 Database' nodes, " +
+      "then a 'Response' node. " +
+      "Bottom section: a Table with columns Name, Type, and Resource showing worker bindings — " +
+      "rows for MY_KV (KV Namespace, production-kv), MY_DB (D1 Database, worker-db), " +
+      "AUTH_SERVICE (Service Binding, auth-worker), and ASSETS (R2 Bucket, static-assets).",
+  },
 ] as const;
 
 // =============================================================================

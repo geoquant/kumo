@@ -11,7 +11,8 @@ Started: 2026-02-27
 - Manifest import pattern: cross-module imports from `catalog/` → `generative/component-manifest.js` are safe (no circular deps); use `TYPE_RESOLUTION_MAP` for registry ref derivation, `TYPE_ALIASES` for alias annotations.
 - Synthetic sub-component pattern: sub-components without registry `subComponents` entries need `SYNTHETIC_TYPES` entries in prompt-builder with `category` field for correct prompt grouping; test via `buildComponentDocs` with component filter.
 - Drift detection pattern: manifest-level invariant tests validate internal consistency (every registry component classified, no stale references, sub-component parent integrity) without needing to run codegen; codegen-time warnings catch stale references during `pnpm codegen:registry`.
-- Wrapper bucket overlap: a component CAN appear in both STATEFUL_WRAPPER_TARGETS and GENERATIVE_WRAPPER_TARGETS (e.g. Select); but must NOT appear in DIRECT and a wrapper list, or EXCLUDED and a wrapper list. Wrapper targets are NOT in ALL_GENERATIVE_TYPES — they enter the component map via wrapper loops.
+- Wrapper bucket overlap: a component CAN appear in both STATEFUL_WRAPPER_TARGETS and GENERATIVE_WRAPPER_TARGETS (e.g. Select); but must NOT appear in DIRECT and a wrapper list, or EXCLUDED and a wrapper list. Wrapper targets are NOT in ALL_GENERATIVE_TYPES �� they enter the component map via wrapper loops.
+- Playground preset pattern: `PRESET_PROMPTS` is `as const` array of `{ label, prompt }` in `_PlaygroundPage.tsx`; card-level presets generate single components, page-level presets generate full layouts with multiple component types. Prompts should reference generative type names (Flow, FlowParallel, FlowNode) explicitly to guide LLM output.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -74,3 +75,9 @@ Started: 2026-02-27
 - Files changed: `packages/kumo/scripts/component-registry/drift-detection.test.ts` (new), `packages/kumo/scripts/component-registry/generative-map-generator.ts`
 - Verification: 1036 tests pass (19 new), typecheck clean, lint 0 errors in changed files
 - **Learnings:** `computeDirectComponents` makes "unclassified" structurally impossible — anything not excluded/stateful/generative IS direct by construction. Real drift risks are stale references and orphaned sub-component parents, not missing classifications. Wrapper buckets can overlap (Select is both stateful and generative).
+
+## Task - [d10-workers-flow-preset]
+- Added "Workers flow" pill preset to `PRESET_PROMPTS` in `_PlaygroundPage.tsx`. Prompt describes a two-section page: a Flow diagram (Client Request → WAF Rules/Rate Limiting parallel → my-worker → KV Store/D1 Database parallel → Response) above a bindings Table (MY_KV, MY_DB, AUTH_SERVICE, ASSETS).
+- Files changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`
+- Verification: typecheck 0 errors, 1036 tests pass, lint 0 errors in changed file
+- **Learnings:** page-level presets work best when they combine multiple generative types (Flow + Table) to demonstrate cross-component composition. Using explicit generative type names in prompts (FlowParallel, not "parallel branch") gives the LLM stronger signal for correct component selection.

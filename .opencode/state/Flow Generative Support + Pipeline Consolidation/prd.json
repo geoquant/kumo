@@ -60,7 +60,7 @@
       "id": "d10-workers-flow-preset",
       "category": "feature",
       "description": "Add Workers flow pill preset to playground",
-      "passes": false
+      "passes": true
     },
     {
       "id": "d11-drift-detection",
