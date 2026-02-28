@@ -164,7 +164,7 @@
         "Reports per-prompt pass/fail and aggregate score to console",
         "Supports offline mode: can load pre-generated JSONL fixtures instead of calling API"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
