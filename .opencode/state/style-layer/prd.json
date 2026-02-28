@@ -83,7 +83,7 @@
         "Spacing density grammar present: xs (key-value), sm (headers/actions), base (standard sections), lg (top-level divisions)",
         "Content reading order documented: title -> context -> data -> actions"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "prompt-2",

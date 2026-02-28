@@ -40,6 +40,60 @@ describe("system prompt contracts", () => {
   });
 });
 
+describe("PAGE_COMPOSITION section", () => {
+  const prompt = buildSystemPrompt();
+
+  it("includes PAGE_COMPOSITION section in output", () => {
+    expect(prompt).toContain("Page Composition");
+  });
+
+  it("is positioned between COMPOSITION_RECIPES and ACCESSIBILITY", () => {
+    const recipesIdx = prompt.indexOf("Composition Recipes");
+    const pageCompIdx = prompt.indexOf("Page Composition");
+    const a11yIdx = prompt.indexOf("Accessibility (Required)");
+    expect(recipesIdx).toBeGreaterThan(-1);
+    expect(pageCompIdx).toBeGreaterThan(-1);
+    expect(a11yIdx).toBeGreaterThan(-1);
+    expect(pageCompIdx).toBeGreaterThan(recipesIdx);
+    expect(pageCompIdx).toBeLessThan(a11yIdx);
+  });
+
+  it("includes surface hierarchy rules", () => {
+    expect(prompt).toContain("Root Surface");
+    expect(prompt).toContain('Surface(color="neutral")');
+    expect(prompt).toContain("No direct Surface > Surface nesting");
+  });
+
+  it("includes page-level layout rules", () => {
+    expect(prompt).toContain("Single-column page");
+    expect(prompt).toContain("Two-column layout");
+    expect(prompt).toContain('Grid(variant="2up")');
+    expect(prompt).toContain("sidebar");
+  });
+
+  it("includes spacing density grammar", () => {
+    expect(prompt).toContain("Spacing Density Grammar");
+    expect(prompt).toContain("xs");
+    expect(prompt).toContain("Key-value pairs");
+    expect(prompt).toContain("sm");
+    expect(prompt).toContain("base");
+    expect(prompt).toContain("lg");
+    expect(prompt).toContain("Top-level page divisions");
+  });
+
+  it("includes content reading order", () => {
+    expect(prompt).toContain("Content Reading Order");
+    const titleIdx = prompt.indexOf("**Title**");
+    const contextIdx = prompt.indexOf("**Context**");
+    const dataIdx = prompt.indexOf("**Data**");
+    const actionsIdx = prompt.indexOf("**Actions**");
+    expect(titleIdx).toBeGreaterThan(-1);
+    expect(contextIdx).toBeGreaterThan(titleIdx);
+    expect(dataIdx).toBeGreaterThan(contextIdx);
+    expect(actionsIdx).toBeGreaterThan(dataIdx);
+  });
+});
+
 describe("Flow prompt docs", () => {
   const docs = buildComponentDocs(registryJson, {
     components: ["Flow", "FlowNode", "FlowParallel"],
