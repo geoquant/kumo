@@ -81,3 +81,9 @@ Started: 2026-02-27
 - Files changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`
 - Verification: typecheck 0 errors, 1036 tests pass, lint 0 errors in changed file
 - **Learnings:** page-level presets work best when they combine multiple generative types (Flow + Table) to demonstrate cross-component composition. Using explicit generative type names in prompts (FlowParallel, not "parallel branch") gives the LLM stronger signal for correct component selection.
+
+## Task - [verify-manifest-integration]
+- Added `manifest-integration.test.ts` (18 tests) validating cross-cutting contracts between component-manifest.ts → element-validator.ts and component-manifest.ts → prompt-builder.ts. Three test suites: manifest→validator (7 tests: alias schema resolution, alias validation routing, sub-component pass-through, direct component schema coverage, Div synthetic), manifest→prompt-builder (4 tests: resolution map → prompt docs, alias annotations, direct component docs, synthetic type docs), cross-consumer consistency (7 tests: resolution map supersets, ALL_GENERATIVE_TYPES handling in both consumers, alias target agreement, sub-component parent consistency).
+- Files changed: `packages/kumo/tests/generative/manifest-integration.test.ts` (new)
+- Verification: 1054 tests pass (18 new), typecheck 0 errors, lint clean
+- **Learnings:** RadioGroup is in VALIDATED_SUB_COMPONENTS — it validates against Radio parent schema, not null pass-through. Integration tests should assert "no throw" rather than "valid=true" for sub-components with parent-schema validation, since empty props may legitimately fail the parent schema. `Object.entries()` on `as const` objects yields `unknown` values — iterate with `Object.keys()` + indexed access for type safety.

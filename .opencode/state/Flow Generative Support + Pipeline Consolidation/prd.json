@@ -72,7 +72,7 @@
       "id": "verify-manifest-integration",
       "category": "verification",
       "description": "Add integration test for manifest-derived validator/prompt data",
-      "passes": false
+      "passes": true
     },
     {
       "id": "verify-playground-flow",
