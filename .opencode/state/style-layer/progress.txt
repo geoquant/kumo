@@ -22,6 +22,7 @@ Started: 2026-02-27
 - Tabs pattern in JSONL: `Tabs` element with `tabs` prop (array of `{value, label}`) + `defaultValue` — tab content as sibling Stack elements, not children of Tabs. All panels visible in static tree; runtime handles switching.
 - Spacing-consistency gotcha: sibling Stack elements under same parent must have gaps within 1 step (sm↔base OK, sm↔lg NOT OK). Tab content sections sharing a parent with the header must match gap range.
 - Regression test pattern: `extractExampleJsonl(prompt, title)` + `parseJsonlToTree()` + `gradeTree()` — data-driven loop over `CARD_EXAMPLES` array with `for...of` + inner `describe` blocks. No need for separate test files per example.
+- Eval prompt types: `ExpectedPattern` (union of known layout patterns + "novel") and `RequiredPattern` (structural patterns verifiable by tree inspection) — both exported as union types for type-safe harness code.
 
 ---
 
@@ -119,3 +120,12 @@ Started: 2026-02-27
 - Added 5 tests: tree validity, Tabs element with 3 tabs, content per tab (Grid + Table + Input), gradeTree pass, gradeComposition pass
 - **Files changed:** `system-prompt.ts` (modified), `prompt-contracts.test.ts` (modified)
 - **Learnings:** Sibling Stacks sharing a parent with different semantic purposes (header vs content sections) still must respect spacing-consistency. When mixing `gap="sm"` headers with `gap="lg"` content, use `gap="base"` instead — it's within one step of both `sm` and `lg`. Tabs in JSONL: content is siblings of Tabs element, not children.
+
+## Task - eval-1
+- Created `packages/kumo/src/generative/eval/eval-prompts.ts` with `EvalPrompt` type and 12 natural language prompts
+- Types: `EvalPrompt` (id, prompt, expectedPattern, requiredElements, requiredPatterns), `ExpectedPattern` union, `RequiredPattern` union
+- 12 prompts covering: product-overview (1), service-detail (2), service-tabs (1), dashboard (2), form (2), table (1), novel (4)
+- Novel prompts: plan comparison, getting-started wizard, incident timeline, notification center
+- All prompts use natural language describing UI intent, not template names
+- **Files changed:** `generative/eval/eval-prompts.ts` (new)
+- **Learnings:** `RequiredPattern` as a finite union type enables the eval harness to have type-safe pattern checkers. Novel prompts should have empty `requiredPatterns` since there's no expected structural template to verify — only `requiredElements` and grading scores matter.
