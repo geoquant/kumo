@@ -525,6 +525,59 @@ User: "Show a service detail page for a Workers service with a description, docu
 {"op":"add","path":"/elements/c-v2-time","value":{"key":"c-v2-time","type":"TableCell","props":{"children":"1 day ago"},"parentKey":"row-v2"}}
 {"op":"add","path":"/elements/empty-section","value":{"key":"empty-section","type":"Empty","props":{"title":"No active alerts","description":"This service is running smoothly with no issues to report."},"parentKey":"page-stack"}}`;
 
+const EXAMPLE_SERVICE_TABS = `## Example (Service Tabs Page with Multi-Tab Content)
+
+User: "Show a service page with tabs for Overview, Traffic, and Settings. Overview has stat cards, Traffic has a request log table, Settings has a configuration form"
+
+{"op":"add","path":"/root","value":"page"}
+{"op":"add","path":"/elements/page","value":{"key":"page","type":"Surface","props":{},"children":["page-stack"]}}
+{"op":"add","path":"/elements/page-stack","value":{"key":"page-stack","type":"Stack","props":{"gap":"lg"},"children":["page-header","service-tabs","tab-overview","tab-traffic","tab-settings"],"parentKey":"page"}}
+{"op":"add","path":"/elements/page-header","value":{"key":"page-header","type":"Stack","props":{"gap":"sm"},"children":["page-title","page-desc"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/page-title","value":{"key":"page-title","type":"Text","props":{"children":"api-gateway","variant":"heading2"},"parentKey":"page-header"}}
+{"op":"add","path":"/elements/page-desc","value":{"key":"page-desc","type":"Text","props":{"children":"Manage your API gateway service configuration, traffic, and settings.","variant":"secondary"},"parentKey":"page-header"}}
+{"op":"add","path":"/elements/service-tabs","value":{"key":"service-tabs","type":"Tabs","props":{"defaultValue":"overview","tabs":[{"value":"overview","label":"Overview"},{"value":"traffic","label":"Traffic"},{"value":"settings","label":"Settings"}]},"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/tab-overview","value":{"key":"tab-overview","type":"Stack","props":{"gap":"sm"},"children":["overview-heading","stat-grid"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/overview-heading","value":{"key":"overview-heading","type":"Text","props":{"children":"Service metrics","variant":"heading3"},"parentKey":"tab-overview"}}
+{"op":"add","path":"/elements/stat-grid","value":{"key":"stat-grid","type":"Grid","props":{"variant":"3up","gap":"base"},"children":["stat-requests","stat-latency","stat-errors"],"parentKey":"tab-overview"}}
+{"op":"add","path":"/elements/stat-requests","value":{"key":"stat-requests","type":"Surface","props":{"color":"neutral"},"children":["stat-requests-stack"],"parentKey":"stat-grid"}}
+{"op":"add","path":"/elements/stat-requests-stack","value":{"key":"stat-requests-stack","type":"Stack","props":{"gap":"xs"},"children":["stat-requests-label","stat-requests-val"],"parentKey":"stat-requests"}}
+{"op":"add","path":"/elements/stat-requests-label","value":{"key":"stat-requests-label","type":"Text","props":{"children":"Requests (24h)","variant":"secondary"},"parentKey":"stat-requests-stack"}}
+{"op":"add","path":"/elements/stat-requests-val","value":{"key":"stat-requests-val","type":"Text","props":{"children":"1.8M","variant":"heading2"},"parentKey":"stat-requests-stack"}}
+{"op":"add","path":"/elements/stat-latency","value":{"key":"stat-latency","type":"Surface","props":{"color":"neutral"},"children":["stat-latency-stack"],"parentKey":"stat-grid"}}
+{"op":"add","path":"/elements/stat-latency-stack","value":{"key":"stat-latency-stack","type":"Stack","props":{"gap":"xs"},"children":["stat-latency-label","stat-latency-val"],"parentKey":"stat-latency"}}
+{"op":"add","path":"/elements/stat-latency-label","value":{"key":"stat-latency-label","type":"Text","props":{"children":"P95 latency","variant":"secondary"},"parentKey":"stat-latency-stack"}}
+{"op":"add","path":"/elements/stat-latency-val","value":{"key":"stat-latency-val","type":"Text","props":{"children":"42 ms","variant":"heading2"},"parentKey":"stat-latency-stack"}}
+{"op":"add","path":"/elements/stat-errors","value":{"key":"stat-errors","type":"Surface","props":{"color":"neutral"},"children":["stat-errors-stack"],"parentKey":"stat-grid"}}
+{"op":"add","path":"/elements/stat-errors-stack","value":{"key":"stat-errors-stack","type":"Stack","props":{"gap":"xs"},"children":["stat-errors-label","stat-errors-val"],"parentKey":"stat-errors"}}
+{"op":"add","path":"/elements/stat-errors-label","value":{"key":"stat-errors-label","type":"Text","props":{"children":"Error rate","variant":"secondary"},"parentKey":"stat-errors-stack"}}
+{"op":"add","path":"/elements/stat-errors-val","value":{"key":"stat-errors-val","type":"Text","props":{"children":"0.05%","variant":"heading2"},"parentKey":"stat-errors-stack"}}
+{"op":"add","path":"/elements/tab-traffic","value":{"key":"tab-traffic","type":"Stack","props":{"gap":"sm"},"children":["traffic-heading","traffic-tbl"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/traffic-heading","value":{"key":"traffic-heading","type":"Text","props":{"children":"Recent requests","variant":"heading3"},"parentKey":"tab-traffic"}}
+{"op":"add","path":"/elements/traffic-tbl","value":{"key":"traffic-tbl","type":"Table","props":{"layout":"fixed"},"children":["traffic-thead","traffic-tbody"],"parentKey":"tab-traffic"}}
+{"op":"add","path":"/elements/traffic-thead","value":{"key":"traffic-thead","type":"TableHeader","props":{},"children":["traffic-hrow"],"parentKey":"traffic-tbl"}}
+{"op":"add","path":"/elements/traffic-hrow","value":{"key":"traffic-hrow","type":"TableRow","props":{},"children":["h-path","h-method","h-status","h-time"],"parentKey":"traffic-thead"}}
+{"op":"add","path":"/elements/h-path","value":{"key":"h-path","type":"TableHead","props":{"children":"Path"},"parentKey":"traffic-hrow"}}
+{"op":"add","path":"/elements/h-method","value":{"key":"h-method","type":"TableHead","props":{"children":"Method"},"parentKey":"traffic-hrow"}}
+{"op":"add","path":"/elements/h-status","value":{"key":"h-status","type":"TableHead","props":{"children":"Status"},"parentKey":"traffic-hrow"}}
+{"op":"add","path":"/elements/h-time","value":{"key":"h-time","type":"TableHead","props":{"children":"Time"},"parentKey":"traffic-hrow"}}
+{"op":"add","path":"/elements/traffic-tbody","value":{"key":"traffic-tbody","type":"TableBody","props":{},"children":["row-1","row-2"],"parentKey":"traffic-tbl"}}
+{"op":"add","path":"/elements/row-1","value":{"key":"row-1","type":"TableRow","props":{},"children":["c-1-path","c-1-method","c-1-status","c-1-time"],"parentKey":"traffic-tbody"}}
+{"op":"add","path":"/elements/c-1-path","value":{"key":"c-1-path","type":"TableCell","props":{"children":"/api/v2/users"},"parentKey":"row-1"}}
+{"op":"add","path":"/elements/c-1-method","value":{"key":"c-1-method","type":"Badge","props":{"children":"GET","variant":"secondary"},"parentKey":"row-1"}}
+{"op":"add","path":"/elements/c-1-status","value":{"key":"c-1-status","type":"Badge","props":{"children":"200","variant":"primary"},"parentKey":"row-1"}}
+{"op":"add","path":"/elements/c-1-time","value":{"key":"c-1-time","type":"TableCell","props":{"children":"12 ms"},"parentKey":"row-1"}}
+{"op":"add","path":"/elements/row-2","value":{"key":"row-2","type":"TableRow","props":{},"children":["c-2-path","c-2-method","c-2-status","c-2-time"],"parentKey":"traffic-tbody"}}
+{"op":"add","path":"/elements/c-2-path","value":{"key":"c-2-path","type":"TableCell","props":{"children":"/api/v2/auth"},"parentKey":"row-2"}}
+{"op":"add","path":"/elements/c-2-method","value":{"key":"c-2-method","type":"Badge","props":{"children":"POST","variant":"secondary"},"parentKey":"row-2"}}
+{"op":"add","path":"/elements/c-2-status","value":{"key":"c-2-status","type":"Badge","props":{"children":"401","variant":"destructive"},"parentKey":"row-2"}}
+{"op":"add","path":"/elements/c-2-time","value":{"key":"c-2-time","type":"TableCell","props":{"children":"8 ms"},"parentKey":"row-2"}}
+{"op":"add","path":"/elements/tab-settings","value":{"key":"tab-settings","type":"Stack","props":{"gap":"base"},"children":["settings-heading","rate-limit-input","settings-actions"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/settings-heading","value":{"key":"settings-heading","type":"Text","props":{"children":"Configuration","variant":"heading3"},"parentKey":"tab-settings"}}
+{"op":"add","path":"/elements/rate-limit-input","value":{"key":"rate-limit-input","type":"Input","props":{"label":"Rate limit (req/s)","placeholder":"1000"},"parentKey":"tab-settings"}}
+{"op":"add","path":"/elements/settings-actions","value":{"key":"settings-actions","type":"Cluster","props":{"gap":"sm"},"children":["save-btn","reset-btn"],"parentKey":"tab-settings"}}
+{"op":"add","path":"/elements/save-btn","value":{"key":"save-btn","type":"Button","props":{"children":"Save settings","variant":"primary"},"parentKey":"settings-actions","action":{"name":"submit_form","params":{"form_type":"service_settings"}}}}
+{"op":"add","path":"/elements/reset-btn","value":{"key":"reset-btn","type":"Button","props":{"children":"Reset defaults","variant":"secondary"},"parentKey":"settings-actions"}}`;
+
 const CLOSING_RULES = `## Important
 
 - ALWAYS respond with ONLY JSONL lines. No markdown fences, no explanations, no text before or after.
@@ -554,7 +607,7 @@ const CLOSING_RULES = `## Important
  * - JSONL/RFC 6902 response format with UITree schema
  * - Available components (injected via `componentsSection`)
  * - Action system (built-in actions, dispatch rules)
- * - Ten working examples (user card, counter, notification form, pricing table, dashboard, list, empty state, flow diagram, product overview page, service detail page)
+ * - Eleven working examples (user card, counter, notification form, pricing table, dashboard, list, empty state, flow diagram, product overview page, service detail page, service tabs page)
  *
  * @example
  * ```ts
@@ -603,6 +656,7 @@ export function buildSystemPrompt(options: SystemPromptOptions = {}): string {
     EXAMPLE_FLOW,
     EXAMPLE_PRODUCT_OVERVIEW,
     EXAMPLE_SERVICE_DETAIL,
+    EXAMPLE_SERVICE_TABS,
     CLOSING_RULES,
   ].filter(Boolean);
 
