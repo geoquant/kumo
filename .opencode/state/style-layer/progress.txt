@@ -129,3 +129,14 @@ Started: 2026-02-27
 - All prompts use natural language describing UI intent, not template names
 - **Files changed:** `generative/eval/eval-prompts.ts` (new)
 - **Learnings:** `RequiredPattern` as a finite union type enables the eval harness to have type-safe pattern checkers. Novel prompts should have empty `requiredPatterns` since there's no expected structural template to verify — only `requiredElements` and grading scores matter.
+
+## Task - eval-2
+- Created `packages/kumo/tests/generative/eval/composition-eval.test.ts` — env-gated eval harness
+- `describe.skipIf(!evalEnabled)` skips all 65 tests when `EVAL_ENABLED` not set (verified: 65 skipped in CI)
+- Offline mode: `loadFixture(id)` reads `fixtures/<id>.jsonl`; online mode placeholder throws to prevent accidental LLM calls
+- Per-prompt pipeline: `resolveJsonl()` → `parseJsonlToTree()` → `gradeTree()` + `gradeComposition()` + required elements + required patterns
+- 8 pattern checkers (`checkPattern`) for: two-column, tabs, stat-grid, header-actions, empty-state, form-with-submit, table-with-header, surface-hierarchy
+- Aggregate report in `afterAll`: per-prompt PASS/FAIL with failure reasons + percentage score
+- Created `fixtures/.gitkeep` for pre-generated JSONL convention
+- **Files changed:** `composition-eval.test.ts` (new), `fixtures/.gitkeep` (new)
+- **Learnings:** `describe.skipIf` is the clean vitest pattern for env-gating (matches existing `loadable-css.test.ts` convention). `afterAll` at both inner describe (per-prompt recording) and outer describe (aggregate report) levels enables clean score accumulation without shared mutable state leaking across tests.
