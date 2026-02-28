@@ -40,12 +40,29 @@ function gapIndex(value: unknown): number {
   return GAP_SCALE.indexOf(value as GapValue);
 }
 
+/** Minimum element count — below this the UI is too trivial. */
+const MIN_ELEMENTS = 3;
+
+/** Maximum element count — above this the UI is too complex. */
+const MAX_ELEMENTS = 100;
+
+/** Form element types that imply the UI needs an action (Button). */
+const FORM_ELEMENT_TYPES = new Set([
+  "Input",
+  "Select",
+  "Textarea",
+  "Checkbox",
+  "Switch",
+]);
+
 /** All composition rule names in evaluation order. */
 export const COMPOSITION_RULE_NAMES = [
   "has-visual-hierarchy",
   "has-responsive-layout",
   "surface-hierarchy-correct",
   "spacing-consistency",
+  "content-density",
+  "action-completeness",
 ] as const;
 
 export type CompositionRuleName = (typeof COMPOSITION_RULE_NAMES)[number];
@@ -63,6 +80,8 @@ export function gradeComposition(tree: UITree): GradeReport {
   const layoutViolations: string[] = [];
   const surfaceViolations: string[] = [];
   const spacingViolations: string[] = [];
+  const densityViolations: string[] = [];
+  const actionViolations: string[] = [];
 
   // Track which heading levels are present
   let hasAnyHeading = false;
@@ -75,6 +94,10 @@ export function gradeComposition(tree: UITree): GradeReport {
 
   // Track Stack gap values grouped by parent key for spacing-consistency
   const stackGapsByParent = new Map<string, { key: string; gap: string }[]>();
+
+  // Track form elements and buttons for action-completeness
+  let hasFormElement = false;
+  let hasButton = false;
 
   let elementCount = 0;
 
@@ -115,6 +138,10 @@ export function gradeComposition(tree: UITree): GradeReport {
         siblings.push({ key: element.key, gap });
       }
     }
+
+    // action-completeness: track form elements and buttons
+    if (FORM_ELEMENT_TYPES.has(type)) hasFormElement = true;
+    if (type === "Button") hasButton = true;
 
     // surface-hierarchy-correct: Surface must not be a direct child of Surface
     if (type === "Surface" && parentKey != null) {
@@ -185,6 +212,25 @@ export function gradeComposition(tree: UITree): GradeReport {
     }
   }
 
+  // content-density rule evaluation
+  if (elementCount < MIN_ELEMENTS) {
+    densityViolations.push(
+      `tree has only ${elementCount} element(s) — minimum is ${MIN_ELEMENTS} (too simple to be a useful UI)`,
+    );
+  } else if (elementCount > MAX_ELEMENTS) {
+    densityViolations.push(
+      `tree has ${elementCount} elements — maximum is ${MAX_ELEMENTS} (too complex, consider splitting into sub-pages)`,
+    );
+  }
+
+  // action-completeness rule evaluation
+  // Form elements without a Button means the user cannot submit/act
+  if (hasFormElement && !hasButton) {
+    actionViolations.push(
+      "form elements (Input, Select, Textarea, Checkbox, Switch) exist but no Button found — add a Button for the user to act",
+    );
+  }
+
   const results: GradeResult[] = [
     {
       rule: "has-visual-hierarchy",
@@ -205,6 +251,16 @@ export function gradeComposition(tree: UITree): GradeReport {
       rule: "spacing-consistency",
       pass: spacingViolations.length === 0,
       violations: spacingViolations,
+    },
+    {
+      rule: "content-density",
+      pass: densityViolations.length === 0,
+      violations: densityViolations,
+    },
+    {
+      rule: "action-completeness",
+      pass: actionViolations.length === 0,
+      violations: actionViolations,
     },
   ];
 
