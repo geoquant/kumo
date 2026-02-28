@@ -18,6 +18,7 @@ Started: 2026-02-27
 - System prompt sections are const string template literals — new section follows same pattern as COMPOSITION_RECIPES, DESIGN_RULES etc.
 - `extractExampleJsonl(prompt, title)` test helper: extracts JSONL lines from a named example in the prompt text — reuse for testing any inline example
 - Page-level examples follow pattern: `Surface > Stack(gap="lg") > [header, Grid(variant="2up") > [main-col, sidebar-col]]` — consistent two-column structure
+- Header-with-actions pattern: `Grid(variant="2up") > [Stack(gap="sm") > [heading, desc], Cluster(justify="end") > [buttons]]` — title left, actions right; satisfies responsive-layout grader for single-column pages
 
 ---
 
@@ -85,3 +86,14 @@ Started: 2026-02-27
 - Added 5 tests: tree validity, 2up Grid check, neutral Surface check, gradeTree pass, gradeComposition pass
 - **Files changed:** `system-prompt.ts` (modified), `prompt-contracts.test.ts` (modified)
 - **Learnings:** `extractExampleJsonl()` helper is reusable for testing any inline JSONL example from the prompt. Surface `color` prop is silently stripped by Zod validation (not in schema) but passed through by GenerativeSurface `...rest` at runtime — graders don't fail on it.
+
+## Task - prompt-3
+- Added `EXAMPLE_SERVICE_DETAIL` to system prompt: "Service Detail Page with Header Actions and Table"
+- Single-column layout with header using `Grid(variant="2up")` for title+desc on left, action buttons right-aligned on right
+- Header pattern mirrors NS ServiceDetail template's `flex justify-between` layout
+- Deployments table with 4 columns (Version, Environment, Status, Deployed), 2 data rows with Badge status
+- Empty state section using `Empty` component for "no active alerts" scenario
+- Updated JSDoc to reference ten examples (was nine)
+- Added 5 tests: tree validity, header structure (heading + description + buttons), table structure, gradeTree pass, gradeComposition pass
+- **Files changed:** `system-prompt.ts` (modified), `prompt-contracts.test.ts` (modified)
+- **Learnings:** Single-column service detail pages still need Grid to pass `has-responsive-layout` grader when >12 elements. Using `Grid(variant="2up")` for the header row (title-left, actions-right) is a natural pattern that satisfies the grader while matching the NS template's `flex justify-between` header design.

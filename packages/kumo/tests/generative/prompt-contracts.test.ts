@@ -157,6 +157,61 @@ describe("fixture contracts", () => {
   });
 });
 
+describe("Service Detail page example (Example 9)", () => {
+  const prompt = buildSystemPrompt();
+  const jsonl = extractExampleJsonl(prompt, "Service Detail Page");
+  const tree = parseJsonlToTree(jsonl);
+
+  it("parseJsonlToTree produces valid UITree with root and elements", () => {
+    expect(tree.root).toBeTruthy();
+    expect(Object.keys(tree.elements).length).toBeGreaterThan(0);
+  });
+
+  it("has header section with title, description, and action buttons", () => {
+    const heading = Object.values(tree.elements).find(
+      (el) =>
+        el.type === "Text" &&
+        (el.props as Record<string, unknown>)["variant"] === "heading2",
+    );
+    expect(heading).toBeDefined();
+
+    const description = Object.values(tree.elements).find(
+      (el) =>
+        el.type === "Text" &&
+        (el.props as Record<string, unknown>)["variant"] === "secondary",
+    );
+    expect(description).toBeDefined();
+
+    const buttons = Object.values(tree.elements).filter(
+      (el) => el.type === "Button",
+    );
+    expect(buttons.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("contains a deployments table with header and body rows", () => {
+    expect(treeHasType(tree, "Table")).toBe(true);
+    expect(treeHasType(tree, "TableHeader")).toBe(true);
+    expect(treeHasType(tree, "TableBody")).toBe(true);
+    expect(treeHasType(tree, "TableRow")).toBe(true);
+  });
+
+  it("passes gradeTree() structural grading", () => {
+    const report = gradeTree(tree);
+    for (const r of report.results) {
+      expect(r.violations, `rule "${r.rule}" failed`).toEqual([]);
+    }
+    expect(report.allPass).toBe(true);
+  });
+
+  it("passes gradeComposition() composition grading", () => {
+    const report = gradeComposition(tree);
+    for (const r of report.results) {
+      expect(r.violations, `rule "${r.rule}" failed`).toEqual([]);
+    }
+    expect(report.allPass).toBe(true);
+  });
+});
+
 describe("Product Overview page example (Example 8)", () => {
   const prompt = buildSystemPrompt();
   const jsonl = extractExampleJsonl(prompt, "Product Overview Page");

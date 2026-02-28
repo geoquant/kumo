@@ -489,6 +489,42 @@ User: "Show a product overview page for Workers with request metrics, a resource
 {"op":"add","path":"/elements/docs-get-started","value":{"key":"docs-get-started","type":"Link","props":{"children":"Get started guide","href":"https://developers.cloudflare.com/workers/get-started/"},"parentKey":"docs-section"}}
 {"op":"add","path":"/elements/docs-api-ref","value":{"key":"docs-api-ref","type":"Link","props":{"children":"API reference","href":"https://developers.cloudflare.com/workers/runtime-apis/"},"parentKey":"docs-section"}}`;
 
+const EXAMPLE_SERVICE_DETAIL = `## Example (Service Detail Page with Header Actions and Table)
+
+User: "Show a service detail page for a Workers service with a description, documentation link and deploy button, a table of recent deployments, and an empty state message"
+
+{"op":"add","path":"/root","value":"page"}
+{"op":"add","path":"/elements/page","value":{"key":"page","type":"Surface","props":{},"children":["page-stack"]}}
+{"op":"add","path":"/elements/page-stack","value":{"key":"page-stack","type":"Stack","props":{"gap":"lg"},"children":["header-row","deployments-section","empty-section"],"parentKey":"page"}}
+{"op":"add","path":"/elements/header-row","value":{"key":"header-row","type":"Grid","props":{"variant":"2up","gap":"base"},"children":["page-header","header-actions"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/page-header","value":{"key":"page-header","type":"Stack","props":{"gap":"sm"},"children":["page-title","page-desc"],"parentKey":"header-row"}}
+{"op":"add","path":"/elements/page-title","value":{"key":"page-title","type":"Text","props":{"children":"api-gateway","variant":"heading2"},"parentKey":"page-header"}}
+{"op":"add","path":"/elements/page-desc","value":{"key":"page-desc","type":"Text","props":{"children":"Handles incoming API requests and routes them to downstream services.","variant":"secondary"},"parentKey":"page-header"}}
+{"op":"add","path":"/elements/header-actions","value":{"key":"header-actions","type":"Cluster","props":{"gap":"sm","justify":"end"},"children":["docs-btn","deploy-btn"],"parentKey":"header-row"}}
+{"op":"add","path":"/elements/docs-btn","value":{"key":"docs-btn","type":"Button","props":{"children":"Documentation","variant":"secondary"},"parentKey":"header-actions","action":{"name":"navigate","params":{"url":"https://developers.cloudflare.com/workers/","target":"_blank"}}}}
+{"op":"add","path":"/elements/deploy-btn","value":{"key":"deploy-btn","type":"Button","props":{"children":"Deploy","variant":"primary"},"parentKey":"header-actions","action":{"name":"navigate","params":{"url":"/workers/api-gateway/deploy"}}}}
+{"op":"add","path":"/elements/deployments-section","value":{"key":"deployments-section","type":"Stack","props":{"gap":"sm"},"children":["deployments-heading","deployments-tbl"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/deployments-heading","value":{"key":"deployments-heading","type":"Text","props":{"children":"Recent deployments","variant":"heading3"},"parentKey":"deployments-section"}}
+{"op":"add","path":"/elements/deployments-tbl","value":{"key":"deployments-tbl","type":"Table","props":{"layout":"fixed"},"children":["dep-thead","dep-tbody"],"parentKey":"deployments-section"}}
+{"op":"add","path":"/elements/dep-thead","value":{"key":"dep-thead","type":"TableHeader","props":{},"children":["dep-hrow"],"parentKey":"deployments-tbl"}}
+{"op":"add","path":"/elements/dep-hrow","value":{"key":"dep-hrow","type":"TableRow","props":{},"children":["h-version","h-env","h-status","h-time"],"parentKey":"dep-thead"}}
+{"op":"add","path":"/elements/h-version","value":{"key":"h-version","type":"TableHead","props":{"children":"Version"},"parentKey":"dep-hrow"}}
+{"op":"add","path":"/elements/h-env","value":{"key":"h-env","type":"TableHead","props":{"children":"Environment"},"parentKey":"dep-hrow"}}
+{"op":"add","path":"/elements/h-status","value":{"key":"h-status","type":"TableHead","props":{"children":"Status"},"parentKey":"dep-hrow"}}
+{"op":"add","path":"/elements/h-time","value":{"key":"h-time","type":"TableHead","props":{"children":"Deployed"},"parentKey":"dep-hrow"}}
+{"op":"add","path":"/elements/dep-tbody","value":{"key":"dep-tbody","type":"TableBody","props":{},"children":["row-v3","row-v2"],"parentKey":"deployments-tbl"}}
+{"op":"add","path":"/elements/row-v3","value":{"key":"row-v3","type":"TableRow","props":{},"children":["c-v3-ver","c-v3-env","c-v3-status","c-v3-time"],"parentKey":"dep-tbody"}}
+{"op":"add","path":"/elements/c-v3-ver","value":{"key":"c-v3-ver","type":"TableCell","props":{"children":"v3.1.0"},"parentKey":"row-v3"}}
+{"op":"add","path":"/elements/c-v3-env","value":{"key":"c-v3-env","type":"TableCell","props":{"children":"Production"},"parentKey":"row-v3"}}
+{"op":"add","path":"/elements/c-v3-status","value":{"key":"c-v3-status","type":"Badge","props":{"children":"Active","variant":"primary"},"parentKey":"row-v3"}}
+{"op":"add","path":"/elements/c-v3-time","value":{"key":"c-v3-time","type":"TableCell","props":{"children":"3 hours ago"},"parentKey":"row-v3"}}
+{"op":"add","path":"/elements/row-v2","value":{"key":"row-v2","type":"TableRow","props":{},"children":["c-v2-ver","c-v2-env","c-v2-status","c-v2-time"],"parentKey":"dep-tbody"}}
+{"op":"add","path":"/elements/c-v2-ver","value":{"key":"c-v2-ver","type":"TableCell","props":{"children":"v3.0.2"},"parentKey":"row-v2"}}
+{"op":"add","path":"/elements/c-v2-env","value":{"key":"c-v2-env","type":"TableCell","props":{"children":"Staging"},"parentKey":"row-v2"}}
+{"op":"add","path":"/elements/c-v2-status","value":{"key":"c-v2-status","type":"Badge","props":{"children":"Rolled back","variant":"secondary"},"parentKey":"row-v2"}}
+{"op":"add","path":"/elements/c-v2-time","value":{"key":"c-v2-time","type":"TableCell","props":{"children":"1 day ago"},"parentKey":"row-v2"}}
+{"op":"add","path":"/elements/empty-section","value":{"key":"empty-section","type":"Empty","props":{"title":"No active alerts","description":"This service is running smoothly with no issues to report."},"parentKey":"page-stack"}}`;
+
 const CLOSING_RULES = `## Important
 
 - ALWAYS respond with ONLY JSONL lines. No markdown fences, no explanations, no text before or after.
@@ -518,7 +554,7 @@ const CLOSING_RULES = `## Important
  * - JSONL/RFC 6902 response format with UITree schema
  * - Available components (injected via `componentsSection`)
  * - Action system (built-in actions, dispatch rules)
- * - Nine working examples (user card, counter, notification form, pricing table, dashboard, list, empty state, flow diagram, product overview page)
+ * - Ten working examples (user card, counter, notification form, pricing table, dashboard, list, empty state, flow diagram, product overview page, service detail page)
  *
  * @example
  * ```ts
@@ -566,6 +602,7 @@ export function buildSystemPrompt(options: SystemPromptOptions = {}): string {
     EXAMPLE_EMPTY_STATE,
     EXAMPLE_FLOW,
     EXAMPLE_PRODUCT_OVERVIEW,
+    EXAMPLE_SERVICE_DETAIL,
     CLOSING_RULES,
   ].filter(Boolean);
 
