@@ -148,7 +148,7 @@
         "Prompts are natural language (describe intent, not template names)",
         "3-5 prompts with expectedPattern 'novel' for layouts that don't match any template"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "eval-2",
