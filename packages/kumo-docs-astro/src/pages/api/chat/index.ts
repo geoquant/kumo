@@ -34,17 +34,49 @@ const AI_GATEWAY_ID = "kumo-docs";
 
 const DEFAULT_MODEL_ID = "@cf/zai-org/glm-4.7-flash";
 
+/** Default max_tokens for standard models. */
+const DEFAULT_MAX_TOKENS = 4096;
+
+/**
+ * Per-model configuration for Workers AI inference.
+ *
+ * Reasoning models (gpt-oss) consume completion tokens on chain-of-thought
+ * before producing visible output. Without a higher token budget and low
+ * reasoning effort, they exhaust `max_tokens` on thinking alone and return
+ * zero content tokens — the playground shows "Generated 0 patch ops".
+ */
+interface ModelConfig {
+  readonly fullId: string;
+  readonly maxTokens?: number;
+  /** Extra params merged into the `env.AI.run()` input (e.g. reasoning effort). */
+  readonly extraParams?: Readonly<Record<string, unknown>>;
+}
+
+const MODEL_CONFIGS: ReadonlyMap<string, ModelConfig> = new Map([
+  [
+    "gpt-oss-120b",
+    {
+      fullId: "@cf/openai/gpt-oss-120b",
+      maxTokens: 16384,
+      extraParams: { reasoning: { effort: "low" } },
+    },
+  ],
+  ["glm-4.7-flash", { fullId: "@cf/zai-org/glm-4.7-flash" }],
+  [
+    "llama-4-scout-17b-16e-instruct",
+    { fullId: "@cf/meta/llama-4-scout-17b-16e-instruct" },
+  ],
+  ["gemma-3-27b-it", { fullId: "@cf/google/gemma-3-27b-it" }],
+]);
+
 /**
  * Models available to authenticated playground users.
  * Keys are the short names accepted in the `model` request field;
  * values are the full Workers AI model identifiers.
  */
-const ALLOWED_MODELS: ReadonlyMap<string, string> = new Map([
-  ["gpt-oss-120b", "@cf/openai/gpt-oss-120b"],
-  ["glm-4.7-flash", "@cf/zai-org/glm-4.7-flash"],
-  ["llama-4-scout-17b-16e-instruct", "@cf/meta/llama-4-scout-17b-16e-instruct"],
-  ["gemma-3-27b-it", "@cf/google/gemma-3-27b-it"],
-]);
+const ALLOWED_MODELS: ReadonlyMap<string, string> = new Map(
+  [...MODEL_CONFIGS.entries()].map(([short, cfg]) => [short, cfg.fullId]),
+);
 
 /** Reverse index: full Workers AI model IDs → short names for lookup. */
 const FULL_ID_TO_SHORT = new Map(
@@ -254,13 +286,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // ("@cf/google/gemma-3-27b-it"). Without a valid key, the model field
   // is silently ignored.
   let resolvedModelId = DEFAULT_MODEL_ID;
+  let resolvedModelConfig: ModelConfig | undefined;
   if (auth === "authenticated" && chatRequest.model) {
-    const byShort = ALLOWED_MODELS.get(chatRequest.model);
-    const byFull = FULL_ID_TO_SHORT.has(chatRequest.model)
-      ? chatRequest.model
+    // Try short name first, then full ID
+    const configByShort = MODEL_CONFIGS.get(chatRequest.model);
+    const shortByFull = FULL_ID_TO_SHORT.get(chatRequest.model);
+    const configByFull = shortByFull
+      ? MODEL_CONFIGS.get(shortByFull)
       : undefined;
-    const fullId = byShort ?? byFull;
-    if (!fullId) {
+    const config = configByShort ?? configByFull;
+    if (!config) {
       return new Response(
         JSON.stringify({
           error: `Unknown model "${chatRequest.model}". Allowed: ${[...ALLOWED_MODELS.keys()].join(", ")}`,
@@ -268,7 +303,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
-    resolvedModelId = fullId;
+    resolvedModelId = config.fullId;
+    resolvedModelConfig = config;
   }
 
   // --- Stream from Workers AI ---
@@ -282,13 +318,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
           },
         };
 
+    const maxTokens = resolvedModelConfig?.maxTokens ?? DEFAULT_MAX_TOKENS;
+    const extraParams = resolvedModelConfig?.extraParams ?? {};
+
     const stream = await env.AI.run(
       resolvedModelId,
       {
         messages,
         stream: true,
-        max_tokens: 4096,
+        max_tokens: maxTokens,
         temperature: 0,
+        ...extraParams,
       },
       aiOptions,
     );
