@@ -176,14 +176,98 @@ function computeAllGenerativeTypes(
   return Array.from(allTypes).toSorted((a, b) => a.localeCompare(b));
 }
 
+// =============================================================================
+// Drift Detection
+// =============================================================================
+
+interface DriftWarning {
+  readonly type: "stale-exclusion" | "stale-wrapper" | "orphan-sub-component";
+  readonly component: string;
+  readonly message: string;
+}
+
+/**
+ * Detect drift between registry contents and the hardcoded generative
+ * configuration. Catches stale references that would otherwise silently
+ * accumulate as components are added/removed from the registry.
+ *
+ * Note: "unclassified" components are impossible by construction —
+ * `computeDirectComponents` treats any non-excluded, non-wrapper component
+ * as direct. The real drift risks are stale references and orphaned
+ * sub-component parents.
+ */
+function detectDrift(registryNames: readonly string[]): DriftWarning[] {
+  const warnings: DriftWarning[] = [];
+  const registrySet = new Set(registryNames);
+
+  // Stale exclusions: component removed from registry but still in EXCLUDED
+  for (const name of Object.keys(EXCLUDED_COMPONENTS)) {
+    if (!registrySet.has(name)) {
+      warnings.push({
+        type: "stale-exclusion",
+        component: name,
+        message: `EXCLUDED_COMPONENTS references "${name}" which is no longer in the registry`,
+      });
+    }
+  }
+
+  // Stale wrapper targets: component removed but still targeted
+  for (const name of STATEFUL_WRAPPER_TARGETS) {
+    if (!registrySet.has(name)) {
+      warnings.push({
+        type: "stale-wrapper",
+        component: name,
+        message: `STATEFUL_WRAPPER_TARGETS references "${name}" which is no longer in the registry`,
+      });
+    }
+  }
+  for (const name of GENERATIVE_WRAPPER_TARGETS) {
+    if (!registrySet.has(name)) {
+      warnings.push({
+        type: "stale-wrapper",
+        component: name,
+        message: `GENERATIVE_WRAPPER_TARGETS references "${name}" which is no longer in the registry`,
+      });
+    }
+  }
+
+  // Orphaned sub-component parents: parent removed but sub-component override remains
+  for (const [alias, { parent }] of Object.entries(SUB_COMPONENT_OVERRIDES)) {
+    if (!registrySet.has(parent)) {
+      warnings.push({
+        type: "orphan-sub-component",
+        component: alias,
+        message: `SUB_COMPONENT_OVERRIDES "${alias}" references parent "${parent}" which is no longer in the registry`,
+      });
+    }
+  }
+
+  return warnings;
+}
+
 /**
  * Generate the content of `src/generative/component-manifest.ts`.
+ *
+ * Runs drift detection and logs warnings to stderr during codegen.
+ * Warnings are visible in `pnpm codegen:registry` output and CI logs.
  */
 export function generateComponentManifest(registry: ComponentRegistry): string {
   const registryNames = Object.keys(registry.components).toSorted();
   const directComponents = computeDirectComponents(registryNames);
   const typeResolutionMap = computeTypeResolutionMap();
   const allGenerativeTypes = computeAllGenerativeTypes(directComponents);
+
+  // Drift detection — warn during codegen
+  const driftWarnings = detectDrift(registryNames);
+  if (driftWarnings.length > 0) {
+    console.warn("\n[drift] Generative manifest drift detected:");
+    for (const w of driftWarnings) {
+      console.warn(`  ⚠ ${w.message}`);
+    }
+    console.warn(
+      "  Fix: classify new components in generative-map-generator.ts\n",
+    );
+  }
 
   const lines: string[] = [
     "/**",
