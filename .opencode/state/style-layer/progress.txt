@@ -14,6 +14,8 @@ Started: 2026-02-27
 - Sibling grouping: `Map<parentKey, sibling[]>` populated during walkTree, then iterated post-walk for cross-sibling checks (e.g. spacing consistency)
 - `allPass` test fixtures must satisfy ALL rules (≥3 elements for content-density, etc.) — update when adding new rules
 - Barrel export pattern: `packages/kumo/src/generative/index.ts` re-exports; package.json `exports["./generative"]` maps to dist — add to barrel, not package.json
+- System prompt sections array in `buildSystemPrompt()` — order matters; insert new sections at correct position in the array + update JSDoc
+- System prompt sections are const string template literals — new section follows same pattern as COMPOSITION_RECIPES, DESIGN_RULES etc.
 
 ---
 
@@ -62,3 +64,11 @@ Started: 2026-02-27
 - `@cloudflare/kumo/generative` export path already configured in package.json pointing to the barrel
 - **Files changed:** `generative/index.ts` (modified)
 - **Learnings:** Package.json exports already mapped `./generative` → barrel; only the barrel re-export was missing. Always check package.json exports config before assuming a new entry is needed.
+
+## Task - prompt-1
+- Added `PAGE_COMPOSITION` section to system prompt with 4 subsections: Surface Hierarchy, Page-Level Layout Patterns, Spacing Density Grammar, Content Reading Order
+- Section positioned between `COMPOSITION_RECIPES` and `ACCESSIBILITY` in sections array
+- Added 6 tests in `prompt-contracts.test.ts` verifying: section existence, ordering, surface hierarchy rules, page layout rules, spacing density grammar, content reading order
+- Updated JSDoc on `buildSystemPrompt()` to document the new section
+- **Files changed:** `system-prompt.ts` (modified), `prompt-contracts.test.ts` (modified)
+- **Learnings:** Surface hierarchy pattern from NS templates: bg-kumo-elevated (page) → bg-kumo-base (inset cards) maps to Surface > Surface(color="neutral") in JSONL. Spacing grammar (xs/sm/base/lg) codifies what was implicit in template CSS gap values.

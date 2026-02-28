@@ -95,6 +95,45 @@ Use these proven patterns for common UI structures:
 - **Cluster.justify** — \`"start"\` (default) for left-aligned groups, \`"end"\` for right-aligned action bars, \`"between"\` for spread layouts
 - **Surface** — outermost card container. Nest inside Grid for multi-card layouts. Do not set layout props on Surface itself — delegate to inner Stack/Grid.`;
 
+const PAGE_COMPOSITION = `## Page Composition (Page-Level Layouts)
+
+When the user requests a full page or complex multi-section layout (not a single card), follow these page-level composition rules.
+
+### Surface Hierarchy
+
+- **Root Surface**: every page starts with a Surface as the outermost container
+- **Inset surfaces**: use \`Surface(color="neutral")\` for inset cards within a page (stat cards, sidebar panels, grouped content). The visual effect is bg-kumo-elevated (page) → bg-kumo-base (inset card).
+- **No direct Surface > Surface nesting**: always insert a layout element (Stack, Grid, Cluster) between parent and child Surfaces.
+
+### Page-Level Layout Patterns
+
+- **Single-column page**: \`Surface > Stack(gap="lg") > [header, content sections...]\`
+- **Two-column layout**: \`Surface > Stack(gap="lg") > [header, Grid(variant="2up") > [main-content, sidebar]]\`
+- **Sidebar with metrics**: sidebar column contains \`Stack > [Surface(color="neutral") > stat-cards...]\` for key-value metric panels
+- **Header pattern**: \`Stack(gap="sm") > [Text(heading2, title), Text(secondary, description)]\` — optionally followed by an action Cluster
+
+### Spacing Density Grammar
+
+Use gap sizes deliberately to communicate visual grouping:
+
+| Gap | Use for | Example |
+|-----|---------|---------|
+| \`xs\` | Key-value pairs, label + value | \`Stack(gap="xs") > [Text(secondary, "Email"), Text(body, "user@example.com")]\` |
+| \`sm\` | Tight groups: heading + subtext, action clusters | \`Stack(gap="sm") > [Text(heading2), Text(secondary)]\` |
+| \`base\` | Standard section spacing, form fields | \`Stack(gap="base") > [Input, Input, Select]\` |
+| \`lg\` | Top-level page divisions, major sections within a card | \`Stack(gap="lg") > [header-section, content-section, actions]\` |
+
+### Content Reading Order
+
+Arrange elements in this order within any section:
+
+1. **Title** — Text with heading variant (heading1, heading2, heading3)
+2. **Context** — descriptive Text (secondary variant) explaining the section
+3. **Data** — tables, grids, stat cards, lists, or other content
+4. **Actions** — buttons, links, or action clusters (always last)
+
+This order matches how users scan a page: understand what it is, understand its purpose, consume the data, then act.`;
+
 const ACCESSIBILITY = `## Accessibility (Required)
 
 Every form element MUST be labelled so screen readers can announce it:
@@ -425,6 +464,7 @@ const CLOSING_RULES = `## Important
  * - Design rules (one primary action, semantic grouping, no emoji)
  * - Layout anti-patterns (4 NEVER rules for common LLM mistakes)
  * - Composition recipes (6 proven patterns with prop guidance)
+ * - Page composition (surface hierarchy, page layouts, spacing grammar, reading order)
  * - Accessibility requirements (labelled form elements)
  * - JSONL/RFC 6902 response format with UITree schema
  * - Available components (injected via `componentsSection`)
@@ -461,6 +501,7 @@ export function buildSystemPrompt(options: SystemPromptOptions = {}): string {
     NO_REDUNDANT_CONTROLS,
     LAYOUT_ANTI_PATTERNS,
     COMPOSITION_RECIPES,
+    PAGE_COMPOSITION,
     ACCESSIBILITY,
     FORM_FIELD_SELECTION,
     TABLE_STRUCTURE,
