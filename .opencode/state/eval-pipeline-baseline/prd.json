@@ -43,7 +43,7 @@
         "Without --skills, requests unchanged (no auth header, no skillIds)",
         "Baselines from skills vs no-skills runs are same JSON shape"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "d4-playground-composition-ui",

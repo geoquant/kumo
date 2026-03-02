@@ -16,6 +16,8 @@
  *   --compare <name>        Compare against saved baseline
  *   --save-jsonl            Save raw JSONL outputs to .eval-outputs/
  *   --verbose               Print per-run violations
+ *   --skills                Enable skills (fetches skill IDs, sends with each request)
+ *   --playground-key <key>  Playground API key (falls back to PLAYGROUND_SECRET env)
  */
 
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -55,6 +57,8 @@ interface CliArgs {
   compare: string | null;
   saveJsonl: boolean;
   verbose: boolean;
+  skills: boolean;
+  playgroundKey: string | null;
 }
 
 function parseArgs(argv: ReadonlyArray<string>): CliArgs {
@@ -66,6 +70,8 @@ function parseArgs(argv: ReadonlyArray<string>): CliArgs {
     compare: null,
     saveJsonl: false,
     verbose: false,
+    skills: false,
+    playgroundKey: null,
   };
 
   for (let i = 2; i < argv.length; i++) {
@@ -92,9 +98,23 @@ function parseArgs(argv: ReadonlyArray<string>): CliArgs {
       case "--verbose":
         args.verbose = true;
         break;
+      case "--skills":
+        args.skills = true;
+        break;
+      case "--playground-key":
+        args.playgroundKey = argv[++i] ?? null;
+        break;
       default:
         console.error(`Unknown argument: ${arg}`);
         process.exit(1);
+    }
+  }
+
+  // --playground-key falls back to PLAYGROUND_SECRET env var
+  if (args.playgroundKey == null) {
+    const envKey = process.env["PLAYGROUND_SECRET"];
+    if (typeof envKey === "string" && envKey.length > 0) {
+      args.playgroundKey = envKey;
     }
   }
 
@@ -102,30 +122,89 @@ function parseArgs(argv: ReadonlyArray<string>): CliArgs {
 }
 
 // =============================================================================
+// Skills fetching
+// =============================================================================
+
+/**
+ * Fetch available skill IDs from the /api/chat/skills endpoint.
+ * Requires a valid playground key for authentication.
+ */
+async function fetchSkillIds(
+  baseUrl: string,
+  playgroundKey: string,
+): Promise<ReadonlyArray<string>> {
+  // Derive skills URL from chat URL (e.g. /api/chat → /api/chat/skills)
+  const skillsUrl = baseUrl.replace(/\/?$/, "/skills");
+
+  const response = await fetch(skillsUrl, {
+    method: "GET",
+    headers: { "X-Playground-Key": playgroundKey },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch skills: HTTP ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const data = (await response.json()) as {
+    skills?: ReadonlyArray<{ id: string; name: string; description: string }>;
+  };
+
+  if (!Array.isArray(data.skills)) {
+    throw new Error("Unexpected skills response: missing skills array");
+  }
+
+  return data.skills.map((s) => s.id);
+}
+
+// =============================================================================
 // SSE → JSONL extraction
 // =============================================================================
+
+/** Extra options for authenticated/skills-enabled requests. */
+interface FetchJsonlOptions {
+  readonly playgroundKey?: string;
+  readonly skillIds?: ReadonlyArray<string>;
+}
 
 /**
  * Send a message to the chat endpoint and extract the JSONL response.
  * Reads the SSE stream, concatenates all `data: {"response":"..."}` payloads.
  */
-async function fetchJsonl(url: string, message: string): Promise<string> {
+async function fetchJsonl(
+  url: string,
+  message: string,
+  options?: FetchJsonlOptions,
+): Promise<string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (options?.playgroundKey) {
+    headers["X-Playground-Key"] = options.playgroundKey;
+  }
+
+  const body: Record<string, unknown> = { message };
+  if (options?.skillIds && options.skillIds.length > 0) {
+    body["skillIds"] = options.skillIds;
+  }
+
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    headers,
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
 
-  const body = response.body;
-  if (!body) {
+  const responseBody = response.body;
+  if (!responseBody) {
     throw new Error("No response body");
   }
 
-  const reader = body.getReader();
+  const reader = responseBody.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
   let jsonl = "";
@@ -199,7 +278,15 @@ interface PromptAggregate {
 
 interface Baseline {
   timestamp: string;
-  args: Omit<CliArgs, "saveBaseline" | "compare" | "saveJsonl" | "verbose">;
+  args: Omit<
+    CliArgs,
+    | "saveBaseline"
+    | "compare"
+    | "saveJsonl"
+    | "verbose"
+    | "skills"
+    | "playgroundKey"
+  >;
   prompts: ReadonlyArray<PromptAggregate>;
   overall: Record<string, number>;
   overallComposition: Record<string, number>;
@@ -207,17 +294,50 @@ interface Baseline {
 }
 
 async function runEval(args: CliArgs): Promise<void> {
-  const { url, runs, delay, saveBaseline, compare, saveJsonl, verbose } = args;
+  const {
+    url,
+    runs,
+    delay,
+    saveBaseline,
+    compare,
+    saveJsonl,
+    verbose,
+    skills,
+    playgroundKey,
+  } = args;
+
+  // --skills requires a playground key
+  if (skills && playgroundKey == null) {
+    console.error(
+      "Error: --skills requires a playground key. Provide --playground-key <key> or set PLAYGROUND_SECRET env var.",
+    );
+    process.exit(1);
+  }
+
+  // Fetch skill IDs at startup when --skills is set
+  let skillIds: ReadonlyArray<string> = [];
+  if (skills && playgroundKey != null) {
+    console.log("Fetching skill IDs...");
+    skillIds = await fetchSkillIds(url, playgroundKey);
+    console.log(`  Found ${skillIds.length} skills: ${skillIds.join(", ")}`);
+  }
 
   console.log(
     `\nEval harness — ${EVAL_PROMPTS.length} prompts × ${runs} runs = ${EVAL_PROMPTS.length * runs} requests`,
   );
   console.log(`Endpoint: ${url}`);
+  if (skills) {
+    console.log(`Skills: enabled (${skillIds.length} skills)`);
+  }
   console.log(`Delay: ${delay}ms (~${Math.floor(60000 / delay)} req/min)\n`);
 
   if (saveJsonl) {
     mkdirSync(OUTPUTS_DIR, { recursive: true });
   }
+
+  // Build fetch options — reused for every request
+  const fetchOptions: FetchJsonlOptions | undefined =
+    skills && playgroundKey != null ? { playgroundKey, skillIds } : undefined;
 
   const allResults: RunResult[] = [];
   let requestCount = 0;
@@ -233,7 +353,7 @@ async function runEval(args: CliArgs): Promise<void> {
       requestCount++;
 
       try {
-        const jsonl = await fetchJsonl(url, prompt.prompt);
+        const jsonl = await fetchJsonl(url, prompt.prompt, fetchOptions);
 
         if (saveJsonl) {
           const filename = `${prompt.id}-run${run}.jsonl`;

@@ -10,6 +10,8 @@ Started: 2026-02-28
 - Generative barrel: `packages/kumo/src/generative/index.ts` — already exports composition graders
 - Structural graders export `RULE_NAMES`, `GradeReport`, `gradeTree`, `parseJsonlToTree`
 - Baseline JSON backward compat: read old baselines as `Partial<Baseline>`, check for new fields before comparing
+- Skills API: GET `/api/chat/skills` requires `X-Playground-Key` header, returns `{ skills: [{ id, name, description }] }`
+- Chat API: POST `/api/chat` accepts optional `skillIds` string[] (max 5) and `X-Playground-Key` header; skills only effective when auth=authenticated
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -34,3 +36,16 @@ Started: 2026-02-28
 - Comparison reads old baselines as `Partial<Baseline>` — missing `overallComposition` renders as "N/A" per rule
 - Files changed: `packages/kumo/scripts/eval-generative.ts`
 - **Learnings:** `GradeReport` type is shared between structural and composition graders; old baselines won't have `overallComposition` so `Partial<Baseline>` + null checks give backward compat
+
+## Task - d3-skills-flag
+- Added `skills: boolean` and `playgroundKey: string | null` to `CliArgs`
+- `--playground-key` falls back to `PLAYGROUND_SECRET` env var
+- `--skills` without a key prints error and exits with code 1
+- Added `fetchSkillIds()`: GET `/api/chat/skills` with `X-Playground-Key` header, extracts `skills[].id`
+- Added `FetchJsonlOptions` interface; `fetchJsonl()` now accepts optional `playgroundKey` + `skillIds`
+- When `--skills` set: header `X-Playground-Key` + body `skillIds` array sent with every request
+- Without `--skills`: requests are unchanged (no auth header, no skillIds)
+- `Baseline.args` omits `skills`/`playgroundKey` — baseline JSON shape identical for skills vs no-skills
+- Renamed inner `body` variable to `responseBody` to avoid shadowing the request body variable
+- Files changed: `packages/kumo/scripts/eval-generative.ts`
+- **Learnings:** Skills endpoint at `/api/chat/skills` requires GET + `X-Playground-Key`; chat endpoint accepts optional `skillIds` array (max 5) and `X-Playground-Key` header; skills only effective when authenticated
