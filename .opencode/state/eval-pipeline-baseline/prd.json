@@ -58,7 +58,7 @@
         "Add COMPOSITION_RULE_DESCRIPTIONS map for human-readable descriptions",
         "Debouncing preserved (runs in same runGrade callback)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "d5-generate-baselines",
