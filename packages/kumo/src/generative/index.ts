@@ -81,6 +81,10 @@ export {
   normalizeSiblingFormRowGrids,
 } from "./ui-tree-renderer.js";
 
+// Eval prompts
+export { EVAL_PROMPTS } from "./eval/eval-prompts.js";
+export type { EvalPrompt } from "./eval/eval-prompts.js";
+
 // UITree → JSX converter
 export { uiTreeToJsx } from "./ui-tree-to-jsx.js";
 export type { UiTreeToJsxOptions } from "./ui-tree-to-jsx.js";
