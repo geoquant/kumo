@@ -115,7 +115,12 @@ export function Pagination({
     if (text) {
       return text({ page, perPage, totalCount, pageShowingRange });
     } else if (totalCount && totalCount > 0) {
-      return `Showing ${pageShowingRange} of ${totalCount}`;
+      return (
+        <>
+          Showing <span className="tabular-nums">{pageShowingRange}</span> of{" "}
+          <span className="tabular-nums">{totalCount}</span>
+        </>
+      );
     }
     return null;
   };
