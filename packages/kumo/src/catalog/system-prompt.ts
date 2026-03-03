@@ -222,7 +222,7 @@ Any component mapped to a stateful wrapper dispatches actions automatically when
 
 ### Built-in Actions
 
-- \`increment\`, \`decrement\` (Button) require \`params.target\` pointing at a Text element key
+- \`increment\`, \`decrement\`, \`reset\` (Button) require \`params.target\` pointing at a Text element key. \`reset\` sets the value to 0 (or \`params.value\` if provided).
 - \`submit_form\` (Button) sends serialized params + captured runtime values
 - \`navigate\` (Button/Link) opens \`params.url\`
 

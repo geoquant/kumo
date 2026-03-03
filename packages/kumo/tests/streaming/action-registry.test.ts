@@ -53,11 +53,12 @@ const EMPTY_TREE: UITree = { root: "", elements: {} };
 // =============================================================================
 
 describe("BUILTIN_HANDLERS", () => {
-  it("contains increment, decrement, submit_form, navigate", () => {
+  it("contains increment, decrement, reset, submit_form, navigate", () => {
     expect(Object.keys(BUILTIN_HANDLERS).sort()).toEqual([
       "decrement",
       "increment",
       "navigate",
+      "reset",
       "submit_form",
     ]);
   });
@@ -173,6 +174,68 @@ describe("decrement handler", () => {
   it("returns null when count-display missing", () => {
     const result = BUILTIN_HANDLERS.decrement(event("decrement"), EMPTY_TREE);
     expect(result).toBeNull();
+  });
+});
+
+// =============================================================================
+// reset handler
+// =============================================================================
+
+describe("reset handler", () => {
+  it("resets to 0 by default", () => {
+    const result = expectNonNull(
+      BUILTIN_HANDLERS.reset(event("reset"), treeWithCount("5")),
+    );
+    if (result.type !== "patch") throw new Error("expected patch result");
+
+    expect(result.patches).toEqual([
+      {
+        op: "replace",
+        path: "/elements/count-display/props/children",
+        value: "0",
+      },
+    ]);
+  });
+
+  it("resets to params.value when provided as number", () => {
+    const result = expectNonNull(
+      BUILTIN_HANDLERS.reset(
+        event("reset", { params: { target: "count-display", value: 10 } }),
+        treeWithCount("5"),
+      ),
+    );
+    if (result.type !== "patch") throw new Error("expected patch result");
+
+    expect(result.patches[0].value).toBe("10");
+  });
+
+  it("resets to params.value when provided as string", () => {
+    const result = expectNonNull(
+      BUILTIN_HANDLERS.reset(
+        event("reset", { params: { target: "count-display", value: "42" } }),
+        treeWithCount("5"),
+      ),
+    );
+    if (result.type !== "patch") throw new Error("expected patch result");
+
+    expect(result.patches[0].value).toBe("42");
+  });
+
+  it("returns null when count-display missing", () => {
+    const result = BUILTIN_HANDLERS.reset(event("reset"), EMPTY_TREE);
+    expect(result).toBeNull();
+  });
+
+  it("falls back to 0 for non-numeric params.value", () => {
+    const result = expectNonNull(
+      BUILTIN_HANDLERS.reset(
+        event("reset", { params: { target: "count-display", value: "abc" } }),
+        treeWithCount("5"),
+      ),
+    );
+    if (result.type !== "patch") throw new Error("expected patch result");
+
+    expect(result.patches[0].value).toBe("0");
   });
 });
 
