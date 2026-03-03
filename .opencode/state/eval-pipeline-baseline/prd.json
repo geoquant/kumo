@@ -94,7 +94,7 @@
         "Re-export EVAL_PROMPTS from @cloudflare/kumo/generative barrel",
         "Auth gating: unauthenticated users see upload-only mode"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
