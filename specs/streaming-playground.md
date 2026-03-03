@@ -20,7 +20,7 @@ The existing `/streaming` demo renders in a constrained chat bubble within a doc
 - No new npm dependencies for code generation — `uiTreeToJsx` is a pure string transform
 - No new npm dependencies for syntax highlighting in v1 — use `<pre>` with monospace
 - Must work within Astro + Cloudflare Workers (hybrid rendering, `/api/*` routes are SSR)
-- Playground auth via simple shared secret (query param or header) — no CF Access infra
+- Playground is open (no auth required) — rate-limited by IP at the Workers level
 - System prompt is read-only (viewable, not editable) — avoids prompt injection risk
 - All work on `geoquant/streaming-ui` branch
 
@@ -47,12 +47,12 @@ The playground uses `BaseLayout` directly (NOT `DocLayout`/`MainLayout`) to avoi
 
 **Tab system:** 4 tabs across the top of the content area.
 
-| Tab | Content | Updates during stream? |
-|-----|---------|----------------------|
-| **Preview** | `UITreeRenderer` rendering the live UITree | Yes, live |
-| **Code** | `uiTreeToJsx(tree)` output in `<pre>` + Copy button | Yes, live |
-| **Grading** | `gradeTree(tree)` report — score, rule violations, warnings | Yes, on each tree update |
-| **System Prompt** | Read-only view of the assembled system prompt text | No (static per session) |
+| Tab               | Content                                                     | Updates during stream?   |
+| ----------------- | ----------------------------------------------------------- | ------------------------ |
+| **Preview**       | `UITreeRenderer` rendering the live UITree                  | Yes, live                |
+| **Code**          | `uiTreeToJsx(tree)` output in `<pre>` + Copy button         | Yes, live                |
+| **Grading**       | `gradeTree(tree)` report — score, rule violations, warnings | Yes, on each tree update |
+| **System Prompt** | Read-only view of the assembled system prompt text          | No (static per session)  |
 
 Default tab: **Preview**. Tabs persist across generations (if you're on Code, you stay on Code when a new stream starts).
 
@@ -66,6 +66,7 @@ The LLM outputs JSONL patches that build a flat UITree. To show copyable code, w
 Pure function: `uiTreeToJsx(tree: UITree, options?: { componentName?: string }): string`
 
 **Mapping strategy:**
+
 - UITree `type` -> JSX tag name (e.g., `Surface` -> `<Surface>`, `TableHeader` -> `<Table.Header>`)
 - Sub-component aliases reverse-map to dot notation (from `component-manifest.ts` `SUB_COMPONENT_ALIASES`)
 - `props.children` (string) -> JSX text children
@@ -79,6 +80,7 @@ Pure function: `uiTreeToJsx(tree: UITree, options?: { componentName?: string }):
 - 2-space indentation, Prettier-like formatting
 
 **Example output:**
+
 ```tsx
 import { Surface, Stack, Text, Button } from "@cloudflare/kumo";
 
@@ -109,6 +111,7 @@ Updates live during streaming (recomputed on every tree state change via `useMem
 ### Multi-Turn Conversation
 
 **Client-side state:** `messages: Array<{ role: "user" | "assistant"; content: string }>` in React state. On each submit:
+
 1. Append user message to `messages`
 2. Send full `messages` array + current message to `/api/chat`
 3. Append assistant response (accumulated JSONL text) when stream completes
@@ -116,6 +119,7 @@ Updates live during streaming (recomputed on every tree state change via `useMem
 **Tree behavior:** Resets on each new generation (same as current — AI rebuilds from scratch each turn with conversation context). This is correct because the model needs to produce a complete UITree each time.
 
 **UI flow:**
+
 1. User types "Build a DNS zone management page" in top input -> stream starts
 2. Preview tab shows live rendering, Code tab shows live JSX
 3. Stream completes. Follow-up input appears at bottom.
@@ -127,24 +131,18 @@ Updates live during streaming (recomputed on every tree state change via `useMem
 Dropdown in the top bar showing available Workers AI models. The `/api/chat` endpoint will accept an optional `model` parameter to override the default.
 
 **Available models (hardcoded list in v1):**
+
 - `@cf/zai-org/glm-4.7-flash` (default, current)
-- `@cf/meta/llama-4-scout-17b-16e-instruct` 
+- `@cf/meta/llama-4-scout-17b-16e-instruct`
 - `@cf/google/gemma-3-27b-it`
 
 This list lives in a shared constant. The playground UI shows friendly names. Adding models is a code change (no dynamic discovery in v1).
 
-### Auth: Simple Shared Secret
+### Access Control
 
-The `/playground` route and `/api/chat` (when called from playground) are gated by a simple secret.
+The playground is open (no auth required). Rate limiting is enforced by IP at the Workers level.
 
-**Mechanism:** Environment variable `PLAYGROUND_SECRET` in `wrangler.jsonc`. The playground page checks for `?key=<secret>` query param on load. If missing or wrong, shows an "Access restricted" message. The secret is also sent as `X-Playground-Key` header on `/api/chat` requests from the playground.
-
-**`/api/chat` changes:** When `X-Playground-Key` is present and valid:
-- Rate limit increases from 20/min to 100/min (or bypassed)
-- Model override parameter is accepted
-- History/messages array format is accepted
-
-When `X-Playground-Key` is absent, existing behavior is unchanged (backward compatible).
+> **Note:** Auth via `PLAYGROUND_SECRET` / `X-Playground-Key` was originally planned but removed before merge. All users share the same rate limit and feature set.
 
 ### Extracting Shared Utilities
 
@@ -153,11 +151,13 @@ When `X-Playground-Key` is absent, existing behavior is unchanged (backward comp
 ## Deliverables
 
 ### D1: `uiTreeToJsx()` — UITree to JSX converter (M)
+
 **Location:** `packages/kumo/src/generative/ui-tree-to-jsx.ts`
 **Depends on:** nothing
 **Export from:** `@cloudflare/kumo/generative`
 
 Responsibilities:
+
 - Walk UITree from root, recursively build JSX string
 - Map type names to JSX tags (use `SUB_COMPONENT_ALIASES` for dot notation)
 - Handle `props.children` (text) vs `children[]` (structural)
@@ -171,6 +171,7 @@ Responsibilities:
 Tests: `packages/kumo/tests/generative/ui-tree-to-jsx.test.ts`
 
 **Acceptance:**
+
 - Given UITree with Surface > Stack > [Text, Button], outputs valid JSX
 - Compound components use dot notation (`<Table.Header>` not `<TableHeader>`)
 - Import statement includes only used components
@@ -178,29 +179,32 @@ Tests: `packages/kumo/tests/generative/ui-tree-to-jsx.test.ts`
 - Normalization output matches UITreeRenderer behavior
 
 ### D2: Extract `readSSEStream` to shared utility (S)
+
 **Location:** `packages/kumo-docs-astro/src/lib/read-sse-stream.ts`
 **Depends on:** nothing
 
 Extract `readSSEStream()` from `_StreamingDemo.tsx` (lines 109-252) into a shared module. Update `_StreamingDemo.tsx` to import from new location. No behavior change.
 
 **Acceptance:**
+
 - `_StreamingDemo.tsx` works identically after extraction
 - New file exports `readSSEStream` with same signature
 - No code duplication
 
 ### D3: Extend `/api/chat` for playground features (M)
+
 **Location:** `packages/kumo-docs-astro/src/pages/api/chat.ts`
 **Depends on:** nothing
 
 Changes:
+
 1. Accept `messages: Array<{role, content}>` in request body (alongside existing `message` field for backward compat)
 2. Accept optional `model: string` field to override default model
-3. Check `X-Playground-Key` header against `PLAYGROUND_SECRET` env var
-4. When playground-authed: accept model override, relax rate limit
-5. When not authed: ignore `model` and `messages` fields, existing behavior unchanged
-6. Expose system prompt via new GET endpoint `/api/chat/prompt` (returns assembled prompt text, playground-auth required)
+3. Accept model override and messages array for all callers (rate-limited by IP)
+4. Expose system prompt via new GET endpoint `/api/chat/prompt` (returns assembled prompt text)
 
 **Acceptance:**
+
 - Existing single-message requests still work (backward compatible)
 - `_StreamingDemo.tsx` works with zero changes
 - Multi-turn `messages` array forwarded to Workers AI when playground-authed
@@ -209,6 +213,7 @@ Changes:
 - Unauthenticated requests to model override / messages are ignored silently
 
 ### D4: `/playground` page + `PlaygroundPage` component (L)
+
 **Location:** `packages/kumo-docs-astro/src/pages/playground.astro` + `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`
 **Depends on:** D1, D2, D3
 
@@ -237,6 +242,7 @@ Changes:
 ```
 
 **Key behaviors:**
+
 - Tab switcher at top of content area. Tabs: Preview, Code, Grading, System Prompt.
 - Preview tab is default. Tab selection persists across generations.
 - All tabs update live during streaming (except System Prompt which is static).
@@ -251,6 +257,7 @@ Changes:
 - Error handling: error banner when stream fails, user can retry.
 
 **State:**
+
 - `messages: Array<{role, content}>` — conversation history (client-side)
 - `tree: UITree` — current tree state (from `useUITree`)
 - `activeTab: "preview" | "code" | "grading" | "prompt"` — selected tab
@@ -260,6 +267,7 @@ Changes:
 - `isAuthed: boolean` — whether playground key is valid
 
 **Acceptance:**
+
 - `/playground?key=<secret>` loads, shows full-width playground
 - Without valid key, shows access restricted message
 - User types prompt -> Preview tab shows live rendered UI
@@ -271,6 +279,7 @@ Changes:
 - Copy button copies JSX to clipboard
 
 ### D5: Navigation updates (S)
+
 **Location:** `SidebarNav.tsx`, `SearchDialog.tsx`, `streaming.astro`
 **Depends on:** D4
 
@@ -279,20 +288,14 @@ Changes:
 3. Add cross-link from `/streaming` page to `/playground`
 
 **Acceptance:**
+
 - "Playground" in sidebar nav
 - "Playground" in search results
 - `/streaming` has visible link to `/playground`
 
-### D6: Wrangler config for playground secret (S)
-**Location:** `packages/kumo-docs-astro/wrangler.jsonc`
-**Depends on:** nothing
+### ~~D6: Wrangler config for playground secret~~ (REMOVED)
 
-Add `PLAYGROUND_SECRET` as a Workers secret (not in jsonc — use `wrangler secret put`). Document the setup in a comment in the endpoint.
-
-**Acceptance:**
-- `PLAYGROUND_SECRET` available as env var in the Worker
-- Works in dev via `.dev.vars` file
-- Works in production via `wrangler secret put`
+Auth via `PLAYGROUND_SECRET` was removed. Rate limiting by IP replaces auth-based access control.
 
 ## Non-Goals
 
@@ -309,15 +312,15 @@ Add `PLAYGROUND_SECRET` as a Workers secret (not in jsonc — use `wrangler secr
 
 ## Risks
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| `uiTreeToJsx` output diverges from rendered UI | Devs copy code that looks different from preview | Run same 8-pass normalization before converting; snapshot tests comparing rendered tree structure vs JSX AST |
-| Multi-turn produces worse results than single-shot | Degraded output on follow-ups | Each turn rebuilds full tree from scratch (no incremental patching across turns); degrade to single-shot if model struggles |
-| Code output too verbose for complex trees (30+ elements) | Hard to read in tab | Scroll support; monospace at 12px; future: collapsible sections |
-| Shared secret in query param leaks via browser history/referrer | Unauthorized access | Acceptable risk for internal dev tool; can migrate to CF Access later |
-| Model selector enables expensive models | Cost amplification | Hardcoded allowlist of 3 models; all are Workers AI (no external API costs) |
-| `/api/chat` backward compat break | Existing streaming demo breaks | Accept both `message` and `messages` formats; test both paths; playground features gated behind auth header |
-| Grading during streaming is expensive (recomputes on every tree update) | UI jank | Debounce grading computation (run at most every 500ms during stream, final run on stream complete) |
+| Risk                                                                    | Impact                                           | Mitigation                                                                                                                  |
+| ----------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `uiTreeToJsx` output diverges from rendered UI                          | Devs copy code that looks different from preview | Run same 8-pass normalization before converting; snapshot tests comparing rendered tree structure vs JSX AST                |
+| Multi-turn produces worse results than single-shot                      | Degraded output on follow-ups                    | Each turn rebuilds full tree from scratch (no incremental patching across turns); degrade to single-shot if model struggles |
+| Code output too verbose for complex trees (30+ elements)                | Hard to read in tab                              | Scroll support; monospace at 12px; future: collapsible sections                                                             |
+| Shared secret in query param leaks via browser history/referrer         | Unauthorized access                              | Acceptable risk for internal dev tool; can migrate to CF Access later                                                       |
+| Model selector enables expensive models                                 | Cost amplification                               | Hardcoded allowlist of 3 models; all are Workers AI (no external API costs)                                                 |
+| `/api/chat` backward compat break                                       | Existing streaming demo breaks                   | Accept both `message` and `messages` formats; test both paths; playground features gated behind auth header                 |
+| Grading during streaming is expensive (recomputes on every tree update) | UI jank                                          | Debounce grading computation (run at most every 500ms during stream, final run on stream complete)                          |
 
 ## Open Questions
 

@@ -193,8 +193,11 @@ export function gradeTree(tree: UITree, options?: GradeOptions): GradeReport {
     if (depth === 0 && type === "Surface") {
       const children = element.children ?? [];
       if (children.length > 0) {
+        const firstKey = children[0];
         const onlyChild =
-          children.length === 1 ? tree.elements[children[0]!] : null;
+          children.length === 1 && firstKey != null
+            ? (tree.elements[firstKey] ?? null)
+            : null;
         if (!onlyChild || onlyChild.type !== "Stack") {
           canonicalLayoutViolations.push(
             `${key}: root Surface should wrap children in a single Stack`,

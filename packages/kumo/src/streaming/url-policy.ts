@@ -19,6 +19,7 @@ const SCHEME_RE = /^[A-Za-z][A-Za-z0-9+.-]*:/;
 export function sanitizeUrl(raw: string): UrlSanitizationResult {
   const trimmed = raw.trim();
   if (trimmed.length === 0) return { ok: false, reason: "empty" };
+  if (trimmed.length > 8192) return { ok: false, reason: "too-long" };
 
   // Avoid scheme-relative URLs which inherit the current page scheme.
   if (trimmed.startsWith("//")) {

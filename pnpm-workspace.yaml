@@ -1,6 +1,5 @@
 packages:
   - packages/*
-  - _examples/kumo-stream
 
 catalog:
   "@cloudflare/vite-plugin": ^1.15.3

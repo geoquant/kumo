@@ -1,3 +1,0 @@
-# Playground authentication key — required for /playground features.
-# Generate any random string; the same value must be passed as ?key= in the playground URL.
-PLAYGROUND_SECRET=change-me-to-a-random-string

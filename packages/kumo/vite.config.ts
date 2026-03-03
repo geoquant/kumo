@@ -3,7 +3,7 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { readdirSync } from "fs";
 import dts from "vite-plugin-dts";
-import preserveDirectives from "rollup-plugin-preserve-directives";
+
 import { rebuildSignalPlugin } from "./vite-plugin-rebuild-signal";
 
 const __filename = fileURLToPath(import.meta.url);

@@ -20,7 +20,6 @@ import { Button, CloudflareLogo, cn, Empty, Loader } from "@cloudflare/kumo";
 import {
   CheckCircleIcon,
   LightningIcon,
-  LockKeyIcon,
   UploadSimpleIcon,
   XCircleIcon,
 } from "@phosphor-icons/react";
@@ -68,8 +67,6 @@ interface NamedBaseline {
   readonly baseline: Baseline;
 }
 
-type AuthState = "checking" | "authenticated" | "denied";
-
 /** Live eval progress for a single prompt. */
 interface PromptEvalResult {
   readonly promptId: string;
@@ -107,55 +104,12 @@ const RULE_DESCRIPTIONS: Readonly<Record<string, string>> = {
 type ViolationMap = ReadonlyMap<string, ReadonlyMap<string, readonly string[]>>;
 
 // =============================================================================
-// Auth hook (reuses pattern from playground)
-// =============================================================================
-
-function useReportAuth(): { auth: AuthState; apiKey: string | null } {
-  const [auth, setAuth] = useState<AuthState>("checking");
-  const [apiKey, setApiKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const key = params.get("key");
-
-    if (!key) {
-      setAuth("denied");
-      return;
-    }
-
-    const controller = new AbortController();
-
-    fetch("/api/chat/prompt", {
-      headers: { "X-Playground-Key": key },
-      signal: controller.signal,
-    })
-      .then((res) => {
-        if (res.ok) {
-          setApiKey(key);
-          setAuth("authenticated");
-        } else {
-          setAuth("denied");
-        }
-      })
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setAuth("denied");
-      });
-
-    return () => controller.abort();
-  }, []);
-
-  return { auth, apiKey };
-}
-
-// =============================================================================
 // Live eval runner
 // =============================================================================
 
 /** Run a single prompt through /api/chat, parse JSONL, grade the tree. */
 async function runSinglePrompt(
   promptText: string,
-  apiKey: string,
   signal: AbortSignal,
 ): Promise<{
   structural: GradeReport | null;
@@ -168,7 +122,6 @@ async function runSinglePrompt(
       headers: {
         "Content-Type": "application/json",
         Accept: "text/event-stream",
-        "X-Playground-Key": apiKey,
       },
       body: JSON.stringify({ message: promptText }),
       signal,
@@ -985,11 +938,9 @@ function buildViolationMap(results: readonly PromptEvalResult[]): ViolationMap {
 // =============================================================================
 
 function LiveEvalPanel({
-  apiKey,
   onBaselineCreated,
   onViolationsUpdated,
 }: {
-  readonly apiKey: string;
   readonly onBaselineCreated: (named: NamedBaseline) => void;
   readonly onViolationsUpdated: (violations: ViolationMap) => void;
 }) {
@@ -1034,7 +985,6 @@ function LiveEvalPanel({
 
       const { structural, composition, error } = await runSinglePrompt(
         prompt.prompt,
-        apiKey,
         controller.signal,
       );
 
@@ -1062,7 +1012,7 @@ function LiveEvalPanel({
         onViolationsUpdated(buildViolationMap(finalResults));
       }
     }
-  }, [apiKey, onBaselineCreated, onViolationsUpdated]);
+  }, [onBaselineCreated, onViolationsUpdated]);
 
   const handleCancel = useCallback(() => {
     abortRef.current?.abort();
@@ -1207,8 +1157,6 @@ function BaselineList({
 // =============================================================================
 
 export function EvalReportPage() {
-  const { auth, apiKey } = useReportAuth();
-
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-kumo-base text-kumo-default">
       {/* Header */}
@@ -1230,93 +1178,17 @@ export function EvalReportPage() {
 
       {/* Body */}
       <main className="flex-1 overflow-auto">
-        {auth === "checking" && (
-          <div className="flex h-full items-center justify-center">
-            <Loader size="lg" />
-          </div>
-        )}
-        {auth === "denied" && <UploadOnlyMode />}
-        {auth === "authenticated" && apiKey !== null && (
-          <AuthenticatedMode apiKey={apiKey} />
-        )}
+        <EvalReportContent />
       </main>
     </div>
   );
 }
 
 // =============================================================================
-// Upload-only mode (no auth)
+// Report content
 // =============================================================================
 
-function UploadOnlyMode() {
-  const [baselines, setBaselines] = useState<NamedBaseline[]>([]);
-  const [selectedIndices, setSelectedIndices] = useState<ReadonlySet<number>>(
-    new Set(),
-  );
-
-  const handleBaselineLoaded = useCallback((named: NamedBaseline) => {
-    setBaselines((prev) => [...prev, named]);
-  }, []);
-
-  const handleToggleSelect = useCallback((index: number) => {
-    setSelectedIndices((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
-  }, []);
-
-  const handleRemove = useCallback((index: number) => {
-    setBaselines((prev) => prev.filter((_, i) => i !== index));
-    setSelectedIndices((prev) => {
-      const next = new Set<number>();
-      for (const i of prev) {
-        if (i < index) next.add(i);
-        else if (i > index) next.add(i - 1);
-      }
-      return next;
-    });
-  }, []);
-
-  const selectedBaselines = [...selectedIndices]
-    .sort((a, b) => a - b)
-    .map((i) => baselines[i])
-    .filter((b): b is NamedBaseline => b !== undefined);
-
-  return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <div className="flex items-center gap-3 rounded-lg border border-kumo-line bg-kumo-elevated p-4">
-        <LockKeyIcon size={20} className="text-kumo-subtle" />
-        <p className="text-sm text-kumo-subtle">
-          Add <code className="text-kumo-default">?key=&lt;your-key&gt;</code>{" "}
-          to the URL to enable live eval mode. Upload-only mode is available
-          without authentication.
-        </p>
-      </div>
-
-      <FileDropZone onBaselineLoaded={handleBaselineLoaded} />
-
-      <BaselineList
-        baselines={baselines}
-        selectedIndices={selectedIndices}
-        onToggleSelect={handleToggleSelect}
-        onRemove={handleRemove}
-      />
-
-      <ReportBody baselines={baselines} selectedBaselines={selectedBaselines} />
-    </div>
-  );
-}
-
-// =============================================================================
-// Authenticated mode
-// =============================================================================
-
-function AuthenticatedMode({ apiKey }: { readonly apiKey: string }) {
+function EvalReportContent() {
   const [baselines, setBaselines] = useState<NamedBaseline[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<ReadonlySet<number>>(
     new Set(),
@@ -1380,7 +1252,6 @@ function AuthenticatedMode({ apiKey }: { readonly apiKey: string }) {
           creates a baseline.
         </p>
         <LiveEvalPanel
-          apiKey={apiKey}
           onBaselineCreated={handleBaselineLoaded}
           onViolationsUpdated={setLiveViolations}
         />
