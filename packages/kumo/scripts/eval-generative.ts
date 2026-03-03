@@ -17,7 +17,6 @@
  *   --save-jsonl            Save raw JSONL outputs to .eval-outputs/
  *   --verbose               Print per-run violations
  *   --skills                Enable skills (fetches skill IDs, sends with each request)
- *   --playground-key <key>  Playground API key (falls back to PLAYGROUND_SECRET env)
  */
 
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -58,7 +57,6 @@ interface CliArgs {
   saveJsonl: boolean;
   verbose: boolean;
   skills: boolean;
-  playgroundKey: string | null;
 }
 
 function parseArgs(argv: ReadonlyArray<string>): CliArgs {
@@ -71,7 +69,6 @@ function parseArgs(argv: ReadonlyArray<string>): CliArgs {
     saveJsonl: false,
     verbose: false,
     skills: false,
-    playgroundKey: null,
   };
 
   for (let i = 2; i < argv.length; i++) {
@@ -101,20 +98,9 @@ function parseArgs(argv: ReadonlyArray<string>): CliArgs {
       case "--skills":
         args.skills = true;
         break;
-      case "--playground-key":
-        args.playgroundKey = argv[++i] ?? null;
-        break;
       default:
         console.error(`Unknown argument: ${arg}`);
         process.exit(1);
-    }
-  }
-
-  // --playground-key falls back to PLAYGROUND_SECRET env var
-  if (args.playgroundKey == null) {
-    const envKey = process.env["PLAYGROUND_SECRET"];
-    if (typeof envKey === "string" && envKey.length > 0) {
-      args.playgroundKey = envKey;
     }
   }
 
@@ -127,18 +113,13 @@ function parseArgs(argv: ReadonlyArray<string>): CliArgs {
 
 /**
  * Fetch available skill IDs from the /api/chat/skills endpoint.
- * Requires a valid playground key for authentication.
  */
-async function fetchSkillIds(
-  baseUrl: string,
-  playgroundKey: string,
-): Promise<ReadonlyArray<string>> {
+async function fetchSkillIds(baseUrl: string): Promise<ReadonlyArray<string>> {
   // Derive skills URL from chat URL (e.g. /api/chat → /api/chat/skills)
   const skillsUrl = baseUrl.replace(/\/?$/, "/skills");
 
   const response = await fetch(skillsUrl, {
     method: "GET",
-    headers: { "X-Playground-Key": playgroundKey },
   });
 
   if (!response.ok) {
@@ -162,9 +143,8 @@ async function fetchSkillIds(
 // SSE → JSONL extraction
 // =============================================================================
 
-/** Extra options for authenticated/skills-enabled requests. */
+/** Extra options for skills-enabled requests. */
 interface FetchJsonlOptions {
-  readonly playgroundKey?: string;
   readonly skillIds?: ReadonlyArray<string>;
 }
 
@@ -216,9 +196,6 @@ async function fetchJsonl(
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (options?.playgroundKey) {
-    headers["X-Playground-Key"] = options.playgroundKey;
-  }
 
   const body: Record<string, unknown> = { message };
   if (options?.skillIds && options.skillIds.length > 0) {
@@ -318,12 +295,7 @@ interface Baseline {
   timestamp: string;
   args: Omit<
     CliArgs,
-    | "saveBaseline"
-    | "compare"
-    | "saveJsonl"
-    | "verbose"
-    | "skills"
-    | "playgroundKey"
+    "saveBaseline" | "compare" | "saveJsonl" | "verbose" | "skills"
   >;
   prompts: ReadonlyArray<PromptAggregate>;
   overall: Record<string, number>;
@@ -341,25 +313,16 @@ async function runEval(args: CliArgs): Promise<void> {
     saveJsonl,
     verbose,
     skills,
-    playgroundKey,
   } = args;
-
-  // --skills requires a playground key
-  if (skills && playgroundKey == null) {
-    console.error(
-      "Error: --skills requires a playground key. Provide --playground-key <key> or set PLAYGROUND_SECRET env var.",
-    );
-    process.exit(1);
-  }
 
   // Fetch skill IDs at startup when --skills is set.
   // The server enforces a maximum of 5 skill IDs per request. When more are
   // available, select the most relevant ones for generative UI composition.
   const MAX_SKILL_IDS = 5;
   let skillIds: ReadonlyArray<string> = [];
-  if (skills && playgroundKey != null) {
+  if (skills) {
     console.log("Fetching skill IDs...");
-    const allSkillIds = await fetchSkillIds(url, playgroundKey);
+    const allSkillIds = await fetchSkillIds(url);
     console.log(
       `  Found ${allSkillIds.length} skills: ${allSkillIds.join(", ")}`,
     );
@@ -404,8 +367,9 @@ async function runEval(args: CliArgs): Promise<void> {
   }
 
   // Build fetch options — reused for every request
-  const fetchOptions: FetchJsonlOptions | undefined =
-    skills && playgroundKey != null ? { playgroundKey, skillIds } : undefined;
+  const fetchOptions: FetchJsonlOptions | undefined = skills
+    ? { skillIds }
+    : undefined;
 
   const allResults: RunResult[] = [];
   let requestCount = 0;

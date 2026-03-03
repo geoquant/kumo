@@ -1,8 +1,7 @@
 /**
  * Shared playground utilities used by /api/chat and /api/chat/prompt.
  *
- * Extracted to avoid duplicating authentication logic and system prompt
- * generation across API endpoints.
+ * Provides system prompt generation for the playground LLM endpoints.
  */
 import {
   createKumoCatalog,
@@ -10,47 +9,6 @@ import {
   type CustomComponentDefinition,
 } from "@cloudflare/kumo/catalog";
 import { ALL_GENERATIVE_TYPES } from "@cloudflare/kumo/generative";
-
-// ---------------------------------------------------------------------------
-// Playground authentication
-// ---------------------------------------------------------------------------
-
-/**
- * Playground auth state derived from the X-Playground-Key header.
- *
- * - `authenticated`: valid key, playground features enabled, relaxed rate limit
- * - `unauthenticated`: no key sent, regular anonymous user
- * - `invalid`: key sent but doesn't match PLAYGROUND_SECRET → 403
- */
-export type PlaygroundAuth = "authenticated" | "unauthenticated" | "invalid";
-
-/**
- * Validate the X-Playground-Key header against the PLAYGROUND_SECRET env var.
- * Uses constant-time comparison to prevent timing attacks.
- */
-export function validatePlaygroundKey(
-  header: string | null,
-  secret: string | undefined,
-): PlaygroundAuth {
-  if (!header) return "unauthenticated";
-  if (!secret) return "invalid";
-
-  const encoder = new TextEncoder();
-  const a = encoder.encode(header);
-  const b = encoder.encode(secret);
-
-  if (a.byteLength !== b.byteLength) return "invalid";
-
-  // Constant-time byte comparison — XOR accumulator over raw buffers
-  // prevents early-exit timing leaks.
-  const viewA = new DataView(a.buffer, a.byteOffset, a.byteLength);
-  const viewB = new DataView(b.buffer, b.byteOffset, b.byteLength);
-  let diff = 0;
-  for (let i = 0; i < a.byteLength; i++) {
-    diff |= viewA.getUint8(i) ^ viewB.getUint8(i);
-  }
-  return diff === 0 ? "authenticated" : "invalid";
-}
 
 // ---------------------------------------------------------------------------
 // System prompt generation

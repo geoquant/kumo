@@ -20,7 +20,6 @@ import {
   Button,
   Checkbox,
   CloudflareLogo,
-  Empty,
   InputArea,
   Loader,
   Select,
@@ -30,13 +29,13 @@ import {
 import type { TabsItem } from "@cloudflare/kumo";
 import {
   ArrowCounterClockwiseIcon,
+  ArrowLeftIcon,
   CaretDownIcon,
   CaretUpIcon,
   CheckIcon,
   CircleIcon,
   CopyIcon,
   LightningIcon,
-  LockKeyIcon,
   PaperPlaneRightIcon,
   SpinnerIcon,
   StopCircleIcon,
@@ -108,14 +107,6 @@ const CUSTOM_COMPONENT_TYPES: ReadonlySet<string> = new Set(
 // Types
 // =============================================================================
 
-/**
- * Auth gate state machine:
- * - `checking`: reading ?key= from URL and validating via API
- * - `authenticated`: key valid, playground features unlocked
- * - `denied`: no key or invalid key, access restricted
- */
-type AuthState = "checking" | "authenticated" | "denied";
-
 /** Streaming lifecycle state. */
 type StreamStatus = "idle" | "streaming" | "error";
 
@@ -167,17 +158,16 @@ interface ActionLogEntry {
 function extractErrorMessage(body: unknown): string | null {
   if (typeof body !== "object" || body === null) return null;
   if (!("error" in body)) return null;
-  // After `in` check, TS knows `body` has an `error` property.
-  const err: unknown = (body as { error: unknown }).error;
-  return typeof err === "string" ? err : null;
+  const narrow: { error: unknown } = body;
+  return typeof narrow.error === "string" ? narrow.error : null;
 }
 
 /** Extract `prompt` string from an unknown JSON body, or null. */
 function extractPromptString(body: unknown): string | null {
   if (typeof body !== "object" || body === null) return null;
   if (!("prompt" in body)) return null;
-  const val: unknown = (body as { prompt: unknown }).prompt;
-  return typeof val === "string" ? val : null;
+  const narrow: { prompt: unknown } = body;
+  return typeof narrow.prompt === "string" ? narrow.prompt : null;
 }
 
 // =============================================================================
@@ -255,54 +245,6 @@ const PRESET_PROMPTS = [
 ] as const;
 
 // =============================================================================
-// Auth hook
-// =============================================================================
-
-/**
- * Reads ?key= from URL on mount, validates against /api/chat/prompt.
- * Returns auth state and the validated key (null if denied).
- */
-function usePlaygroundAuth(): { auth: AuthState; apiKey: string | null } {
-  const [auth, setAuth] = useState<AuthState>("checking");
-  const [apiKey, setApiKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const key = params.get("key");
-
-    if (!key) {
-      setAuth("denied");
-      return;
-    }
-
-    // Validate key by hitting the prompt endpoint which requires auth.
-    const controller = new AbortController();
-
-    fetch("/api/chat/prompt", {
-      headers: { "X-Playground-Key": key },
-      signal: controller.signal,
-    })
-      .then((res) => {
-        if (res.ok) {
-          setApiKey(key);
-          setAuth("authenticated");
-        } else {
-          setAuth("denied");
-        }
-      })
-      .catch((err: unknown) => {
-        // AbortError is expected on cleanup — ignore it.
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setAuth("denied");
-      });
-
-    return () => controller.abort();
-  }, []);
-
-  return { auth, apiKey };
-}
-
-// =============================================================================
 // Skills hook
 // =============================================================================
 
@@ -313,32 +255,34 @@ interface SkillMeta {
   readonly description: string;
 }
 
+function isSkillMeta(v: unknown): v is SkillMeta {
+  if (typeof v !== "object" || v === null) return false;
+  if (!("id" in v) || !("name" in v)) return false;
+  const n: { id: unknown; name: unknown } = v;
+  return typeof n.id === "string" && typeof n.name === "string";
+}
+
 /**
  * Fetches available skills from the API on mount.
  * Returns the list of skills (empty array on failure).
  */
-function usePlaygroundSkills(apiKey: string | null): readonly SkillMeta[] {
+function usePlaygroundSkills(): readonly SkillMeta[] {
   const [skills, setSkills] = useState<readonly SkillMeta[]>([]);
 
   useEffect(() => {
-    if (!apiKey) return;
-
     const controller = new AbortController();
 
     fetch("/api/chat/skills", {
-      headers: { "X-Playground-Key": apiKey },
       signal: controller.signal,
     })
       .then(async (res) => {
         if (!res.ok) return;
         const data: unknown = await res.json();
-        if (
-          typeof data === "object" &&
-          data !== null &&
-          "skills" in data &&
-          Array.isArray((data as { skills: unknown }).skills)
-        ) {
-          setSkills((data as { skills: SkillMeta[] }).skills);
+        if (typeof data === "object" && data !== null && "skills" in data) {
+          const narrow: { skills: unknown } = data;
+          if (Array.isArray(narrow.skills)) {
+            setSkills(narrow.skills.filter(isSkillMeta));
+          }
         }
       })
       .catch((err: unknown) => {
@@ -347,7 +291,7 @@ function usePlaygroundSkills(apiKey: string | null): readonly SkillMeta[] {
       });
 
     return () => controller.abort();
-  }, [apiKey]);
+  }, []);
 
   return skills;
 }
@@ -357,51 +301,21 @@ function usePlaygroundSkills(apiKey: string | null): readonly SkillMeta[] {
 // =============================================================================
 
 export function PlaygroundPage() {
-  const { auth, apiKey } = usePlaygroundAuth();
-
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-kumo-base text-kumo-default">
-      {auth === "checking" && <CheckingState />}
-      {auth === "denied" && <DeniedState />}
-      {auth === "authenticated" && <AuthenticatedState apiKey={apiKey} />}
+      <PlaygroundContent />
     </div>
   );
 }
 
 // =============================================================================
-// State views
-// =============================================================================
-
-/** Spinner while key validation is in-flight. */
-function CheckingState() {
-  return (
-    <div className="flex flex-1 items-center justify-center">
-      <Loader size="lg" />
-    </div>
-  );
-}
-
-/** Access restricted — no key or invalid key. */
-function DeniedState() {
-  return (
-    <div className="flex flex-1 items-center justify-center p-8">
-      <Empty
-        icon={<LockKeyIcon size={32} />}
-        title="Access restricted"
-        description="This playground requires a valid access key. Add ?key=<your-key> to the URL to continue."
-      />
-    </div>
-  );
-}
-
-// =============================================================================
-// Authenticated playground
+// Playground content
 // =============================================================================
 
 /** Main playground UI. Side-by-side layout: content left, chat right. */
-function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
+function PlaygroundContent() {
   // --- Skills ---
-  const availableSkills = usePlaygroundSkills(apiKey);
+  const availableSkills = usePlaygroundSkills();
   const [enabledSkillIds, setEnabledSkillIds] = useState<ReadonlySet<string>>(
     new Set(),
   );
@@ -418,6 +332,7 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [rawJsonl, setRawJsonl] = useState("");
+  const rawJsonlRef = useRef("");
   const lastSubmittedRef = useRef<string | null>(null);
 
   // --- Action log ---
@@ -458,9 +373,18 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
         handleSubmitRef.current(undefined, content);
       },
       openExternal: (url: string, target: string) => {
+        // Defense-in-depth: validate URL scheme even though dispatchAction
+        // already sanitizes via the action registry.
+        try {
+          const parsed = new URL(url, window.location.href);
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return;
+          }
+        } catch {
+          return;
+        }
         const safeTarget = target === "_self" ? "_self" : "_blank";
-        const w = window.open(url, safeTarget, "noopener,noreferrer");
-        if (w) w.opener = null;
+        window.open(url, safeTarget, "noopener,noreferrer");
       },
     });
   }, []);
@@ -523,6 +447,7 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
       setStatus("streaming");
       setInputValue("");
       setRawJsonl("");
+      rawJsonlRef.current = "";
       setActionLog([]);
       lastSubmittedRef.current = msg;
 
@@ -544,7 +469,6 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
             headers: {
               "Content-Type": "application/json",
               Accept: "text/event-stream",
-              ...(apiKey ? { "X-Playground-Key": apiKey } : {}),
             },
             body: JSON.stringify({
               message: msg,
@@ -571,7 +495,7 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
             response,
             (token) => {
               fullResponse += token;
-              setRawJsonl((prev) => prev + token);
+              rawJsonlRef.current += token;
               const ops = parser.push(token);
               if (ops.length > 0) {
                 applyPatches(ops);
@@ -579,6 +503,9 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
             },
             controller.signal,
           );
+
+          // Flush accumulated JSONL to state once (avoids O(n²) per-token setState)
+          setRawJsonl(rawJsonlRef.current);
 
           // Flush remaining buffer
           const remaining = parser.flush();
@@ -627,7 +554,6 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
       inputValue,
       selectedModel,
       messages,
-      apiKey,
       enabledSkillIds,
       runtimeValueStore,
       reset,
@@ -678,7 +604,16 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
               }}
             />
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <a
+              href="/"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
+            >
+              <ArrowLeftIcon className="size-4" />
+              Docs
+            </a>
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* Preset pills — always visible, horizontally scrollable */}
@@ -734,7 +669,6 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
             tree={tree}
             runtimeValueStore={runtimeValueStore}
             isStreaming={isStreaming}
-            apiKey={apiKey}
             rawJsonl={rawJsonl}
             actionLog={actionLog}
             onClearActionLog={clearActionLog}
@@ -773,7 +707,6 @@ interface PlaygroundTabContentProps {
   readonly tree: UITree;
   readonly runtimeValueStore: RuntimeValueStore;
   readonly isStreaming: boolean;
-  readonly apiKey: string | null;
   readonly rawJsonl: string;
   readonly actionLog: readonly ActionLogEntry[];
   readonly onClearActionLog: () => void;
@@ -790,7 +723,6 @@ function PlaygroundTabContent({
   tree,
   runtimeValueStore,
   isStreaming,
-  apiKey,
   rawJsonl,
   actionLog,
   onClearActionLog,
@@ -821,7 +753,7 @@ function PlaygroundTabContent({
       return <JsonTabContent rawJsonl={rawJsonl} />;
 
     case "system-prompt":
-      return <SystemPromptTabContent apiKey={apiKey} />;
+      return <SystemPromptTabContent />;
 
     case "actions":
       return (
@@ -1155,26 +1087,16 @@ const MARKDOWN_COMPONENTS = {
  * Fetches and displays the assembled system prompt from /api/chat/prompt.
  * Read-only — shows the exact prompt that would be sent to Workers AI.
  */
-function SystemPromptTabContent({
-  apiKey,
-}: {
-  readonly apiKey: string | null;
-}) {
+function SystemPromptTabContent() {
   const [state, setState] = useState<PromptFetchState>({ status: "loading" });
   const [copied, setCopied] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!apiKey) {
-      setState({ status: "error", message: "No API key available." });
-      return;
-    }
-
     const controller = new AbortController();
     setState({ status: "loading" });
 
     fetch("/api/chat/prompt", {
-      headers: { "X-Playground-Key": apiKey },
       signal: controller.signal,
     })
       .then(async (res) => {
@@ -1202,7 +1124,7 @@ function SystemPromptTabContent({
       });
 
     return () => controller.abort();
-  }, [apiKey]);
+  }, []);
 
   const handleCopy = useCallback(() => {
     if (state.status !== "loaded") return;
@@ -1607,12 +1529,14 @@ function AssistantMessageSummary({ content }: { readonly content: string }) {
           typeof parsed === "object" &&
           parsed !== null &&
           "op" in parsed &&
-          (parsed as { op: string }).op === "add" &&
           "value" in parsed
         ) {
-          const value: unknown = (parsed as { value: unknown }).value;
+          const narrow: { op: unknown; value: unknown } = parsed;
+          if (narrow.op !== "add") continue;
+          const value = narrow.value;
           if (typeof value === "object" && value !== null && "type" in value) {
-            types.add((value as { type: string }).type);
+            const typed: { type: unknown } = value;
+            if (typeof typed.type === "string") types.add(typed.type);
           }
         }
       } catch {

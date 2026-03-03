@@ -35,8 +35,9 @@ export interface ActionResultCallbacks {
 function defaultOpenExternal(url: string, target: string): void {
   if (typeof window === "undefined") return;
   const safeTarget = target === "_self" ? "_self" : "_blank";
-  const w = window.open(url, safeTarget, "noopener,noreferrer");
-  if (w) w.opener = null;
+  // `noopener` severs the opener relationship — `window.open` returns null
+  // in most browsers, making the `w.opener = null` fallback unnecessary.
+  window.open(url, safeTarget, "noopener,noreferrer");
 }
 
 // =============================================================================

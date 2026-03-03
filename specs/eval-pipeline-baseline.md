@@ -72,10 +72,9 @@ The generative UI pipeline (`/api/chat` → Workers AI → JSONL → UITree) has
 
 **Changes:**
 
-1. Add `--skills` CLI flag (boolean). When set, include `X-Playground-Key` header and `skillIds` (all 18 skill IDs) in each POST to `/api/chat`
-2. Add `--playground-key <key>` CLI flag for the auth secret (required when `--skills` is used). Falls back to `PLAYGROUND_SECRET` env var.
-3. Fetch skill IDs from `GET /api/chat/skills` at startup (requires auth)
-4. In the request body, include `skillIds: allSkillIds` when `--skills` is set
+1. Add `--skills` CLI flag (boolean). When set, include `skillIds` (all 18 skill IDs) in each POST to `/api/chat`
+2. Fetch skill IDs from `GET /api/chat/skills` at startup
+3. In the request body, include `skillIds: allSkillIds` when `--skills` is set
 
 **Intended workflow:**
 
@@ -84,7 +83,7 @@ The generative UI pipeline (`/api/chat` → Workers AI → JSONL → UITree) has
 tsx scripts/eval-generative.ts --save-baseline no-skills
 
 # With skills
-tsx scripts/eval-generative.ts --skills --playground-key $KEY --save-baseline with-skills
+tsx scripts/eval-generative.ts --skills --save-baseline with-skills
 
 # Compare
 tsx scripts/eval-generative.ts --compare no-skills --save-baseline current
@@ -92,9 +91,8 @@ tsx scripts/eval-generative.ts --compare no-skills --save-baseline current
 
 **Acceptance criteria:**
 
-- `--skills` without `--playground-key` (and no env var) prints error and exits
-- With valid key + `--skills`, requests include `skillIds` array in body and `X-Playground-Key` header
-- Without `--skills`, requests have no auth header and no skillIds (existing behavior)
+- With `--skills`, requests include `skillIds` array in body
+- Without `--skills`, requests have no skillIds (existing behavior)
 - Baselines from skills vs no-skills runs are structurally identical (same JSON shape) and can be compared with `--compare`
 
 ### D4: Wire `gradeComposition()` into playground Grading tab (M)
@@ -165,10 +163,10 @@ tsx scripts/eval-generative.ts --compare no-skills --save-baseline current
 
 **Architecture:** Entirely client-side. No new server bindings. Two data modes:
 
-1. **Live eval mode** — "Run Eval" button sends 13 prompts to `/api/chat` sequentially, grades each response with `gradeTree()` + `gradeComposition()`, renders results as they complete. Requires auth (`X-Playground-Key`).
+1. **Live eval mode** — "Run Eval" button sends 13 prompts to `/api/chat` sequentially, grades each response with `gradeTree()` + `gradeComposition()`, renders results as they complete.
 2. **Upload mode** — drag-and-drop zone accepts `.eval-baselines/*.json` files (the `Baseline` type from the CLI eval). Renders the same report from saved data. Enables A/B comparison and trend-over-time.
 
-**Auth:** Same `X-Playground-Key` gate as `/api/chat`. Unauthenticated users see upload-only mode (no live eval button).
+**Access:** The playground is open (no auth required), rate-limited by IP at the Workers level.
 
 **UI sections:**
 
@@ -257,13 +255,13 @@ interface PromptResult {
 - `fetchJsonl()` SSE→JSONL parsing logic from `eval-generative.ts` (adapt for browser `fetch`)
 - `parseJsonlToTree`, `gradeTree`, `gradeComposition` from `@cloudflare/kumo/generative`
 - `EVAL_PROMPTS` from `@cloudflare/kumo/generative` (needs re-export — see below)
-- Auth pattern from `_PlaygroundPage.tsx` (X-Playground-Key header)
+- Rate-limiting pattern from `_PlaygroundPage.tsx`
 
 **Re-export needed:** `EVAL_PROMPTS` and `EvalPrompt` type are currently in `packages/kumo/src/generative/eval/eval-prompts.ts` but NOT exported from the `@cloudflare/kumo/generative` barrel. Need to add to `packages/kumo/src/generative/index.ts`.
 
 **Acceptance criteria:**
 
-- `/playground/report` loads for authenticated users
+- `/playground/report` loads successfully
 - "Run Eval" executes 13 prompts against `/api/chat`, shows progressive results
 - Pass/fail matrix renders 13×14 grid with color-coded cells
 - Row expansion shows violation messages

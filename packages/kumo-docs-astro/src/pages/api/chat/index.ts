@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { validatePlaygroundKey, getSystemPrompt } from "~/lib/playground";
+import { getSystemPrompt } from "~/lib/playground";
 import { getSkillContents } from "~/lib/skills-data.generated";
 
 export const prerender = false;
@@ -70,7 +70,7 @@ const MODEL_CONFIGS: ReadonlyMap<string, ModelConfig> = new Map([
 ]);
 
 /**
- * Models available to authenticated playground users.
+ * Models available in the playground.
  * Keys are the short names accepted in the `model` request field;
  * values are the full Workers AI model identifiers.
  */
@@ -100,50 +100,61 @@ interface AiMessage {
   content: string;
 }
 
+/** Type guard for non-null, non-array objects. */
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/** Type guard for a valid history entry. */
+function isHistoryEntry(v: unknown): v is { role: string; content: string } {
+  if (!isPlainObject(v)) return false;
+  return (
+    typeof v["role"] === "string" &&
+    typeof v["content"] === "string" &&
+    v["content"].length <= MAX_HISTORY_ENTRY_LENGTH
+  );
+}
+
 /**
  * Validate and parse incoming chat request body.
  * Returns parsed request or null if invalid.
  */
 function parseChatRequest(body: unknown): ChatRequest | null {
-  if (typeof body !== "object" || body === null) return null;
-  const obj = body as Record<string, unknown>;
-  if (typeof obj.message !== "string" || obj.message.trim().length === 0) {
+  if (!isPlainObject(body)) return null;
+  if (
+    typeof body["message"] !== "string" ||
+    body["message"].trim().length === 0
+  ) {
     return null;
   }
-  const message = obj.message.trim();
+  const message = body["message"].trim();
   if (message.length > MAX_MESSAGE_LENGTH) {
     return null;
   }
 
   let history: ChatRequest["history"] | undefined;
-  if (Array.isArray(obj.history)) {
-    if (obj.history.length > MAX_HISTORY_ENTRIES) return null;
-    const valid = obj.history.every(
-      (entry: unknown) =>
-        typeof entry === "object" &&
-        entry !== null &&
-        typeof (entry as Record<string, unknown>).role === "string" &&
-        typeof (entry as Record<string, unknown>).content === "string" &&
-        ((entry as Record<string, unknown>).content as string).length <=
-          MAX_HISTORY_ENTRY_LENGTH,
-    );
-    if (!valid) return null;
-    history = obj.history as ChatRequest["history"];
+  const rawHistory = body["history"];
+  if (Array.isArray(rawHistory)) {
+    if (rawHistory.length > MAX_HISTORY_ENTRIES) return null;
+    if (!rawHistory.every(isHistoryEntry)) return null;
+    history = rawHistory;
   }
 
-  // Model is validated downstream (only used for authenticated users).
-  const model = typeof obj.model === "string" ? obj.model.trim() : undefined;
+  // Model is validated downstream against the allowlist.
+  const rawModel = body["model"];
+  const model = typeof rawModel === "string" ? rawModel.trim() : undefined;
 
-  // Skill IDs for system prompt injection (authenticated users only).
+  // Skill IDs for system prompt injection.
   let skillIds: string[] | undefined;
-  if (Array.isArray(obj.skillIds)) {
-    if (obj.skillIds.length > MAX_SKILL_IDS) return null;
-    const allStrings = obj.skillIds.every(
-      (id: unknown) =>
+  const rawSkillIds = body["skillIds"];
+  if (Array.isArray(rawSkillIds)) {
+    if (rawSkillIds.length > MAX_SKILL_IDS) return null;
+    const allStrings = rawSkillIds.every(
+      (id: unknown): id is string =>
         typeof id === "string" && id.length > 0 && id.length < 100,
     );
     if (!allStrings) return null;
-    skillIds = obj.skillIds as string[];
+    skillIds = rawSkillIds;
   }
 
   return { message, history, model: model || undefined, skillIds };
@@ -155,32 +166,19 @@ function parseChatRequest(body: unknown): ChatRequest | null {
  * Accepts: { message: string; history?: Array<{ role, content }> }
  * Returns: text/event-stream with Workers AI text generation output
  *
- * Rate limited: 20 req/min (anonymous) or 100/min (valid X-Playground-Key).
+ * Rate limited: 100 req/min per IP.
  */
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = locals.runtime.env;
 
-  // --- Playground authentication ---
-  const playgroundKey = request.headers.get("x-playground-key");
-  const auth = validatePlaygroundKey(playgroundKey, env.PLAYGROUND_SECRET);
-
-  if (auth === "invalid") {
-    return new Response(JSON.stringify({ error: "Invalid playground key." }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
   // --- Rate limiting ---
-  // Authenticated playground users get a relaxed 100 req/min limit;
-  // anonymous users get the standard 20 req/min limit.
-  const rateLimiter =
-    auth === "authenticated" ? env.PLAYGROUND_RATE_LIMIT : env.CHAT_RATE_LIMIT;
-  const clientIp = request.headers.get("cf-connecting-ip");
+  const rateLimiter = env.CHAT_RATE_LIMIT;
+  const clientIp =
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    null;
 
   try {
-    // In dev/preview, this header is often missing; avoid collapsing
-    // all users into a single "unknown" rate-limit bucket.
     if (clientIp) {
       const { success } = await rateLimiter.limit({ key: clientIp });
       if (!success) {
@@ -192,7 +190,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
           },
         );
       }
+    } else if (!import.meta.env.DEV) {
+      // In production behind Cloudflare, cf-connecting-ip should always exist.
+      // If missing, fail closed to prevent rate-limit bypass.
+      return new Response(
+        JSON.stringify({ error: "Unable to identify client." }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
     }
+    // In dev, skip rate limiting when no IP header is available.
   } catch (rateLimitErr) {
     console.error("[chat] rate limiter unavailable:", rateLimitErr);
     if (!import.meta.env.DEV) {
@@ -236,12 +242,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   }
 
-  // Inject selected skills into the system prompt (authenticated only).
-  if (
-    auth === "authenticated" &&
-    chatRequest.skillIds &&
-    chatRequest.skillIds.length > 0
-  ) {
+  // Inject selected skills into the system prompt.
+  if (chatRequest.skillIds && chatRequest.skillIds.length > 0) {
     const skillContent = getSkillContents(chatRequest.skillIds);
     if (skillContent) {
       systemPrompt += `\n\n# Additional Design Skills\n\nThe following design skills should heavily influence your output. Apply their principles when generating UI:\n\n${skillContent}`;
@@ -250,11 +252,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const messages: AiMessage[] = [{ role: "system", content: systemPrompt }];
 
-  // Append conversation history only for authenticated playground users.
-  // Without a valid key, history is silently ignored — the request degrades
-  // to a single-turn prompt, preserving backward compatibility.
+  // Append conversation history (most recent turns).
   const MAX_HISTORY_TURNS = 20;
-  if (auth === "authenticated" && chatRequest.history) {
+  if (chatRequest.history) {
     const recentHistory = chatRequest.history.slice(-MAX_HISTORY_TURNS);
     for (const entry of recentHistory) {
       if (entry.role === "user" || entry.role === "assistant") {
@@ -281,13 +281,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   // --- Resolve model ---
-  // Authenticated playground users may select a model from the allowlist.
   // Accepts both short names ("gemma-3-27b-it") and full Workers AI IDs
-  // ("@cf/google/gemma-3-27b-it"). Without a valid key, the model field
-  // is silently ignored.
+  // ("@cf/google/gemma-3-27b-it").
   let resolvedModelId = DEFAULT_MODEL_ID;
   let resolvedModelConfig: ModelConfig | undefined;
-  if (auth === "authenticated" && chatRequest.model) {
+  if (chatRequest.model) {
     // Try short name first, then full ID
     const configByShort = MODEL_CONFIGS.get(chatRequest.model);
     const shortByFull = FULL_ID_TO_SHORT.get(chatRequest.model);

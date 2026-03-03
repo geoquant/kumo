@@ -36,8 +36,10 @@ import {
   GenerativeText,
 } from "./generative-wrappers.js";
 
-// Dynamic rendering bridge: LLM-generated props are unknown at compile time
-type AnyComponent = React.ComponentType<any>;
+// Dynamic rendering bridge: LLM-generated props are unknown at compile time.
+// Using Record<string, unknown> instead of `any` to maintain type safety at
+// the boundary while still allowing dynamic prop forwarding.
+type AnyComponent = React.ComponentType<Record<string, unknown>>;
 
 /**
  * Kumo export namespace, typed loosely for dynamic access.

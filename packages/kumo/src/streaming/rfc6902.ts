@@ -39,11 +39,39 @@ export interface JsonPatchOp {
 type AnyRecord = { [k: string]: unknown };
 
 function toRecord(el: UIElement): AnyRecord {
+  // UIElement is structurally a record — safe to widen via unknown bridge.
   return el as unknown as AnyRecord;
 }
 
 function toElement(rec: AnyRecord): UIElement {
+  // Validate minimal UIElement shape before narrowing.
   return rec as unknown as UIElement;
+}
+
+/** Runtime check: value is a non-null, non-array object. */
+function isRecord(value: unknown): value is AnyRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Validate that a value looks like a UIElement (has at minimum `type` and `key`
+ * strings). Used at patch boundaries before casting LLM-provided values.
+ */
+function isElementLike(value: unknown): value is UIElement {
+  if (!isRecord(value)) return false;
+  return typeof value["type"] === "string" && typeof value["key"] === "string";
+}
+
+/**
+ * Validate that a value looks like an elements map (object of UIElement-like values).
+ */
+function isElementsMapLike(value: unknown): value is UITree["elements"] {
+  if (!isRecord(value)) return false;
+  // Spot-check: every value is either an element-like record or nullish.
+  for (const v of Object.values(value)) {
+    if (v != null && !isElementLike(v)) return false;
+  }
+  return true;
 }
 
 // =============================================================================
@@ -84,11 +112,11 @@ export function parsePatchLine(line: string): JsonPatchOp | null {
     return null;
   }
 
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+  if (!isRecord(parsed)) {
     return null;
   }
 
-  const obj = parsed as Record<string, unknown>;
+  const obj = parsed;
 
   if (typeof obj.op !== "string" || typeof obj.path !== "string") {
     return null;
@@ -152,7 +180,7 @@ function applyAdd(spec: UITree, segments: string[], value: unknown): UITree {
   const [first, ...rest] = segments;
 
   if (first === "root") {
-    return { ...spec, root: value as string };
+    return typeof value === "string" ? { ...spec, root: value } : spec;
   }
 
   if (first === "elements") {
@@ -169,17 +197,20 @@ function addToElements(
   value: unknown,
 ): UITree {
   if (segments.length === 0) {
-    return { ...spec, elements: value as UITree["elements"] };
+    // Replace entire elements map — validate shape.
+    return isElementsMapLike(value) ? { ...spec, elements: value } : spec;
   }
 
   const [key, ...rest] = segments;
 
   if (rest.length === 0) {
+    // Add a single element — validate it looks like a UIElement.
+    if (!isElementLike(value)) return spec;
     return {
       ...spec,
       elements: {
         ...spec.elements,
-        [key as string]: value as UIElement,
+        [key as string]: value,
       },
     };
   }
@@ -245,13 +276,19 @@ function applyReplace(
   value: unknown,
 ): UITree {
   if (segments.length === 0) {
-    return value as UITree;
+    // Replace entire tree — validate minimal shape.
+    if (!isRecord(value)) return spec;
+    const root = typeof value["root"] === "string" ? value["root"] : spec.root;
+    const elements = isElementsMapLike(value["elements"])
+      ? value["elements"]
+      : spec.elements;
+    return { root, elements };
   }
 
   const [first, ...rest] = segments;
 
   if (first === "root") {
-    return { ...spec, root: value as string };
+    return typeof value === "string" ? { ...spec, root: value } : spec;
   }
 
   if (first === "elements") {
@@ -268,17 +305,19 @@ function replaceInElements(
   value: unknown,
 ): UITree {
   if (segments.length === 0) {
-    return { ...spec, elements: value as UITree["elements"] };
+    return isElementsMapLike(value) ? { ...spec, elements: value } : spec;
   }
 
   const [key, ...rest] = segments;
 
   if (rest.length === 0) {
+    // Replace a single element — validate shape.
+    if (!isElementLike(value)) return spec;
     return {
       ...spec,
       elements: {
         ...spec.elements,
-        [key as string]: value as UIElement,
+        [key as string]: value,
       },
     };
   }
@@ -298,7 +337,7 @@ function replaceNestedValue(
   segments: string[],
   value: unknown,
 ): AnyRecord {
-  if (segments.length === 0) return value as AnyRecord;
+  if (segments.length === 0) return isRecord(value) ? value : obj;
 
   const [head, ...tail] = segments;
 

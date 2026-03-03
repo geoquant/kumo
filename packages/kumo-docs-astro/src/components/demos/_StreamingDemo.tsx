@@ -347,9 +347,18 @@ export function StreamingDemo() {
         handleSubmitRef.current(undefined, content);
       },
       openExternal: (url: string, target: string) => {
+        // Defense-in-depth: validate URL scheme even though dispatchAction
+        // already sanitizes via the action registry.
+        try {
+          const parsed = new URL(url, window.location.href);
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return;
+          }
+        } catch {
+          return;
+        }
         const safeTarget = target === "_self" ? "_self" : "_blank";
-        const w = window.open(url, safeTarget, "noopener,noreferrer");
-        if (w) w.opener = null;
+        window.open(url, safeTarget, "noopener,noreferrer");
       },
     });
   }, []);

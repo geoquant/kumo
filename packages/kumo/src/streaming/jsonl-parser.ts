@@ -54,7 +54,7 @@ export function repairTruncatedJson(input: string): string | null {
   let escape = false;
 
   for (let i = 0; i < cleaned.length; i++) {
-    const ch = cleaned[i]!;
+    const ch = cleaned[i] ?? "";
 
     if (escape) {
       escape = false;

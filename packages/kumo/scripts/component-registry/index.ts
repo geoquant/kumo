@@ -325,7 +325,9 @@ function generatePropsFromType(
       !mainDef.anyOf &&
       !mainDef.oneOf
     ) {
-      const refName = decodeURIComponent(mainDef.$ref.split("/").pop()!);
+      const refSegment = mainDef.$ref.split("/").pop();
+      if (refSegment == null) break;
+      const refName = decodeURIComponent(refSegment);
       const refDef = schema.definitions?.[refName] as Definition;
       if (!refDef) break;
       mainDef = refDef;
@@ -344,7 +346,9 @@ function generatePropsFromType(
 
       for (const part of parts) {
         if (part.$ref) {
-          const refName = decodeURIComponent(part.$ref.split("/").pop()!);
+          const refSegment = part.$ref.split("/").pop();
+          if (refSegment == null) continue;
+          const refName = decodeURIComponent(refSegment);
           const refDef = schema.definitions?.[refName] as Definition;
           if (refDef?.properties) {
             properties = { ...properties, ...refDef.properties };
@@ -771,7 +775,8 @@ async function generateRegistry(): Promise<GenerateRegistryResult> {
 
   // Process block results and build BlockSchema with files and dependencies
   for (const result of blockResults) {
-    const blockConfig = BLOCKS.find((b) => b.name === result.name)!;
+    const blockConfig = BLOCKS.find((b) => b.name === result.name);
+    if (!blockConfig) continue;
     const mainFilePath = join(blockConfig.sourceDir, blockConfig.sourceFile);
 
     // Extract dependencies and files
