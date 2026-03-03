@@ -163,6 +163,16 @@ function computeAllGenerativeTypes(
 ): string[] {
   const allTypes = new Set<string>(directComponents);
 
+  // Wrapper targets are valid generative types — they have hand-written
+  // wrappers in component-map.ts but still need to appear in the manifest
+  // so the system prompt includes their documentation.
+  for (const name of STATEFUL_WRAPPER_TARGETS) {
+    allTypes.add(name);
+  }
+  for (const name of GENERATIVE_WRAPPER_TARGETS) {
+    allTypes.add(name);
+  }
+
   for (const key of Object.keys(SUB_COMPONENT_OVERRIDES)) {
     allTypes.add(key);
   }

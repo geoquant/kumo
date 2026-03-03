@@ -57,7 +57,7 @@ const MODEL_CONFIGS: ReadonlyMap<string, ModelConfig> = new Map([
     "gpt-oss-120b",
     {
       fullId: "@cf/openai/gpt-oss-120b",
-      maxTokens: 16384,
+      maxTokens: 32768,
       extraParams: { reasoning: { effort: "low" } },
     },
   ],

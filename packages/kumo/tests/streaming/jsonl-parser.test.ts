@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { createJsonlParser } from "@/streaming/jsonl-parser";
+import {
+  createJsonlParser,
+  repairTruncatedJson,
+} from "@/streaming/jsonl-parser";
 import type { JsonPatchOp } from "@/streaming/rfc6902";
 
 // =============================================================================
@@ -279,5 +282,101 @@ describe("push + flush workflow", () => {
     allOps.push(...parser.flush());
 
     expect(allOps).toEqual(patches);
+  });
+});
+
+// =============================================================================
+// repairTruncatedJson
+// =============================================================================
+
+describe("repairTruncatedJson", () => {
+  it("returns null for empty input", () => {
+    expect(repairTruncatedJson("")).toBeNull();
+  });
+
+  it("returns null for non-object input", () => {
+    expect(repairTruncatedJson("hello")).toBeNull();
+    expect(repairTruncatedJson("[1,2,3]")).toBeNull();
+  });
+
+  it("returns null for already-balanced JSON", () => {
+    expect(repairTruncatedJson('{"a":1}')).toBeNull();
+  });
+
+  it("closes a single missing brace", () => {
+    const result = repairTruncatedJson('{"a":1');
+    expect(result).toBe('{"a":1}');
+    expect(() => JSON.parse(result!)).not.toThrow();
+  });
+
+  it("closes multiple missing braces", () => {
+    const result = repairTruncatedJson('{"a":{"b":1');
+    expect(result).toBe('{"a":{"b":1}}');
+    expect(() => JSON.parse(result!)).not.toThrow();
+  });
+
+  it("closes missing brackets and braces in correct order", () => {
+    const result = repairTruncatedJson('{"a":[1,2');
+    expect(result).toBe('{"a":[1,2]}');
+    expect(() => JSON.parse(result!)).not.toThrow();
+  });
+
+  it("strips trailing comma before closing", () => {
+    const result = repairTruncatedJson('{"a":1,');
+    expect(result).toBe('{"a":1}');
+    expect(() => JSON.parse(result!)).not.toThrow();
+  });
+
+  it("repairs the exact gpt-oss-120b Button truncation pattern", () => {
+    // Real truncation observed: missing 2 closing braces at end
+    const truncated =
+      '{"op":"add","path":"/elements/submit-btn","value":{"key":"submit-btn","type":"Button","props":{"children":"Save preferences","variant":"primary"},"parentKey":"form-stack","action":{"name":"submit_form","params":{"form_type":"notification_preferences"}}';
+    const result = repairTruncatedJson(truncated);
+    expect(result).not.toBeNull();
+    const parsed = JSON.parse(result!);
+    expect(parsed.op).toBe("add");
+    expect(parsed.path).toBe("/elements/submit-btn");
+    expect(parsed.value.type).toBe("Button");
+    expect(parsed.value.props.children).toBe("Save preferences");
+    expect(parsed.value.action.name).toBe("submit_form");
+  });
+
+  it("handles truncation mid-string by closing the string first", () => {
+    const truncated =
+      '{"op":"add","path":"/elements/x","value":{"key":"x","type":"Button","props":{"children":"Save pref';
+    const result = repairTruncatedJson(truncated);
+    expect(result).not.toBeNull();
+    const parsed = JSON.parse(result!);
+    expect(parsed.op).toBe("add");
+    expect(parsed.value.props.children).toBe("Save pref");
+  });
+});
+
+// =============================================================================
+// flush: truncated JSON repair integration
+// =============================================================================
+
+describe("flush: truncated JSON repair", () => {
+  it("recovers a truncated Button element from the buffer", () => {
+    const parser = createJsonlParser();
+
+    // Push a complete line followed by a truncated line (no trailing newline)
+    const complete = '{"op":"add","path":"/root","value":"card"}\n';
+    const truncated =
+      '{"op":"add","path":"/elements/btn","value":{"key":"btn","type":"Button","props":{"children":"Submit","variant":"primary"},"parentKey":"stack"}}';
+    // Remove last } to simulate truncation
+    const truncatedInput = truncated.slice(0, -1);
+
+    const pushOps = parser.push(complete + truncatedInput);
+    expect(pushOps).toHaveLength(1);
+    expect(pushOps[0]?.path).toBe("/root");
+
+    const flushOps = parser.flush();
+    expect(flushOps).toHaveLength(1);
+    expect(flushOps[0]?.op).toBe("add");
+    expect(flushOps[0]?.path).toBe("/elements/btn");
+    expect((flushOps[0]?.value as Record<string, unknown>)["type"]).toBe(
+      "Button",
+    );
   });
 });
