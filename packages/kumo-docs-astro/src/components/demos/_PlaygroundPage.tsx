@@ -60,6 +60,8 @@ import {
   isRenderableTree,
   uiTreeToJsx,
   gradeTree,
+  gradeComposition,
+  COMPOSITION_RULE_NAMES,
   walkTree,
   defineCustomComponent,
 } from "@cloudflare/kumo/generative";
@@ -1339,8 +1341,8 @@ function computeTreeStats(tree: UITree): TreeStats {
   return { elementCount, maxDepth };
 }
 
-/** Human-readable description for each grading rule. */
-const RULE_DESCRIPTIONS: Readonly<Record<string, string>> = {
+/** Human-readable description for each structural grading rule. */
+const STRUCTURAL_RULE_DESCRIPTIONS: Readonly<Record<string, string>> = {
   "valid-component-types": "Every element's type is in KNOWN_TYPES",
   "valid-prop-values": "Enum prop values pass Zod schema validation",
   "required-props": "Text has children; form elements have label/aria-label",
@@ -1354,11 +1356,77 @@ const RULE_DESCRIPTIONS: Readonly<Record<string, string>> = {
     "props.children is never an array (structural children go in UIElement.children)",
 };
 
+/** Human-readable description for each composition grading rule. */
+const COMPOSITION_RULE_DESCRIPTIONS: Readonly<Record<string, string>> = {
+  "has-visual-hierarchy":
+    "UI contains at least one heading (Text with heading variant)",
+  "has-responsive-layout":
+    "Complex UIs (>12 elements) use Grid for responsive behaviour",
+  "surface-hierarchy-correct":
+    "Surface nesting follows base > elevated > recessed hierarchy",
+  "spacing-consistency":
+    "Stack gap values are within one step on the gap scale",
+  "content-density": "Element count is within bounds (3–100 elements)",
+  "action-completeness": "UIs with form elements include at least one Button",
+};
+
+/** Combined descriptions for all rules (structural + composition). */
+const RULE_DESCRIPTIONS: Readonly<Record<string, string>> = {
+  ...STRUCTURAL_RULE_DESCRIPTIONS,
+  ...COMPOSITION_RULE_DESCRIPTIONS,
+};
+
+/** Reusable section that renders a titled group of grade results. */
+function GradeSection({
+  title,
+  results,
+}: {
+  readonly title: string;
+  readonly results: ReadonlyArray<GradeReport["results"][number]>;
+}) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-medium text-kumo-subtle">{title}</h3>
+      {results.map((result) => (
+        <div
+          key={result.rule}
+          className="rounded-lg border border-kumo-line p-3"
+        >
+          <div className="flex items-center gap-2">
+            <span
+              className={result.pass ? "text-kumo-success" : "text-kumo-danger"}
+            >
+              {result.pass ? "PASS" : "FAIL"}
+            </span>
+            <span className="font-mono text-sm text-kumo-default">
+              {result.rule}
+            </span>
+          </div>
+          {RULE_DESCRIPTIONS[result.rule] && (
+            <p className="mt-1 text-xs text-kumo-subtle">
+              {RULE_DESCRIPTIONS[result.rule]}
+            </p>
+          )}
+          {result.violations.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {result.violations.map((v, i) => (
+                <li key={i} className="font-mono text-xs text-kumo-subtle">
+                  {v}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Debounce interval for grading during streaming (ms). */
 const GRADE_DEBOUNCE_MS = 500;
 
 /**
- * Renders gradeTree() results with debouncing during streaming.
+ * Renders gradeTree() and gradeComposition() results with debouncing during streaming.
  *
  * During streaming, grades are recomputed at most every 500ms.
  * A final run fires when streaming completes to ensure accuracy.
@@ -1373,6 +1441,8 @@ function GradingTabContent({
   readonly isStreaming: boolean;
 }) {
   const [report, setReport] = useState<GradeReport | null>(null);
+  const [compositionReport, setCompositionReport] =
+    useState<GradeReport | null>(null);
   const [stats, setStats] = useState<TreeStats | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastGradedRef = useRef(0);
@@ -1380,12 +1450,14 @@ function GradingTabContent({
   useEffect(() => {
     if (!showTree) {
       setReport(null);
+      setCompositionReport(null);
       setStats(null);
       return;
     }
 
     const runGrade = () => {
       setReport(gradeTree(tree, { customTypes: CUSTOM_COMPONENT_TYPES }));
+      setCompositionReport(gradeComposition(tree));
       setStats(computeTreeStats(tree));
       lastGradedRef.current = Date.now();
     };
@@ -1424,15 +1496,23 @@ function GradingTabContent({
     );
   }
 
-  const passCount = report.results.filter((r) => r.pass).length;
-  const totalRules = report.results.length;
+  const structuralPassCount = report.results.filter((r) => r.pass).length;
+  const compositionPassCount = compositionReport
+    ? compositionReport.results.filter((r) => r.pass).length
+    : 0;
+  const totalStructural = report.results.length;
+  const totalComposition = compositionReport
+    ? compositionReport.results.length
+    : COMPOSITION_RULE_NAMES.length;
+  const totalPass = structuralPassCount + compositionPassCount;
+  const totalRules = totalStructural + totalComposition;
 
   return (
     <div className="space-y-4 p-4">
       {/* Overall score + stats */}
       <div className="flex items-baseline gap-4">
         <span className="text-2xl font-semibold text-kumo-default">
-          {passCount}/{totalRules}
+          {totalPass}/{totalRules}
         </span>
         <span className="text-sm text-kumo-subtle">rules passing</span>
         {stats && (
@@ -1442,42 +1522,19 @@ function GradingTabContent({
         )}
       </div>
 
-      {/* Per-rule breakdown */}
-      <div className="space-y-2">
-        {report.results.map((result) => (
-          <div
-            key={result.rule}
-            className="rounded-lg border border-kumo-line p-3"
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className={
-                  result.pass ? "text-kumo-success" : "text-kumo-danger"
-                }
-              >
-                {result.pass ? "PASS" : "FAIL"}
-              </span>
-              <span className="font-mono text-sm text-kumo-default">
-                {result.rule}
-              </span>
-            </div>
-            {RULE_DESCRIPTIONS[result.rule] && (
-              <p className="mt-1 text-xs text-kumo-subtle">
-                {RULE_DESCRIPTIONS[result.rule]}
-              </p>
-            )}
-            {result.violations.length > 0 && (
-              <ul className="mt-2 space-y-1">
-                {result.violations.map((v, i) => (
-                  <li key={i} className="font-mono text-xs text-kumo-subtle">
-                    {v}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
-      </div>
+      {/* Structural rules */}
+      <GradeSection
+        title={`Structural (${structuralPassCount}/${totalStructural})`}
+        results={report.results}
+      />
+
+      {/* Composition rules */}
+      {compositionReport && (
+        <GradeSection
+          title={`Composition (${compositionPassCount}/${totalComposition})`}
+          results={compositionReport.results}
+        />
+      )}
     </div>
   );
 }

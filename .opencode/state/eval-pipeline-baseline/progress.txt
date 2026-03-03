@@ -3,6 +3,7 @@ PRD: eval-pipeline-baseline
 Started: 2026-02-28
 
 ## Codebase Patterns
+- Dist types staleness: when kumo `src/generative/index.ts` adds new exports, must `pnpm --filter @cloudflare/kumo build` before docs-astro typecheck passes
 - CLI eval script: `packages/kumo/scripts/eval-generative.ts` — standalone tsx script, not part of library build
 - Eval prompts source of truth: `packages/kumo/src/generative/eval/eval-prompts.ts` — exports `EVAL_PROMPTS`, `EvalPrompt` type
 - CLI uses local `EvalPrompt` interface with `name`/`message` fields; shared module uses `id`/`prompt` fields
@@ -49,3 +50,16 @@ Started: 2026-02-28
 - Renamed inner `body` variable to `responseBody` to avoid shadowing the request body variable
 - Files changed: `packages/kumo/scripts/eval-generative.ts`
 - **Learnings:** Skills endpoint at `/api/chat/skills` requires GET + `X-Playground-Key`; chat endpoint accepts optional `skillIds` array (max 5) and `X-Playground-Key` header; skills only effective when authenticated
+
+## Task - d4-playground-composition-ui
+- Imported `gradeComposition` and `COMPOSITION_RULE_NAMES` from `@cloudflare/kumo/generative`
+- Added `COMPOSITION_RULE_DESCRIPTIONS` map with human-readable descriptions for all 6 composition rules
+- Combined into `RULE_DESCRIPTIONS` via spread for shared lookup
+- Added `compositionReport` state (`GradeReport | null`) to `GradingTabContent`
+- `runGrade` callback now calls both `gradeTree()` and `gradeComposition()` in sequence — debouncing preserved
+- Extracted `GradeSection` component for rendering a titled group of grade results (DRY)
+- Score summary shows combined pass count across both structural and composition (e.g. "12/14 rules passing")
+- Two labeled sections: "Structural (6/8)" and "Composition (5/6)"
+- Had to rebuild kumo package (`pnpm --filter @cloudflare/kumo build`) because dist types were stale — composition grader exports were in source `index.ts` but not in `dist/src/generative/index.d.ts`
+- Files changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`
+- **Learnings:** Dist types can go stale when source barrel adds new re-exports; must rebuild kumo before docs-astro typecheck will pass. `GradeReport` type from structural-graders is reused by composition-graders (same shape), so both reports can share rendering logic.
