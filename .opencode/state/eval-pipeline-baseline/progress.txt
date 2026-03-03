@@ -87,3 +87,13 @@ Started: 2026-02-28
   - `packages/kumo-docs-astro/src/pages/playground/report.astro` (new)
   - `packages/kumo-docs-astro/src/components/demos/_EvalReportPage.tsx` (new)
 - **Learnings:** SVG `fill-kumo-*` tokens don't exist in theme; use `text-kumo-*` + `fill="currentColor"`. Moving Astro pages into subdirectories breaks relative imports — need to add extra `../`. `readSSEStream` and `createJsonlParser` from streaming module work well for client-side eval; `parseJsonlToTree` from generative barrel handles JSONL→UITree conversion.
+
+## Task - d5-generate-baselines
+- No code changes needed — CLI flags (`--save-jsonl`, `--save-baseline`, `--compare`, `--runs`) fully implemented in d1-d3
+- Verified 13 eval prompts load correctly from shared `eval-prompts.ts` module
+- Verified `.eval-baselines/` and `.eval-outputs/` are gitignored (root `.gitignore` lines 51-52)
+- Both output dirs resolve to `packages/kumo/` and are created on-demand via `mkdirSync({ recursive: true })`
+- Baseline JSON includes: timestamp, CLI args, per-prompt aggregates, structural pass rates, composition pass rates, all-pass rate
+- Typecheck, lint, tests all pass (lint errors only in pre-existing `skills/ns-kumo-ui-templates/`)
+- **This is a manual-process task**: requires running dev server + CLI to capture actual baselines
+- **Learnings:** Task was infrastructure-complete from d1-d3; the "generate baselines" step is an operational concern (run dev server, execute CLI), not a code concern. `Baseline` type backward compat via `Partial<Baseline>` handles comparison across baseline versions.
