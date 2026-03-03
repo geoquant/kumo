@@ -16,7 +16,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, CloudflareLogo, Empty, Loader } from "@cloudflare/kumo";
+import { Button, CloudflareLogo, cn, Empty, Loader } from "@cloudflare/kumo";
 import {
   CheckCircleIcon,
   LightningIcon,
@@ -84,6 +84,27 @@ const ALL_RULE_NAMES: readonly string[] = [
   ...RULE_NAMES,
   ...COMPOSITION_RULE_NAMES,
 ];
+
+/** Human-readable descriptions for each grading rule. */
+const RULE_DESCRIPTIONS: Readonly<Record<string, string>> = {
+  "valid-component-types": "All component types are known Kumo components",
+  "valid-prop-values": "Prop values match allowed variants/types",
+  "required-props": "Mandatory props (e.g. label, children) are present",
+  "canonical-layout": "Layout follows standard Kumo patterns",
+  "no-orphan-nodes": "Every node is reachable from the root",
+  "a11y-labels": "Form elements have accessibility labels",
+  "depth-limit": "Nesting depth stays within limits",
+  "no-redundant-children": "No unnecessary wrapper nodes",
+  "has-visual-hierarchy": "Page has clear heading/content hierarchy",
+  "has-responsive-layout": "Layout uses responsive patterns",
+  "surface-hierarchy-correct": "Surface nesting (base → elevated) is correct",
+  "spacing-consistency": "Spacing values are consistent across siblings",
+  "content-density": "Content density is appropriate for the layout",
+  "action-completeness": "Action areas have proper button/link elements",
+};
+
+/** Per-prompt violation details, keyed by promptName then rule name. */
+type ViolationMap = ReadonlyMap<string, ReadonlyMap<string, readonly string[]>>;
 
 // =============================================================================
 // Auth hook (reuses pattern from playground)
@@ -272,8 +293,47 @@ function resultsToBaseline(results: readonly PromptEvalResult[]): Baseline {
 // Component: Pass/Fail Matrix
 // =============================================================================
 
-/** Renders a 13x14 grid showing pass/fail per prompt per rule. */
-function PassFailMatrix({ baseline }: { readonly baseline: Baseline }) {
+/** Renders a 13x14 grid showing pass/fail per prompt per rule.
+ *  - Row click expands to show violation messages (when available).
+ *  - Column headers show full rule description on hover.
+ *  - Column header click opens a per-rule drill-down view.
+ */
+function PassFailMatrix({
+  baseline,
+  violations,
+}: {
+  readonly baseline: Baseline;
+  readonly violations?: ViolationMap | undefined;
+}) {
+  const [expandedRows, setExpandedRows] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+  const [drillDownRule, setDrillDownRule] = useState<string | null>(null);
+
+  const toggleRow = useCallback((promptName: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(promptName)) {
+        next.delete(promptName);
+      } else {
+        next.add(promptName);
+      }
+      return next;
+    });
+  }, []);
+
+  // Drill-down view: single rule across all prompts
+  if (drillDownRule !== null) {
+    return (
+      <RuleDrillDown
+        rule={drillDownRule}
+        baseline={baseline}
+        violations={violations}
+        onBack={() => setDrillDownRule(null)}
+      />
+    );
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-xs">
@@ -286,11 +346,15 @@ function PassFailMatrix({ baseline }: { readonly baseline: Baseline }) {
               <th
                 key={rule}
                 className="px-1 py-1 text-center font-mono text-kumo-subtle"
-                title={rule}
               >
-                <span className="inline-block max-w-[60px] truncate">
+                <button
+                  type="button"
+                  className="inline-block max-w-[60px] cursor-pointer truncate underline decoration-dotted underline-offset-2 hover:text-kumo-default"
+                  title={RULE_DESCRIPTIONS[rule] ?? rule}
+                  onClick={() => setDrillDownRule(rule)}
+                >
                   {rule.replace(/-/g, "\u2011")}
-                </span>
+                </button>
               </th>
             ))}
             <th className="px-2 py-1 text-center font-mono text-kumo-subtle">
@@ -301,45 +365,239 @@ function PassFailMatrix({ baseline }: { readonly baseline: Baseline }) {
         <tbody>
           {baseline.prompts.map((p) => {
             const allRates = { ...p.rulePassRates, ...p.compositionPassRates };
+            const isExpanded = expandedRows.has(p.promptName);
+            const promptViolations = violations?.get(p.promptName);
+            const hasViolations =
+              promptViolations !== undefined && promptViolations.size > 0;
+
+            return (
+              <MatrixRow
+                key={p.promptName}
+                prompt={p}
+                allRates={allRates}
+                isExpanded={isExpanded}
+                hasViolations={hasViolations}
+                promptViolations={promptViolations}
+                onToggle={() => toggleRow(p.promptName)}
+              />
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** A single row in the matrix, plus an expansion row for violations. */
+function MatrixRow({
+  prompt,
+  allRates,
+  isExpanded,
+  hasViolations,
+  promptViolations,
+  onToggle,
+}: {
+  readonly prompt: PromptAggregate;
+  readonly allRates: Readonly<Record<string, number>>;
+  readonly isExpanded: boolean;
+  readonly hasViolations: boolean;
+  readonly promptViolations: ReadonlyMap<string, readonly string[]> | undefined;
+  readonly onToggle: () => void;
+}) {
+  return (
+    <>
+      <tr
+        className={cn(
+          "border-t border-kumo-line",
+          hasViolations && "cursor-pointer hover:bg-kumo-elevated",
+        )}
+        onClick={hasViolations ? onToggle : undefined}
+      >
+        <td className="sticky left-0 z-10 bg-kumo-base px-2 py-1 font-mono text-kumo-default">
+          <span className="flex items-center gap-1">
+            {hasViolations && (
+              <span
+                className="inline-block text-[10px] text-kumo-subtle transition-transform"
+                style={{
+                  transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                }}
+              >
+                &#x25B6;
+              </span>
+            )}
+            <span
+              className="inline-block max-w-[200px] truncate"
+              title={prompt.promptName}
+            >
+              {prompt.promptName}
+            </span>
+          </span>
+        </td>
+        {ALL_RULE_NAMES.map((rule) => {
+          const rate = allRates[rule];
+          const pass = rate !== undefined && rate >= 1;
+          const partial = rate !== undefined && rate > 0 && rate < 1;
+          return (
+            <td key={rule} className="px-1 py-1 text-center">
+              {rate === undefined ? (
+                <span className="text-kumo-subtle">&mdash;</span>
+              ) : pass ? (
+                <span className="text-kumo-success">&#x2713;</span>
+              ) : partial ? (
+                <span className="text-kumo-warning">
+                  {Math.round(rate * 100)}%
+                </span>
+              ) : (
+                <span className="text-kumo-danger">&#x2717;</span>
+              )}
+            </td>
+          );
+        })}
+        <td className="px-2 py-1 text-center">
+          {prompt.allPassRate >= 1 ? (
+            <span className="font-semibold text-kumo-success">PASS</span>
+          ) : (
+            <span className="font-semibold text-kumo-danger">
+              {Math.round(prompt.allPassRate * 100)}%
+            </span>
+          )}
+        </td>
+      </tr>
+      {isExpanded && promptViolations !== undefined && (
+        <tr className="border-t border-kumo-line/50">
+          <td
+            colSpan={ALL_RULE_NAMES.length + 2}
+            className="bg-kumo-recessed px-4 py-3"
+          >
+            <ViolationDetails violations={promptViolations} />
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+/** Renders violation messages grouped by rule for an expanded row. */
+function ViolationDetails({
+  violations,
+}: {
+  readonly violations: ReadonlyMap<string, readonly string[]>;
+}) {
+  const failingRules = [...violations.entries()].filter(
+    ([, msgs]) => msgs.length > 0,
+  );
+
+  if (failingRules.length === 0) {
+    return (
+      <p className="text-xs text-kumo-subtle italic">
+        No violation details available.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {failingRules.map(([rule, messages]) => (
+        <div key={rule}>
+          <p className="text-xs font-medium text-kumo-danger">{rule}</p>
+          <ul className="ml-4 list-disc">
+            {messages.map((msg, i) => (
+              <li key={i} className="text-xs text-kumo-subtle">
+                {msg}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Per-rule drill-down: shows one rule across all prompts with violations. */
+function RuleDrillDown({
+  rule,
+  baseline,
+  violations,
+  onBack,
+}: {
+  readonly rule: string;
+  readonly baseline: Baseline;
+  readonly violations?: ViolationMap | undefined;
+  readonly onBack: () => void;
+}) {
+  const description = RULE_DESCRIPTIONS[rule] ?? rule;
+  const isStructural = (RULE_NAMES as readonly string[]).includes(rule);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          className="text-sm text-kumo-subtle hover:text-kumo-default"
+          onClick={onBack}
+        >
+          &larr; Back to matrix
+        </button>
+        <h3 className="text-sm font-semibold text-kumo-default">{rule}</h3>
+        <span className="rounded bg-kumo-elevated px-2 py-0.5 text-xs text-kumo-subtle">
+          {isStructural ? "structural" : "composition"}
+        </span>
+      </div>
+      <p className="text-xs text-kumo-subtle">{description}</p>
+
+      <table className="w-full border-collapse text-xs">
+        <thead>
+          <tr>
+            <th className="px-2 py-1 text-left font-mono text-kumo-subtle">
+              Prompt
+            </th>
+            <th className="px-2 py-1 text-center font-mono text-kumo-subtle">
+              Result
+            </th>
+            <th className="px-2 py-1 text-left font-mono text-kumo-subtle">
+              Violations
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {baseline.prompts.map((p) => {
+            const rate = isStructural
+              ? p.rulePassRates[rule]
+              : p.compositionPassRates[rule];
+            const pass = rate !== undefined && rate >= 1;
+            const promptViolations = violations?.get(p.promptName)?.get(rule);
+
             return (
               <tr key={p.promptName} className="border-t border-kumo-line">
-                <td className="sticky left-0 z-10 bg-kumo-base px-2 py-1 font-mono text-kumo-default">
+                <td className="px-2 py-1 font-mono text-kumo-default">
                   <span
-                    className="inline-block max-w-[200px] truncate"
+                    className="inline-block max-w-[300px] truncate"
                     title={p.promptName}
                   >
                     {p.promptName}
                   </span>
                 </td>
-                {ALL_RULE_NAMES.map((rule) => {
-                  const rate = allRates[rule];
-                  const pass = rate !== undefined && rate >= 1;
-                  const partial = rate !== undefined && rate > 0 && rate < 1;
-                  return (
-                    <td key={rule} className="px-1 py-1 text-center">
-                      {rate === undefined ? (
-                        <span className="text-kumo-subtle">&mdash;</span>
-                      ) : pass ? (
-                        <span className="text-kumo-success">&#x2713;</span>
-                      ) : partial ? (
-                        <span className="text-kumo-warning">
-                          {Math.round(rate * 100)}%
-                        </span>
-                      ) : (
-                        <span className="text-kumo-danger">&#x2717;</span>
-                      )}
-                    </td>
-                  );
-                })}
                 <td className="px-2 py-1 text-center">
-                  {p.allPassRate >= 1 ? (
-                    <span className="font-semibold text-kumo-success">
-                      PASS
-                    </span>
+                  {rate === undefined ? (
+                    <span className="text-kumo-subtle">&mdash;</span>
+                  ) : pass ? (
+                    <span className="text-kumo-success">&#x2713; Pass</span>
                   ) : (
-                    <span className="font-semibold text-kumo-danger">
-                      {Math.round(p.allPassRate * 100)}%
-                    </span>
+                    <span className="text-kumo-danger">&#x2717; Fail</span>
+                  )}
+                </td>
+                <td className="px-2 py-1 text-kumo-subtle">
+                  {promptViolations !== undefined &&
+                  promptViolations.length > 0 ? (
+                    <ul className="ml-4 list-disc">
+                      {promptViolations.map((msg, i) => (
+                        <li key={i}>{msg}</li>
+                      ))}
+                    </ul>
+                  ) : pass ? (
+                    <span className="italic">&mdash;</span>
+                  ) : (
+                    <span className="italic">No detail available</span>
                   )}
                 </td>
               </tr>
@@ -347,6 +605,22 @@ function PassFailMatrix({ baseline }: { readonly baseline: Baseline }) {
           })}
         </tbody>
       </table>
+
+      {/* Summary */}
+      <div className="flex gap-4 text-xs text-kumo-subtle">
+        <span>
+          Pass:{" "}
+          {
+            baseline.prompts.filter((p) => {
+              const rate = isStructural
+                ? p.rulePassRates[rule]
+                : p.compositionPassRates[rule];
+              return rate !== undefined && rate >= 1;
+            }).length
+          }
+          /{baseline.prompts.length}
+        </span>
+      </div>
     </div>
   );
 }
@@ -680,6 +954,32 @@ function FileDropZone({
   );
 }
 
+/** Build a ViolationMap from completed live eval results. */
+function buildViolationMap(results: readonly PromptEvalResult[]): ViolationMap {
+  const map = new Map<string, ReadonlyMap<string, readonly string[]>>();
+
+  for (const r of results) {
+    if (r.structuralReport === null && r.compositionReport === null) continue;
+
+    const ruleMap = new Map<string, readonly string[]>();
+
+    if (r.structuralReport !== null) {
+      for (const gr of r.structuralReport.results) {
+        ruleMap.set(gr.rule, gr.violations);
+      }
+    }
+    if (r.compositionReport !== null) {
+      for (const gr of r.compositionReport.results) {
+        ruleMap.set(gr.rule, gr.violations);
+      }
+    }
+
+    map.set(r.promptId, ruleMap);
+  }
+
+  return map;
+}
+
 // =============================================================================
 // Component: Live Eval Panel
 // =============================================================================
@@ -687,9 +987,11 @@ function FileDropZone({
 function LiveEvalPanel({
   apiKey,
   onBaselineCreated,
+  onViolationsUpdated,
 }: {
   readonly apiKey: string;
   readonly onBaselineCreated: (named: NamedBaseline) => void;
+  readonly onViolationsUpdated: (violations: ViolationMap) => void;
 }) {
   const [results, setResults] = useState<readonly PromptEvalResult[]>(
     EVAL_PROMPTS.map((p) => ({
@@ -750,16 +1052,17 @@ function LiveEvalPanel({
 
     setIsRunning(false);
 
-    // Build baseline from results
+    // Build baseline and violations from results
     if (!controller.signal.aborted) {
       const doneResults = finalResults.filter((r) => r.status === "done");
       if (doneResults.length > 0) {
         const baseline = resultsToBaseline(finalResults);
         const name = `live-${new Date().toISOString().slice(0, 16).replace(/[T:]/g, "-")}`;
         onBaselineCreated({ name, baseline });
+        onViolationsUpdated(buildViolationMap(finalResults));
       }
     }
-  }, [apiKey, onBaselineCreated]);
+  }, [apiKey, onBaselineCreated, onViolationsUpdated]);
 
   const handleCancel = useCallback(() => {
     abortRef.current?.abort();
@@ -1018,6 +1321,7 @@ function AuthenticatedMode({ apiKey }: { readonly apiKey: string }) {
   const [selectedIndices, setSelectedIndices] = useState<ReadonlySet<number>>(
     new Set(),
   );
+  const [liveViolations, setLiveViolations] = useState<ViolationMap>(new Map());
 
   const handleBaselineLoaded = useCallback(
     (named: NamedBaseline) => {
@@ -1078,6 +1382,7 @@ function AuthenticatedMode({ apiKey }: { readonly apiKey: string }) {
         <LiveEvalPanel
           apiKey={apiKey}
           onBaselineCreated={handleBaselineLoaded}
+          onViolationsUpdated={setLiveViolations}
         />
       </div>
 
@@ -1091,7 +1396,11 @@ function AuthenticatedMode({ apiKey }: { readonly apiKey: string }) {
         onRemove={handleRemove}
       />
 
-      <ReportBody baselines={baselines} selectedBaselines={selectedBaselines} />
+      <ReportBody
+        baselines={baselines}
+        selectedBaselines={selectedBaselines}
+        violations={liveViolations}
+      />
     </div>
   );
 }
@@ -1103,9 +1412,11 @@ function AuthenticatedMode({ apiKey }: { readonly apiKey: string }) {
 function ReportBody({
   baselines,
   selectedBaselines,
+  violations,
 }: {
   readonly baselines: readonly NamedBaseline[];
   readonly selectedBaselines: readonly NamedBaseline[];
+  readonly violations?: ViolationMap | undefined;
 }) {
   if (baselines.length === 0) {
     return (
@@ -1132,7 +1443,10 @@ function ReportBody({
         <h2 className="mb-3 text-sm font-semibold text-kumo-default">
           Pass/Fail Matrix &mdash; {primaryBaseline.name}
         </h2>
-        <PassFailMatrix baseline={primaryBaseline.baseline} />
+        <PassFailMatrix
+          baseline={primaryBaseline.baseline}
+          violations={violations}
+        />
       </div>
 
       {/* A/B Comparison */}

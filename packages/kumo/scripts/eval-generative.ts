@@ -169,8 +169,44 @@ interface FetchJsonlOptions {
 }
 
 /**
+ * Extract a content token from a parsed SSE JSON payload.
+ *
+ * Supports:
+ * - Workers AI legacy: `{ response: "..." }`
+ * - OpenAI-compatible: `{ choices: [{ delta: { content: "..." } }] }`
+ */
+function extractToken(obj: Record<string, unknown>): string | null {
+  // Workers AI legacy format
+  if ("response" in obj && typeof obj.response === "string") {
+    return obj.response;
+  }
+
+  // OpenAI-compatible streaming format
+  if ("choices" in obj && Array.isArray(obj.choices)) {
+    const choice = obj.choices[0] as Record<string, unknown> | undefined;
+    if (!choice) return null;
+
+    if ("text" in choice && typeof choice.text === "string") {
+      return choice.text;
+    }
+
+    if (typeof choice.delta === "object" && choice.delta) {
+      const delta = choice.delta as Record<string, unknown>;
+      if ("content" in delta && typeof delta.content === "string") {
+        return delta.content;
+      }
+      if ("text" in delta && typeof delta.text === "string") {
+        return delta.text;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Send a message to the chat endpoint and extract the JSONL response.
- * Reads the SSE stream, concatenates all `data: {"response":"..."}` payloads.
+ * Reads the SSE stream, concatenates all content tokens from each payload.
  */
 async function fetchJsonl(
   url: string,
@@ -227,9 +263,10 @@ async function fetchJsonl(
 
       const payload = trimmed.slice(6); // strip "data: "
       try {
-        const parsed = JSON.parse(payload) as { response?: string };
-        if (typeof parsed.response === "string") {
-          jsonl += parsed.response;
+        const parsed = JSON.parse(payload) as Record<string, unknown>;
+        const token = extractToken(parsed);
+        if (token) {
+          jsonl += token;
         }
       } catch {
         // Skip malformed SSE data lines
@@ -241,9 +278,10 @@ async function fetchJsonl(
   if (buffer.trim().startsWith("data: ") && buffer.trim() !== "data: [DONE]") {
     const payload = buffer.trim().slice(6);
     try {
-      const parsed = JSON.parse(payload) as { response?: string };
-      if (typeof parsed.response === "string") {
-        jsonl += parsed.response;
+      const parsed = JSON.parse(payload) as Record<string, unknown>;
+      const token = extractToken(parsed);
+      if (token) {
+        jsonl += token;
       }
     } catch {
       // Skip
@@ -314,12 +352,42 @@ async function runEval(args: CliArgs): Promise<void> {
     process.exit(1);
   }
 
-  // Fetch skill IDs at startup when --skills is set
+  // Fetch skill IDs at startup when --skills is set.
+  // The server enforces a maximum of 5 skill IDs per request. When more are
+  // available, select the most relevant ones for generative UI composition.
+  const MAX_SKILL_IDS = 5;
   let skillIds: ReadonlyArray<string> = [];
   if (skills && playgroundKey != null) {
     console.log("Fetching skill IDs...");
-    skillIds = await fetchSkillIds(url, playgroundKey);
-    console.log(`  Found ${skillIds.length} skills: ${skillIds.join(", ")}`);
+    const allSkillIds = await fetchSkillIds(url, playgroundKey);
+    console.log(
+      `  Found ${allSkillIds.length} skills: ${allSkillIds.join(", ")}`,
+    );
+
+    if (allSkillIds.length > MAX_SKILL_IDS) {
+      // Prefer skills most relevant to layout/composition quality.
+      const preferred = [
+        "ui-skills-interface-design",
+        "ui-skills-baseline-ui",
+        "taste-skill",
+        "spark-design-guide",
+        "ui-skills-fixing-accessibility",
+      ];
+      skillIds = preferred.filter((id) => allSkillIds.includes(id));
+      // Fill remaining slots from the full list if any preferred were missing.
+      for (const id of allSkillIds) {
+        if (skillIds.length >= MAX_SKILL_IDS) break;
+        if (!skillIds.includes(id)) {
+          skillIds = [...skillIds, id];
+        }
+      }
+      skillIds = skillIds.slice(0, MAX_SKILL_IDS);
+      console.log(
+        `  Capped to ${skillIds.length} skills: ${skillIds.join(", ")}`,
+      );
+    } else {
+      skillIds = allSkillIds;
+    }
   }
 
   console.log(
