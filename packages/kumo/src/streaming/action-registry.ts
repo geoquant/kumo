@@ -286,6 +286,27 @@ function handleDecrement(
 }
 
 /**
+ * Reset the counter display to a value (default 0).
+ *
+ * Reads optional `params.value` for a custom reset target; falls back to 0.
+ */
+function handleReset(event: ActionEvent, tree: UITree): ActionResult | null {
+  const key = resolveCounterKey(event);
+  const current = readCounterValue(tree, key);
+  if (current == null) return null;
+
+  const rawValue = event.params?.value;
+  const resetTo =
+    typeof rawValue === "number"
+      ? rawValue
+      : typeof rawValue === "string"
+        ? Number.parseInt(rawValue, 10) || 0
+        : 0;
+
+  return counterPatchResult(key, resetTo);
+}
+
+/**
  * Submit form data as a chat message.
  *
  * Expects `event.params` to contain form field values, or falls back
@@ -379,13 +400,14 @@ function handleNavigate(
 /**
  * Built-in action handlers for common interaction patterns.
  *
- * - `increment` / `decrement`: Counter manipulation via RFC 6902 patches
+ * - `increment` / `decrement` / `reset`: Counter manipulation via RFC 6902 patches
  * - `submit_form`: Serialize form data into a chat message
  * - `navigate`: Open a URL (external side effect)
  */
 export const BUILTIN_HANDLERS: Readonly<ActionHandlerMap> = {
   increment: handleIncrement,
   decrement: handleDecrement,
+  reset: handleReset,
   submit_form: handleSubmitForm,
   navigate: handleNavigate,
 };
