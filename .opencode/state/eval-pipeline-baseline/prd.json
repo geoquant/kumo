@@ -75,7 +75,7 @@
         "Compare baselines with --compare",
         ".eval-baselines/ and .eval-outputs/ are gitignored"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "d6-eval-report-page",
