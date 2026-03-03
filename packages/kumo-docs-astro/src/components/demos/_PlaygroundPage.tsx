@@ -736,6 +736,7 @@ function AuthenticatedState({ apiKey }: { apiKey: string | null }) {
             rawJsonl={rawJsonl}
             actionLog={actionLog}
             onClearActionLog={clearActionLog}
+            onAction={handleAction}
           />
         </div>
       </div>
@@ -774,6 +775,7 @@ interface PlaygroundTabContentProps {
   readonly rawJsonl: string;
   readonly actionLog: readonly ActionLogEntry[];
   readonly onClearActionLog: () => void;
+  readonly onAction?: (event: ActionEvent) => void;
 }
 
 /**
@@ -790,6 +792,7 @@ function PlaygroundTabContent({
   rawJsonl,
   actionLog,
   onClearActionLog,
+  onAction,
 }: PlaygroundTabContentProps) {
   switch (activeTab) {
     case "preview":
@@ -800,6 +803,7 @@ function PlaygroundTabContent({
             streaming={isStreaming}
             runtimeValueStore={runtimeValueStore}
             customComponents={CUSTOM_COMPONENTS}
+            onAction={onAction}
           />
         </div>
       ) : (

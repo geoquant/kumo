@@ -251,6 +251,8 @@ describe("generative types completeness", () => {
   it("ALL_GENERATIVE_TYPES has no unaccounted entries", () => {
     const accounted = new Set([
       ...DIRECT_COMPONENTS,
+      ...STATEFUL_WRAPPER_TARGETS,
+      ...GENERATIVE_WRAPPER_TARGETS,
       ...Object.keys(SUB_COMPONENT_ALIASES),
       ...Object.keys(TYPE_ALIASES),
       ...Object.keys(SYNTHETIC_TYPES),

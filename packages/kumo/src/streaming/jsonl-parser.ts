@@ -24,6 +24,69 @@ export interface JsonlParser {
 }
 
 // =============================================================================
+// Truncation repair
+// =============================================================================
+
+/**
+ * Attempt to repair truncated JSON by appending missing closing delimiters.
+ *
+ * LLM responses are sometimes cut off mid-token, leaving valid-prefix JSON
+ * that fails `JSON.parse`. This function walks the string respecting JSON
+ * string literals and tracks unclosed `{` / `[` delimiters, then appends
+ * the missing closers in LIFO order.
+ *
+ * Only called on the **last** buffer line during `flush()` — never on
+ * mid-stream lines where truncation would indicate a real protocol error.
+ *
+ * Returns `null` when the input doesn't look like repairable JSON
+ * (e.g. doesn't start with `{`).
+ */
+export function repairTruncatedJson(input: string): string | null {
+  const trimmed = input.trim();
+  if (trimmed.length === 0 || trimmed[0] !== "{") return null;
+
+  // Strip trailing comma that may appear before truncation.
+  const cleaned = trimmed.replace(/,\s*$/, "");
+
+  // Track unclosed delimiters as a stack of expected closers.
+  const stack: string[] = [];
+  let inString = false;
+  let escape = false;
+
+  for (let i = 0; i < cleaned.length; i++) {
+    const ch = cleaned[i]!;
+
+    if (escape) {
+      escape = false;
+      continue;
+    }
+
+    if (ch === "\\") {
+      if (inString) escape = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) continue;
+
+    if (ch === "{") stack.push("}");
+    else if (ch === "[") stack.push("]");
+    else if (ch === "}" || ch === "]") stack.pop();
+  }
+
+  if (stack.length === 0) return null; // already balanced or not repairable
+
+  // If we're still inside a string, close it first. This handles truncation
+  // mid-string-value (e.g. `"children":"Save pref`).
+  const suffix = (inString ? '"' : "") + stack.reverse().join("");
+  return cleaned + suffix;
+}
+
+// =============================================================================
 // Implementation
 // =============================================================================
 
@@ -79,8 +142,22 @@ export function createJsonlParser(): JsonlParser {
 
     if (isSkippable(line)) return [];
 
+    // Try parsing the line as-is first.
     const parsed = parsePatchLine(line);
-    return parsed !== null ? [parsed] : [];
+    if (parsed !== null) return [parsed];
+
+    // If the line looks like truncated JSON (starts with `{` but fails
+    // to parse), attempt to repair it by closing unclosed delimiters.
+    // This recovers the last element when the LLM's output is cut off
+    // by a token limit — a common issue with reasoning models that
+    // consume completion tokens on chain-of-thought.
+    const repaired = repairTruncatedJson(line);
+    if (repaired !== null) {
+      const repairedParsed = parsePatchLine(repaired);
+      if (repairedParsed !== null) return [repairedParsed];
+    }
+
+    return [];
   }
 
   return { push, flush };

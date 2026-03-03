@@ -55,8 +55,9 @@ Every UI MUST use layout components to structure content. NEVER put children dir
 
 const INTENT_FIDELITY = `## Intent Fidelity (Required)
 
-- If the user explicitly requests a control type (e.g. "text input", "dropdown select", "checkbox"), you MUST include that control.
+- If the user explicitly requests a control type (e.g. "text input", "dropdown select", "checkbox", "button", "submit button"), you MUST include that control.
 - Before finishing, checklist the user's requested controls; if any are missing, add them.
+- When the user asks for a "submit button" or "button", you MUST include a **Button** element — never omit it.
 - When the user asks for a "name" field or says "text input", use **Input** (never Select).`;
 
 const NO_REDUNDANT_CONTROLS = `## No Redundant Controls (Required)
@@ -191,7 +192,8 @@ Where each UIElement is:
 5. **Flat structure** — all elements are top-level in \`elements\`, related by children/parentKey
 6. **Structural children are NOT props.children** — for container components, use UIElement \`children: ["child-key"]\` (string keys). Do NOT put arrays in \`props.children\`.
 7. **No markdown fences** — raw JSONL only, no wrapping
-8. **No explanations** — no text before, between, or after JSONL lines`;
+8. **No explanations** — no text before, between, or after JSONL lines
+9. **Compact JSON** — emit each line as a single compact JSON object with NO pretty-printing, NO indentation, NO extra whitespace. Example: \`{"op":"add","path":"/root","value":"card"}\` — NOT multi-line formatted JSON`;
 
 const ACTION_SYSTEM = `## Action Field (Interactive Events)
 
