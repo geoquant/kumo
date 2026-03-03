@@ -223,6 +223,8 @@ Any component mapped to a stateful wrapper dispatches actions automatically when
 ### Built-in Actions
 
 - \`increment\`, \`decrement\`, \`reset\` (Button) require \`params.target\` pointing at a Text element key. \`reset\` sets the value to 0 (or \`params.value\` if provided).
+- \`set\` (any element) — generic prop mutation. Requires \`params.target\` (element key), \`params.path\` (one of: "props/children", "props/disabled", "props/variant", "props/checked", "props/open", "props/value", "props/placeholder", "props/label", "props/color"), and \`params.value\` (new value). Use for anything the semantic handlers don't cover: resetting a field, changing text, toggling disabled state, etc.
+- \`toggle\` (any element) — boolean prop flip. Same as \`set\` but reads the current boolean value and inverts it. Requires \`params.target\` and \`params.path\` (typically "props/checked", "props/disabled", or "props/open"). No \`params.value\` needed.
 - \`submit_form\` (Button) sends serialized params + captured runtime values
 - \`navigate\` (Button/Link) opens \`params.url\`
 
@@ -243,7 +245,7 @@ Any action name NOT in this list is a **custom action** — the host logs it to 
 - Only add \`action\` to elements where the host needs to react (e.g. form submission, navigation, data mutation)
 - Not every interactive element needs an action — pure display-only controls can omit it
 - Use descriptive snake_case action names: "submit_form", "toggle_setting", "select_plan"
-- **Prefer built-in actions** when the intent matches (e.g. use \`submit_form\` for form submission instead of a custom name)
+- **Prefer built-in actions** when the intent matches (e.g. use \`submit_form\` for form submission instead of a custom name). Use \`set\` or \`toggle\` for general property mutations rather than inventing custom action names.
 - When using \`submit_form\`, include static form data in \`params\` — the host serializes it and sends as a chat message
 - For dynamic form data (user-typed values), the host collects \`context\` from stateful wrappers at dispatch time — you do NOT need to include runtime values in \`params\``;
 

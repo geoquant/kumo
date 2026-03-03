@@ -53,13 +53,15 @@ const EMPTY_TREE: UITree = { root: "", elements: {} };
 // =============================================================================
 
 describe("BUILTIN_HANDLERS", () => {
-  it("contains increment, decrement, reset, submit_form, navigate", () => {
+  it("contains all built-in handlers", () => {
     expect(Object.keys(BUILTIN_HANDLERS).sort()).toEqual([
       "decrement",
       "increment",
       "navigate",
       "reset",
+      "set",
       "submit_form",
+      "toggle",
     ]);
   });
 
@@ -236,6 +238,165 @@ describe("reset handler", () => {
     if (result.type !== "patch") throw new Error("expected patch result");
 
     expect(result.patches[0].value).toBe("0");
+  });
+});
+
+// =============================================================================
+// set handler
+// =============================================================================
+
+describe("set handler", () => {
+  it("sets props/children on target element", () => {
+    const result = expectNonNull(
+      BUILTIN_HANDLERS.set(
+        event("set", {
+          params: {
+            target: "count-display",
+            path: "props/children",
+            value: "hello",
+          },
+        }),
+        treeWithCount("5"),
+      ),
+    );
+    if (result.type !== "patch") throw new Error("expected patch result");
+
+    expect(result.patches).toEqual([
+      {
+        op: "replace",
+        path: "/elements/count-display/props/children",
+        value: "hello",
+      },
+    ]);
+  });
+
+  it("sets props/disabled to true", () => {
+    const result = expectNonNull(
+      BUILTIN_HANDLERS.set(
+        event("set", {
+          params: {
+            target: "count-display",
+            path: "props/disabled",
+            value: true,
+          },
+        }),
+        treeWithCount("5"),
+      ),
+    );
+    if (result.type !== "patch") throw new Error("expected patch result");
+
+    expect(result.patches[0].value).toBe(true);
+  });
+
+  it("returns null for missing target", () => {
+    const result = BUILTIN_HANDLERS.set(
+      event("set", {
+        params: { target: "nonexistent", path: "props/children", value: "x" },
+      }),
+      treeWithCount("5"),
+    );
+    expect(result).toBeNull();
+  });
+
+  it("returns null for disallowed path", () => {
+    const spy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = BUILTIN_HANDLERS.set(
+      event("set", {
+        params: { target: "count-display", path: "type", value: "Button" },
+      }),
+      treeWithCount("5"),
+    );
+    expect(result).toBeNull();
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining("not in allowlist"),
+    );
+    spy.mockRestore();
+  });
+
+  it("returns null when target param missing", () => {
+    const result = BUILTIN_HANDLERS.set(
+      event("set", { params: { path: "props/children", value: "x" } }),
+      treeWithCount("5"),
+    );
+    expect(result).toBeNull();
+  });
+
+  it("returns null when path param missing", () => {
+    const result = BUILTIN_HANDLERS.set(
+      event("set", { params: { target: "count-display", value: "x" } }),
+      treeWithCount("5"),
+    );
+    expect(result).toBeNull();
+  });
+});
+
+// =============================================================================
+// toggle handler
+// =============================================================================
+
+describe("toggle handler", () => {
+  function treeWithCheckbox(checked: boolean): UITree {
+    return {
+      root: "card",
+      elements: {
+        card: {
+          key: "card",
+          type: "Surface",
+          props: {},
+          children: ["cb"],
+        },
+        cb: {
+          key: "cb",
+          type: "Checkbox",
+          props: { checked, label: "Agree" },
+          parentKey: "card",
+        },
+      },
+    };
+  }
+
+  it("flips false to true", () => {
+    const result = expectNonNull(
+      BUILTIN_HANDLERS.toggle(
+        event("toggle", { params: { target: "cb", path: "props/checked" } }),
+        treeWithCheckbox(false),
+      ),
+    );
+    if (result.type !== "patch") throw new Error("expected patch result");
+
+    expect(result.patches).toEqual([
+      { op: "replace", path: "/elements/cb/props/checked", value: true },
+    ]);
+  });
+
+  it("flips true to false", () => {
+    const result = expectNonNull(
+      BUILTIN_HANDLERS.toggle(
+        event("toggle", { params: { target: "cb", path: "props/checked" } }),
+        treeWithCheckbox(true),
+      ),
+    );
+    if (result.type !== "patch") throw new Error("expected patch result");
+
+    expect(result.patches[0].value).toBe(false);
+  });
+
+  it("returns null for missing element", () => {
+    const result = BUILTIN_HANDLERS.toggle(
+      event("toggle", { params: { target: "nope", path: "props/checked" } }),
+      treeWithCheckbox(false),
+    );
+    expect(result).toBeNull();
+  });
+
+  it("returns null for disallowed path", () => {
+    const spy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = BUILTIN_HANDLERS.toggle(
+      event("toggle", { params: { target: "cb", path: "action/name" } }),
+      treeWithCheckbox(false),
+    );
+    expect(result).toBeNull();
+    spy.mockRestore();
   });
 });
 
