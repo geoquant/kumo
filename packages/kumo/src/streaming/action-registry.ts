@@ -306,6 +306,106 @@ function handleReset(event: ActionEvent, tree: UITree): ActionResult | null {
   return counterPatchResult(key, resetTo);
 }
 
+// =============================================================================
+// Generic property mutation handlers
+// =============================================================================
+
+/**
+ * Props paths that `set` and `toggle` may mutate.
+ *
+ * This allowlist prevents callers from patching arbitrary tree locations
+ * (e.g. `type`, `action`, `children`) which could break structural invariants.
+ */
+const SETTABLE_PROP_PATHS: ReadonlySet<string> = new Set([
+  "props/children",
+  "props/disabled",
+  "props/variant",
+  "props/checked",
+  "props/open",
+  "props/value",
+  "props/placeholder",
+  "props/label",
+  "props/color",
+]);
+
+/**
+ * Generic property setter — updates any allowlisted prop on any element.
+ *
+ * Requires `params.target` (element key) and `params.path` (prop path from
+ * {@link SETTABLE_PROP_PATHS}). `params.value` is the new value (any JSON-
+ * serialisable type).
+ *
+ * This is the general-purpose escape hatch — prefer semantic handlers
+ * (`increment`, `decrement`) when the intent matches, but use `set` for
+ * anything they don't cover (clear a field, change a variant, set arbitrary
+ * text, etc.).
+ */
+function handleSet(event: ActionEvent, tree: UITree): ActionResult | null {
+  const target = event.params?.target;
+  const path = event.params?.path;
+  const value = event.params?.value;
+
+  if (typeof target !== "string" || typeof path !== "string") return null;
+  if (tree.elements[target] == null) return null;
+
+  if (!SETTABLE_PROP_PATHS.has(path)) {
+    console.warn(`[kumo] set: path "${path}" not in allowlist`);
+    return null;
+  }
+
+  return {
+    type: "patch",
+    patches: [
+      {
+        op: "replace",
+        path: `/elements/${target}/${path}`,
+        value,
+      },
+    ],
+  };
+}
+
+/**
+ * Boolean toggle — reads a boolean prop and flips it.
+ *
+ * Requires `params.target` (element key) and `params.path` (prop path,
+ * must be in {@link SETTABLE_PROP_PATHS}). Reads the current value as a
+ * boolean and replaces it with its negation.
+ */
+function handleToggle(event: ActionEvent, tree: UITree): ActionResult | null {
+  const target = event.params?.target;
+  const path = event.params?.path;
+
+  if (typeof target !== "string" || typeof path !== "string") return null;
+
+  const element = tree.elements[target];
+  if (element == null) return null;
+
+  if (!SETTABLE_PROP_PATHS.has(path)) {
+    console.warn(`[kumo] toggle: path "${path}" not in allowlist`);
+    return null;
+  }
+
+  // Walk the path to read the current value
+  const segments = path.split("/");
+  let current: unknown = element;
+  for (const seg of segments) {
+    if (typeof current !== "object" || current == null) return null;
+    current = (current as Record<string, unknown>)[seg];
+  }
+
+  return {
+    type: "patch",
+    patches: [
+      {
+        op: "replace",
+        path: `/elements/${target}/${path}`,
+        value: !current,
+      },
+    ],
+  };
+}
+
 /**
  * Submit form data as a chat message.
  *
@@ -401,6 +501,8 @@ function handleNavigate(
  * Built-in action handlers for common interaction patterns.
  *
  * - `increment` / `decrement` / `reset`: Counter manipulation via RFC 6902 patches
+ * - `set`: Generic prop mutation (any allowlisted prop on any element)
+ * - `toggle`: Boolean prop flip (e.g. checked, disabled, open)
  * - `submit_form`: Serialize form data into a chat message
  * - `navigate`: Open a URL (external side effect)
  */
@@ -408,6 +510,8 @@ export const BUILTIN_HANDLERS: Readonly<ActionHandlerMap> = {
   increment: handleIncrement,
   decrement: handleDecrement,
   reset: handleReset,
+  set: handleSet,
+  toggle: handleToggle,
   submit_form: handleSubmitForm,
   navigate: handleNavigate,
 };
