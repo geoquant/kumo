@@ -86,12 +86,17 @@ const FULL_ID_TO_SHORT = new Map(
 /** Maximum number of skills that can be enabled at once. */
 const MAX_SKILL_IDS = 5;
 
+/** Maximum length (in characters) for the current UI tree JSON. */
+const MAX_CURRENT_UI_TREE_LENGTH = 20_000;
+
 /** Chat request body schema. */
 interface ChatRequest {
   message: string;
   history?: Array<{ role: string; content: string }>;
   model?: string;
   skillIds?: string[];
+  /** JSON-serialised UITree from the previous generation, for follow-up turns. */
+  currentUITree?: string;
 }
 
 /** Workers AI text-generation message format. */
@@ -157,7 +162,21 @@ function parseChatRequest(body: unknown): ChatRequest | null {
     skillIds = rawSkillIds;
   }
 
-  return { message, history, model: model || undefined, skillIds };
+  // Current UI tree for follow-up turns.
+  let currentUITree: string | undefined;
+  const rawUITree = body["currentUITree"];
+  if (typeof rawUITree === "string") {
+    if (rawUITree.length > MAX_CURRENT_UI_TREE_LENGTH) return null;
+    currentUITree = rawUITree;
+  }
+
+  return {
+    message,
+    history,
+    model: model || undefined,
+    skillIds,
+    currentUITree,
+  };
 }
 
 /**
@@ -263,8 +282,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
   }
 
-  // Append current user message
-  messages.push({ role: "user", content: chatRequest.message });
+  // Append current user message, enriched with current tree state for follow-ups.
+  const userContent = chatRequest.currentUITree
+    ? `<current-ui>\n${chatRequest.currentUITree}\n</current-ui>\n\n${chatRequest.message}`
+    : chatRequest.message;
+  messages.push({ role: "user", content: userContent });
 
   // --- Aggregate token budget check (user + history only; system prompt is server-controlled) ---
   const userChars = messages.reduce(

@@ -580,6 +580,25 @@ User: "Show a service page with tabs for Overview, Traffic, and Settings. Overvi
 {"op":"add","path":"/elements/save-btn","value":{"key":"save-btn","type":"Button","props":{"children":"Save settings","variant":"primary"},"parentKey":"settings-actions","action":{"name":"submit_form","params":{"form_type":"service_settings"}}}}
 {"op":"add","path":"/elements/reset-btn","value":{"key":"reset-btn","type":"Button","props":{"children":"Reset defaults","variant":"secondary"},"parentKey":"settings-actions"}}`;
 
+const MULTI_TURN = `## Follow-Up Messages (Multi-Turn Updates)
+
+When the conversation has prior turns, the user may ask you to **modify** the previously generated UI (e.g. "add another counter below", "change the title", "remove the sidebar"). In this case the user's message will include a \`<current-ui>\` block containing the current UITree as JSON.
+
+### Rules for Follow-Up Turns
+
+1. **Always regenerate the FULL UI from scratch** — emit every element, starting with \`/root\`. The client resets its tree before applying your patches, so partial deltas will produce an incomplete UI.
+2. **Incorporate the requested changes** into the regenerated tree. Preserve everything from the previous UI that the user did NOT ask to change.
+3. **Reuse the same element keys** for unchanged elements when possible so the output is predictable and diffable.
+4. **If the user asks to "add" something**, include all previous elements PLUS the new ones.
+5. **If the user asks to "remove" something**, include all previous elements MINUS the removed ones.
+6. **If the user asks to "change" something**, include all previous elements with the requested modifications.
+
+### Example
+
+Previous UI had a single counter. User says "add another counter below this one".
+
+You MUST regenerate the entire UI: the root Surface, the Stack, the original counter elements, AND the new counter elements — all as \`add\` operations building the complete tree.`;
+
 const CLOSING_RULES = `## Important
 
 - ALWAYS respond with ONLY JSONL lines. No markdown fences, no explanations, no text before or after.
@@ -609,7 +628,8 @@ const CLOSING_RULES = `## Important
  * - JSONL/RFC 6902 response format with UITree schema
  * - Available components (injected via `componentsSection`)
  * - Action system (built-in actions, dispatch rules)
- * - Eleven working examples (user card, counter, notification form, pricing table, dashboard, list, empty state, flow diagram, product overview page, service detail page, service tabs page)
+ *   - Eleven working examples (user card, counter, notification form, pricing table, dashboard, list, empty state, flow diagram, product overview page, service detail page, service tabs page)
+ *   - Multi-turn follow-up instructions (how to handle modification requests)
  *
  * @example
  * ```ts
@@ -659,6 +679,7 @@ export function buildSystemPrompt(options: SystemPromptOptions = {}): string {
     EXAMPLE_PRODUCT_OVERVIEW,
     EXAMPLE_SERVICE_DETAIL,
     EXAMPLE_SERVICE_TABS,
+    MULTI_TURN,
     CLOSING_RULES,
   ].filter(Boolean);
 

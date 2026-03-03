@@ -440,6 +440,18 @@ function PlaygroundContent() {
       const runId = runIdRef.current + 1;
       runIdRef.current = runId;
 
+      // For follow-up messages, capture the current tree state so the LLM
+      // knows what UI exists and can incorporate the user's requested changes.
+      const isFollowUp = messages.length > 0;
+      const currentTree = treeRef.current;
+      const hasTree =
+        isFollowUp &&
+        currentTree.root !== "" &&
+        Object.keys(currentTree.elements).length > 0;
+      const currentUITreeJson = hasTree
+        ? JSON.stringify(currentTree)
+        : undefined;
+
       // Reset tree for fresh generation
       runtimeValueStore.clear();
       reset();
@@ -476,6 +488,9 @@ function PlaygroundContent() {
               ...(history ? { history } : {}),
               ...(enabledSkillIds.size > 0
                 ? { skillIds: [...enabledSkillIds] }
+                : {}),
+              ...(currentUITreeJson
+                ? { currentUITree: currentUITreeJson }
                 : {}),
             }),
             signal: controller.signal,
