@@ -192,7 +192,7 @@
         "ToolChatMessage created with iframeUrl, renderData, status='streaming'",
         "Message added to chat — McpToolIframe renders and iframe loads"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "flow-2",

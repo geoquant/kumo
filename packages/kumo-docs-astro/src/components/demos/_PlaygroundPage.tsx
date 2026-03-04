@@ -219,6 +219,11 @@ interface SkillInfo {
 // =============================================================================
 
 /** Extract `error` string from an unknown JSON error body, or null. */
+/** Type guard for non-null, non-array objects. */
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
 function extractErrorMessage(body: unknown): string | null {
   if (typeof body !== "object" || body === null) return null;
   if (!("error" in body)) return null;
@@ -827,23 +832,82 @@ function PlaygroundContent() {
       if (!msg) return;
 
       // --- Tool middleware: intercept "create worker" messages ---
-      // Instead of generating panels, render an iframe confirmation card in
-      // the chat sidebar. The iframe app handles its own streaming, approval
+      // Instead of generating panels, call the MCP proxy to get a UI
+      // resource, then render an iframe confirmation card in the chat
+      // sidebar. The iframe app handles its own streaming, approval
       // buttons, and status overlays autonomously.
       const workerName = matchCreateWorkerMessage(msg);
       if (workerName !== null) {
         setInputValue("");
-        const toolId = `create-worker-${workerName}`;
 
+        // Show the user message immediately.
         const userMsg: TextChatMessage = { role: "user", content: msg };
-        const toolMsg: ToolChatMessage = {
-          role: "tool",
-          toolId,
-          iframeUrl: "/ui/create-worker-confirm",
-          renderData: { workerName, toolId },
-          status: "streaming",
-        };
-        setMessages((prev) => [...prev, userMsg, toolMsg]);
+        setMessages((prev) => [...prev, userMsg]);
+
+        // Call MCP proxy to get the UI resource (iframe URL + render data).
+        // Fire-and-forget IIFE matching the existing stream pattern.
+        void (async () => {
+          try {
+            const res = await fetch("/api/mcp-proxy", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                toolName: "create_worker",
+                params: { workerName },
+              }),
+            });
+
+            if (!res.ok) {
+              const errBody: unknown = await res.json().catch(() => null);
+              const errMsg =
+                isRecord(errBody) && typeof errBody["error"] === "string"
+                  ? errBody["error"]
+                  : `MCP proxy request failed (${String(res.status)})`;
+              throw new Error(errMsg);
+            }
+
+            const data: unknown = await res.json();
+            if (!isRecord(data)) {
+              throw new Error("Unexpected MCP proxy response shape");
+            }
+
+            const iframeUrl =
+              typeof data["iframeUrl"] === "string" ? data["iframeUrl"] : null;
+            const renderData = isRecord(data["renderData"])
+              ? data["renderData"]
+              : {};
+
+            if (iframeUrl === null) {
+              throw new Error("MCP proxy response missing iframeUrl");
+            }
+
+            // Derive toolId from render data or fall back to convention.
+            const toolId =
+              typeof renderData["toolId"] === "string"
+                ? renderData["toolId"]
+                : `create-worker-${workerName}`;
+
+            const toolMsg: ToolChatMessage = {
+              role: "tool",
+              toolId,
+              iframeUrl,
+              renderData,
+              status: "streaming",
+            };
+            setMessages((prev) => [...prev, toolMsg]);
+          } catch (err) {
+            console.error("[tool-middleware] MCP proxy error:", err);
+            // Surface the error as an assistant message so the user sees it.
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                content: `Failed to create worker tool: ${err instanceof Error ? err.message : "unknown error"}`,
+              },
+            ]);
+          }
+        })();
+
         return;
       }
 
