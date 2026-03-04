@@ -89,6 +89,9 @@ export function McpToolIframe({
   const onToolActionRef = useRef(onToolAction);
   onToolActionRef.current = onToolAction;
 
+  /** Track whether we've already signalled "pending" (first resize). */
+  const hasSignalledReady = useRef(false);
+
   // -------------------------------------------------------------------------
   // Set up postMessage handler when iframe mounts
   // -------------------------------------------------------------------------
@@ -111,6 +114,14 @@ export function McpToolIframe({
 
       onResize(height, _width) {
         setIframeHeight(Math.max(height, MIN_HEIGHT));
+
+        // First non-zero resize signals the iframe has rendered content.
+        // Transition from "streaming" → "pending" so the iframe becomes
+        // visible and interactive.
+        if (!hasSignalledReady.current && height > 0) {
+          hasSignalledReady.current = true;
+          _onStatusChange?.("pending");
+        }
       },
     });
 

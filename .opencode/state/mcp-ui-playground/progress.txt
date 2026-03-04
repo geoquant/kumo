@@ -19,6 +19,7 @@ Started: 2026-03-04
 - MCP proxy pattern: 3-step handshake (initialize → notifications/initialized → tools/call) with `mcp-session-id` header for session affinity. Server may respond with JSON or SSE for any request — parse both.
 - Dual tsconfig for kumo-mcp: `tsconfig.json` (worker, no DOM) + `tsconfig.app.json` (iframe app, DOM + JSX). `typecheck` script runs both sequentially.
 - postMessage settle pattern: wrap resolve/reject in `settle()` guard to prevent double-resolution from timeout vs message race
+- Host→iframe status delegation: McpToolIframe manages `status` as a prop from host. Iframe signals readiness via first non-zero `ui-size-change` → `onStatusChange("pending")`. Host manages the FSM (streaming→pending→applying→completed/cancelled), iframe renders autonomously within that frame
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -138,3 +139,15 @@ Started: 2026-03-04
 - No `as` casts — custom `isJsonRpcResponse` type guard narrows `unknown` safely
 - Files changed: `src/pages/api/mcp-proxy.ts` (new)
 - **Learnings:** MCP streamable HTTP requires a 3-step handshake (initialize + notifications/initialized + actual request) per session. The `agents` library's McpAgent returns `mcp-session-id` header for session affinity to the same Durable Object. MCP server may respond with either `application/json` or `text/event-stream` content type for any request — proxy must handle both. Notifications (no `id` field) are fire-and-forget, don't expect a response body.
+
+## Task - host-3
+- Updated `ToolChatMessage` interface: replaced `tree: UITree` with `iframeUrl: string` + `renderData: Record<string, unknown>`
+- Chat sidebar now renders `McpToolIframe` for `role==='tool'` messages instead of inline `UITreeRenderer`
+- Simplified `handleSubmit` tool branch: removed 120+ lines of inline streaming code (createJsonlParser, readSSEStream, applyPatch pipeline). Iframe app handles its own streaming autonomously
+- Updated `handleToolAction` to accept `(toolId, ToolActionPayload)` instead of `ActionEvent`. Routes `execute_create_worker` → applying → completed + follow-up, `cancel_tool` → cancelled
+- Added `onToolStatusChange` prop to `PlaygroundChatSidebar` for iframe-to-host status transitions
+- Updated `McpToolIframe`: signals readiness via `onStatusChange("pending")` on first non-zero resize
+- Removed dead code: `TOOL_CONFIRMATION_PROMPT` (moved to iframe app), `toolAbortRef`, unused `cn` and `applyPatch` imports
+- `ToolMessageStatus` aliased to `ToolIframeStatus` — avoids type drift between two identical unions
+- Files changed: `src/components/demos/_PlaygroundPage.tsx` (major), `src/components/McpToolIframe.tsx` (minor)
+- **Learnings:** Iframe delegation simplifies host dramatically — 120+ lines of streaming pipeline reduced to 10 lines of message creation. The `onStatusChange` callback on McpToolIframe provides the clean signal for streaming→pending transition when iframe first reports dimensions. Tool actions now flow as `ToolActionPayload` (toolName + params) rather than `ActionEvent` — cleaner separation between host action routing and iframe-internal action dispatching.
