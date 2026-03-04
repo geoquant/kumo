@@ -68,7 +68,7 @@
         "Buttons are disabled during 'applying' state to prevent double-click",
         "When status is 'completed', card reflects resolution"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "flow-1",
