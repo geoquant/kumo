@@ -10,6 +10,7 @@ Started: 2026-03-04
 - McpAgent pattern: extend `McpAgent<Env, State>`, set `server = new McpServer(...)`, implement `async init()`, route via `ClassName.serve('/path', { binding })` in fetch handler
 - `agents` bundles MCPClientManager which dynamically imports `ai` — must add `ai` as dependency for wrangler dev to bundle without errors
 - Extract DO class to `worker/mcp/index.ts`, re-export from `worker/index.ts` — wrangler types still resolve via `import("../worker/index").ClassName`
+- postMessage runtime validation pattern: `isRecord()` guard + reconstruct typed object in `parseIframeMessage()` — avoids domain-level `as` casts on untrusted `event.data`
 - Use `.js` extension for local imports (ESM convention with `moduleResolution: "bundler"`)
 - `createUIResource` is sync — returns `UIResource` not `Promise`. Metadata keys prefixed `mcpui.dev/ui-`
 - MCP streamable HTTP requires `Accept: application/json, text/event-stream` — both needed or -32000 error
@@ -65,3 +66,14 @@ Started: 2026-03-04
 - Added `react`, `react-dom` as deps + `@types/react`, `@types/react-dom` as devDeps (via `catalog:`)
 - Files changed: `app/utils/mcp.ts` (added hook + import), `package.json` (+react deps)
 - **Learnings:** Inspo hook has no cleanup — adding `ResizeObserver.disconnect()` in the effect teardown is essential for proper unmount. `useRef` for stable element ref avoids stale closure in observer callback.
+
+## Task - protocol-3
+- Created `packages/kumo-docs-astro/src/lib/mcp-host.ts` — host-side postMessage handler
+- `createIframeMessageHandler(config)` factory: attaches `message` listener, returns `{ cleanup }` for unmount
+- Runtime `parseIframeMessage()` validates raw `event.data` into typed discriminated union (`IframeMessage`) — no domain-level `as` casts
+- Handles 3 message families: lifecycle ready → render data reply; action (tool/prompt/link) → callback + correlated response; size-change → resize callback
+- Source filtering via `event.source !== iframe.contentWindow`
+- Async callback support: sync and Promise results handled uniformly with `.then()`
+- Types exported: `IframeToolMessage`, `IframePromptMessage`, `IframeLinkMessage`, `IframeActionMessage`, `SizeChangeMessage`, `RenderDataResponse`, `ActionResponse`, etc.
+- Files changed: `src/lib/mcp-host.ts` (new)
+- **Learnings:** postMessage `event.data` is `unknown` at runtime — use a `parseIframeMessage` validator that reconstructs typed objects rather than casting. Discriminated unions on `msg.type` let switch-case narrow payload types without assertions. `isRecord()` type guard (`value is Record<string, unknown>`) is the clean pattern for narrowing `unknown` → indexable object.
