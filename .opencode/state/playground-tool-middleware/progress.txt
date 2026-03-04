@@ -17,6 +17,7 @@ Started: 2026-03-04
 - Tool card rendering: `UITreeRenderer` with `onAction` prop directly in chat loop; no wrapper bubble chrome; `w-full overflow-hidden` prevents sidebar overflow
 - Tool action dispatch: `handleToolAction` finds tool message by `event.params.toolId`, passes its `tree` to `dispatchAction`; uses `messagesRef` to avoid stale closure
 - Status-based tool card styling: CSS wrapper with `cn()` around UITreeRenderer; `opacity-50 pointer-events-none` for disabled; `onAction={undefined}` to suppress dispatch; Text heading variants render as `<h1>`/`<h2>`/`<h3>` not `<span>`
+- Tool middleware intercept: early return in `handleSubmit` before any `fetch`; match message → generate JSONL → `buildTreeFromJsonl` → append `ToolChatMessage`; no Panel A/B streams
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -75,3 +76,12 @@ Started: 2026-03-04
 - Container uses `relative` positioning; overlays use `absolute inset-0`
 - Files changed: _PlaygroundPage.tsx
 - **Learnings:** `bg-kumo-base/60` uses Tailwind opacity modifier for semi-transparent overlay; `text-kumo-success` is a valid semantic token (defined in theme-kumo.css); only `pending` status should allow interaction — `approved` is a transient state before `applying`
+
+## Task - flow-1
+- Added `matchCreateWorkerMessage` regex matcher: `/\bcreate\b.*\bworker\b/i` → returns `"hello-world"` worker name
+- Added `buildTreeFromJsonl` helper: JSONL string → `createJsonlParser` → `applyPatch` loop → `UITree`
+- Imported `applyPatch` from `@cloudflare/kumo/streaming`
+- Intercepted `handleSubmit` early: if message matches, adds user message + `ToolChatMessage` (pending status) to chat, returns without any `fetch` call
+- No Panel A/B streams triggered for tool middleware flow
+- Files changed: _PlaygroundPage.tsx
+- **Learnings:** `applyPatch(tree, op)` returns a new tree (immutable); `createJsonlParser.push()` needs trailing `\n` on the JSONL string to emit all lines; tool cards don't use panel `useUITree` — they carry standalone `UITree` in the message object
