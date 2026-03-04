@@ -712,41 +712,76 @@ function PlaygroundContent() {
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
 
-  const handleToolAction = useCallback((event: ActionEvent) => {
-    // Find the tool message whose tree originated the action.
-    // The event's params.toolId identifies which tool message to target.
-    const toolId =
-      typeof event.params?.toolId === "string" ? event.params.toolId : null;
-    const toolMsg = toolId
-      ? messagesRef.current.find(
-          (m): m is ToolChatMessage => m.role === "tool" && m.toolId === toolId,
-        )
-      : undefined;
-    if (toolMsg == null) return;
+  /**
+   * Immutably update the status of a tool message identified by `toolId`.
+   * Returns a new messages array with the targeted message replaced.
+   */
+  const updateToolMessageStatus = useCallback(
+    (toolId: string, newStatus: ToolMessageStatus) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.role === "tool" && m.toolId === toolId
+            ? { ...m, status: newStatus }
+            : m,
+        ),
+      );
+    },
+    [],
+  );
 
-    const result = dispatchAction(PLAYGROUND_HANDLERS, event, toolMsg.tree);
-    if (result === null) return;
-    processActionResult(result, {
-      applyPatches: () => {
-        // Tool cards are static — no patch application needed.
-      },
-      sendMessage: (content: string) => {
-        handleSubmitRef.current(undefined, content);
-      },
-      openExternal: (url: string, target: string) => {
-        try {
-          const parsed = new URL(url, window.location.href);
-          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+  const handleToolAction = useCallback(
+    (event: ActionEvent) => {
+      // Find the tool message whose tree originated the action.
+      // The event's params.toolId identifies which tool message to target.
+      const toolId =
+        typeof event.params?.toolId === "string" ? event.params.toolId : null;
+      const toolMsg = toolId
+        ? messagesRef.current.find(
+            (m): m is ToolChatMessage =>
+              m.role === "tool" && m.toolId === toolId,
+          )
+        : undefined;
+      if (toolMsg == null) return;
+
+      // --- Cancel path: update status, no panel generation ---
+      if (event.actionName === "tool_cancel" && toolId !== null) {
+        updateToolMessageStatus(toolId, "cancelled");
+        return;
+      }
+
+      // --- Approve path: update status, trigger panel generation (flow-3) ---
+      if (event.actionName === "tool_approve" && toolId !== null) {
+        updateToolMessageStatus(toolId, "applying");
+        // TODO(flow-3): mock delay → completed → trigger A/B panel generation
+        return;
+      }
+
+      // --- Fallback: dispatch via registry for non-tool actions ---
+      const result = dispatchAction(PLAYGROUND_HANDLERS, event, toolMsg.tree);
+      if (result === null) return;
+      processActionResult(result, {
+        applyPatches: () => {
+          // Tool cards are static — no patch application needed.
+        },
+        sendMessage: (content: string) => {
+          handleSubmitRef.current(undefined, content);
+        },
+        openExternal: (url: string, target: string) => {
+          try {
+            const parsed = new URL(url, window.location.href);
+            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+              return;
+            }
+          } catch {
             return;
           }
-        } catch {
-          return;
-        }
-        const safeTarget = target === "_self" ? "_self" : "_blank";
-        window.open(url, safeTarget, "noopener,noreferrer");
-      },
-    });
-  }, []);
+          const safeTarget = target === "_self" ? "_self" : "_blank";
+          window.open(url, safeTarget, "noopener,noreferrer");
+        },
+      });
+    },
+    [updateToolMessageStatus],
+  );
 
   // "No prompt" tree — separate instance with its own action handler
   const noPromptRuntimeValueStore = useRuntimeValueStore();

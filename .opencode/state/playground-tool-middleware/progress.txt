@@ -18,6 +18,7 @@ Started: 2026-03-04
 - Tool action dispatch: `handleToolAction` finds tool message by `event.params.toolId`, passes its `tree` to `dispatchAction`; uses `messagesRef` to avoid stale closure
 - Status-based tool card styling: CSS wrapper with `cn()` around UITreeRenderer; `opacity-50 pointer-events-none` for disabled; `onAction={undefined}` to suppress dispatch; Text heading variants render as `<h1>`/`<h2>`/`<h3>` not `<span>`
 - Tool middleware intercept: early return in `handleSubmit` before any `fetch`; match message → generate JSONL → `buildTreeFromJsonl` → append `ToolChatMessage`; no Panel A/B streams
+- Tool action routing: intercept `event.actionName` (`tool_cancel`/`tool_approve`) in `handleToolAction` before `dispatchAction`; use `updateToolMessageStatus(toolId, newStatus)` for immutable state transitions
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -85,3 +86,11 @@ Started: 2026-03-04
 - No Panel A/B streams triggered for tool middleware flow
 - Files changed: _PlaygroundPage.tsx
 - **Learnings:** `applyPatch(tree, op)` returns a new tree (immutable); `createJsonlParser.push()` needs trailing `\n` on the JSONL string to emit all lines; tool cards don't use panel `useUITree` — they carry standalone `UITree` in the message object
+
+## Task - flow-2
+- Extracted `updateToolMessageStatus(toolId, newStatus)` helper — immutable map over messages array
+- Rewired `handleToolAction` to intercept `tool_cancel` by `event.actionName` — updates status to `'cancelled'`, early return (no dispatch/sendMessage/panel generation)
+- Also stubbed `tool_approve` path (sets `'applying'`, placeholder for flow-3)
+- Fallback path preserved for non-tool actions via `dispatchAction → processActionResult`
+- Files changed: _PlaygroundPage.tsx
+- **Learnings:** `ActionEvent.actionName` (not `.name`) is the action identifier; tool actions should be intercepted before `dispatchAction`/`processActionResult` to avoid the `sendMessage → handleSubmit` path which would send JSON to `/api/chat`; `updateToolMessageStatus` reusable for all status transitions (approve/applying/completed)
