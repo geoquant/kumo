@@ -37,3 +37,11 @@ Started: 2026-03-04
 - Verified via `wrangler dev` + curl: `tools/call` with `create_worker` returns correct UI resource with all metadata
 - Files changed: `worker/mcp/tools.ts` (new), `worker/mcp/index.ts` (added import + init call)
 - **Learnings:** `createUIResource` from `@mcp-ui/server` is synchronous (returns `UIResource`, not `Promise<UIResource>`) despite inspo using `await`. The `_meta` key prefix is `mcpui.dev/ui-` (e.g. `mcpui.dev/ui-initial-render-data`). MCP streamable HTTP transport requires `Accept: application/json, text/event-stream` header — omitting `text/event-stream` returns a `-32000` error.
+
+## Task - tool-2
+- Added `execute_create_worker` tool registration in `initializeTools` (worker/mcp/tools.ts)
+- Tool accepts `{ workerName: z.string() }`, returns text content + `structuredContent: { success, workerName, createdAt }`
+- Mock 800ms delay via `setTimeout` promise. `outputSchema` declared with Zod for structured output validation
+- Verified via `wrangler dev` + curl: response includes both `content[0].text` and `structuredContent`, ~854ms round-trip
+- Files changed: `worker/mcp/tools.ts` (added tool registration + delay helper)
+- **Learnings:** `registerTool` supports `outputSchema` with Zod schemas for `structuredContent` validation. Async tool handlers work naturally with `McpAgent` — the DO handles the async correctly including `setTimeout` delays.
