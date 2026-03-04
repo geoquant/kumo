@@ -4882,6 +4882,25 @@
         }
       }
     },
+    "TimeseriesChart": {
+      "name": "TimeseriesChart",
+      "type": "component",
+      "description": "TimeseriesChart — a time-series line or bar chart.  Built on `Chart` (Apache ECharts) with opinionated defaults for time-series data: a time-typed x-axis, dashed lines for incomplete data periods, brush-based time range selection, and automatic tooltip deduplication.",
+      "importPath": "@cloudflare/kumo",
+      "category": "Other",
+      "props": {
+        "className": {
+          "type": "string",
+          "description": "Additional CSS classes"
+        },
+        "children": {
+          "type": "ReactNode",
+          "description": "Child elements"
+        }
+      },
+      "examples": [],
+      "colors": []
+    },
     "Toasty": {
       "name": "Toasty",
       "type": "component",
@@ -5302,6 +5321,7 @@
         "SensitiveInput",
         "Stack",
         "Table",
+        "TimeseriesChart",
         "DeleteResource"
       ],
       "Navigation": [
@@ -5366,6 +5386,7 @@
       "Table",
       "Tabs",
       "Text",
+      "TimeseriesChart",
       "Toasty",
       "Tooltip"
     ],
@@ -5409,6 +5430,7 @@
         "Table",
         "Tabs",
         "Text",
+        "TimeseriesChart",
         "Toasty",
         "Tooltip"
       ],

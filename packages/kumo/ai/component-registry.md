@@ -5502,6 +5502,25 @@ Text component
 
 ---
 
+### TimeseriesChart
+
+TimeseriesChart — a time-series line or bar chart.  Built on `Chart` (Apache ECharts) with opinionated defaults for time-series data: a time-typed x-axis, dashed lines for incomplete data periods, brush-based time range selection, and automatic tooltip deduplication.
+
+**Type:** component
+
+**Import:** `import { TimeseriesChart } from "@cloudflare/kumo";`
+
+**Category:** Other
+
+**Props:**
+
+- `className`: string
+  Additional CSS classes
+- `children`: ReactNode
+  Child elements
+
+---
+
 ### Toasty
 
 Toasty — toast notification provider and viewport.  Renders a `Toast.Provider` with a fixed-position viewport in the bottom-right corner. Toasts stack with smooth enter/exit animations, swipe-to-dismiss, and expand-on-hover.  Built on `@base-ui/react/toast`.
@@ -5619,7 +5638,7 @@ Multi-line textarea input with Input variants and InputArea-specific dimensions
 - **Feedback:** Banner, Loader, Toasty
 - **Action:** Button, ClipboardText
 - **Input:** Checkbox, Combobox, DateRangePicker, Field, Input, Radio, Select, Switch
-- **Other:** CloudflareLogo, Cluster, DatePicker, Label, Link, SensitiveInput, Stack, Table, DeleteResource
+- **Other:** CloudflareLogo, Cluster, DatePicker, Label, Link, SensitiveInput, Stack, Table, TimeseriesChart, DeleteResource
 - **Navigation:** CommandPalette, MenuBar, Pagination, Tabs
 - **Overlay:** Dialog, DropdownMenu, Popover, Tooltip
 - **Layout:** Flow, Grid, Surface, PageHeader, ResourceListPage
