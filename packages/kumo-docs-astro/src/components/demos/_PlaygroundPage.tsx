@@ -303,6 +303,8 @@ function PlaygroundContent() {
   const [rawJsonl, setRawJsonl] = useState("");
   const rawJsonlRef = useRef("");
   const lastSubmittedRef = useRef<string | null>(null);
+  /** True once at least one prompt has been submitted (gates skill Apply). */
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   // --- Action logs (independent per panel) ---
   const [leftActionLog, setLeftActionLog] = useState<ActionLogEntry[]>([]);
@@ -337,7 +339,7 @@ function PlaygroundContent() {
   const [pendingSkillIds, setPendingSkillIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
-  const [appliedSkillIds, setAppliedSkillIds] = useState<ReadonlySet<string>>(
+  const [_appliedSkillIds, setAppliedSkillIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
 
@@ -396,6 +398,8 @@ function PlaygroundContent() {
   /** Separate abort controller for the no-prompt stream. */
   const noPromptAbortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
+  /** Independent staleness guard for Panel B (comparison) stream. */
+  const noPromptRunIdRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Stable refs for action handler closures (avoids stale captures)
@@ -536,6 +540,126 @@ function PlaygroundContent() {
     setStatus("idle");
   }, []);
 
+  // --- Reusable Panel B stream launcher ---
+  /**
+   * Fires (or re-fires) the Panel B comparison stream.
+   *
+   * Aborts any in-flight Panel B stream, resets its tree/JSONL/status,
+   * and starts a new SSE request with `skipSystemPrompt: true`.
+   *
+   * Called from both `handleSubmit` (initial generation) and
+   * `handleApplySkills` (skill-apply replay).
+   */
+  const streamPanelB = useCallback(
+    (opts: {
+      readonly message: string;
+      readonly model: string;
+      readonly history?: readonly ChatMessage[];
+      readonly currentUITree?: string;
+      readonly skillIds?: readonly string[];
+    }) => {
+      // Abort any in-flight Panel B stream
+      noPromptAbortRef.current?.abort();
+
+      const bRunId = noPromptRunIdRef.current + 1;
+      noPromptRunIdRef.current = bRunId;
+
+      // Reset Panel B state
+      noPromptRuntimeValueStore.clear();
+      noPromptReset();
+      setNoPromptStatus("streaming");
+      setNoPromptRawJsonl("");
+      noPromptRawJsonlRef.current = "";
+      setRightActionLog([]);
+
+      const bodyPayload: Record<string, unknown> = {
+        message: opts.message,
+        model: opts.model,
+        skipSystemPrompt: true,
+        systemPromptOverride: BASELINE_PROMPT,
+      };
+      if (opts.history && opts.history.length > 0) {
+        bodyPayload.history = opts.history;
+      }
+      if (opts.currentUITree) {
+        bodyPayload.currentUITree = opts.currentUITree;
+      }
+      if (opts.skillIds && opts.skillIds.length > 0) {
+        bodyPayload.skillIds = opts.skillIds;
+      }
+
+      const noPromptParser = createJsonlParser();
+      const noPromptController = new AbortController();
+      noPromptAbortRef.current = noPromptController;
+
+      const stream = (async () => {
+        try {
+          const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "text/event-stream",
+            },
+            body: JSON.stringify(bodyPayload),
+            signal: noPromptController.signal,
+          });
+
+          if (!response.ok) {
+            if (noPromptRunIdRef.current === bRunId) {
+              setNoPromptStatus("error");
+            }
+            return;
+          }
+
+          await readSSEStream(
+            response,
+            (token) => {
+              if (noPromptController.signal.aborted) return;
+              noPromptRawJsonlRef.current += token;
+              const ops = noPromptParser.push(token);
+              if (ops.length > 0) {
+                noPromptApplyPatchesRef.current(ops);
+              }
+            },
+            noPromptController.signal,
+          );
+
+          setNoPromptRawJsonl(noPromptRawJsonlRef.current);
+
+          const remaining = noPromptParser.flush();
+          if (remaining.length > 0) {
+            noPromptApplyPatchesRef.current(remaining);
+          }
+
+          if (noPromptRunIdRef.current === bRunId) {
+            setNoPromptStatus("idle");
+          }
+        } catch (err: unknown) {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+
+          try {
+            const remaining = noPromptParser.flush();
+            if (remaining.length > 0)
+              noPromptApplyPatchesRef.current(remaining);
+          } catch {
+            // Ignore flush errors
+          }
+
+          if (noPromptRunIdRef.current === bRunId) {
+            setNoPromptStatus("error");
+          }
+        } finally {
+          if (noPromptAbortRef.current === noPromptController) {
+            noPromptAbortRef.current = null;
+          }
+        }
+      })();
+
+      void stream;
+    },
+    [noPromptRuntimeValueStore, noPromptReset],
+  );
+
   // --- Submit handler ---
   const handleSubmit = useCallback(
     (e?: FormEvent, overrideMessage?: string) => {
@@ -543,9 +667,8 @@ function PlaygroundContent() {
       const msg = overrideMessage ?? inputValue.trim();
       if (!msg) return;
 
-      // Abort any in-flight streams
+      // Abort any in-flight primary stream
       abortRef.current?.abort();
-      noPromptAbortRef.current?.abort();
 
       const runId = runIdRef.current + 1;
       runIdRef.current = runId;
@@ -562,22 +685,17 @@ function PlaygroundContent() {
         ? JSON.stringify(currentTree)
         : undefined;
 
-      // Reset both trees for fresh generation
+      // Reset Panel A state
       runtimeValueStore.clear();
-      noPromptRuntimeValueStore.clear();
       reset();
-      noPromptReset();
       setErrorMessage(null);
       setStatus("streaming");
-      setNoPromptStatus("streaming");
       setInputValue("");
       setRawJsonl("");
       rawJsonlRef.current = "";
-      setNoPromptRawJsonl("");
-      noPromptRawJsonlRef.current = "";
       setLeftActionLog([]);
-      setRightActionLog([]);
       lastSubmittedRef.current = msg;
+      setHasSubmitted(true);
 
       // Track conversation
       const newUserMessage: ChatMessage = { role: "user", content: msg };
@@ -682,93 +800,25 @@ function PlaygroundContent() {
         }
       })();
 
-      // --- Stream 2: Without system prompt (comparison) ---
-      const noPromptParser = createJsonlParser();
-      const noPromptController = new AbortController();
-      noPromptAbortRef.current = noPromptController;
+      // --- Stream 2: Panel B (comparison) via extracted helper ---
+      streamPanelB({
+        message: msg,
+        model: selectedModel,
+        history: history ? [...history] : undefined,
+        currentUITree: currentUITreeJson,
+      });
 
-      const comparisonStream = (async () => {
-        try {
-          const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "text/event-stream",
-            },
-            body: JSON.stringify({
-              ...baseBody,
-              skipSystemPrompt: true,
-              systemPromptOverride: BASELINE_PROMPT,
-            }),
-            signal: noPromptController.signal,
-          });
-
-          if (!response.ok) {
-            // Non-critical — just mark as error, don't affect primary stream
-            if (runIdRef.current === runId) {
-              setNoPromptStatus("error");
-            }
-            return;
-          }
-
-          await readSSEStream(
-            response,
-            (token) => {
-              // Guard: ignore tokens delivered after abort (narrow race window)
-              if (noPromptController.signal.aborted) return;
-              noPromptRawJsonlRef.current += token;
-              const ops = noPromptParser.push(token);
-              if (ops.length > 0) {
-                noPromptApplyPatchesRef.current(ops);
-              }
-            },
-            noPromptController.signal,
-          );
-
-          setNoPromptRawJsonl(noPromptRawJsonlRef.current);
-
-          const remaining = noPromptParser.flush();
-          if (remaining.length > 0) {
-            noPromptApplyPatchesRef.current(remaining);
-          }
-
-          if (runIdRef.current === runId) {
-            setNoPromptStatus("idle");
-          }
-        } catch (err: unknown) {
-          if (err instanceof DOMException && err.name === "AbortError") return;
-
-          // Flush partial ops even on error
-          try {
-            const remaining = noPromptParser.flush();
-            if (remaining.length > 0)
-              noPromptApplyPatchesRef.current(remaining);
-          } catch {
-            // Ignore flush errors
-          }
-
-          if (runIdRef.current === runId) {
-            setNoPromptStatus("error");
-          }
-        } finally {
-          if (noPromptAbortRef.current === noPromptController) {
-            noPromptAbortRef.current = null;
-          }
-        }
-      })();
-
-      // Both streams are already executing — settle to suppress floating-promise lint.
-      void Promise.allSettled([primaryStream, comparisonStream]);
+      // Primary stream is already executing — suppress floating-promise lint.
+      void primaryStream;
     },
     [
       inputValue,
       selectedModel,
       messages,
       runtimeValueStore,
-      noPromptRuntimeValueStore,
       reset,
-      noPromptReset,
       applyPatches,
+      streamPanelB,
     ],
   );
 
@@ -794,10 +844,23 @@ function PlaygroundContent() {
     });
   }, []);
 
-  /** Placeholder for Apply — wired fully in client-logic-1. */
+  /**
+   * Apply selected skills: re-fire Panel B with the last submitted message
+   * and the currently pending skill IDs. Resets Panel B history (fresh gen).
+   * No-op if no message has been submitted yet.
+   */
   const handleApplySkills = useCallback(() => {
+    const lastMsg = lastSubmittedRef.current;
+    if (lastMsg === null) return;
+
     setAppliedSkillIds(new Set(pendingSkillIds));
-  }, [pendingSkillIds]);
+
+    streamPanelB({
+      message: lastMsg,
+      model: selectedModel,
+      skillIds: Array.from(pendingSkillIds),
+    });
+  }, [pendingSkillIds, selectedModel, streamPanelB]);
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -894,7 +957,7 @@ function PlaygroundContent() {
             pendingSkillIds={pendingSkillIds}
             onToggleSkill={handleToggleSkill}
             onApplySkills={handleApplySkills}
-            isSkillApplyDisabled={isNoPromptStreaming}
+            isSkillApplyDisabled={isNoPromptStreaming || !hasSubmitted}
           />
         </div>
       </div>
