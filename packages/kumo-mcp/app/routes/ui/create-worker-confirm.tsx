@@ -3,7 +3,11 @@ import { useLoaderData } from "react-router";
 import { z } from "zod";
 import type { UITree, ActionDispatch } from "@cloudflare/kumo/streaming";
 import { UITreeRenderer } from "@cloudflare/kumo/generative";
-import { waitForRenderData, useMcpUiInit } from "../../utils/mcp.js";
+import {
+  waitForRenderData,
+  useMcpUiInit,
+  sendMcpMessage,
+} from "../../utils/mcp.js";
 import {
   streamConfirmationCard,
   type ConfirmationCardStatus,
@@ -19,6 +23,18 @@ const renderDataSchema = z.object({
 });
 
 type RenderData = z.infer<typeof renderDataSchema>;
+
+// ---------------------------------------------------------------------------
+// Schema for execute_create_worker response — validated via sendMcpMessage
+// ---------------------------------------------------------------------------
+
+const executeResultSchema = z.object({
+  structuredContent: z.object({
+    success: z.boolean(),
+    workerName: z.string(),
+    createdAt: z.string(),
+  }),
+});
 
 // ---------------------------------------------------------------------------
 // clientLoader — runs in the browser, waits for host to send render data
@@ -160,13 +176,42 @@ export default function CreateWorkerConfirm() {
 
       if (event.actionName === "tool_approve") {
         setStatus("applying");
-        // iframe-app-3 will wire approve → sendMcpMessage to host
+
+        void sendMcpMessage(
+          "tool",
+          {
+            toolName: "execute_create_worker",
+            params: { workerName },
+          },
+          { schema: executeResultSchema },
+        ).then(
+          (result) => {
+            if (result.structuredContent.success) {
+              setStatus("completed");
+            } else {
+              // Server returned success:false — allow retry
+              setStatus("pending");
+            }
+          },
+          (err) => {
+            console.error("[create-worker-confirm] execute error:", err);
+            // Revert to pending so the user can retry
+            setStatus("pending");
+          },
+        );
       } else if (event.actionName === "tool_cancel") {
         setStatus("cancelled");
-        // iframe-app-3 will wire cancel → notify host
+
+        // Notify host about cancellation (fire-and-forget)
+        void sendMcpMessage("tool", {
+          toolName: "cancel_tool",
+          params: { toolId },
+        }).catch(() => {
+          // Best-effort — host may not have a cancel handler
+        });
       }
     },
-    [status],
+    [status, workerName, toolId],
   );
 
   // -------------------------------------------------------------------------
@@ -199,15 +244,111 @@ export default function CreateWorkerConfirm() {
   return (
     <div ref={rootRef} data-tool-id={toolId}>
       {hasTree ? (
-        <UITreeRenderer
-          tree={tree}
-          streaming={isStreaming}
-          onAction={status === "pending" ? handleAction : undefined}
-        />
+        <div style={{ position: "relative" }}>
+          <div
+            style={{
+              opacity: status === "cancelled" ? 0.5 : 1,
+              pointerEvents: status === "pending" ? "auto" : "none",
+              transition: "opacity 200ms ease-in-out",
+            }}
+          >
+            <UITreeRenderer
+              tree={tree}
+              streaming={isStreaming}
+              onAction={status === "pending" ? handleAction : undefined}
+            />
+          </div>
+
+          {/* Applying overlay — semi-transparent with spinner */}
+          {status === "applying" && (
+            <StatusOverlay>
+              <Spinner size={28} />
+            </StatusOverlay>
+          )}
+
+          {/* Completed overlay — check icon */}
+          {status === "completed" && (
+            <StatusOverlay>
+              <CheckIcon size={36} />
+            </StatusOverlay>
+          )}
+        </div>
       ) : (
         // Show spinner while streaming before any tree content arrives
         <HydrateFallback />
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Status overlay components — inline SVGs to avoid icon library bundle cost
+// ---------------------------------------------------------------------------
+
+function StatusOverlay({ children }: { readonly children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(255, 255, 255, 0.6)",
+        borderRadius: 8,
+        zIndex: 10,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Spinner({ size = 24 }: { readonly size?: number }) {
+  return (
+    <svg
+      style={{ width: size, height: size }}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label="Applying"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="3"
+        opacity={0.25}
+      />
+      <path
+        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+        fill="currentColor"
+        opacity={0.75}
+      >
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          from="0 12 12"
+          to="360 12 12"
+          dur="1s"
+          repeatCount="indefinite"
+        />
+      </path>
+    </svg>
+  );
+}
+
+function CheckIcon({ size = 24 }: { readonly size?: number }) {
+  return (
+    <svg
+      style={{ width: size, height: size, color: "#22c55e" }}
+      viewBox="0 0 256 256"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label="Completed"
+    >
+      <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z" />
+    </svg>
   );
 }
