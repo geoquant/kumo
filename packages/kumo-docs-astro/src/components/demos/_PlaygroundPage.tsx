@@ -82,11 +82,14 @@ import {
   useUITree,
   useRuntimeValueStore,
   createJsonlParser,
-  BUILTIN_HANDLERS,
+  createHandlerMap,
   dispatchAction,
   processActionResult,
   type ActionEvent,
+  type ActionHandler,
+  type ActionHandlerMap,
   type JsonPatchOp,
+  type MessageResult,
   type RuntimeValueStore,
 } from "@cloudflare/kumo/streaming";
 import type { UITree, UIElement } from "@cloudflare/kumo/streaming";
@@ -226,6 +229,53 @@ function extractPromptString(body: unknown): string | null {
   const narrow: { prompt: unknown } = body;
   return typeof narrow.prompt === "string" ? narrow.prompt : null;
 }
+
+// =============================================================================
+// Tool action handlers
+// =============================================================================
+
+/**
+ * Handle `tool_approve` — returns a MessageResult with JSON content
+ * containing `{ toolId, approved: true }`.
+ */
+const handleToolApprove: ActionHandler = (event) => {
+  const toolId = event.params?.toolId;
+  if (typeof toolId !== "string") return null;
+
+  const result: MessageResult = {
+    type: "message",
+    content: JSON.stringify({ toolId, approved: true }),
+  };
+  return result;
+};
+
+/**
+ * Handle `tool_cancel` — returns a MessageResult with JSON content
+ * containing `{ toolId, approved: false }`.
+ */
+const handleToolCancel: ActionHandler = (event) => {
+  const toolId = event.params?.toolId;
+  if (typeof toolId !== "string") return null;
+
+  const result: MessageResult = {
+    type: "message",
+    content: JSON.stringify({ toolId, approved: false }),
+  };
+  return result;
+};
+
+/** Custom handlers for the playground's tool confirmation flow. */
+const TOOL_ACTION_HANDLERS: Readonly<ActionHandlerMap> = {
+  tool_approve: handleToolApprove,
+  tool_cancel: handleToolCancel,
+};
+
+/**
+ * Merged handler map: built-in handlers + playground tool handlers.
+ * Custom handlers take precedence over built-ins for the same action name.
+ */
+const PLAYGROUND_HANDLERS: Readonly<ActionHandlerMap> =
+  createHandlerMap(TOOL_ACTION_HANDLERS);
 
 // =============================================================================
 // Tool confirmation JSONL generators
@@ -551,7 +601,7 @@ function PlaygroundContent() {
     // Don't actually submit forms in the playground — just log + preview
     if (event.actionName === "submit_form") return;
 
-    const result = dispatchAction(BUILTIN_HANDLERS, event, treeRef.current);
+    const result = dispatchAction(PLAYGROUND_HANDLERS, event, treeRef.current);
     if (result === null) return;
     processActionResult(result, {
       applyPatches: (patches: readonly JsonPatchOp[]) => {
@@ -594,7 +644,7 @@ function PlaygroundContent() {
     if (event.actionName === "submit_form") return;
 
     const result = dispatchAction(
-      BUILTIN_HANDLERS,
+      PLAYGROUND_HANDLERS,
       event,
       noPromptTreeRef.current,
     );
