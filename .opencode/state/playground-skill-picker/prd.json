@@ -41,7 +41,7 @@
         "'Apply' button is disabled while Panel B is streaming",
         "Popover closes after Apply is clicked"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "client-logic-1",

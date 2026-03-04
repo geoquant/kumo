@@ -51,12 +51,14 @@ import {
 } from "react";
 import {
   Button,
+  Checkbox,
   CloudflareLogo,
   Cluster,
   Grid,
   GridItem,
   InputArea,
   Loader,
+  Popover,
   Select,
   Tabs,
 } from "@cloudflare/kumo";
@@ -69,6 +71,7 @@ import {
   CopyIcon,
   PaperPlaneRightIcon,
   SidebarSimpleIcon,
+  SlidersHorizontalIcon,
   SpinnerIcon,
   StopCircleIcon,
   WarningCircleIcon,
@@ -778,6 +781,24 @@ function PlaygroundContent() {
   /** True when any stream is active — gates user interaction. */
   const isAnyStreaming = isStreaming || isNoPromptStreaming;
 
+  // --- Skill picker callbacks ---
+  const handleToggleSkill = useCallback((id: string, checked: boolean) => {
+    setPendingSkillIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }, []);
+
+  /** Placeholder for Apply — wired fully in client-logic-1. */
+  const handleApplySkills = useCallback(() => {
+    setAppliedSkillIds(new Set(pendingSkillIds));
+  }, [pendingSkillIds]);
+
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Left: chat sidebar */}
@@ -869,6 +890,11 @@ function PlaygroundContent() {
             onNoPromptAction={handleNoPromptAction}
             rightActionLog={rightActionLog}
             onClearRightActionLog={clearRightActionLog}
+            skills={skills}
+            pendingSkillIds={pendingSkillIds}
+            onToggleSkill={handleToggleSkill}
+            onApplySkills={handleApplySkills}
+            isSkillApplyDisabled={isNoPromptStreaming}
           />
         </div>
       </div>
@@ -907,6 +933,12 @@ interface ComparisonPanelsProps {
   readonly onNoPromptAction?: (event: ActionEvent) => void;
   readonly rightActionLog: readonly ActionLogEntry[];
   readonly onClearRightActionLog: () => void;
+  // Skill picker (Panel B only)
+  readonly skills: readonly SkillInfo[];
+  readonly pendingSkillIds: ReadonlySet<string>;
+  readonly onToggleSkill: (id: string, checked: boolean) => void;
+  readonly onApplySkills: () => void;
+  readonly isSkillApplyDisabled: boolean;
 }
 
 /** Renders two side-by-side panels, each with its own tab bar and content. */
@@ -933,6 +965,11 @@ function ComparisonPanels({
   onNoPromptAction,
   rightActionLog,
   onClearRightActionLog,
+  skills,
+  pendingSkillIds,
+  onToggleSkill,
+  onApplySkills,
+  isSkillApplyDisabled,
 }: ComparisonPanelsProps) {
   return (
     <Grid variant="side-by-side" gap="none" className="h-full w-full">
@@ -966,6 +1003,15 @@ function ComparisonPanels({
       <GridItem className="flex min-w-0 flex-col overflow-hidden">
         <PanelHeader
           label="B"
+          actions={
+            <SkillPickerPopover
+              skills={skills}
+              pendingSkillIds={pendingSkillIds}
+              onToggleSkill={onToggleSkill}
+              onApply={onApplySkills}
+              disabled={isSkillApplyDisabled}
+            />
+          }
           tabs={PANEL_TABS}
           activeTab={rightTab}
           onTabChange={(v) => {
@@ -992,24 +1038,27 @@ function ComparisonPanels({
   );
 }
 
-/** Header bar for each panel: label above underline tab bar. */
+/** Header bar for each panel: label + optional actions above underline tab bar. */
 function PanelHeader({
   label,
+  actions,
   tabs,
   activeTab,
   onTabChange,
 }: {
   readonly label: string;
+  readonly actions?: React.ReactNode;
   readonly tabs: TabsItem[];
   readonly activeTab: PanelTab;
   readonly onTabChange: (value: string) => void;
 }) {
   return (
     <div className="shrink-0 bg-kumo-elevated/50">
-      <div className="px-3 pt-3 pb-1.5">
+      <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-kumo-subtle">
           {label}
         </span>
+        {actions}
       </div>
       <div className="px-3">
         <Tabs
@@ -1021,6 +1070,90 @@ function PanelHeader({
         />
       </div>
     </div>
+  );
+}
+
+// =============================================================================
+// Skill picker popover (Panel B header action)
+// =============================================================================
+
+/**
+ * Popover that renders checkboxes for each available skill.
+ * Manages its own open/close state. Calls `onApply` with the current
+ * pending selection when the Apply button is clicked.
+ */
+function SkillPickerPopover({
+  skills,
+  pendingSkillIds,
+  onToggleSkill,
+  onApply,
+  disabled,
+}: {
+  readonly skills: readonly SkillInfo[];
+  readonly pendingSkillIds: ReadonlySet<string>;
+  readonly onToggleSkill: (id: string, checked: boolean) => void;
+  readonly onApply: () => void;
+  readonly disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const handleApply = useCallback(() => {
+    setOpen(false);
+    onApply();
+  }, [onApply]);
+
+  const selectedCount = pendingSkillIds.size;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-kumo-subtle transition-colors hover:bg-kumo-elevated hover:text-kumo-default"
+          aria-label="Skill picker"
+        >
+          <SlidersHorizontalIcon size={12} />
+          Skills
+          {selectedCount > 0 && (
+            <span className="ml-0.5 rounded-full bg-kumo-brand px-1 text-[10px] leading-tight text-white">
+              {selectedCount}
+            </span>
+          )}
+        </button>
+      </Popover.Trigger>
+      <Popover.Content side="bottom" align="start" sideOffset={4}>
+        <div className="flex flex-col gap-2 p-3" style={{ minWidth: 240 }}>
+          <Popover.Title>Skills</Popover.Title>
+          <Popover.Description>
+            Select design skills to augment Panel B generation.
+          </Popover.Description>
+          <div className="max-h-48 overflow-y-auto space-y-1">
+            {skills.length === 0 && (
+              <p className="text-xs text-kumo-subtle py-1">
+                No skills available
+              </p>
+            )}
+            {skills.map((skill) => (
+              <Checkbox
+                key={skill.id}
+                label={skill.name}
+                checked={pendingSkillIds.has(skill.id)}
+                onCheckedChange={(checked) => onToggleSkill(skill.id, checked)}
+              />
+            ))}
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleApply}
+            disabled={disabled}
+            className="mt-1 w-full"
+          >
+            Apply
+          </Button>
+        </div>
+      </Popover.Content>
+    </Popover>
   );
 }
 
