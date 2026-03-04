@@ -40,7 +40,7 @@
         "uiMetadata includes preferred-frame-size: ['100%', '280px']",
         "Calling tools/call with name=create_worker, arguments={workerName:'hello-world'} via MCP client returns the UI resource"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "tool-2",
