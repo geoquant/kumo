@@ -25,7 +25,7 @@
         "appliedSkillIds (Set<string>) tracks the skill IDs that were last sent to the API",
         "lastMessageRef stores the most recent user message for replay on skill apply"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-1",

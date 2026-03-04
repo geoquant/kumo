@@ -8,6 +8,9 @@ This is a long-running experimental branch — commit directly here.
 - `getSkillContents(ids)` returns concatenated skill markdown from `skills-data.generated.ts`
 - `skipSystemPrompt` branch in POST /api/chat controls A/B mode system message construction
 - `[part1, part2].filter(Boolean).join("\n\n")` pattern for optional content concatenation
+- Fetch pattern: `useEffect` + `AbortController` + manual JSON validation (no Zod on client)
+- `ReadonlySet<string>` for immutable set state; lazy init with `() => new Set()`
+- `lastSubmittedRef` already stores last user message — reuse it for skill apply replay
 
 ---
 
@@ -17,3 +20,12 @@ This is a long-running experimental branch — commit directly here.
 - When only `skillIds` present (no override), uses skill content as sole system message
 - File changed: `packages/kumo-docs-astro/src/pages/api/chat/index.ts` (lines 282-293)
 - **Learnings:** The existing `getSkillContents()` already handles empty/invalid IDs gracefully (returns empty string). No need for extra guards.
+
+## Task - client-state-1
+- Added `SkillInfo` interface (client-side mirror of server's `SkillMeta`)
+- Added `skills` state populated by `fetch('/api/chat/skills')` on mount with AbortController cleanup
+- Added `pendingSkillIds` (`ReadonlySet<string>`) for checkbox selection tracking
+- Added `appliedSkillIds` (`ReadonlySet<string>`) for last-sent-to-API tracking
+- `lastSubmittedRef` (existing, line 302) already satisfies "lastMessageRef" requirement
+- File changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`
+- **Learnings:** Response from `/api/chat/skills` is `{ skills: SkillMeta[] }`. Manual JSON validation is verbose but avoids runtime dependency; could extract a `parseArray` helper if pattern repeats.
