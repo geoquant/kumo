@@ -66,3 +66,12 @@ Started: 2026-03-04
 - Added `cn` import from `@cloudflare/kumo` for conditional className composition
 - Files changed: _PlaygroundPage.tsx
 - **Learnings:** UITreeRenderer has no `disabled` prop — status-based visual states must be applied via CSS wrapper; Text heading3 renders as `<h3>` not `<span>`, so line-through selectors need heading tags too; `cn()` from kumo wasn't previously imported in PlaygroundPage
+
+## Task - ui-3
+- `applying` state: semi-transparent overlay (`bg-kumo-base/60`) with centered `Loader size="sm"` spinner
+- `completed` state: same overlay with `CheckIcon` + "Applied" text in `text-kumo-success`
+- Both states disable buttons via `pointer-events-none` on container + `onAction={undefined}`
+- Only `pending` status passes `onToolAction` — all other states suppress dispatch
+- Container uses `relative` positioning; overlays use `absolute inset-0`
+- Files changed: _PlaygroundPage.tsx
+- **Learnings:** `bg-kumo-base/60` uses Tailwind opacity modifier for semi-transparent overlay; `text-kumo-success` is a valid semantic token (defined in theme-kumo.css); only `pending` status should allow interaction — `approved` is a transient state before `applying`

@@ -2376,17 +2376,32 @@ function PlaygroundChatSidebar({
             <div
               key={i}
               className={cn(
-                "w-full overflow-hidden",
+                "w-full overflow-hidden relative",
                 msg.status === "cancelled" &&
                   "opacity-50 pointer-events-none [&_h1]:line-through [&_h2]:line-through [&_h3]:line-through [&_span]:line-through",
+                (msg.status === "applying" || msg.status === "completed") &&
+                  "pointer-events-none",
               )}
             >
               <UITreeRenderer
                 tree={msg.tree}
                 streaming={false}
                 customComponents={CUSTOM_COMPONENTS}
-                onAction={msg.status === "cancelled" ? undefined : onToolAction}
+                onAction={msg.status === "pending" ? onToolAction : undefined}
               />
+              {msg.status === "applying" && (
+                <div className="absolute inset-0 flex items-center justify-center bg-kumo-base/60 rounded-lg">
+                  <Loader size="sm" />
+                </div>
+              )}
+              {msg.status === "completed" && (
+                <div className="absolute inset-0 flex items-center justify-center bg-kumo-base/60 rounded-lg">
+                  <div className="flex items-center gap-1.5 text-sm text-kumo-success">
+                    <CheckIcon className="size-4" />
+                    <span className="font-medium">Applied</span>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div
