@@ -13,6 +13,7 @@ Started: 2026-03-04
 - postMessage runtime validation pattern: `isRecord()` guard + reconstruct typed object in `parseIframeMessage()` — avoids domain-level `as` casts on untrusted `event.data`
 - Use `.js` extension for local imports (ESM convention with `moduleResolution: "bundler"`)
 - `createUIResource` is sync — returns `UIResource` not `Promise`. Metadata keys prefixed `mcpui.dev/ui-`
+- Streaming pipeline for iframe apps: `@cloudflare/kumo/streaming` (createJsonlParser, applyPatch) + `@cloudflare/kumo/generative` (UITreeRenderer). `readSSEStream` must be copied (not exported). CSS needs `@import "@cloudflare/kumo/styles"` + `@import "tailwindcss"` + `@source` directives
 - React Router + Cloudflare Worker pattern: `reactRouter()` vite plugin + `createRequestHandler(() => import("virtual:react-router/server-build"))` as fallback in Worker fetch. Needs `strip-typegen-imports` plugin for `+types/` stubs, `types/react-router.d.ts` with `export =` for virtual module, `react-router.config.ts` with `ssr: true` + `v8_viteEnvironmentApi: true`
 - MCP streamable HTTP requires `Accept: application/json, text/event-stream` — both needed or -32000 error
 - Dual tsconfig for kumo-mcp: `tsconfig.json` (worker, no DOM) + `tsconfig.app.json` (iframe app, DOM + JSX). `typecheck` script runs both sequentially.
@@ -86,3 +87,16 @@ Started: 2026-03-04
 - Route exports `clientLoader` → `waitForRenderData(renderDataSchema)` where schema validates `{ workerName, toolId }`, `HydrateFallback` with SVG spinner + "Waiting for render data...", default component renders confirmation card using `useLoaderData<RenderData>()`
 - `useMcpUiInit(rootRef)` wired in default component for iframe dimension reporting
 - **Learnings:** `virtual:react-router/server-build` module declaration needs `export = serverBuild` (CJS-style) for `() => import()` to resolve to `Promise<ServerBuild>` — `export default` wraps in a namespace object that doesn't satisfy the type. `strip-typegen-imports` Vite plugin needed to stub `+types/` imports that React Router generates at build time but don't exist on disk during dev/typecheck.
+
+## Task - iframe-app-2
+- Implemented `streamConfirmationCard` function in `app/utils/stream-confirmation-card.ts` — fetches `/api/chat` with `skipSystemPrompt: true` + `systemPromptOverride` set to `TOOL_CONFIRMATION_PROMPT`
+- Response parsed via `readSSEStream` → `createJsonlParser().push(token)` → `applyPatch(tree, op)` pipeline
+- Copied `readSSEStream` to `app/utils/read-sse-stream.ts` (standalone utility, not exported from any package)
+- Updated `create-worker-confirm.tsx` route: on mount streams card via `streamConfirmationCard`, renders progressively with `UITreeRenderer` (`streaming=true` during load), transitions to `pending` on complete
+- Added `@cloudflare/kumo` (`workspace:*`) + `@phosphor-icons/react` as deps for streaming/generative imports
+- Added `@tailwindcss/vite` + `tailwindcss` as devDeps, wired into `vite.config.ts`
+- Created `app/app.css` with `@cloudflare/kumo/styles` + `tailwindcss` imports, imported in `root.tsx`
+- `handleAction` callback typed as `ActionDispatch` from `@cloudflare/kumo/streaming`, handles `tool_approve` → `applying` and `tool_cancel` → `cancelled` (actual MCP messaging deferred to iframe-app-3)
+- Error state renders fallback if stream fails without partial content; partial tree shown in pending state
+- Files changed: `app/utils/stream-confirmation-card.ts` (new), `app/utils/read-sse-stream.ts` (new), `app/app.css` (new), `app/routes/ui/create-worker-confirm.tsx` (rewritten), `app/root.tsx` (+css import), `vite.config.ts` (+tailwindcss plugin), `package.json` (+kumo, +phosphor, +tailwind deps)
+- **Learnings:** `@cloudflare/kumo/streaming` exports `createJsonlParser`, `applyPatch`, `EMPTY_TREE`, `ActionDispatch` — all needed for iframe streaming. `@cloudflare/kumo/generative` exports `UITreeRenderer`. `readSSEStream` is a docs-site utility, not exported from any package — needs to be copied. Kumo CSS requires both `@cloudflare/kumo/styles` and `tailwindcss` imports with `@source` directives pointing to kumo dist.

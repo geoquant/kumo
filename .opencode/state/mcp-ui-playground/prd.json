@@ -124,7 +124,7 @@
         "UITreeRenderer renders the tree with streaming=true during load",
         "On stream complete, status transitions from streaming → pending"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "iframe-app-3",

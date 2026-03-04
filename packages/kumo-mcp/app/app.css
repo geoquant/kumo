@@ -1,0 +1,4 @@
+@source "../../../kumo/dist/**/*.{js,jsx,ts,tsx}";
+@source "../../../kumo/src/**/*.{ts,tsx}";
+@import "@cloudflare/kumo/styles";
+@import "tailwindcss";
