@@ -60,6 +60,7 @@ import {
   Loader,
   Popover,
   Select,
+  Stack,
   Tabs,
 } from "@cloudflare/kumo";
 import type { TabsItem } from "@cloudflare/kumo";
@@ -1190,20 +1191,24 @@ function SkillPickerPopover({
           <Popover.Description>
             Select design skills to augment Panel B generation.
           </Popover.Description>
-          <div className="max-h-48 overflow-y-auto space-y-1">
+          <div className="max-h-48 overflow-y-auto px-0.5">
             {skills.length === 0 && (
               <p className="text-xs text-kumo-subtle py-1">
                 No skills available
               </p>
             )}
-            {skills.map((skill) => (
-              <Checkbox
-                key={skill.id}
-                label={skill.name}
-                checked={pendingSkillIds.has(skill.id)}
-                onCheckedChange={(checked) => onToggleSkill(skill.id, checked)}
-              />
-            ))}
+            <Stack gap="sm">
+              {skills.map((skill) => (
+                <Checkbox
+                  key={skill.id}
+                  label={skill.name}
+                  checked={pendingSkillIds.has(skill.id)}
+                  onCheckedChange={(checked) =>
+                    onToggleSkill(skill.id, checked)
+                  }
+                />
+              ))}
+            </Stack>
           </div>
           <Button
             variant="primary"
