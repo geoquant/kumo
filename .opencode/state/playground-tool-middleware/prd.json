@@ -117,7 +117,7 @@
         "Only 'Create worker' pill triggers the tool middleware flow with inline chat UI",
         "Existing pills do NOT render any UI in the chat sidebar"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "branch": "geoquant/streaming-ui",

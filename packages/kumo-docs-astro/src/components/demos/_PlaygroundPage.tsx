@@ -477,6 +477,11 @@ const PRESET_PROMPTS = [
       "rows for MY_KV (KV Namespace, production-kv), MY_DB (D1 Database, worker-db), " +
       "AUTH_SERVICE (Service Binding, auth-worker), and ASSETS (R2 Bucket, static-assets).",
   },
+  // Tool middleware preset — triggers inline confirmation card instead of direct A/B panels
+  {
+    label: "Create worker",
+    prompt: "create a new hello world worker",
+  },
 ] as const;
 
 // =============================================================================
