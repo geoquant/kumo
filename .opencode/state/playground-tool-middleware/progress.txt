@@ -17,7 +17,8 @@ Started: 2026-03-04
 - Tool card rendering: `UITreeRenderer` with `onAction` prop directly in chat loop; no wrapper bubble chrome; `w-full overflow-hidden` prevents sidebar overflow
 - Tool action dispatch: `handleToolAction` finds tool message by `event.params.toolId`, passes its `tree` to `dispatchAction`; uses `messagesRef` to avoid stale closure
 - Status-based tool card styling: CSS wrapper with `cn()` around UITreeRenderer; `opacity-50 pointer-events-none` for disabled; `onAction={undefined}` to suppress dispatch; Text heading variants render as `<h1>`/`<h2>`/`<h3>` not `<span>`
-- Tool middleware intercept: early return in `handleSubmit` before any `fetch`; match message → generate JSONL → `buildTreeFromJsonl` → append `ToolChatMessage`; no Panel A/B streams
+- Tool middleware intercept: early return in `handleSubmit` before panel streams; match message → stream from `/api/chat` with `TOOL_CONFIRMATION_PROMPT` → `createJsonlParser` + `applyPatch` → update tool message tree incrementally; separate `toolAbortRef`
+- `skipSystemPrompt: true` + `systemPromptOverride` on `/api/chat` gives focused LLM task without polluting main prompt
 - Tool action routing: intercept `event.actionName` (`tool_cancel`/`tool_approve`) in `handleToolAction` before `dispatchAction`; use `updateToolMessageStatus(toolId, newStatus)` for immutable state transitions
 
 ---
@@ -112,3 +113,15 @@ Started: 2026-03-04
 - Existing pills never produce `ToolChatMessage` → no tool UI rendered in chat sidebar
 - Files changed: _PlaygroundPage.tsx
 - **Learnings:** The tool middleware routing is entirely prompt-content-driven (regex match in handleSubmit); no per-pill config needed — adding a pill that matches the pattern is sufficient to route it through the middleware flow
+
+## Rework - AI-streamed tool confirmation cards
+- **Problem:** Tool confirmation cards were hardcoded via `generateCreateWorkerConfirmation()` — instant, no AI involvement, no streaming
+- **Solution:** Replaced with real `/api/chat` streaming using `skipSystemPrompt: true` + `TOOL_CONFIRMATION_PROMPT` system override
+- Added `TOOL_CONFIRMATION_PROMPT`: focused prompt teaching the LLM to generate compact confirmation cards with `tool_approve`/`tool_cancel` actions and `params.toolId`
+- Added `"streaming"` to `ToolMessageStatus` — tool cards now show loading state during AI generation
+- Tool middleware intercept in `handleSubmit` now: creates empty tool message (streaming) → fetches `/api/chat` → streams JSONL tokens → `createJsonlParser` + `applyPatch` builds tree incrementally → updates tool message tree via `setMessages` → on completion marks status `"pending"`
+- Chat rendering: empty tree during streaming shows `Loader` + "Generating confirmation…"; partial tree renders with `streaming={true}` on `UITreeRenderer`; `pointer-events-none` during streaming
+- Added `toolAbortRef` for independent abort of tool confirmation stream (also wired into `handleCancel`)
+- Removed dead code: `generateCreateWorkerConfirmation`, `buildTreeFromJsonl`
+- Files changed: _PlaygroundPage.tsx
+- **Learnings:** `skipSystemPrompt: true` + `systemPromptOverride` is the clean way to give the LLM a focused task without polluting the main system prompt; `split().join()` instead of `replaceAll()` when TS target < es2021; tool card tree must be updated via `setMessages` map (no `useUITree` hook — tool messages carry their own tree); streaming tool cards need a separate abort controller from panel streams
