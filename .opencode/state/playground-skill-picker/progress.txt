@@ -13,6 +13,8 @@ This is a long-running experimental branch — commit directly here.
 - `lastSubmittedRef` already stores last user message — reuse it for skill apply replay
 - `Popover` and `Checkbox` both exported from `@cloudflare/kumo` — compound component pattern
 - `PanelHeader` accepts optional `actions?: ReactNode` slot rendered next to label
+- Extract reusable stream launchers as `useCallback` with own `runIdRef` for independent staleness guards
+- `Record<string, unknown>` + conditional property assignment avoids spreading optional fields
 
 ---
 
@@ -42,3 +44,14 @@ This is a long-running experimental branch — commit directly here.
 - Skill props threaded: PlaygroundContent → ComparisonPanels → Panel B PanelHeader
 - File changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`
 - **Learnings:** Kumo `Popover` is a compound component wrapping Base UI; `Popover.Content` renders into a portal with positioner+arrow. `Checkbox` with `label` prop auto-wraps in `Field.Root`+`Field.Label`.
+
+## Task - client-logic-1
+- Extracted Panel B streaming into `streamPanelB` useCallback — encapsulates abort, reset, SSE fetch, JSONL parsing, and status management
+- Added `noPromptRunIdRef` for independent staleness guard (prevents Panel A/B runId conflicts)
+- `handleSubmit` now delegates Stream 2 to `streamPanelB()`; only manages Panel A state directly
+- `handleApplySkills` calls `streamPanelB` with `lastSubmittedRef.current` + `Array.from(pendingSkillIds)` as skillIds
+- Added `hasSubmitted` state flag to visually disable Apply before first prompt submission
+- Apply with zero skills omits `skillIds` from payload → re-runs with baseline prompt only
+- Fixed pre-existing lint: renamed `appliedSkillIds` → `_appliedSkillIds` (unused getter)
+- File changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`
+- **Learnings:** Separate runId refs per independent stream avoid staleness collisions. `useCallback` with `Record<string, unknown>` body + conditional assignment is cleaner than spread with `...(cond ? {k:v} : {})` for optional fields.

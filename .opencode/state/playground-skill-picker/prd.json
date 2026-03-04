@@ -57,7 +57,7 @@
         "Selecting zero skills and applying re-runs with just the baseline prompt",
         "handleSubmit still fires both panels in parallel using the extracted streamPanelB for Stream 2"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
