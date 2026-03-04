@@ -94,3 +94,13 @@ Started: 2026-03-04
 - Fallback path preserved for non-tool actions via `dispatchAction → processActionResult`
 - Files changed: _PlaygroundPage.tsx
 - **Learnings:** `ActionEvent.actionName` (not `.name`) is the action identifier; tool actions should be intercepted before `dispatchAction`/`processActionResult` to avoid the `sendMessage → handleSubmit` path which would send JSON to `/api/chat`; `updateToolMessageStatus` reusable for all status transitions (approve/applying/completed)
+
+## Task - flow-3
+- Replaced TODO stub with full approve flow: `applying` → 800ms setTimeout → `completed` → `handleSubmitRef.current(undefined, followUp)`
+- Worker name extracted from `toolId` via `toolId.replace(/^create-worker-/, "")` with `"hello-world"` fallback
+- Follow-up prompt: deployment dashboard referencing worker name + CloudflareLogo + heading + Badge + Table
+- Prompt deliberately avoids "create...worker" phrasing to not re-enter tool middleware intercept
+- `handleSubmitRef` (ref) used inside setTimeout — no stale closure; `updateToolMessageStatus` stable (empty deps)
+- No new dependencies needed — `handleSubmitRef` drives both Panel A (primary) and Panel B (`streamPanelB`) through existing `handleSubmit` logic
+- Files changed: _PlaygroundPage.tsx
+- **Learnings:** Follow-up prompts after tool approval must avoid matching `CREATE_WORKER_PATTERN`; `setTimeout` + ref pattern is safe for deferred state transitions in React; the same `handleSubmit` that handles user input also serves as the programmatic entry point for tool-triggered panel generation
