@@ -1,0 +1,25 @@
+{
+  "name": "kumo-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run --outdir=dist",
+    "typecheck": "tsc --noEmit",
+    "pretypecheck": "wrangler types ./types/worker-configuration.d.ts"
+  },
+  "dependencies": {
+    "@mcp-ui/server": "^5.16.1",
+    "@modelcontextprotocol/sdk": "1.23.0",
+    "agents": "^0.2.30",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "wrangler": "catalog:"
+  }
+}
