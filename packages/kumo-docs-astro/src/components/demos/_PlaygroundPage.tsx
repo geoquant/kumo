@@ -749,10 +749,29 @@ function PlaygroundContent() {
         return;
       }
 
-      // --- Approve path: update status, trigger panel generation (flow-3) ---
+      // --- Approve path: mock delay → completed → trigger A/B panel generation ---
       if (event.actionName === "tool_approve" && toolId !== null) {
         updateToolMessageStatus(toolId, "applying");
-        // TODO(flow-3): mock delay → completed → trigger A/B panel generation
+
+        // Extract worker name from toolId (format: "create-worker-{name}")
+        const workerName =
+          toolId.replace(/^create-worker-/, "") || "hello-world";
+
+        // Mock processing delay, then transition to completed and fire A/B panels
+        setTimeout(() => {
+          updateToolMessageStatus(toolId, "completed");
+
+          // Follow-up prompt referencing the approved worker + CloudflareLogo.
+          // Deliberately avoids "create...worker" phrasing so it won't re-enter
+          // the tool middleware intercept in handleSubmit.
+          const followUp =
+            `Generate a deployment dashboard for the "${workerName}" Workers script. ` +
+            `Include CloudflareLogo at the top, a heading with the script name, ` +
+            `status Badge, and a Table of recent deployments.`;
+
+          handleSubmitRef.current(undefined, followUp);
+        }, 800);
+
         return;
       }
 

@@ -105,7 +105,7 @@
         "Both panels stream LLM-generated UI independently via existing infrastructure",
         "Panel A uses full system prompt, Panel B uses baseline prompt (unchanged behavior)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "pill-1",
