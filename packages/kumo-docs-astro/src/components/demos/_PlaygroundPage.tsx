@@ -68,6 +68,7 @@ import {
   CircleIcon,
   CopyIcon,
   PaperPlaneRightIcon,
+  SidebarSimpleIcon,
   SpinnerIcon,
   StopCircleIcon,
   WarningCircleIcon,
@@ -176,6 +177,13 @@ interface ChatMessage {
   readonly content: string;
 }
 
+/** Skill metadata fetched from /api/chat/skills (client-side mirror of SkillMeta). */
+interface SkillInfo {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+}
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -281,6 +289,10 @@ function PlaygroundContent() {
   const [leftTab, setLeftTab] = useState<PanelTab>("preview");
   const [rightTab, setRightTab] = useState<PanelTab>("preview");
 
+  // --- Chat sidebar collapse state ---
+  const [chatMinimized, setChatMinimized] = useState(false);
+  const toggleChat = useCallback(() => setChatMinimized((v) => !v), []);
+
   // --- Streaming state ---
   const [status, setStatus] = useState<StreamStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -312,7 +324,66 @@ function PlaygroundContent() {
         if (prompt !== null) setSystemPromptText(prompt);
       })
       .catch(() => {
-        /* ignore — prompt view will show fallback */
+        /* ignore �� prompt view will show fallback */
+      });
+    return () => controller.abort();
+  }, []);
+
+  // --- Skill picker state ---
+  const [skills, setSkills] = useState<readonly SkillInfo[]>([]);
+  const [pendingSkillIds, setPendingSkillIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const [appliedSkillIds, setAppliedSkillIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+
+  // Fetch skill metadata on mount.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/chat/skills", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data: unknown = await res.json();
+        if (
+          typeof data === "object" &&
+          data !== null &&
+          "skills" in data &&
+          Array.isArray((data as { skills: unknown }).skills)
+        ) {
+          const raw = (data as { skills: unknown[] }).skills;
+          const parsed: SkillInfo[] = [];
+          for (const item of raw) {
+            if (
+              typeof item === "object" &&
+              item !== null &&
+              "id" in item &&
+              "name" in item &&
+              "description" in item
+            ) {
+              const s = item as {
+                id: unknown;
+                name: unknown;
+                description: unknown;
+              };
+              if (
+                typeof s.id === "string" &&
+                typeof s.name === "string" &&
+                typeof s.description === "string"
+              ) {
+                parsed.push({
+                  id: s.id,
+                  name: s.name,
+                  description: s.description,
+                });
+              }
+            }
+          }
+          setSkills(parsed);
+        }
+      })
+      .catch(() => {
+        /* ignore — skill picker will be empty */
       });
     return () => controller.abort();
   }, []);
@@ -722,6 +793,8 @@ function PlaygroundContent() {
         onCancel={handleCancel}
         messagesEndRef={messagesEndRef}
         presets={PRESET_PROMPTS}
+        minimized={chatMinimized}
+        onToggleMinimize={toggleChat}
       />
 
       {/* Right: side-by-side panels */}
@@ -866,7 +939,7 @@ function ComparisonPanels({
       {/* Left panel: Hardcoded Prompts */}
       <GridItem className="flex min-w-0 flex-col border-r border-kumo-line overflow-hidden">
         <PanelHeader
-          label="Hardcoded Prompts"
+          label="A"
           tabs={PANEL_TABS}
           activeTab={leftTab}
           onTabChange={(v) => {
@@ -892,7 +965,7 @@ function ComparisonPanels({
       {/* Right panel: Experiment */}
       <GridItem className="flex min-w-0 flex-col overflow-hidden">
         <PanelHeader
-          label="Experiment"
+          label="B"
           tabs={PANEL_TABS}
           activeTab={rightTab}
           onTabChange={(v) => {
@@ -1767,6 +1840,8 @@ interface PlaygroundChatSidebarProps {
   readonly onCancel: () => void;
   readonly messagesEndRef: React.RefObject<HTMLDivElement | null>;
   readonly presets: typeof PRESET_PROMPTS;
+  readonly minimized: boolean;
+  readonly onToggleMinimize: () => void;
 }
 
 /** Right-hand chat panel: model selector, messages, input. */
@@ -1782,6 +1857,8 @@ function PlaygroundChatSidebar({
   onCancel,
   messagesEndRef,
   presets,
+  minimized,
+  onToggleMinimize,
 }: PlaygroundChatSidebarProps) {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1797,12 +1874,36 @@ function PlaygroundChatSidebar({
   const turnCount = messages.length;
   const hasMessages = messages.length > 0;
 
+  // --- Minimized strip: just a narrow column with expand button + status ---
+  if (minimized) {
+    return (
+      <aside
+        className="hidden md:flex h-full w-12 shrink-0 flex-col items-center border-r border-kumo-line bg-kumo-overlay py-3 gap-3"
+        aria-label="Chat sidebar (minimized)"
+      >
+        <button
+          type="button"
+          onClick={onToggleMinimize}
+          className="flex size-8 items-center justify-center rounded-md text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
+          aria-label="Expand chat"
+        >
+          <SidebarSimpleIcon size={18} />
+        </button>
+        {status !== "idle" && (
+          <span className={`flex items-center ${statusInfo.className}`}>
+            {statusInfo.icon}
+          </span>
+        )}
+      </aside>
+    );
+  }
+
   return (
     <aside
       className="hidden md:flex h-full w-[380px] shrink-0 flex-col border-r border-kumo-line bg-kumo-overlay"
       aria-label="Chat sidebar"
     >
-      {/* Header: model selector + status — h-[61px] matches left panel tab bar */}
+      {/* Header: model selector + minimize toggle — h-[61px] matches left panel tab bar */}
       <div className="flex h-[61px] shrink-0 items-center gap-2 px-4">
         <div className="flex-1">
           <Select
@@ -1820,18 +1921,20 @@ function PlaygroundChatSidebar({
             ))}
           </Select>
         </div>
-        <span
-          className={`flex items-center gap-1.5 text-xs ${statusInfo.className}`}
-        >
-          {statusInfo.icon}
-          {statusInfo.label}
-        </span>
         {turnCount > 0 && (
           <span className="text-xs text-kumo-subtle">
             {Math.ceil(turnCount / 2)}{" "}
             {Math.ceil(turnCount / 2) === 1 ? "turn" : "turns"}
           </span>
         )}
+        <button
+          type="button"
+          onClick={onToggleMinimize}
+          className="flex size-7 items-center justify-center rounded-md text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
+          aria-label="Minimize chat"
+        >
+          <SidebarSimpleIcon size={16} />
+        </button>
       </div>
 
       {/* Messages area */}
