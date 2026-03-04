@@ -1,6 +1,12 @@
+import { createRequestHandler } from "react-router";
 import { KumoPlaygroundMCP } from "./mcp/index.js";
 
 export { KumoPlaygroundMCP };
+
+const requestHandler = createRequestHandler(
+  () => import("virtual:react-router/server-build"),
+  import.meta.env.MODE,
+);
 
 export default {
   fetch: async (request: Request, env: Env, ctx: ExecutionContext) => {
@@ -12,6 +18,9 @@ export default {
       }).fetch(request, env, ctx);
     }
 
-    return new Response("Not Found", { status: 404 });
+    // Fall through to React Router for all other routes (iframe UI pages).
+    return requestHandler(request, {
+      cloudflare: { env, ctx },
+    });
   },
 };

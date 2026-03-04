@@ -13,6 +13,7 @@ Started: 2026-03-04
 - postMessage runtime validation pattern: `isRecord()` guard + reconstruct typed object in `parseIframeMessage()` — avoids domain-level `as` casts on untrusted `event.data`
 - Use `.js` extension for local imports (ESM convention with `moduleResolution: "bundler"`)
 - `createUIResource` is sync — returns `UIResource` not `Promise`. Metadata keys prefixed `mcpui.dev/ui-`
+- React Router + Cloudflare Worker pattern: `reactRouter()` vite plugin + `createRequestHandler(() => import("virtual:react-router/server-build"))` as fallback in Worker fetch. Needs `strip-typegen-imports` plugin for `+types/` stubs, `types/react-router.d.ts` with `export =` for virtual module, `react-router.config.ts` with `ssr: true` + `v8_viteEnvironmentApi: true`
 - MCP streamable HTTP requires `Accept: application/json, text/event-stream` — both needed or -32000 error
 - Dual tsconfig for kumo-mcp: `tsconfig.json` (worker, no DOM) + `tsconfig.app.json` (iframe app, DOM + JSX). `typecheck` script runs both sequentially.
 - postMessage settle pattern: wrap resolve/reject in `settle()` guard to prevent double-resolution from timeout vs message race
@@ -77,3 +78,11 @@ Started: 2026-03-04
 - Types exported: `IframeToolMessage`, `IframePromptMessage`, `IframeLinkMessage`, `IframeActionMessage`, `SizeChangeMessage`, `RenderDataResponse`, `ActionResponse`, etc.
 - Files changed: `src/lib/mcp-host.ts` (new)
 - **Learnings:** postMessage `event.data` is `unknown` at runtime — use a `parseIframeMessage` validator that reconstructs typed objects rather than casting. Discriminated unions on `msg.type` let switch-case narrow payload types without assertions. `isRecord()` type guard (`value is Record<string, unknown>`) is the clean pattern for narrowing `unknown` → indexable object.
+
+## Task - iframe-app-1
+- Added React Router scaffold to `packages/kumo-mcp/` — full SSR iframe app served by Worker
+- New files: `react-router.config.ts`, `app/routes.ts`, `app/root.tsx`, `app/entry.server.tsx`, `app/routes/ui/create-worker-confirm.tsx`, `types/react-router.d.ts`
+- Updated: `vite.config.ts` (+reactRouter, +tsconfigPaths, +strip-typegen-imports plugin), `worker/index.ts` (createRequestHandler fallback for non-/mcp routes), `tsconfig.app.json` (+vite/client types, +rootDirs for .react-router/types), `package.json` (+react-router, +@react-router/dev, +isbot, +vite-tsconfig-paths)
+- Route exports `clientLoader` → `waitForRenderData(renderDataSchema)` where schema validates `{ workerName, toolId }`, `HydrateFallback` with SVG spinner + "Waiting for render data...", default component renders confirmation card using `useLoaderData<RenderData>()`
+- `useMcpUiInit(rootRef)` wired in default component for iframe dimension reporting
+- **Learnings:** `virtual:react-router/server-build` module declaration needs `export = serverBuild` (CJS-style) for `() => import()` to resolve to `Promise<ServerBuild>` — `export default` wraps in a namespace object that doesn't satisfy the type. `strip-typegen-imports` Vite plugin needed to stub `+types/` imports that React Router generates at build time but don't exist on disk during dev/typecheck.
