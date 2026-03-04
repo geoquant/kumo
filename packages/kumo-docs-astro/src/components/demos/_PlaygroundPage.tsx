@@ -671,6 +671,46 @@ function PlaygroundContent() {
     });
   }, []);
 
+  // --- Action handler (chat sidebar tool cards) ---
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+
+  const handleToolAction = useCallback((event: ActionEvent) => {
+    // Find the tool message whose tree originated the action.
+    // The event's params.toolId identifies which tool message to target.
+    const toolId =
+      typeof event.params?.toolId === "string" ? event.params.toolId : null;
+    const toolMsg = toolId
+      ? messagesRef.current.find(
+          (m): m is ToolChatMessage => m.role === "tool" && m.toolId === toolId,
+        )
+      : undefined;
+    if (toolMsg == null) return;
+
+    const result = dispatchAction(PLAYGROUND_HANDLERS, event, toolMsg.tree);
+    if (result === null) return;
+    processActionResult(result, {
+      applyPatches: () => {
+        // Tool cards are static — no patch application needed.
+      },
+      sendMessage: (content: string) => {
+        handleSubmitRef.current(undefined, content);
+      },
+      openExternal: (url: string, target: string) => {
+        try {
+          const parsed = new URL(url, window.location.href);
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return;
+          }
+        } catch {
+          return;
+        }
+        const safeTarget = target === "_self" ? "_self" : "_blank";
+        window.open(url, safeTarget, "noopener,noreferrer");
+      },
+    });
+  }, []);
+
   // "No prompt" tree — separate instance with its own action handler
   const noPromptRuntimeValueStore = useRuntimeValueStore();
   const {
@@ -1058,6 +1098,7 @@ function PlaygroundContent() {
         presets={PRESET_PROMPTS}
         minimized={chatMinimized}
         onToggleMinimize={toggleChat}
+        onToolAction={handleToolAction}
       />
 
       {/* Right: side-by-side panels */}
@@ -2221,6 +2262,8 @@ interface PlaygroundChatSidebarProps {
   readonly presets: typeof PRESET_PROMPTS;
   readonly minimized: boolean;
   readonly onToggleMinimize: () => void;
+  /** Action handler for inline tool confirmation cards (UITreeRenderer buttons). */
+  readonly onToolAction: (event: ActionEvent) => void;
 }
 
 /** Right-hand chat panel: model selector, messages, input. */
@@ -2238,6 +2281,7 @@ function PlaygroundChatSidebar({
   presets,
   minimized,
   onToggleMinimize,
+  onToolAction,
 }: PlaygroundChatSidebarProps) {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -2326,28 +2370,41 @@ function PlaygroundChatSidebar({
           </div>
         )}
 
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={
-              msg.role === "user" ? "flex justify-end" : "flex justify-start"
-            }
-          >
+        {messages.map((msg, i) =>
+          msg.role === "tool" ? (
+            <div key={i} className="w-full overflow-hidden">
+              <UITreeRenderer
+                tree={msg.tree}
+                streaming={false}
+                customComponents={CUSTOM_COMPONENTS}
+                onAction={onToolAction}
+              />
+            </div>
+          ) : (
             <div
+              key={i}
               className={
-                msg.role === "user"
-                  ? "max-w-[85%] rounded-lg bg-kumo-brand px-3 py-2 text-sm text-white"
-                  : "max-w-[85%] rounded-lg bg-kumo-elevated border border-kumo-line px-3 py-2 text-sm text-kumo-default"
+                msg.role === "user" ? "flex justify-end" : "flex justify-start"
               }
             >
-              {msg.role === "assistant" ? (
-                <AssistantMessageSummary content={msg.content} />
-              ) : msg.role === "user" ? (
-                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-              ) : null}
+              <div
+                className={
+                  msg.role === "user"
+                    ? "max-w-[85%] rounded-lg bg-kumo-brand px-3 py-2 text-sm text-white"
+                    : "max-w-[85%] rounded-lg bg-kumo-elevated border border-kumo-line px-3 py-2 text-sm text-kumo-default"
+                }
+              >
+                {msg.role === "assistant" ? (
+                  <AssistantMessageSummary content={msg.content} />
+                ) : (
+                  <p className="whitespace-pre-wrap break-words">
+                    {msg.content}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ),
+        )}
 
         {/* Streaming indicator in chat */}
         {isStreaming && (
