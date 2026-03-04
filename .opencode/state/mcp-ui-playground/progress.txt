@@ -111,3 +111,15 @@ Started: 2026-03-04
 - Inline SVG components (StatusOverlay, Spinner, CheckIcon) — avoids @phosphor-icons/react bundle cost
 - Files changed: `app/routes/ui/create-worker-confirm.tsx` (added sendMcpMessage import, executeResultSchema, action wiring, overlay rendering, 3 helper components)
 - **Learnings:** `sendMcpMessage` already handles messageId correlation + timeout + Zod validation — just need to provide schema and handle the promise. Cancel is best-effort (host may not register a `cancel_tool` handler, so `.catch(() => {})` swallows the error). Inline SVGs keep bundle small vs importing icon libraries for 2 icons.
+
+## Task - host-1
+- Created `McpToolIframe` React component at `packages/kumo-docs-astro/src/components/McpToolIframe.tsx`
+- Props: `src`, `renderData`, `status` (ToolIframeStatus), `onToolAction`, `onStatusChange`
+- Renders `<iframe sandbox="allow-scripts allow-same-origin">` with dynamic height from `onResize` callback
+- Sets up `createIframeMessageHandler` on mount → handles render data delivery, tool message forwarding, size changes; cleans up listener on unmount
+- Callback ref pattern (`onToolActionRef`) avoids re-running the effect when parent re-renders with new inline closures
+- Status-based CSS matches existing `_PlaygroundPage.tsx` patterns: streaming = loader placeholder + hidden iframe, cancelled = opacity-50 + line-through + pointer-events-none, applying = semi-transparent overlay + Loader, completed = overlay + CheckIcon + "Applied"
+- Streaming state renders a placeholder above the iframe (which is `sr-only` + height:0); once status transitions past streaming, iframe becomes visible at reported height
+- Exported types: `ToolIframeStatus`, `ToolActionPayload`, `McpToolIframeProps`
+- Files changed: `src/components/McpToolIframe.tsx` (new)
+- **Learnings:** `createIframeMessageHandler` handles the render-data lifecycle internally — just pass `renderData` in config and the handler replies to `ui-lifecycle-iframe-ready` automatically. The `onToolCall` return value becomes the correlated `ui-message-response` payload — returning `undefined` works for now since the host-2 MCP proxy will provide real responses. Astro `~/` path alias works at build time even if LSP shows errors — `astro check` is the authoritative typecheck.

@@ -149,11 +149,11 @@
         "Renders <iframe src={src} sandbox='allow-scripts allow-same-origin'>",
         "Sets up createIframeMessageHandler on mount, cleans up on unmount",
         "Handles iframe ready → sends render data",
-        "Handles tool messages → calls onToolAction prop",
+        "Handles tool messages ��� calls onToolAction prop",
         "Handles size changes → adjusts iframe height",
         "Applies status-based CSS: streaming shows loader, cancelled shows opacity, applying shows overlay"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "host-2",
