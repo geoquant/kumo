@@ -120,6 +120,7 @@
       "passes": false
     }
   ],
+  "branch": "geoquant/streaming-ui",
   "context": {
     "patterns": [
       "Preset prompts: _PlaygroundPage.tsx lines 229-268, array of { label, prompt }",
