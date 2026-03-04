@@ -22,7 +22,7 @@
         "Applying patches to an empty UITree produces a tree with: Surface root, 'Verify this change' Text, 'Create new Worker script named' Text + Badge 'hello-world', Cancel Button (variant outline, action tool_cancel), Approve Button (action tool_approve)",
         "Both buttons have action.params.toolId set"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "actions-1",

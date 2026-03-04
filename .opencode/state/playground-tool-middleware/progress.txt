@@ -11,6 +11,7 @@ Started: 2026-03-04
 - Pre-existing typecheck errors in shiki/echarts modules — ignore
 - `streamPanelB` sends history to API — must filter to TextChatMessage only
 - Chat message rendering at ~line 2170, must handle all 3 roles explicitly
+- JSONL generator pattern: build `readonly object[]` of RFC 6902 ops, `JSON.stringify` each, `.join("\n")`; feed to parser with trailing `\n` or use `flush()`
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -23,3 +24,13 @@ Started: 2026-03-04
 - Filtered tool messages from API history (streamPanelB + baseBody)
 - Files changed: _PlaygroundPage.tsx
 - **Learnings:** Discriminated union requires explicit narrowing at all usage sites; the `else` branch of `role === "assistant"` previously assumed user, now must check explicitly
+
+## Task - generator-1
+- Added `generateCreateWorkerConfirmation(workerName)` function that returns JSONL (newline-delimited RFC 6902 patches)
+- Builds UITree: Surface → Text heading ("Verify this change") → Cluster (Text + Badge workerName) → Stack (Cancel + Approve buttons)
+- Cancel button: variant outline, action `tool_cancel` with `params.toolId`
+- Approve button: variant primary, action `tool_approve` with `params.toolId`
+- toolId format: `create-worker-{workerName}`
+- End-to-end verified: JSONL → createJsonlParser → applyPatch → correct UITree with 8 elements
+- Files changed: _PlaygroundPage.tsx
+- **Learnings:** JSONL generator is just JSON.stringify per line joined with \n; parsePatchLine needs trailing \n for push() to emit (or use flush()); `readonly object[]` type is sufficient for the lines array
