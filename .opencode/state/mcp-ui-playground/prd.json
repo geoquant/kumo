@@ -69,7 +69,7 @@
         "waitForRenderData validates renderData with Zod schema",
         "All postMessage types are TypeScript-typed (no any)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "protocol-2",
