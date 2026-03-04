@@ -10,8 +10,10 @@
     "pretypecheck": "wrangler types ./types/worker-configuration.d.ts"
   },
   "dependencies": {
+    "@cloudflare/kumo": "workspace:*",
     "@mcp-ui/server": "^5.16.1",
     "@modelcontextprotocol/sdk": "1.23.0",
+    "@phosphor-icons/react": "catalog:",
     "agents": "^0.2.30",
     "ai": "^6.0.113",
     "isbot": "catalog:",
@@ -23,9 +25,11 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "catalog:",
     "@react-router/dev": "catalog:",
+    "@tailwindcss/vite": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-tsconfig-paths": "catalog:",

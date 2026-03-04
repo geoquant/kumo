@@ -1,7 +1,13 @@
-import { useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLoaderData } from "react-router";
 import { z } from "zod";
+import type { UITree, ActionDispatch } from "@cloudflare/kumo/streaming";
+import { UITreeRenderer } from "@cloudflare/kumo/generative";
 import { waitForRenderData, useMcpUiInit } from "../../utils/mcp.js";
+import {
+  streamConfirmationCard,
+  type ConfirmationCardStatus,
+} from "../../utils/stream-confirmation-card.js";
 
 // ---------------------------------------------------------------------------
 // Render data schema — matches uiMetadata from create_worker tool
@@ -78,32 +84,130 @@ export function HydrateFallback() {
 }
 
 // ---------------------------------------------------------------------------
-// Default component — renders confirmation card with worker name
+// Empty tree constant (avoids importing EMPTY_TREE to keep bundle small)
+// ---------------------------------------------------------------------------
+
+const EMPTY_TREE: UITree = { root: "", elements: {} };
+
+// ---------------------------------------------------------------------------
+// Default component — streams confirmation card from AI, renders via
+// UITreeRenderer, manages status lifecycle.
 // ---------------------------------------------------------------------------
 
 export default function CreateWorkerConfirm() {
   const { workerName, toolId } = useLoaderData<RenderData>();
   const rootRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const [tree, setTree] = useState<UITree>(EMPTY_TREE);
+  const [status, setStatus] = useState<ConfirmationCardStatus>("streaming");
 
   useMcpUiInit(rootRef);
 
-  return (
-    <div ref={rootRef} data-tool-id={toolId} style={{ padding: "1rem" }}>
-      <div
-        style={{
-          border: "1px solid #e2e8f0",
-          borderRadius: 8,
-          padding: "1.5rem",
-          fontFamily: "system-ui, -apple-system, sans-serif",
-        }}
-      >
-        <h2 style={{ margin: "0 0 0.5rem", fontSize: 18, fontWeight: 600 }}>
-          Create Worker
-        </h2>
-        <p style={{ margin: "0 0 1rem", color: "#64748b", fontSize: 14 }}>
-          Ready to create worker <strong>{workerName}</strong>
-        </p>
+  // -------------------------------------------------------------------------
+  // Stream the confirmation card from the AI on mount
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    void streamConfirmationCard(
+      {
+        message: `Create a worker named "${workerName}"`,
+        toolId,
+        signal: controller.signal,
+      },
+      {
+        onTreeUpdate: (updatedTree) => {
+          setTree(updatedTree);
+        },
+        onComplete: (finalTree) => {
+          setTree(finalTree);
+          setStatus("pending");
+        },
+        onError: (error, partialTree) => {
+          // If we got a partial tree with content, show it in pending state
+          // so the user can still interact. Otherwise show error.
+          const hasContent =
+            partialTree.root !== "" &&
+            Object.keys(partialTree.elements).length > 0;
+
+          setTree(partialTree);
+          setStatus(hasContent ? "pending" : "error");
+
+          if (!hasContent) {
+            console.error("[create-worker-confirm] stream error:", error);
+          }
+        },
+      },
+    );
+
+    return () => {
+      controller.abort();
+    };
+  }, [workerName, toolId]);
+
+  // -------------------------------------------------------------------------
+  // Action handler — receives UITreeRenderer action events
+  // (tool_approve / tool_cancel from the rendered card buttons)
+  // -------------------------------------------------------------------------
+
+  const handleAction = useCallback<ActionDispatch>(
+    (event) => {
+      // Only allow actions when the card is in pending state
+      if (status !== "pending") return;
+
+      if (event.actionName === "tool_approve") {
+        setStatus("applying");
+        // iframe-app-3 will wire approve → sendMcpMessage to host
+      } else if (event.actionName === "tool_cancel") {
+        setStatus("cancelled");
+        // iframe-app-3 will wire cancel → notify host
+      }
+    },
+    [status],
+  );
+
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
+
+  const isStreaming = status === "streaming";
+  const hasTree = tree.root !== "" && Object.keys(tree.elements).length > 0;
+
+  if (status === "error" && !hasTree) {
+    return (
+      <div ref={rootRef} data-tool-id={toolId} style={{ padding: "1rem" }}>
+        <div
+          style={{
+            border: "1px solid #ef4444",
+            borderRadius: 8,
+            padding: "1.5rem",
+            fontFamily: "system-ui, -apple-system, sans-serif",
+            color: "#ef4444",
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 14 }}>
+            Failed to load confirmation card. Please try again.
+          </p>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div ref={rootRef} data-tool-id={toolId}>
+      {hasTree ? (
+        <UITreeRenderer
+          tree={tree}
+          streaming={isStreaming}
+          onAction={status === "pending" ? handleAction : undefined}
+        />
+      ) : (
+        // Show spinner while streaming before any tree content arrives
+        <HydrateFallback />
+      )}
     </div>
   );
 }
