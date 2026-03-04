@@ -1,6 +1,7 @@
 # Progress Log
 PRD: playground-tool-middleware
 Started: 2026-03-04
+**CRITICAL: All work MUST be on branch `geoquant/streaming-ui`. Do NOT use `playground-tool-middleware` branch.**
 
 ## Codebase Patterns
 - ChatMessage is discriminated union on `role` field — narrow before accessing role-specific fields
