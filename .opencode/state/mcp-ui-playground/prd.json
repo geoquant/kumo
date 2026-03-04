@@ -81,7 +81,7 @@
         "On mount, reads rootRef dimensions and posts { type: 'ui-size-change', payload: { height, width } }",
         "Hook cleans up properly on unmount"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "protocol-3",

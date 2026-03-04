@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { type z } from "zod";
 
 // ---------------------------------------------------------------------------
@@ -253,4 +254,77 @@ export function waitForRenderData<RenderData>(
       );
     }, timeoutMs);
   });
+}
+
+// ---------------------------------------------------------------------------
+// useMcpUiInit — signal readiness + report dimensions on mount
+// ---------------------------------------------------------------------------
+
+/** Post to parent if inside an iframe; no-op at top level. */
+function postToParent(message: LifecycleReadyMessage | SizeChangeMessage) {
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage(message, "*");
+  }
+}
+
+/**
+ * React hook that signals iframe readiness and reports initial dimensions.
+ *
+ * On mount:
+ *  1. Posts `{ type: "ui-lifecycle-iframe-ready" }` to the host.
+ *  2. Reads `rootRef.current` dimensions and posts
+ *     `{ type: "ui-size-change", payload: { height, width } }`.
+ *
+ * On unmount:
+ *  - Disconnects the `ResizeObserver` (if created).
+ *
+ * A `ResizeObserver` is attached so subsequent layout changes also notify the
+ * host, not only the initial dimensions.
+ */
+export function useMcpUiInit(
+  rootRef: React.RefObject<HTMLDivElement | null>,
+): void {
+  // Keep a stable ref so the effect cleanup can access the latest element
+  // without re-running when the ref identity changes.
+  const elementRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    // 1. Signal readiness.
+    postToParent({ type: "ui-lifecycle-iframe-ready" });
+
+    const el = rootRef.current;
+    elementRef.current = el;
+
+    if (!el) return;
+
+    // 2. Report initial dimensions.
+    function reportSize(target: HTMLDivElement) {
+      const sizeMsg: SizeChangeMessage = {
+        type: "ui-size-change",
+        payload: {
+          height: target.clientHeight,
+          width: target.clientWidth,
+        },
+      };
+      postToParent(sizeMsg);
+    }
+
+    reportSize(el);
+
+    // 3. Observe future resizes so the host stays in sync.
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === el) {
+          reportSize(el);
+        }
+      }
+    });
+
+    observer.observe(el);
+
+    // Cleanup: disconnect observer on unmount.
+    return () => {
+      observer.disconnect();
+    };
+  }, [rootRef]);
 }

@@ -380,6 +380,12 @@ importers:
       ai:
         specifier: ^6.0.113
         version: 6.0.113(zod@3.25.76)
+      react:
+        specifier: 'catalog:'
+        version: 19.2.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.0(react@19.2.0)
       zod:
         specifier: ^3.25.67
         version: 3.25.76
@@ -390,6 +396,12 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.4
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.3(@types/react@19.2.4)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

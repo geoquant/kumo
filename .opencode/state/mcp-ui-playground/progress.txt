@@ -56,3 +56,12 @@ Started: 2026-03-04
 - Added `tsconfig.app.json` for iframe code (DOM + JSX libs), updated `package.json` typecheck to run both tsconfigs
 - Files changed: `app/utils/mcp.ts` (new), `tsconfig.app.json` (new), `package.json` (typecheck script)
 - **Learnings:** Worker code (no DOM) and iframe app code (DOM) need separate tsconfigs. `settle()` guard pattern prevents double-resolve race between timeout and message handler.
+
+## Task - protocol-2
+- Added `useMcpUiInit(rootRef)` hook to `app/utils/mcp.ts`
+- On mount: posts `ui-lifecycle-iframe-ready` + reads `clientHeight`/`clientWidth` and posts `ui-size-change`
+- Added `ResizeObserver` to report subsequent layout changes (not just initial), disconnects on unmount
+- Helper `postToParent()` guards against top-level (non-iframe) context
+- Added `react`, `react-dom` as deps + `@types/react`, `@types/react-dom` as devDeps (via `catalog:`)
+- Files changed: `app/utils/mcp.ts` (added hook + import), `package.json` (+react deps)
+- **Learnings:** Inspo hook has no cleanup — adding `ResizeObserver.disconnect()` in the effect teardown is essential for proper unmount. `useRef` for stable element ref avoids stale closure in observer callback.
