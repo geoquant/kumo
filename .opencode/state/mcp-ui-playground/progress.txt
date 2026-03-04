@@ -1,0 +1,18 @@
+# Progress Log
+PRD: mcp-ui-playground
+Started: 2026-03-04
+**CRITICAL: All work MUST be on branch `geoquant/streaming-ui`. Do NOT create new branches or use `main`.**
+
+## Codebase Patterns
+- `agents` pins `@modelcontextprotocol/sdk` at `1.23.0` — must match exact version or types diverge (private property clash in `Server`)
+- Wrangler `pretypecheck` script generates `types/worker-configuration.d.ts` — file must NOT pre-exist or wrangler errors with "non-Wrangler worker-configuration.d.ts already exists"
+- `pnpm-workspace.yaml` uses `packages/*` glob — new packages auto-register, use `catalog:` for shared deps
+- McpAgent pattern: extend `McpAgent<Env, State>`, set `server = new McpServer(...)`, implement `async init()`, route via `ClassName.serve('/path', { binding })` in fetch handler
+
+---
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - scaffold-1
+- Created `packages/kumo-mcp/` with Worker entrypoint, wrangler.jsonc, package.json, tsconfig.json, vite.config.ts
+- Files: `worker/index.ts` (KumoPlaygroundMCP class + default fetch handler), `wrangler.jsonc` (DO binding + SQLite migration), `package.json` (agents, @modelcontextprotocol/sdk@1.23.0, @mcp-ui/server, @cloudflare/vite-plugin, zod), `tsconfig.json`, `vite.config.ts`, `types/worker-configuration.d.ts` (wrangler-generated)
+- **Learnings:** `@modelcontextprotocol/sdk` version MUST match what `agents` pins (1.23.0) or McpServer types diverge. `@mcp-ui/server` wants `^1.25.1` which may cause issues in tool-1 — may need to relax SDK version or use older mcp-ui/server.

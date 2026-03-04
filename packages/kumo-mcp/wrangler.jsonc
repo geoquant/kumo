@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "kumo-mcp",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-04-04",
+  "compatibility_flags": ["nodejs_compat"],
+  "migrations": [
+    {
+      "new_sqlite_classes": ["KumoPlaygroundMCP"],
+      "tag": "v1",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "KumoPlaygroundMCP",
+        "name": "KUMO_MCP_OBJECT",
+      },
+    ],
+  },
+  "observability": {
+    "enabled": true,
+  },
+}
