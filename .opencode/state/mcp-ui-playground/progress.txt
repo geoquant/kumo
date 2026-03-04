@@ -100,3 +100,14 @@ Started: 2026-03-04
 - Error state renders fallback if stream fails without partial content; partial tree shown in pending state
 - Files changed: `app/utils/stream-confirmation-card.ts` (new), `app/utils/read-sse-stream.ts` (new), `app/app.css` (new), `app/routes/ui/create-worker-confirm.tsx` (rewritten), `app/root.tsx` (+css import), `vite.config.ts` (+tailwindcss plugin), `package.json` (+kumo, +phosphor, +tailwind deps)
 - **Learnings:** `@cloudflare/kumo/streaming` exports `createJsonlParser`, `applyPatch`, `EMPTY_TREE`, `ActionDispatch` — all needed for iframe streaming. `@cloudflare/kumo/generative` exports `UITreeRenderer`. `readSSEStream` is a docs-site utility, not exported from any package — needs to be copied. Kumo CSS requires both `@cloudflare/kumo/styles` and `tailwindcss` imports with `@source` directives pointing to kumo dist.
+
+## Task - iframe-app-3
+- Wired `tool_approve` action → `sendMcpMessage("tool", { toolName: "execute_create_worker", params: { workerName } }, { schema: executeResultSchema })` with Zod validation of `{ structuredContent: { success, workerName, createdAt } }`
+- On success (`structuredContent.success === true`): status → `completed` with green CheckIcon overlay
+- On failure or error: reverts to `pending` so user can retry
+- Wired `tool_cancel` action → `sendMcpMessage("tool", { toolName: "cancel_tool", params: { toolId } })` fire-and-forget + status → `cancelled`
+- Status-based overlays: `applying` = semi-transparent white overlay + animated spinner, `completed` = overlay + green check circle, `cancelled` = card opacity 0.5 + pointer-events-none
+- Only `pending` status allows button interaction (pointer-events-none on all other states)
+- Inline SVG components (StatusOverlay, Spinner, CheckIcon) — avoids @phosphor-icons/react bundle cost
+- Files changed: `app/routes/ui/create-worker-confirm.tsx` (added sendMcpMessage import, executeResultSchema, action wiring, overlay rendering, 3 helper components)
+- **Learnings:** `sendMcpMessage` already handles messageId correlation + timeout + Zod validation — just need to provide schema and handle the promise. Cancel is best-effort (host may not register a `cancel_tool` handler, so `.catch(() => {})` swallows the error). Inline SVGs keep bundle small vs importing icon libraries for 2 icons.
