@@ -54,7 +54,7 @@
         "Execution takes ~800ms (mock delay)",
         "Calling tools/call with name=execute_create_worker via MCP client returns structured result"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "protocol-1",
