@@ -20,6 +20,7 @@ Started: 2026-03-04
 - Dual tsconfig for kumo-mcp: `tsconfig.json` (worker, no DOM) + `tsconfig.app.json` (iframe app, DOM + JSX). `typecheck` script runs both sequentially.
 - postMessage settle pattern: wrap resolve/reject in `settle()` guard to prevent double-resolution from timeout vs message race
 - Host→iframe status delegation: McpToolIframe manages `status` as a prop from host. Iframe signals readiness via first non-zero `ui-size-change` → `onStatusChange("pending")`. Host manages the FSM (streaming→pending→applying→completed/cancelled), iframe renders autonomously within that frame
+- MCP proxy UI resource extraction: `extractUIResource` in `mcp-proxy.ts` parses MCP content array → finds `type: "resource"` with `mimeType: "text/uri-list"` → resolves iframe URL against `MCP_BASE_URL` → extracts render data from `_meta["mcpui.dev/ui-initial-render-data"]`. Proxy returns convenience `iframeUrl` + `renderData` fields so clients stay decoupled from MCP content structure
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -151,3 +152,13 @@ Started: 2026-03-04
 - `ToolMessageStatus` aliased to `ToolIframeStatus` — avoids type drift between two identical unions
 - Files changed: `src/components/demos/_PlaygroundPage.tsx` (major), `src/components/McpToolIframe.tsx` (minor)
 - **Learnings:** Iframe delegation simplifies host dramatically — 120+ lines of streaming pipeline reduced to 10 lines of message creation. The `onStatusChange` callback on McpToolIframe provides the clean signal for streaming→pending transition when iframe first reports dimensions. Tool actions now flow as `ToolActionPayload` (toolName + params) rather than `ActionEvent` — cleaner separation between host action routing and iframe-internal action dispatching.
+
+## Task - flow-1
+- Wired `handleSubmit` intercept to call `/api/mcp-proxy` with `toolName=create_worker, params={workerName}` instead of hardcoding iframe URL and render data
+- Added `extractUIResource` helper to `mcp-proxy.ts` — extracts `iframeUrl` (resolved against `MCP_BASE_URL`) and `renderData` from MCP UI resource content, so clients don't need to understand `mcpui.dev/ui-` key prefixes
+- Proxy now returns `{ content, iframeUrl, renderData }` — convenience fields alongside raw MCP content
+- `handleSubmit` tool intercept: shows user message immediately, then fires async proxy call (fire-and-forget IIFE matching existing stream pattern), creates `ToolChatMessage` with dynamic values from proxy response
+- Error handling: surfaces MCP proxy failures as assistant messages in chat
+- Added `isRecord` type guard to `_PlaygroundPage.tsx` for safe `unknown` narrowing
+- Files changed: `src/pages/api/mcp-proxy.ts` (+extractUIResource, +convenience fields), `src/components/demos/_PlaygroundPage.tsx` (+isRecord, async proxy call in handleSubmit)
+- **Learnings:** MCP proxy is the right layer to resolve relative iframe URLs against `MCP_BASE_URL` — avoids exposing infrastructure config to the client. `createUIResource` with `externalUrl` type stores the iframe URL in `resource.text` with `mimeType: "text/uri-list"`. The `_meta` key format is `mcpui.dev/ui-{key}` (e.g. `mcpui.dev/ui-initial-render-data`). Fire-and-forget IIFE pattern (`void (async () => { ... })()`) is the cleanest way to add async behavior in a synchronous `useCallback`.

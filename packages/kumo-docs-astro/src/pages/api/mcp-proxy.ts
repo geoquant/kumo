@@ -212,6 +212,63 @@ async function parseSseResponse(response: Response): Promise<unknown> {
 }
 
 // ---------------------------------------------------------------------------
+// UI resource extraction
+// ---------------------------------------------------------------------------
+
+/** Prefix used by @mcp-ui/server for uiMetadata keys in `_meta`. */
+const MCPUI_META_PREFIX = "mcpui.dev/ui-";
+
+interface UIResourceInfo {
+  readonly iframeUrl: string;
+  readonly renderData: Record<string, unknown>;
+}
+
+/**
+ * Extract iframe URL and render data from an MCP content array.
+ *
+ * `createUIResource` from `@mcp-ui/server` produces a content item of
+ * `type: "resource"` with the iframe URL in `resource.text` (for
+ * `externalUrl` encoding) and metadata under `resource._meta` with
+ * keys prefixed by `mcpui.dev/ui-`.
+ *
+ * Returns `null` if no suitable UI resource is found.
+ */
+function extractUIResource(
+  content: ReadonlyArray<unknown>,
+): UIResourceInfo | null {
+  for (const item of content) {
+    if (!isPlainObject(item) || item["type"] !== "resource") continue;
+
+    const resource = item["resource"];
+    if (!isPlainObject(resource)) continue;
+
+    // externalUrl resources use `text/uri-list` mimeType and store the
+    // iframe URL in the `text` field.
+    const mimeType = resource["mimeType"];
+    if (mimeType !== "text/uri-list") continue;
+
+    const relativeUrl = resource["text"];
+    if (typeof relativeUrl !== "string") continue;
+
+    // Resolve relative iframe URL against MCP_BASE_URL so the client
+    // can use it directly as an <iframe src>.
+    const iframeUrl = new URL(relativeUrl, MCP_BASE_URL).href;
+
+    // Extract render data from _meta with mcpui.dev/ui- prefix.
+    const meta = isPlainObject(resource["_meta"]) ? resource["_meta"] : {};
+    const renderDataKey = `${MCPUI_META_PREFIX}initial-render-data`;
+    const rawRenderData = meta[renderDataKey];
+    const renderData: Record<string, unknown> = isPlainObject(rawRenderData)
+      ? rawRenderData
+      : {};
+
+    return { iframeUrl, renderData };
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Route handler
 // ---------------------------------------------------------------------------
 
@@ -354,6 +411,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if ("content" in result && Array.isArray(result["content"])) {
       toolResponse["content"] = result["content"];
+
+      // Extract UI resource fields for convenience so clients don't need
+      // to understand MCP content structure or `mcpui.dev/ui-` key prefixes.
+      const uiResource = extractUIResource(result["content"]);
+      if (uiResource) {
+        toolResponse["iframeUrl"] = uiResource.iframeUrl;
+        toolResponse["renderData"] = uiResource.renderData;
+      }
     }
 
     if (
