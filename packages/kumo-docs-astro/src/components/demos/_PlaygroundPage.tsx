@@ -54,6 +54,7 @@ import {
   Checkbox,
   CloudflareLogo,
   Cluster,
+  cn,
   Grid,
   GridItem,
   InputArea,
@@ -2372,12 +2373,19 @@ function PlaygroundChatSidebar({
 
         {messages.map((msg, i) =>
           msg.role === "tool" ? (
-            <div key={i} className="w-full overflow-hidden">
+            <div
+              key={i}
+              className={cn(
+                "w-full overflow-hidden",
+                msg.status === "cancelled" &&
+                  "opacity-50 pointer-events-none [&_h1]:line-through [&_h2]:line-through [&_h3]:line-through [&_span]:line-through",
+              )}
+            >
               <UITreeRenderer
                 tree={msg.tree}
                 streaming={false}
                 customComponents={CUSTOM_COMPONENTS}
-                onAction={onToolAction}
+                onAction={msg.status === "cancelled" ? undefined : onToolAction}
               />
             </div>
           ) : (

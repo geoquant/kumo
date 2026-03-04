@@ -57,7 +57,7 @@
         "Action text has strikethrough styling",
         "Card is clearly distinguishable from a pending/active card"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-3",
