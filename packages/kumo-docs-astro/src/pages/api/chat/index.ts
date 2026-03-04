@@ -280,12 +280,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const messages: AiMessage[] = [];
 
   if (chatRequest.skipSystemPrompt) {
-    // A/B mode: use the override if provided, otherwise omit system message entirely.
-    if (chatRequest.systemPromptOverride) {
-      messages.push({
-        role: "system",
-        content: chatRequest.systemPromptOverride,
-      });
+    // A/B mode: combine override (if any) with skill content (if any).
+    const overridePart = chatRequest.systemPromptOverride ?? "";
+    const skillPart =
+      chatRequest.skillIds && chatRequest.skillIds.length > 0
+        ? getSkillContents(chatRequest.skillIds)
+        : "";
+
+    const combined = [overridePart, skillPart].filter(Boolean).join("\n\n");
+    if (combined) {
+      messages.push({ role: "system", content: combined });
     }
   } else {
     let systemPrompt: string;
