@@ -175,11 +175,30 @@ function isPanelTab(value: string): value is PanelTab {
   return PANEL_TAB_VALUES.has(value);
 }
 
-/** Conversation message for multi-turn. */
-interface ChatMessage {
+/** Status state machine for tool confirmation messages. */
+type ToolMessageStatus =
+  | "pending"
+  | "approved"
+  | "cancelled"
+  | "applying"
+  | "completed";
+
+/** A text message from the user or assistant. */
+interface TextChatMessage {
   readonly role: "user" | "assistant";
   readonly content: string;
 }
+
+/** An inline tool confirmation card rendered in the chat sidebar. */
+interface ToolChatMessage {
+  readonly role: "tool";
+  readonly toolId: string;
+  readonly tree: UITree;
+  readonly status: ToolMessageStatus;
+}
+
+/** Conversation message for multi-turn. */
+type ChatMessage = TextChatMessage | ToolChatMessage;
 
 /** Skill metadata fetched from /api/chat/skills (client-side mirror of SkillMeta). */
 interface SkillInfo {
@@ -555,7 +574,7 @@ function PlaygroundContent() {
     (opts: {
       readonly message: string;
       readonly model: string;
-      readonly history?: readonly ChatMessage[];
+      readonly history?: readonly TextChatMessage[];
       readonly currentUITree?: string;
       readonly skillIds?: readonly string[];
     }) => {
@@ -702,8 +721,11 @@ function PlaygroundContent() {
       const newUserMessage: ChatMessage = { role: "user", content: msg };
       setMessages((prev) => [...prev, newUserMessage]);
 
-      // Build history from previous messages (exclude the current one)
-      const history = messages.length > 0 ? messages : undefined;
+      // Build history from previous text messages (exclude tool cards and the current one)
+      const textMessages = messages.filter(
+        (m): m is TextChatMessage => m.role !== "tool",
+      );
+      const history = textMessages.length > 0 ? textMessages : undefined;
 
       // --- Shared request body (without skipSystemPrompt) ---
       const baseBody = {
@@ -1191,13 +1213,13 @@ function SkillPickerPopover({
           <Popover.Description>
             Select design skills to augment Panel B generation.
           </Popover.Description>
-          <div className="max-h-48 overflow-y-auto px-0.5">
+          <div className="max-h-48 overflow-y-auto px-0.5 py-1">
             {skills.length === 0 && (
               <p className="text-xs text-kumo-subtle py-1">
                 No skills available
               </p>
             )}
-            <Stack gap="sm">
+            <Stack gap="base">
               {skills.map((skill) => (
                 <Checkbox
                   key={skill.id}
@@ -2164,9 +2186,9 @@ function PlaygroundChatSidebar({
             >
               {msg.role === "assistant" ? (
                 <AssistantMessageSummary content={msg.content} />
-              ) : (
+              ) : msg.role === "user" ? (
                 <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-              )}
+              ) : null}
             </div>
           </div>
         ))}
