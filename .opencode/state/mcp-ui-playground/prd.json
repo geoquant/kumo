@@ -96,7 +96,7 @@
         "Handler filters messages by iframe source (event.source check)",
         "All types are TypeScript-typed"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "iframe-app-1",
