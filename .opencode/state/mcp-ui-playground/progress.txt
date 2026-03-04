@@ -16,6 +16,7 @@ Started: 2026-03-04
 - Streaming pipeline for iframe apps: `@cloudflare/kumo/streaming` (createJsonlParser, applyPatch) + `@cloudflare/kumo/generative` (UITreeRenderer). `readSSEStream` must be copied (not exported). CSS needs `@import "@cloudflare/kumo/styles"` + `@import "tailwindcss"` + `@source` directives
 - React Router + Cloudflare Worker pattern: `reactRouter()` vite plugin + `createRequestHandler(() => import("virtual:react-router/server-build"))` as fallback in Worker fetch. Needs `strip-typegen-imports` plugin for `+types/` stubs, `types/react-router.d.ts` with `export =` for virtual module, `react-router.config.ts` with `ssr: true` + `v8_viteEnvironmentApi: true`
 - MCP streamable HTTP requires `Accept: application/json, text/event-stream` — both needed or -32000 error
+- MCP proxy pattern: 3-step handshake (initialize → notifications/initialized → tools/call) with `mcp-session-id` header for session affinity. Server may respond with JSON or SSE for any request — parse both.
 - Dual tsconfig for kumo-mcp: `tsconfig.json` (worker, no DOM) + `tsconfig.app.json` (iframe app, DOM + JSX). `typecheck` script runs both sequentially.
 - postMessage settle pattern: wrap resolve/reject in `settle()` guard to prevent double-resolution from timeout vs message race
 
@@ -123,3 +124,17 @@ Started: 2026-03-04
 - Exported types: `ToolIframeStatus`, `ToolActionPayload`, `McpToolIframeProps`
 - Files changed: `src/components/McpToolIframe.tsx` (new)
 - **Learnings:** `createIframeMessageHandler` handles the render-data lifecycle internally — just pass `renderData` in config and the handler replies to `ui-lifecycle-iframe-ready` automatically. The `onToolCall` return value becomes the correlated `ui-message-response` payload — returning `undefined` works for now since the host-2 MCP proxy will provide real responses. Astro `~/` path alias works at build time even if LSP shows errors — `astro check` is the authoritative typecheck.
+
+## Task - host-2
+- Created `src/pages/api/mcp-proxy.ts` — thin POST handler forwarding tool calls to kumo-mcp Worker via MCP streamable HTTP
+- Accepts `{ toolName: string, params: Record<string, unknown> }`, returns `{ content, structuredContent }` from MCP tool result
+- Full MCP session lifecycle per request: initialize → notifications/initialized → tools/call
+- Session affinity via `mcp-session-id` header across the 3-step handshake
+- SSE response parsing: handles both `application/json` and `text/event-stream` content types from MCP server
+- Rate limiting reuses `CHAT_RATE_LIMIT` binding (same as /api/chat)
+- Input validation: max tool name length, max params JSON size, isPlainObject guards
+- Error handling: timeout → 504, MCP errors → 502, validation → 400, rate limit → 429
+- `MCP_BASE_URL` configurable via `import.meta.env.MCP_BASE_URL`, defaults to `http://localhost:8787` for dev
+- No `as` casts — custom `isJsonRpcResponse` type guard narrows `unknown` safely
+- Files changed: `src/pages/api/mcp-proxy.ts` (new)
+- **Learnings:** MCP streamable HTTP requires a 3-step handshake (initialize + notifications/initialized + actual request) per session. The `agents` library's McpAgent returns `mcp-session-id` header for session affinity to the same Durable Object. MCP server may respond with either `application/json` or `text/event-stream` content type for any request — proxy must handle both. Notifications (no `id` field) are fire-and-forget, don't expect a response body.

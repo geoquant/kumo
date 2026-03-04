@@ -167,7 +167,7 @@
         "Rate limiting applied (reuse CHAT_RATE_LIMIT or separate)",
         "Error cases return appropriate HTTP status + error body"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "host-3",
