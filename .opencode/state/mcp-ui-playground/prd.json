@@ -110,7 +110,7 @@
         "Vite config builds the iframe app (React + React Router)",
         "App loads in browser at /ui/create-worker-confirm (via wrangler dev or Vite dev)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "iframe-app-2",

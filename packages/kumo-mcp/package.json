@@ -14,17 +14,21 @@
     "@modelcontextprotocol/sdk": "1.23.0",
     "agents": "^0.2.30",
     "ai": "^6.0.113",
+    "isbot": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "react-router": "catalog:",
     "zod": "^3.25.67"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "catalog:",
+    "@react-router/dev": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-tsconfig-paths": "catalog:",
     "wrangler": "catalog:"
   }
 }
