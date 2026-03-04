@@ -14,6 +14,8 @@ Started: 2026-03-04
 - Chat message rendering at ~line 2170, must handle all 3 roles explicitly
 - JSONL generator pattern: build `readonly object[]` of RFC 6902 ops, `JSON.stringify` each, `.join("\n")`; feed to parser with trailing `\n` or use `flush()`
 - Custom action handlers: define `ActionHandler` functions → `ActionHandlerMap` → `createHandlerMap(custom)` merges with BUILTIN_HANDLERS; use merged map in `dispatchAction`
+- Tool card rendering: `UITreeRenderer` with `onAction` prop directly in chat loop; no wrapper bubble chrome; `w-full overflow-hidden` prevents sidebar overflow
+- Tool action dispatch: `handleToolAction` finds tool message by `event.params.toolId`, passes its `tree` to `dispatchAction`; uses `messagesRef` to avoid stale closure
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -45,3 +47,13 @@ Started: 2026-03-04
 - Removed direct `BUILTIN_HANDLERS` import �� `createHandlerMap` includes built-ins automatically
 - Files changed: _PlaygroundPage.tsx
 - **Learnings:** `createHandlerMap(custom)` merges custom over built-in; playground can define domain-specific handlers without touching `@cloudflare/kumo` package; handlers that don't need the tree can ignore the second param
+
+## Task - ui-1
+- Tool messages now render inline `UITreeRenderer` in chat sidebar (no AssistantMessageSummary)
+- Added `onToolAction` prop to `PlaygroundChatSidebar` for button dispatch
+- Created `handleToolAction` in `PlaygroundContent` — finds tool message by `toolId` from `event.params`, dispatches via `PLAYGROUND_HANDLERS`
+- Uses `messagesRef` (useRef synced to messages state) to avoid stale closure in useCallback
+- Tool card wrapped in `w-full overflow-hidden` to fit 380px sidebar without horizontal overflow
+- No status chrome above the card — raw UITreeRenderer output
+- Files changed: _PlaygroundPage.tsx
+- **Learnings:** `UITreeRenderer.onAction` is `ActionDispatch` = `(event: ActionEvent) => void`; tree must be looked up separately since renderer doesn't pass it; `messagesRef` pattern avoids re-creating handler on every message change

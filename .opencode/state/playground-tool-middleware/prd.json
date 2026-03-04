@@ -45,7 +45,7 @@
         "Buttons in the card are clickable and dispatch to tool action handlers",
         "No status text chrome above the card (no 'Waiting...' or tool label)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-2",
