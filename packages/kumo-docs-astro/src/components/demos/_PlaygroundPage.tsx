@@ -228,6 +228,112 @@ function extractPromptString(body: unknown): string | null {
 }
 
 // =============================================================================
+// Tool confirmation JSONL generators
+// =============================================================================
+
+/**
+ * Generate JSONL (one RFC 6902 patch op per line) that builds a "create worker"
+ * confirmation card matching the design in inspo/_create-worker-design.png.
+ *
+ * The resulting UITree has:
+ *   Surface root → heading → description row (Text + Badge) → Cancel / Approve buttons
+ *
+ * Both buttons carry `tool_approve` / `tool_cancel` actions with `params.toolId`
+ * so the host can match the approval back to the originating tool call.
+ */
+function generateCreateWorkerConfirmation(workerName: string): string {
+  const toolId = `create-worker-${workerName}`;
+  const lines: readonly object[] = [
+    { op: "add", path: "/root", value: "confirm-root" },
+    {
+      op: "add",
+      path: "/elements/confirm-root",
+      value: {
+        key: "confirm-root",
+        type: "Surface",
+        props: {},
+        children: ["confirm-heading", "confirm-description", "confirm-actions"],
+      },
+    },
+    {
+      op: "add",
+      path: "/elements/confirm-heading",
+      value: {
+        key: "confirm-heading",
+        type: "Text",
+        props: { children: "Verify this change", variant: "heading3" },
+        parentKey: "confirm-root",
+      },
+    },
+    {
+      op: "add",
+      path: "/elements/confirm-description",
+      value: {
+        key: "confirm-description",
+        type: "Cluster",
+        props: { gap: "sm", align: "center" },
+        children: ["confirm-desc-text", "confirm-worker-badge"],
+        parentKey: "confirm-root",
+      },
+    },
+    {
+      op: "add",
+      path: "/elements/confirm-desc-text",
+      value: {
+        key: "confirm-desc-text",
+        type: "Text",
+        props: { children: "Create new Worker script named" },
+        parentKey: "confirm-description",
+      },
+    },
+    {
+      op: "add",
+      path: "/elements/confirm-worker-badge",
+      value: {
+        key: "confirm-worker-badge",
+        type: "Badge",
+        props: { children: workerName },
+        parentKey: "confirm-description",
+      },
+    },
+    {
+      op: "add",
+      path: "/elements/confirm-actions",
+      value: {
+        key: "confirm-actions",
+        type: "Stack",
+        props: { gap: "sm" },
+        children: ["confirm-cancel-btn", "confirm-approve-btn"],
+        parentKey: "confirm-root",
+      },
+    },
+    {
+      op: "add",
+      path: "/elements/confirm-cancel-btn",
+      value: {
+        key: "confirm-cancel-btn",
+        type: "Button",
+        props: { children: "Cancel", variant: "outline" },
+        parentKey: "confirm-actions",
+        action: { name: "tool_cancel", params: { toolId } },
+      },
+    },
+    {
+      op: "add",
+      path: "/elements/confirm-approve-btn",
+      value: {
+        key: "confirm-approve-btn",
+        type: "Button",
+        props: { children: "Approve", variant: "primary" },
+        parentKey: "confirm-actions",
+        action: { name: "tool_approve", params: { toolId } },
+      },
+    },
+  ];
+  return lines.map((line) => JSON.stringify(line)).join("\n");
+}
+
+// =============================================================================
 // Constants
 // =============================================================================
 
