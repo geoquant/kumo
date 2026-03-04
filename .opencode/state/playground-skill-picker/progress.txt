@@ -1,0 +1,19 @@
+BRANCH: geoquant/streaming-ui
+WARNING: All work MUST stay on this branch. Do NOT create new branches, switch branches, or merge.
+This is a long-running experimental branch — commit directly here.
+
+---
+
+## Codebase Patterns
+- `getSkillContents(ids)` returns concatenated skill markdown from `skills-data.generated.ts`
+- `skipSystemPrompt` branch in POST /api/chat controls A/B mode system message construction
+- `[part1, part2].filter(Boolean).join("\n\n")` pattern for optional content concatenation
+
+---
+
+## Task - api-1
+- Extended `skipSystemPrompt` branch in POST /api/chat to also check for `skillIds`
+- When both `systemPromptOverride` and `skillIds` present, combines them with `\n\n` separator
+- When only `skillIds` present (no override), uses skill content as sole system message
+- File changed: `packages/kumo-docs-astro/src/pages/api/chat/index.ts` (lines 282-293)
+- **Learnings:** The existing `getSkillContents()` already handles empty/invalid IDs gracefully (returns empty string). No need for extra guards.
