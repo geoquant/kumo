@@ -92,7 +92,7 @@
         "No streaming is triggered in the A/B panels",
         "User can continue using the chat normally after cancellation"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "flow-3",
