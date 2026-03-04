@@ -8,6 +8,9 @@ Started: 2026-03-04
 - Wrangler `pretypecheck` script generates `types/worker-configuration.d.ts` — file must NOT pre-exist or wrangler errors with "non-Wrangler worker-configuration.d.ts already exists"
 - `pnpm-workspace.yaml` uses `packages/*` glob — new packages auto-register, use `catalog:` for shared deps
 - McpAgent pattern: extend `McpAgent<Env, State>`, set `server = new McpServer(...)`, implement `async init()`, route via `ClassName.serve('/path', { binding })` in fetch handler
+- `agents` bundles MCPClientManager which dynamically imports `ai` — must add `ai` as dependency for wrangler dev to bundle without errors
+- Extract DO class to `worker/mcp/index.ts`, re-export from `worker/index.ts` — wrangler types still resolve via `import("../worker/index").ClassName`
+- Use `.js` extension for local imports (ESM convention with `moduleResolution: "bundler"`)
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -16,3 +19,10 @@ Started: 2026-03-04
 - Created `packages/kumo-mcp/` with Worker entrypoint, wrangler.jsonc, package.json, tsconfig.json, vite.config.ts
 - Files: `worker/index.ts` (KumoPlaygroundMCP class + default fetch handler), `wrangler.jsonc` (DO binding + SQLite migration), `package.json` (agents, @modelcontextprotocol/sdk@1.23.0, @mcp-ui/server, @cloudflare/vite-plugin, zod), `tsconfig.json`, `vite.config.ts`, `types/worker-configuration.d.ts` (wrangler-generated)
 - **Learnings:** `@modelcontextprotocol/sdk` version MUST match what `agents` pins (1.23.0) or McpServer types diverge. `@mcp-ui/server` wants `^1.25.1` which may cause issues in tool-1 — may need to relax SDK version or use older mcp-ui/server.
+
+## Task - scaffold-2
+- Extracted `KumoPlaygroundMCP` class from `worker/index.ts` to `worker/mcp/index.ts` following inspo pattern
+- `worker/index.ts` now imports/re-exports class and routes `/mcp` to DO
+- Added `ai` as dependency to resolve `agents` bundle-time dynamic import error
+- Files changed: `worker/mcp/index.ts` (new), `worker/index.ts` (refactored), `package.json` (+ai dep)
+- **Learnings:** `agents/mcp` entry point transitively bundles `client-QZa2Rq0l.js` which has `await import("ai")` — esbuild resolves this statically even though it's dynamic. Adding `ai` as a dep fixes the bundle error. The `@cloudflare/vite-plugin` v1.26.0 requires wrangler `^4.70.0` but monorepo pins `4.67.0`, so `vite dev` doesn't work — must use `wrangler dev` for now.

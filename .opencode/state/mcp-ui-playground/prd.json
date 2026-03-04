@@ -26,7 +26,7 @@
         "wrangler dev starts without errors (pnpm --filter kumo-mcp dev)",
         "MCP endpoint responds to POST /mcp with valid MCP protocol response (e.g. initialize)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "tool-1",
