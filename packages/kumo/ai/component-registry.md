@@ -1446,6 +1446,12 @@ Combobox — autocomplete input with filterable dropdown list.  Compound compone
 
 **Props:**
 
+- `size`: enum [default: base]
+  Size of the combobox trigger. Matches Input component sizes.
+- `"xs"` — Extra small for compact UIs (h-5 / 20px)
+- `"sm"` — Small for secondary fields (h-6.5 / 26px)
+- `"base"` — Default size (h-9 / 36px)
+- `"lg"` — Large for prominent fields (h-10 / 40px)
 - `inputSide`: enum [default: right]
   - `"right"`: Input positioned inline to the right of chips
   - `"top"`: Input positioned above chips
@@ -1702,6 +1708,90 @@ Usage:
             {(item: DatabaseItem) => (
               <Combobox.Item key={item.value} value={item}>
                 {item.label}
+              </Combobox.Item>
+            )}
+          </Combobox.List>
+        </Combobox.Content>
+      </Combobox>
+    </div>
+```
+
+```tsx
+<div className="flex flex-wrap items-center gap-4">
+      <Combobox
+        size="sm"
+        value={smValue}
+        onValueChange={(v) => setSmValue(v as string | null)}
+        items={fruits.slice(0, 8)}
+      >
+        <Combobox.TriggerInput placeholder="Small (sm)" />
+        <Combobox.Content>
+          <Combobox.Empty />
+          <Combobox.List>
+            {(item: string) => (
+              <Combobox.Item key={item} value={item}>
+                {item}
+              </Combobox.Item>
+            )}
+          </Combobox.List>
+        </Combobox.Content>
+      </Combobox>
+      <Combobox
+        size="base"
+        value={baseValue}
+        onValueChange={(v) => setBaseValue(v as string | null)}
+        items={fruits.slice(0, 8)}
+      >
+        <Combobox.TriggerInput placeholder="Base (default)" />
+        <Combobox.Content>
+          <Combobox.Empty />
+          <Combobox.List>
+            {(item: string) => (
+              <Combobox.Item key={item} value={item}>
+                {item}
+              </Combobox.Item>
+            )}
+          </Combobox.List>
+        </Combobox.Content>
+      </Combobox>
+    </div>
+```
+
+```tsx
+<div className="flex flex-wrap items-center gap-4">
+      <Combobox
+        size="sm"
+        value={smValue}
+        onValueChange={(v) => setSmValue(v as Language)}
+        items={languages}
+      >
+        <Combobox.TriggerValue className="w-[160px]" />
+        <Combobox.Content>
+          <Combobox.Input placeholder="Search" />
+          <Combobox.Empty />
+          <Combobox.List>
+            {(item: Language) => (
+              <Combobox.Item key={item.value} value={item}>
+                {item.emoji} {item.label}
+              </Combobox.Item>
+            )}
+          </Combobox.List>
+        </Combobox.Content>
+      </Combobox>
+      <Combobox
+        size="base"
+        value={baseValue}
+        onValueChange={(v) => setBaseValue(v as Language)}
+        items={languages}
+      >
+        <Combobox.TriggerValue className="w-[180px]" />
+        <Combobox.Content>
+          <Combobox.Input placeholder="Search" />
+          <Combobox.Empty />
+          <Combobox.List>
+            {(item: Language) => (
+              <Combobox.Item key={item.value} value={item}>
+                {item.emoji} {item.label}
               </Combobox.Item>
             )}
           </Combobox.List>
@@ -2359,6 +2449,48 @@ Close sub-component
             render={(props) => (
               <Button variant="destructive" {...props}>
                 Delete
+              </Button>
+            )}
+          />
+        </div>
+      </Dialog>
+    </Dialog.Root>
+```
+
+```tsx
+<Dialog.Root role="alertdialog">
+      <Dialog.Trigger
+        render={(p) => (
+          <Button {...p} variant="destructive">
+            Delete Account
+          </Button>
+        )}
+      />
+      <Dialog className="p-8">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-kumo-danger/20">
+            <Warning size={20} className="text-kumo-danger" weight="fill" />
+          </div>
+          <Dialog.Title className="text-xl font-semibold">
+            Delete Account?
+          </Dialog.Title>
+        </div>
+        <Dialog.Description className="text-kumo-subtle">
+          This action cannot be undone. All your data will be permanently
+          removed from our servers. Are you sure you want to proceed?
+        </Dialog.Description>
+        <div className="mt-8 flex justify-end gap-2">
+          <Dialog.Close
+            render={(props) => (
+              <Button variant="secondary" {...props}>
+                Cancel
+              </Button>
+            )}
+          />
+          <Dialog.Close
+            render={(props) => (
+              <Button variant="destructive" {...props}>
+                Delete Account
               </Button>
             )}
           />
@@ -4211,7 +4343,7 @@ Select component
 
 **Colors (kumo tokens used):**
 
-`bg-kumo-control`, `bg-kumo-overlay`, `ring-kumo-line`, `ring-kumo-ring`, `text-kumo-default`
+`bg-kumo-control`, `bg-kumo-overlay`, `ring-kumo-line`, `ring-kumo-ring`, `text-kumo-danger`, `text-kumo-default`, `text-kumo-subtle`
 
 **Styling:**
 
@@ -4804,7 +4936,7 @@ Table — semantic HTML table with styled rows, cells, and selection support.  C
 
 **Colors (kumo tokens used):**
 
-`bg-kumo-base`, `bg-kumo-ring`, `bg-kumo-tint`, `border-kumo-fill`, `text-kumo-default`
+`bg-kumo-base`, `bg-kumo-elevated`, `bg-kumo-ring`, `bg-kumo-tint`, `border-kumo-fill`, `text-kumo-default`, `text-kumo-strong`
 
 **Sub-Components:**
 
@@ -4901,6 +5033,31 @@ ResizeHandle sub-component
                   onValueChange={() => toggleRow(row.id)}
                   aria-label={`Select ${row.subject}`}
                 />
+                <Table.Cell>{row.subject}</Table.Cell>
+                <Table.Cell>{row.from}</Table.Cell>
+                <Table.Cell>{row.date}</Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table>
+      </LayerCard.Primary>
+    </LayerCard>
+```
+
+```tsx
+<LayerCard>
+      <LayerCard.Primary className="p-0">
+        <Table>
+          <Table.Header variant="compact">
+            <Table.Row>
+              <Table.Head>Subject</Table.Head>
+              <Table.Head>From</Table.Head>
+              <Table.Head>Date</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {emailData.slice(0, 3).map((row) => (
+              <Table.Row key={row.id}>
                 <Table.Cell>{row.subject}</Table.Cell>
                 <Table.Cell>{row.from}</Table.Cell>
                 <Table.Cell>{row.date}</Table.Cell>
@@ -5326,6 +5483,25 @@ Text component
 
 ---
 
+### TimeseriesChart
+
+TimeseriesChart — a time-series line or bar chart.  Built on `Chart` (Apache ECharts) with opinionated defaults for time-series data: a time-typed x-axis, dashed lines for incomplete data periods, brush-based time range selection, and automatic tooltip deduplication.
+
+**Type:** component
+
+**Import:** `import { TimeseriesChart } from "@cloudflare/kumo";`
+
+**Category:** Other
+
+**Props:**
+
+- `className`: string
+  Additional CSS classes
+- `children`: ReactNode
+  Child elements
+
+---
+
 ### Toasty
 
 Toasty — toast notification provider and viewport.  Renders a `Toast.Provider` with a fixed-position viewport in the bottom-right corner. Toasts stack with smooth enter/exit animations, swipe-to-dismiss, and expand-on-hover.  Built on `@base-ui/react/toast`.
@@ -5368,15 +5544,20 @@ Accessible popup that shows additional information on hover/focus. Wrap your app
 
 **Props:**
 
+- `align`: enum
+  Alignment on the axis perpendicular to `side`.
+- `"start"` — Align to the start edge
+- `"center"` — Center-aligned
+- `"end"` — Align to the end edge
+- `asChild`: boolean
+  When `true`, the trigger wraps the child element instead of adding a wrapper.
+- `className`: string
+  Additional CSS classes merged via `cn()`.
 - `side`: enum [default: top]
   - `"top"`: Tooltip appears above the trigger
   - `"bottom"`: Tooltip appears below the trigger
   - `"left"`: Tooltip appears to the left of the trigger
   - `"right"`: Tooltip appears to the right of the trigger
-- `className`: string
-  Additional CSS classes
-- `children`: ReactNode
-  Child elements
 - `content`: ReactNode (required)
   Content to display in the tooltip
 
@@ -5438,7 +5619,7 @@ Multi-line textarea input with Input variants and InputArea-specific dimensions
 - **Feedback:** Banner, Loader, Toasty
 - **Action:** Button, ClipboardText
 - **Input:** Checkbox, Combobox, DateRangePicker, Field, Input, Radio, Select, Switch
-- **Other:** CloudflareLogo, Cluster, DatePicker, Label, Link, SensitiveInput, Stack, Table, DeleteResource
+- **Other:** CloudflareLogo, Cluster, DatePicker, Label, Link, SensitiveInput, Stack, Table, TimeseriesChart, DeleteResource
 - **Navigation:** CommandPalette, MenuBar, Pagination, Tabs
 - **Overlay:** Dialog, DropdownMenu, Popover, Tooltip
 - **Layout:** Flow, Grid, Surface, PageHeader, ResourceListPage

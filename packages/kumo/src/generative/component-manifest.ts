@@ -31,7 +31,8 @@ export const DIRECT_COMPONENTS = [
   "Radio",
   "Stack",
   "Table",
-  "Text"
+  "Text",
+  "TimeseriesChart"
 ] as const;
 
 // =============================================================================
@@ -247,7 +248,8 @@ export const ALL_GENERATIVE_TYPES = [
   "TableRow",
   "Tabs",
   "Text",
-  "Textarea"
+  "Textarea",
+  "TimeseriesChart"
 ] as const;
 
 // =============================================================================
@@ -314,6 +316,7 @@ export const REGISTRY_COMPONENT_NAMES = [
   "Table",
   "Tabs",
   "Text",
+  "TimeseriesChart",
   "Toasty",
   "Tooltip"
 ] as const;

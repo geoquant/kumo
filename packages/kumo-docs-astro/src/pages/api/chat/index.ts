@@ -14,6 +14,9 @@ const MAX_MESSAGE_LENGTH = 2000;
 /** Maximum length (in characters) for each history entry. */
 const MAX_HISTORY_ENTRY_LENGTH = 4000;
 
+/** Maximum length (in characters) for a system prompt override. */
+const MAX_SYSTEM_PROMPT_OVERRIDE_LENGTH = 50_000;
+
 /** Maximum number of history entries accepted in a request. */
 const MAX_HISTORY_ENTRIES = 50;
 
@@ -97,6 +100,17 @@ interface ChatRequest {
   skillIds?: string[];
   /** JSON-serialised UITree from the previous generation, for follow-up turns. */
   currentUITree?: string;
+  /**
+   * When true, omit the generated system prompt entirely.
+   * If `systemPromptOverride` is also provided, it replaces the system prompt.
+   * Used for A/B comparison in the playground to evaluate prompt impact.
+   */
+  skipSystemPrompt?: boolean;
+  /**
+   * Optional replacement system prompt used when `skipSystemPrompt` is true.
+   * Allows experimenting with minimal prompt variants.
+   */
+  systemPromptOverride?: string;
 }
 
 /** Workers AI text-generation message format. */
@@ -170,12 +184,24 @@ function parseChatRequest(body: unknown): ChatRequest | null {
     currentUITree = rawUITree;
   }
 
+  // System prompt control for A/B comparison.
+  const skipSystemPrompt = body["skipSystemPrompt"] === true;
+  const rawOverride = body["systemPromptOverride"];
+  const systemPromptOverride =
+    typeof rawOverride === "string" &&
+    rawOverride.length > 0 &&
+    rawOverride.length <= MAX_SYSTEM_PROMPT_OVERRIDE_LENGTH
+      ? rawOverride
+      : undefined;
+
   return {
     message,
     history,
     model: model || undefined,
     skillIds,
     currentUITree,
+    skipSystemPrompt,
+    systemPromptOverride,
   };
 }
 
@@ -251,25 +277,37 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   // --- Build message array ---
-  let systemPrompt: string;
-  try {
-    systemPrompt = await getSystemPrompt();
-  } catch {
-    return new Response(
-      JSON.stringify({ error: "Failed to generate system prompt." }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
-  }
+  const messages: AiMessage[] = [];
 
-  // Inject selected skills into the system prompt.
-  if (chatRequest.skillIds && chatRequest.skillIds.length > 0) {
-    const skillContent = getSkillContents(chatRequest.skillIds);
-    if (skillContent) {
-      systemPrompt += `\n\n# Additional Design Skills\n\nThe following design skills should heavily influence your output. Apply their principles when generating UI:\n\n${skillContent}`;
+  if (chatRequest.skipSystemPrompt) {
+    // A/B mode: use the override if provided, otherwise omit system message entirely.
+    if (chatRequest.systemPromptOverride) {
+      messages.push({
+        role: "system",
+        content: chatRequest.systemPromptOverride,
+      });
     }
-  }
+  } else {
+    let systemPrompt: string;
+    try {
+      systemPrompt = await getSystemPrompt();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Failed to generate system prompt." }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
 
-  const messages: AiMessage[] = [{ role: "system", content: systemPrompt }];
+    // Inject selected skills into the system prompt.
+    if (chatRequest.skillIds && chatRequest.skillIds.length > 0) {
+      const skillContent = getSkillContents(chatRequest.skillIds);
+      if (skillContent) {
+        systemPrompt += `\n\n# Additional Design Skills\n\nThe following design skills should heavily influence your output. Apply their principles when generating UI:\n\n${skillContent}`;
+      }
+    }
+
+    messages.push({ role: "system", content: systemPrompt });
+  }
 
   // Append conversation history (most recent turns).
   const MAX_HISTORY_TURNS = 20;
