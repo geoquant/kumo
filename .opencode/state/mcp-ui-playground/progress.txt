@@ -13,6 +13,8 @@ Started: 2026-03-04
 - Use `.js` extension for local imports (ESM convention with `moduleResolution: "bundler"`)
 - `createUIResource` is sync — returns `UIResource` not `Promise`. Metadata keys prefixed `mcpui.dev/ui-`
 - MCP streamable HTTP requires `Accept: application/json, text/event-stream` — both needed or -32000 error
+- Dual tsconfig for kumo-mcp: `tsconfig.json` (worker, no DOM) + `tsconfig.app.json` (iframe app, DOM + JSX). `typecheck` script runs both sequentially.
+- postMessage settle pattern: wrap resolve/reject in `settle()` guard to prevent double-resolution from timeout vs message race
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -45,3 +47,12 @@ Started: 2026-03-04
 - Verified via `wrangler dev` + curl: response includes both `content[0].text` and `structuredContent`, ~854ms round-trip
 - Files changed: `worker/mcp/tools.ts` (added tool registration + delay helper)
 - **Learnings:** `registerTool` supports `outputSchema` with Zod schemas for `structuredContent` validation. Async tool handlers work naturally with `McpAgent` — the DO handles the async correctly including `setTimeout` delays.
+
+## Task - protocol-1
+- Created `app/utils/mcp.ts` with `sendMcpMessage` and `waitForRenderData` exports
+- `sendMcpMessage`: typed overloads per message type (tool/prompt/link), messageId-correlated via `crypto.randomUUID()`, Zod schema validation, timeout with cleanup
+- `waitForRenderData`: posts `ui-lifecycle-iframe-ready`, awaits `ui-lifecycle-iframe-render-data`, Zod-validates render data, timeout with cleanup
+- All message types modeled as discriminated unions: `OutboundMessage`, `InboundMessageResponse`, `InboundRenderData`, `LifecycleReadyMessage`, `SizeChangeMessage`
+- Added `tsconfig.app.json` for iframe code (DOM + JSX libs), updated `package.json` typecheck to run both tsconfigs
+- Files changed: `app/utils/mcp.ts` (new), `tsconfig.app.json` (new), `package.json` (typecheck script)
+- **Learnings:** Worker code (no DOM) and iframe app code (DOM) need separate tsconfigs. `settle()` guard pattern prevents double-resolve race between timeout and message handler.
