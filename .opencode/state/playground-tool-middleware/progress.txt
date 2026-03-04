@@ -12,6 +12,7 @@ Started: 2026-03-04
 - `streamPanelB` sends history to API — must filter to TextChatMessage only
 - Chat message rendering at ~line 2170, must handle all 3 roles explicitly
 - JSONL generator pattern: build `readonly object[]` of RFC 6902 ops, `JSON.stringify` each, `.join("\n")`; feed to parser with trailing `\n` or use `flush()`
+- Custom action handlers: define `ActionHandler` functions → `ActionHandlerMap` → `createHandlerMap(custom)` merges with BUILTIN_HANDLERS; use merged map in `dispatchAction`
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -34,3 +35,12 @@ Started: 2026-03-04
 - End-to-end verified: JSONL → createJsonlParser → applyPatch → correct UITree with 8 elements
 - Files changed: _PlaygroundPage.tsx
 - **Learnings:** JSONL generator is just JSON.stringify per line joined with \n; parsePatchLine needs trailing \n for push() to emit (or use flush()); `readonly object[]` type is sufficient for the lines array
+
+## Task - actions-1
+- Added `handleToolApprove` and `handleToolCancel` action handlers returning `MessageResult` with JSON content
+- `tool_approve` → `{ toolId, approved: true }`, `tool_cancel` → `{ toolId, approved: false }`
+- Created `TOOL_ACTION_HANDLERS` map and merged via `createHandlerMap` into `PLAYGROUND_HANDLERS`
+- Updated both panel action dispatchers (`handleAction`, `handleNoPromptAction`) to use `PLAYGROUND_HANDLERS` instead of `BUILTIN_HANDLERS`
+- Removed direct `BUILTIN_HANDLERS` import �� `createHandlerMap` includes built-ins automatically
+- Files changed: _PlaygroundPage.tsx
+- **Learnings:** `createHandlerMap(custom)` merges custom over built-in; playground can define domain-specific handlers without touching `@cloudflare/kumo` package; handlers that don't need the tree can ignore the second param

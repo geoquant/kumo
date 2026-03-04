@@ -33,7 +33,7 @@
         "tool_cancel handler returns MessageResult with JSON content containing { toolId, approved: false }",
         "Handlers are registered and reachable from the playground's action dispatch"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-1",
