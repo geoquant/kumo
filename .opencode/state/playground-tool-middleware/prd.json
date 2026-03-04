@@ -1,0 +1,152 @@
+{
+  "prdName": "playground-tool-middleware",
+  "tasks": [
+    {
+      "id": "types-1",
+      "category": "types",
+      "description": "Extend ChatMessage type with role:'tool' variant carrying UITree + status state machine",
+      "steps": [
+        "ChatMessage union in _PlaygroundPage.tsx includes { role: 'tool'; toolId: string; tree: UITree; status: 'pending' | 'approved' | 'cancelled' | 'applying' | 'completed' }",
+        "TypeScript compiles without errors",
+        "Existing role:'user' and role:'assistant' messages unaffected"
+      ],
+      "passes": true
+    },
+    {
+      "id": "generator-1",
+      "category": "functional",
+      "description": "JSONL generator produces confirmation card matching inspo/_create-worker-design.png",
+      "steps": [
+        "generateCreateWorkerConfirmation('hello-world') returns valid JSONL string",
+        "Parsing the JSONL through createJsonlParser produces valid RFC 6902 patches",
+        "Applying patches to an empty UITree produces a tree with: Surface root, 'Verify this change' Text, 'Create new Worker script named' Text + Badge 'hello-world', Cancel Button (variant outline, action tool_cancel), Approve Button (action tool_approve)",
+        "Both buttons have action.params.toolId set"
+      ],
+      "passes": false
+    },
+    {
+      "id": "actions-1",
+      "category": "functional",
+      "description": "tool_approve and tool_cancel action handlers dispatch correctly via MessageResult convention",
+      "steps": [
+        "tool_approve handler returns MessageResult with JSON content containing { toolId, approved: true }",
+        "tool_cancel handler returns MessageResult with JSON content containing { toolId, approved: false }",
+        "Handlers are registered and reachable from the playground's action dispatch"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "role:'tool' messages render inline UITreeRenderer in chat sidebar",
+      "steps": [
+        "A tool message in the chat renders a UITreeRenderer (not AssistantMessageSummary text)",
+        "The rendered card fits within the 380px chat sidebar without horizontal overflow",
+        "Buttons in the card are clickable and dispatch to tool action handlers",
+        "No status text chrome above the card (no 'Waiting...' or tool label)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "Cancelled tool messages render greyed out with disabled buttons",
+      "steps": [
+        "When status is 'cancelled', card has reduced opacity",
+        "Buttons are visually disabled and non-interactive",
+        "Action text has strikethrough styling",
+        "Card is clearly distinguishable from a pending/active card"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-3",
+      "category": "ui",
+      "description": "Applying/completed states show appropriate visual feedback",
+      "steps": [
+        "When status is 'applying', card shows a loading/spinner indicator",
+        "Buttons are disabled during 'applying' state to prevent double-click",
+        "When status is 'completed', card reflects resolution"
+      ],
+      "passes": false
+    },
+    {
+      "id": "flow-1",
+      "category": "functional",
+      "description": "Submit handler intercepts 'create worker' pill and streams confirmation card instead of calling /api/chat",
+      "steps": [
+        "Clicking the 'Create worker' pill does NOT trigger a fetch to /api/chat",
+        "A user message 'create a new hello world worker' appears in chat",
+        "Confirmation card JSONL is streamed through createJsonlParser → useUITree pipeline",
+        "Card renders inline in chat with pending status"
+      ],
+      "passes": false
+    },
+    {
+      "id": "flow-2",
+      "category": "functional",
+      "description": "Cancel path: clicking Cancel greys out card, no panel generation",
+      "steps": [
+        "Clicking Cancel on the confirmation card updates tool message status to 'cancelled'",
+        "Card visually greys out (opacity + disabled + strikethrough)",
+        "No streaming is triggered in the A/B panels",
+        "User can continue using the chat normally after cancellation"
+      ],
+      "passes": false
+    },
+    {
+      "id": "flow-3",
+      "category": "functional",
+      "description": "Approve path: clicking Approve triggers mock delay then A/B panel generation",
+      "steps": [
+        "Clicking Approve updates tool message status to 'applying'",
+        "After ~800ms mock delay, status updates to 'completed'",
+        "A follow-up prompt mentioning 'hello-world' and CloudflareLogo is sent to both A/B panels",
+        "Both panels stream LLM-generated UI independently via existing infrastructure",
+        "Panel A uses full system prompt, Panel B uses baseline prompt (unchanged behavior)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "pill-1",
+      "category": "functional",
+      "description": "New 'Create worker' pill added to PRESET_PROMPTS, existing pills unchanged",
+      "steps": [
+        "PRESET_PROMPTS array includes { label: 'Create worker', prompt: 'create a new hello world worker' }",
+        "All 6 existing pills (User card, Settings form, Counter, Pricing table, Custom, Workers flow) still trigger direct LLM → A/B panel generation",
+        "Only 'Create worker' pill triggers the tool middleware flow with inline chat UI",
+        "Existing pills do NOT render any UI in the chat sidebar"
+      ],
+      "passes": false
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Preset prompts: _PlaygroundPage.tsx lines 229-268, array of { label, prompt }",
+      "Chat messages: ChatMessage[] with role:'user' | role:'assistant'",
+      "Streaming pipeline: readSSEStream → createJsonlParser → useUITree → UITreeRenderer",
+      "Action system: ActionEvent → ActionHandlerMap → ActionResult (discriminated union)",
+      "Built-in handlers: BUILTIN_HANDLERS in action-registry.ts",
+      "A/B panels: ComparisonPanels with independent useUITree per panel"
+    ],
+    "keyFiles": [
+      "packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx",
+      "packages/kumo/src/streaming/action-registry.ts",
+      "packages/kumo/src/streaming/action-types.ts",
+      "packages/kumo/src/streaming/jsonl-parser.ts",
+      "packages/kumo/src/streaming/hooks.ts",
+      "packages/kumo/src/streaming/types.ts",
+      "packages/kumo/src/generative/ui-tree-renderer.tsx",
+      "packages/kumo/src/components/cloudflare-logo/cloudflare-logo.tsx",
+      "inspo/_create-worker-design.png"
+    ],
+    "nonGoals": [
+      "Real Cloudflare API integration",
+      "Full MCP server implementation",
+      "Changes to @cloudflare/kumo streaming package",
+      "Production agent architecture",
+      "Approval persistence across reloads",
+      "Multi-step tool chains"
+    ]
+  }
+}

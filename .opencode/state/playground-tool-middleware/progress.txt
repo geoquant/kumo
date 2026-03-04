@@ -1,0 +1,25 @@
+# Progress Log
+PRD: playground-tool-middleware
+Started: 2026-03-04
+
+## Codebase Patterns
+- ChatMessage is discriminated union on `role` field — narrow before accessing role-specific fields
+- `TextChatMessage` has `content`; `ToolChatMessage` has `toolId`, `tree`, `status`
+- UITree type from `@cloudflare/kumo/streaming` (imported at line 92)
+- Action system: ActionEvent → ActionDispatch → handlers (action-types.ts, action-registry.ts)
+- Streaming pipeline: readSSEStream → createJsonlParser → useUITree → UITreeRenderer
+- Pre-existing typecheck errors in shiki/echarts modules — ignore
+- `streamPanelB` sends history to API — must filter to TextChatMessage only
+- Chat message rendering at ~line 2170, must handle all 3 roles explicitly
+
+---
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - types-1
+- Extended ChatMessage from single interface to discriminated union: TextChatMessage | ToolChatMessage
+- Added ToolMessageStatus type: 'pending' | 'approved' | 'cancelled' | 'applying' | 'completed'
+- ToolChatMessage carries: toolId, tree (UITree), status (ToolMessageStatus)
+- Updated message rendering to narrow on all 3 roles (tool renders `null` placeholder for now)
+- Filtered tool messages from API history (streamPanelB + baseBody)
+- Files changed: _PlaygroundPage.tsx
+- **Learnings:** Discriminated union requires explicit narrowing at all usage sites; the `else` branch of `role === "assistant"` previously assumed user, now must check explicitly
