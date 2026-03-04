@@ -179,7 +179,7 @@
         "McpToolIframe gets src=msg.iframeUrl, renderData=msg.renderData, status=msg.status",
         "Old inline UITreeRenderer rendering for tool messages removed"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "flow-1",

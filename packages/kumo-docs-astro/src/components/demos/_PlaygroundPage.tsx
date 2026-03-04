@@ -41,41 +41,6 @@ Example — User: "Show a user profile card"
 {"op":"add","path":"/elements/actions","value":{"key":"actions","type":"Cluster","props":{"gap":"sm"},"children":["edit-btn"],"parentKey":"stack"}}
 {"op":"add","path":"/elements/edit-btn","value":{"key":"edit-btn","type":"Button","props":{"children":"Edit profile","variant":"primary"},"parentKey":"actions"}}`;
 
-/**
- * Focused system prompt for tool confirmation cards. Sent via
- * `skipSystemPrompt: true` + `systemPromptOverride` so the main system
- * prompt is NOT used — keeps the LLM focused on generating a small
- * confirmation card rather than a full-page UI.
- *
- * The `TOOL_ID` placeholder is replaced at call time with the actual toolId.
- */
-const TOOL_CONFIRMATION_PROMPT = `You generate confirmation cards by responding ONLY with JSONL — one JSON Patch operation per line. No plain text, no markdown fences, no explanations.
-
-Each line is: {"op":"add","path":"<json-pointer>","value":<value>}
-
-You build this structure: { root: "element-key", elements: { [key]: UIElement } }
-Where UIElement is: { key: string, type: string, props: object, children?: string[], parentKey?: string, action?: { name: string, params?: object } }
-
-Order:
-1. First line: {"op":"add","path":"/root","value":"<root-key>"}
-2. Then add elements top-down (parent before children). Parents include children array upfront.
-
-Available types: Surface, Stack, Grid, Cluster, Text, Button, Badge, Div, Code
-
-## Your Task
-
-Generate a compact confirmation card that asks the user to verify an action before executing it. The card should:
-- Use a Surface as root
-- Include a heading (Text variant="heading3") describing what will happen
-- Include a description row explaining the specifics (use Badge for key values like names, IDs)
-- End with exactly two buttons in a Cluster:
-  1. Cancel button (variant="outline") with action: { "name": "tool_cancel", "params": { "toolId": "TOOL_ID" } }
-  2. Approve button (variant="primary") with action: { "name": "tool_approve", "params": { "toolId": "TOOL_ID" } }
-
-The card should be concise — 6-10 elements maximum. Make it visually clear what the user is approving.
-
-Rules: unique kebab-case keys, key field matches path, compact JSON, one object per line.`;
-
 import {
   useCallback,
   useEffect,
@@ -89,7 +54,6 @@ import {
   Checkbox,
   CloudflareLogo,
   Cluster,
-  cn,
   Grid,
   GridItem,
   InputArea,
@@ -121,7 +85,6 @@ import {
   createHandlerMap,
   dispatchAction,
   processActionResult,
-  applyPatch,
   type ActionEvent,
   type ActionHandler,
   type ActionHandlerMap,
@@ -149,6 +112,11 @@ import { readSSEStream } from "~/lib/read-sse-stream";
 import { HighlightedCode } from "~/components/HighlightedCode";
 import { ThemeToggle } from "~/components/ThemeToggle";
 import type { BundledLanguage } from "shiki";
+import {
+  McpToolIframe,
+  type ToolActionPayload,
+  type ToolIframeStatus,
+} from "~/components/McpToolIframe";
 
 // =============================================================================
 // Custom components — must match the metadata in lib/playground.ts so the
@@ -215,14 +183,11 @@ function isPanelTab(value: string): value is PanelTab {
   return PANEL_TAB_VALUES.has(value);
 }
 
-/** Status state machine for tool confirmation messages. */
-type ToolMessageStatus =
-  | "streaming"
-  | "pending"
-  | "approved"
-  | "cancelled"
-  | "applying"
-  | "completed";
+/**
+ * Status state machine for tool confirmation messages.
+ * Aliased from {@link ToolIframeStatus} — both types must stay in sync.
+ */
+type ToolMessageStatus = ToolIframeStatus;
 
 /** A text message from the user or assistant. */
 interface TextChatMessage {
@@ -230,11 +195,12 @@ interface TextChatMessage {
   readonly content: string;
 }
 
-/** An inline tool confirmation card rendered in the chat sidebar. */
+/** An iframe-based tool confirmation card rendered in the chat sidebar. */
 interface ToolChatMessage {
   readonly role: "tool";
   readonly toolId: string;
-  readonly tree: UITree;
+  readonly iframeUrl: string;
+  readonly renderData: Record<string, unknown>;
   readonly status: ToolMessageStatus;
 }
 
@@ -527,8 +493,7 @@ function PlaygroundContent() {
   const abortRef = useRef<AbortController | null>(null);
   /** Separate abort controller for the no-prompt stream. */
   const noPromptAbortRef = useRef<AbortController | null>(null);
-  /** Abort controller for tool confirmation card streaming. */
-  const toolAbortRef = useRef<AbortController | null>(null);
+
   const runIdRef = useRef(0);
   /** Independent staleness guard for Panel B (comparison) stream. */
   const noPromptRunIdRef = useRef(0);
@@ -649,27 +614,21 @@ function PlaygroundContent() {
   );
 
   const handleToolAction = useCallback(
-    (event: ActionEvent) => {
-      // Find the tool message whose tree originated the action.
-      // The event's params.toolId identifies which tool message to target.
-      const toolId =
-        typeof event.params?.toolId === "string" ? event.params.toolId : null;
-      const toolMsg = toolId
-        ? messagesRef.current.find(
-            (m): m is ToolChatMessage =>
-              m.role === "tool" && m.toolId === toolId,
-          )
-        : undefined;
+    (toolId: string, payload: ToolActionPayload) => {
+      // Find the tool message this action belongs to.
+      const toolMsg = messagesRef.current.find(
+        (m): m is ToolChatMessage => m.role === "tool" && m.toolId === toolId,
+      );
       if (toolMsg == null) return;
 
       // --- Cancel path: update status, no panel generation ---
-      if (event.actionName === "tool_cancel" && toolId !== null) {
+      if (payload.toolName === "cancel_tool") {
         updateToolMessageStatus(toolId, "cancelled");
         return;
       }
 
-      // --- Approve path: mock delay → completed → trigger A/B panel generation ---
-      if (event.actionName === "tool_approve" && toolId !== null) {
+      // --- Execute path: mock delay → completed → trigger A/B panel generation ---
+      if (payload.toolName === "execute_create_worker") {
         updateToolMessageStatus(toolId, "applying");
 
         // Extract worker name from toolId (format: "create-worker-{name}")
@@ -690,33 +649,7 @@ function PlaygroundContent() {
 
           handleSubmitRef.current(undefined, followUp);
         }, 800);
-
-        return;
       }
-
-      // --- Fallback: dispatch via registry for non-tool actions ---
-      const result = dispatchAction(PLAYGROUND_HANDLERS, event, toolMsg.tree);
-      if (result === null) return;
-      processActionResult(result, {
-        applyPatches: () => {
-          // Tool cards are static — no patch application needed.
-        },
-        sendMessage: (content: string) => {
-          handleSubmitRef.current(undefined, content);
-        },
-        openExternal: (url: string, target: string) => {
-          try {
-            const parsed = new URL(url, window.location.href);
-            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-              return;
-            }
-          } catch {
-            return;
-          }
-          const safeTarget = target === "_self" ? "_self" : "_blank";
-          window.open(url, safeTarget, "noopener,noreferrer");
-        },
-      });
     },
     [updateToolMessageStatus],
   );
@@ -756,8 +689,6 @@ function PlaygroundContent() {
     abortRef.current = null;
     noPromptAbortRef.current?.abort();
     noPromptAbortRef.current = null;
-    toolAbortRef.current?.abort();
-    toolAbortRef.current = null;
     setStatus("idle");
     setNoPromptStatus("idle");
   }, []);
@@ -896,136 +827,23 @@ function PlaygroundContent() {
       if (!msg) return;
 
       // --- Tool middleware: intercept "create worker" messages ---
-      // Instead of generating panels, stream a confirmation card from the AI
-      // into the chat sidebar. The LLM uses TOOL_CONFIRMATION_PROMPT to
-      // produce a compact approval card with tool_approve/tool_cancel actions.
+      // Instead of generating panels, render an iframe confirmation card in
+      // the chat sidebar. The iframe app handles its own streaming, approval
+      // buttons, and status overlays autonomously.
       const workerName = matchCreateWorkerMessage(msg);
       if (workerName !== null) {
         setInputValue("");
         const toolId = `create-worker-${workerName}`;
 
-        // 1. Add user message + placeholder tool message (streaming state)
         const userMsg: TextChatMessage = { role: "user", content: msg };
         const toolMsg: ToolChatMessage = {
           role: "tool",
           toolId,
-          tree: { root: "", elements: {} },
+          iframeUrl: "/ui/create-worker-confirm",
+          renderData: { workerName, toolId },
           status: "streaming",
         };
         setMessages((prev) => [...prev, userMsg, toolMsg]);
-
-        // 2. Stream confirmation card from the AI worker
-        toolAbortRef.current?.abort();
-        const toolController = new AbortController();
-        toolAbortRef.current = toolController;
-
-        const toolPrompt =
-          TOOL_CONFIRMATION_PROMPT.split("TOOL_ID").join(toolId);
-
-        const toolStream = (async () => {
-          const toolParser = createJsonlParser();
-          let toolTree: UITree = { root: "", elements: {} };
-
-          try {
-            const response = await fetch("/api/chat", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "text/event-stream",
-              },
-              body: JSON.stringify({
-                message: msg,
-                model: selectedModel,
-                skipSystemPrompt: true,
-                systemPromptOverride: toolPrompt,
-              }),
-              signal: toolController.signal,
-            });
-
-            if (!response.ok) {
-              const errBody: unknown = await response.json().catch(() => null);
-              const errMsg =
-                extractErrorMessage(errBody) ??
-                `Request failed (${String(response.status)})`;
-              throw new Error(errMsg);
-            }
-
-            await readSSEStream(
-              response,
-              (token) => {
-                const ops = toolParser.push(token);
-                if (ops.length > 0) {
-                  for (const op of ops) {
-                    toolTree = applyPatch(toolTree, op);
-                  }
-                  // Update the tool message tree in-place via state
-                  const snapshot = toolTree;
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.role === "tool" && m.toolId === toolId
-                        ? { ...m, tree: snapshot }
-                        : m,
-                    ),
-                  );
-                }
-              },
-              toolController.signal,
-            );
-
-            // Flush remaining buffer
-            const remaining = toolParser.flush();
-            if (remaining.length > 0) {
-              for (const op of remaining) {
-                toolTree = applyPatch(toolTree, op);
-              }
-            }
-
-            // Stream complete → mark as pending (ready for approve/cancel)
-            const finalTree = toolTree;
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.role === "tool" && m.toolId === toolId
-                  ? { ...m, tree: finalTree, status: "pending" }
-                  : m,
-              ),
-            );
-          } catch (err: unknown) {
-            if (err instanceof DOMException && err.name === "AbortError")
-              return;
-
-            // Flush partial ops on error
-            try {
-              const remaining = toolParser.flush();
-              for (const op of remaining) {
-                toolTree = applyPatch(toolTree, op);
-              }
-            } catch {
-              // Ignore flush errors
-            }
-
-            // Mark as pending even on error if we got a partial tree
-            const hasContent =
-              toolTree.root !== "" && Object.keys(toolTree.elements).length > 0;
-            const finalTree = toolTree;
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.role === "tool" && m.toolId === toolId
-                  ? {
-                      ...m,
-                      tree: finalTree,
-                      status: hasContent ? "pending" : "cancelled",
-                    }
-                  : m,
-              ),
-            );
-          } finally {
-            if (toolAbortRef.current === toolController) {
-              toolAbortRef.current = null;
-            }
-          }
-        })();
-
-        void toolStream;
         return;
       }
 
@@ -1245,6 +1063,7 @@ function PlaygroundContent() {
         minimized={chatMinimized}
         onToggleMinimize={toggleChat}
         onToolAction={handleToolAction}
+        onToolStatusChange={updateToolMessageStatus}
       />
 
       {/* Right: side-by-side panels */}
@@ -2408,8 +2227,13 @@ interface PlaygroundChatSidebarProps {
   readonly presets: typeof PRESET_PROMPTS;
   readonly minimized: boolean;
   readonly onToggleMinimize: () => void;
-  /** Action handler for inline tool confirmation cards (UITreeRenderer buttons). */
-  readonly onToolAction: (event: ActionEvent) => void;
+  /** Action handler for iframe tool confirmation card messages. */
+  readonly onToolAction: (toolId: string, payload: ToolActionPayload) => void;
+  /** Status change handler for tool messages (e.g. streaming → pending). */
+  readonly onToolStatusChange: (
+    toolId: string,
+    status: ToolMessageStatus,
+  ) => void;
 }
 
 /** Right-hand chat panel: model selector, messages, input. */
@@ -2428,6 +2252,7 @@ function PlaygroundChatSidebar({
   minimized,
   onToggleMinimize,
   onToolAction,
+  onToolStatusChange,
 }: PlaygroundChatSidebarProps) {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -2518,46 +2343,14 @@ function PlaygroundChatSidebar({
 
         {messages.map((msg, i) =>
           msg.role === "tool" ? (
-            <div
-              key={i}
-              className={cn(
-                "w-full overflow-hidden relative",
-                msg.status === "streaming" && "pointer-events-none",
-                msg.status === "cancelled" &&
-                  "opacity-50 pointer-events-none [&_h1]:line-through [&_h2]:line-through [&_h3]:line-through [&_span]:line-through",
-                (msg.status === "applying" || msg.status === "completed") &&
-                  "pointer-events-none",
-              )}
-            >
-              {msg.status === "streaming" && msg.tree.root === "" ? (
-                <div className="flex items-center gap-2 rounded-lg border border-kumo-line bg-kumo-elevated p-4">
-                  <Loader size="sm" />
-                  <span className="text-sm text-kumo-subtle">
-                    Generating confirmation…
-                  </span>
-                </div>
-              ) : (
-                <UITreeRenderer
-                  tree={msg.tree}
-                  streaming={msg.status === "streaming"}
-                  customComponents={CUSTOM_COMPONENTS}
-                  onAction={msg.status === "pending" ? onToolAction : undefined}
-                />
-              )}
-              {msg.status === "applying" && (
-                <div className="absolute inset-0 flex items-center justify-center bg-kumo-base/60 rounded-lg">
-                  <Loader size="sm" />
-                </div>
-              )}
-              {msg.status === "completed" && (
-                <div className="absolute inset-0 flex items-center justify-center bg-kumo-base/60 rounded-lg">
-                  <div className="flex items-center gap-1.5 text-sm text-kumo-success">
-                    <CheckIcon className="size-4" />
-                    <span className="font-medium">Applied</span>
-                  </div>
-                </div>
-              )}
-            </div>
+            <McpToolIframe
+              key={msg.toolId}
+              src={msg.iframeUrl}
+              renderData={msg.renderData}
+              status={msg.status}
+              onToolAction={(payload) => onToolAction(msg.toolId, payload)}
+              onStatusChange={(s) => onToolStatusChange(msg.toolId, s)}
+            />
           ) : (
             <div
               key={i}
