@@ -11,6 +11,8 @@ Started: 2026-03-04
 - `agents` bundles MCPClientManager which dynamically imports `ai` — must add `ai` as dependency for wrangler dev to bundle without errors
 - Extract DO class to `worker/mcp/index.ts`, re-export from `worker/index.ts` — wrangler types still resolve via `import("../worker/index").ClassName`
 - Use `.js` extension for local imports (ESM convention with `moduleResolution: "bundler"`)
+- `createUIResource` is sync — returns `UIResource` not `Promise`. Metadata keys prefixed `mcpui.dev/ui-`
+- MCP streamable HTTP requires `Accept: application/json, text/event-stream` — both needed or -32000 error
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -26,3 +28,12 @@ Started: 2026-03-04
 - Added `ai` as dependency to resolve `agents` bundle-time dynamic import error
 - Files changed: `worker/mcp/index.ts` (new), `worker/index.ts` (refactored), `package.json` (+ai dep)
 - **Learnings:** `agents/mcp` entry point transitively bundles `client-QZa2Rq0l.js` which has `await import("ai")` — esbuild resolves this statically even though it's dynamic. Adding `ai` as a dep fixes the bundle error. The `@cloudflare/vite-plugin` v1.26.0 requires wrangler `^4.70.0` but monorepo pins `4.67.0`, so `vite dev` doesn't work — must use `wrangler dev` for now.
+
+## Task - tool-1
+- Created `worker/mcp/tools.ts` with `initializeTools(agent)` that registers `create_worker` tool
+- Tool accepts `{ workerName: z.string() }`, returns `createUIResource` with `externalUrl` type pointing to `/ui/create-worker-confirm`
+- `uiMetadata` includes `initial-render-data: { workerName, toolId }` and `preferred-frame-size: ["100%", "280px"]`
+- Wired `initializeTools(this)` into `KumoPlaygroundMCP.init()`
+- Verified via `wrangler dev` + curl: `tools/call` with `create_worker` returns correct UI resource with all metadata
+- Files changed: `worker/mcp/tools.ts` (new), `worker/mcp/index.ts` (added import + init call)
+- **Learnings:** `createUIResource` from `@mcp-ui/server` is synchronous (returns `UIResource`, not `Promise<UIResource>`) despite inspo using `await`. The `_meta` key prefix is `mcpui.dev/ui-` (e.g. `mcpui.dev/ui-initial-render-data`). MCP streamable HTTP transport requires `Accept: application/json, text/event-stream` header — omitting `text/event-stream` returns a `-32000` error.

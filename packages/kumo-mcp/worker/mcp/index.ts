@@ -1,5 +1,6 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { initializeTools } from "./tools.js";
 
 type State = Record<string, never>;
 
@@ -18,6 +19,6 @@ export class KumoPlaygroundMCP extends McpAgent<Env, State> {
   );
 
   async init() {
-    // Tool registration will be added in tool-1
+    initializeTools(this);
   }
 }
