@@ -86,6 +86,7 @@ import {
   createHandlerMap,
   dispatchAction,
   processActionResult,
+  applyPatch,
   type ActionEvent,
   type ActionHandler,
   type ActionHandlerMap,
@@ -229,6 +230,41 @@ function extractPromptString(body: unknown): string | null {
   if (!("prompt" in body)) return null;
   const narrow: { prompt: unknown } = body;
   return typeof narrow.prompt === "string" ? narrow.prompt : null;
+}
+
+// =============================================================================
+// Tool middleware — intercept messages that trigger tool flows
+// =============================================================================
+
+/**
+ * Match a "create worker" message and extract the worker name.
+ *
+ * Returns the worker name if the message matches, `null` otherwise.
+ * Matches patterns like "create a new hello world worker" and uses
+ * `hello-world` as the default worker name for the demo.
+ */
+const CREATE_WORKER_PATTERN = /\bcreate\b.*\bworker\b/i;
+
+function matchCreateWorkerMessage(message: string): string | null {
+  return CREATE_WORKER_PATTERN.test(message) ? "hello-world" : null;
+}
+
+/**
+ * Build a UITree from JSONL by parsing through createJsonlParser → applyPatch.
+ *
+ * Routes the JSONL string through the standard streaming pipeline so the
+ * resulting tree is identical to one built from an SSE stream.
+ */
+function buildTreeFromJsonl(jsonl: string): UITree {
+  const parser = createJsonlParser();
+  const ops = parser.push(jsonl + "\n");
+  const remaining = parser.flush();
+  const allOps = [...ops, ...remaining];
+  let tree: UITree = { root: "", elements: {} };
+  for (const op of allOps) {
+    tree = applyPatch(tree, op);
+  }
+  return tree;
 }
 
 // =============================================================================
@@ -883,6 +919,30 @@ function PlaygroundContent() {
       if (e) e.preventDefault();
       const msg = overrideMessage ?? inputValue.trim();
       if (!msg) return;
+
+      // --- Tool middleware: intercept "create worker" messages ---
+      const workerName = matchCreateWorkerMessage(msg);
+      if (workerName !== null) {
+        setInputValue("");
+
+        // 1. Add user message
+        const userMsg: TextChatMessage = { role: "user", content: msg };
+
+        // 2. Build confirmation card tree from JSONL
+        const jsonl = generateCreateWorkerConfirmation(workerName);
+        const toolTree = buildTreeFromJsonl(jsonl);
+        const toolId = `create-worker-${workerName}`;
+        const toolMsg: ToolChatMessage = {
+          role: "tool",
+          toolId,
+          tree: toolTree,
+          status: "pending",
+        };
+
+        // 3. Append both messages — no API call
+        setMessages((prev) => [...prev, userMsg, toolMsg]);
+        return;
+      }
 
       // Abort any in-flight primary stream
       abortRef.current?.abort();

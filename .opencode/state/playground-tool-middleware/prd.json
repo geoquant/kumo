@@ -80,7 +80,7 @@
         "Confirmation card JSONL is streamed through createJsonlParser → useUITree pipeline",
         "Card renders inline in chat with pending status"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "flow-2",
