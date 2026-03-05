@@ -114,11 +114,70 @@ export interface ToolDefinition {
 }
 
 // =============================================================================
+// Helpers
+// =============================================================================
+
+/** Convert a freeform name to a kebab-case slug suitable for a Worker name. */
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/** Words that don't constitute a meaningful worker name. */
+const FILLER_WORDS = new Set([
+  "a",
+  "an",
+  "the",
+  "my",
+  "our",
+  "some",
+  "cloudflare",
+  "cf",
+]);
+
+// =============================================================================
 // Registry
 // =============================================================================
 
-/** Regex that matches a "create worker" user message. */
+/** Detects a "create worker" intent. Name extraction is done separately. */
 const CREATE_WORKER_PATTERN = /\bcreate\b.*\bworker\b/i;
+
+/**
+ * Extract a worker name from a "create worker" message.
+ *
+ * Handles both orderings:
+ * - "create a new **jonnie** worker"  (name before "worker")
+ * - "create worker **called** my-api" (name after "worker")
+ */
+function extractWorkerName(message: string): string {
+  // Try "worker called/named <name>" first (most explicit).
+  const postMatch = /\bworker\s+(?:called|named)\s+(.+)/i.exec(message);
+  if (postMatch?.[1] != null) {
+    const raw = postMatch[1].trim().replace(/['"]+/g, "");
+    if (raw !== "") return slugify(raw);
+  }
+
+  // Try "<name> worker" — grab words between "create [a] [new]" and "worker".
+  const preMatch =
+    /\bcreate\b\s+(?:a\s+)?(?:new\s+)?(?:(?:cloudflare|cf)\s+)?(.+?)\s+worker\b/i.exec(
+      message,
+    );
+  if (preMatch?.[1] != null) {
+    const raw = preMatch[1].trim().replace(/['"]+/g, "");
+    if (raw !== "" && !FILLER_WORDS.has(raw.toLowerCase())) return slugify(raw);
+  }
+
+  // Try bare "worker <name>" (no "called"/"named" keyword).
+  const barePost = /\bworker\s+([a-z0-9][\w\s-]*)/i.exec(message);
+  if (barePost?.[1] != null) {
+    const raw = barePost[1].trim().replace(/['"]+/g, "");
+    if (raw !== "" && !FILLER_WORDS.has(raw.toLowerCase())) return slugify(raw);
+  }
+
+  return "hello-world";
+}
 
 /**
  * Tool registry — keyed by `mcpExecuteToolName` so action routing can
@@ -136,7 +195,7 @@ export const TOOL_REGISTRY: ReadonlyMap<string, ToolDefinition> = new Map<
     {
       match: (message) =>
         CREATE_WORKER_PATTERN.test(message)
-          ? { workerName: "hello-world" }
+          ? { workerName: extractWorkerName(message) }
           : null,
 
       mcpExecuteToolName: "execute_create_worker",
