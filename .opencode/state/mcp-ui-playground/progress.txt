@@ -180,3 +180,13 @@ Started: 2026-03-04
 - No other files imported these types (grep confirmed), so only 2 files changed
 - Files changed: `src/lib/chat-types.ts` (new), `src/components/demos/_PlaygroundPage.tsx` (import update + inline type removal)
 - **Learnings:** These types were only consumed within `_PlaygroundPage.tsx` — no other files needed updating. The `~/` path alias (Astro) causes LSP false positives in standalone TS — `astro check` is the authoritative typecheck. Pre-existing lint errors (66 in `skills/ns-kumo-ui-templates/`) are unrelated to this change.
+
+## Task - refactor-2
+- Extracted `CREATE_WORKER_PATTERN`, `matchCreateWorkerMessage`, `updateToolMessageStatus` (pure array-transform), `isRecord`, `findToolMessage` into `src/lib/tool-middleware.ts`
+- `_PlaygroundPage.tsx` imports from `~/lib/tool-middleware` — removed 3 inline definitions (`isRecord`, `CREATE_WORKER_PATTERN`, `matchCreateWorkerMessage`)
+- `updateToolMessageStatus` callback in component now delegates to the pure `applyToolStatusUpdate` function
+- `handleToolAction` uses `findToolMessage` from middleware instead of inline `.find()` with type predicate
+- `handleToolAction` logic stays in component (needs React state: `messagesRef`, `setMessages`, `handleSubmitRef`) — per PRD "may stay partially in PlaygroundPage for React state access"
+- No behavioral change — all paths (approve, cancel, intercept, follow-up) work identically
+- Files changed: `src/lib/tool-middleware.ts` (new), `src/components/demos/_PlaygroundPage.tsx` (imports updated, inline defs removed)
+- **Learnings:** Splitting pure logic from React state wrappers is clean: the pure function takes `readonly ChatMessage[]` and returns `ChatMessage[]`, the component wraps it in `setMessages(prev => ...)`. `isRecord` appears in 3 places (`tool-middleware`, `mcp-host`, `mcp-proxy` as `isPlainObject`) — not worth a shared util yet, duplicates are fine at this scale.

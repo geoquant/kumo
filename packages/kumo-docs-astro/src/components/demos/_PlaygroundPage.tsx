@@ -122,6 +122,12 @@ import type {
   ToolChatMessage,
   ToolMessageStatus,
 } from "~/lib/chat-types";
+import {
+  matchCreateWorkerMessage,
+  updateToolMessageStatus as applyToolStatusUpdate,
+  isRecord,
+  findToolMessage,
+} from "~/lib/tool-middleware";
 
 // =============================================================================
 // Custom components — must match the metadata in lib/playground.ts so the
@@ -200,11 +206,6 @@ interface SkillInfo {
 // =============================================================================
 
 /** Extract `error` string from an unknown JSON error body, or null. */
-/** Type guard for non-null, non-array objects. */
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
 function extractErrorMessage(body: unknown): string | null {
   if (typeof body !== "object" || body === null) return null;
   if (!("error" in body)) return null;
@@ -218,23 +219,6 @@ function extractPromptString(body: unknown): string | null {
   if (!("prompt" in body)) return null;
   const narrow: { prompt: unknown } = body;
   return typeof narrow.prompt === "string" ? narrow.prompt : null;
-}
-
-// =============================================================================
-// Tool middleware — intercept messages that trigger tool flows
-// =============================================================================
-
-/**
- * Match a "create worker" message and extract the worker name.
- *
- * Returns the worker name if the message matches, `null` otherwise.
- * Matches patterns like "create a new hello world worker" and uses
- * `hello-world` as the default worker name for the demo.
- */
-const CREATE_WORKER_PATTERN = /\bcreate\b.*\bworker\b/i;
-
-function matchCreateWorkerMessage(message: string): string | null {
-  return CREATE_WORKER_PATTERN.test(message) ? "hello-world" : null;
 }
 
 // =============================================================================
@@ -584,17 +568,11 @@ function PlaygroundContent() {
 
   /**
    * Immutably update the status of a tool message identified by `toolId`.
-   * Returns a new messages array with the targeted message replaced.
+   * Delegates to the pure `applyToolStatusUpdate` from tool-middleware.
    */
   const updateToolMessageStatus = useCallback(
     (toolId: string, newStatus: ToolMessageStatus) => {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.role === "tool" && m.toolId === toolId
-            ? { ...m, status: newStatus }
-            : m,
-        ),
-      );
+      setMessages((prev) => applyToolStatusUpdate(prev, toolId, newStatus));
     },
     [],
   );
@@ -602,9 +580,7 @@ function PlaygroundContent() {
   const handleToolAction = useCallback(
     (toolId: string, payload: ToolActionPayload) => {
       // Find the tool message this action belongs to.
-      const toolMsg = messagesRef.current.find(
-        (m): m is ToolChatMessage => m.role === "tool" && m.toolId === toolId,
-      );
+      const toolMsg = findToolMessage(messagesRef.current, toolId);
       if (toolMsg == null) return;
 
       // --- Cancel path: update status, no panel generation ---
