@@ -256,7 +256,7 @@
         "PRESET_PROMPTS includes pills from TOOL_REGISTRY entries",
         "Adding a hypothetical second tool entry to TOOL_REGISTRY would work without modifying _PlaygroundPage.tsx"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {

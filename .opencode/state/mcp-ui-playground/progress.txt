@@ -21,6 +21,7 @@ Started: 2026-03-04
 - postMessage settle pattern: wrap resolve/reject in `settle()` guard to prevent double-resolution from timeout vs message race
 - Host→iframe status delegation: McpToolIframe manages `status` as a prop from host. Iframe signals readiness via first non-zero `ui-size-change` → `onStatusChange("pending")`. Host manages the FSM (streaming→pending→applying→completed/cancelled), iframe renders autonomously within that frame
 - MCP proxy UI resource extraction: `extractUIResource` in `mcp-proxy.ts` parses MCP content array → finds `type: "resource"` with `mimeType: "text/uri-list"` → resolves iframe URL against `MCP_BASE_URL` → extracts render data from `_meta["mcpui.dev/ui-initial-render-data"]`. Proxy returns convenience `iframeUrl` + `renderData` fields so clients stay decoupled from MCP content structure
+- Tool registry pattern: `TOOL_REGISTRY` in `src/lib/tool-registry.ts` keyed by `mcpExecuteToolName`. `ToolDefinition.match()` returns params (not boolean) so callers pass them through generically. `matchToolForMessage` scans registry, `getToolByExecuteName` does O(1) lookup for action routing, `getToolPills` collects pill presets
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -199,3 +200,14 @@ Started: 2026-03-04
 - `TOOL_CONFIRMATION_PROMPT` duplicated in `kumo-mcp` because cross-package imports are lint-forbidden — comment links to canonical source
 - Files changed: `src/lib/tool-prompts.ts` (new), `src/components/demos/_PlaygroundPage.tsx` (import + inline removal), `packages/kumo-mcp/app/utils/stream-confirmation-card.ts` (comment update)
 - **Learnings:** `BASELINE_PROMPT` is used by Panel B (not tool-specific) but still benefits from extraction — it's a ~24-line template literal that clutters the component top. The follow-up prompt builder is trivially simple but naming it `buildCreateWorkerFollowUp` makes intent clear vs an inline string. Cross-package prompt sharing isn't possible without a shared package ��� comment-linking to the canonical copy is the pragmatic solution at this scale.
+
+## Task - registry-1
+- Created `src/lib/tool-registry.ts` with `ToolDefinition` interface, `TOOL_REGISTRY` ReadonlyMap, and 3 helper functions: `matchToolForMessage`, `getToolByExecuteName`, `getToolPills`
+- `ToolDefinition` fields: `match`, `mcpToolName`, `mcpExecuteToolName`, `validateExecuteResult`, `buildFollowUpPrompt`, `deriveToolId`, `pill`
+- Registry keyed by `mcpExecuteToolName` for O(1) lookup from iframe action payloads
+- `_PlaygroundPage.tsx` now uses `matchToolForMessage(msg)` instead of `matchCreateWorkerMessage(msg)` for submit intercept
+- `handleToolAction` uses `getToolByExecuteName(payload.toolName)` instead of hardcoded `execute_create_worker` check
+- `PRESET_PROMPTS` derived as `[...STATIC_PRESETS, ...getToolPills()]` — tool pills auto-populate from registry
+- Removed dead exports: `matchCreateWorkerMessage` + `CREATE_WORKER_PATTERN` from `tool-middleware.ts`, `buildCreateWorkerFollowUp` from `tool-prompts.ts` (subsumed by registry)
+- Files changed: `src/lib/tool-registry.ts` (new), `src/components/demos/_PlaygroundPage.tsx` (imports + handleSubmit + handleToolAction + PRESET_PROMPTS), `src/lib/tool-middleware.ts` (removed dead code), `src/lib/tool-prompts.ts` (removed dead code + comment)
+- **Learnings:** Keying the registry by `mcpExecuteToolName` (not `mcpToolName`) is the right choice — it's the value that arrives in `handleToolAction` from the iframe's action payload, so lookup is O(1) without scanning. The `match` function returns params (not a boolean) so the component can pass them directly to the MCP proxy without needing to know tool-specific parameter names. `cancel_tool` handling stays generic before the registry lookup — it applies to all tools uniformly.

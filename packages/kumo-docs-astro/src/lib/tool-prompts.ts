@@ -86,18 +86,8 @@ Example — User: "Show a user profile card"
 // =============================================================================
 // Follow-up prompt builder
 // =============================================================================
-
-/**
- * Build the follow-up prompt sent after a successful `execute_create_worker`
- * tool execution.
- *
- * Deliberately avoids "create...worker" phrasing so it won't re-enter the
- * tool middleware intercept in `handleSubmit`.
- */
-export function buildCreateWorkerFollowUp(workerName: string): string {
-  return (
-    `Generate a deployment dashboard for the "${workerName}" Workers script. ` +
-    `Include CloudflareLogo at the top, a heading with the script name, ` +
-    `status Badge, and a Table of recent deployments.`
-  );
-}
+//
+// `buildCreateWorkerFollowUp` has been moved to `tool-registry.ts` as
+// `ToolDefinition.buildFollowUpPrompt` on the `create_worker` entry.
+// This avoids duplicating follow-up logic and keeps each tool's lifecycle
+// self-contained in the registry.
