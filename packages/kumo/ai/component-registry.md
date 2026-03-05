@@ -1350,27 +1350,6 @@ Props:
 - `lang`: CodeLang
 
 
-**Examples:**
-
-```tsx
-<CodeBlock
-      lang="tsx"
-      code={`const greeting = "Hello, World!";
-console.log(greeting);`}
-    />
-```
-
-```tsx
-<Code
-      lang="bash"
-      code="export API_KEY={{apiKey}}"
-      values={{
-        apiKey: { value: "sk_live_123", highlight: true },
-      }}
-    />
-```
-
-
 ---
 
 ### Collapsible
@@ -1839,7 +1818,7 @@ CommandPalette — accessible command palette / spotlight search overlay.  Compo
       <CommandPalette.Root
         open={open}
         onOpenChange={setOpen}
-        items={sampleGroups}
+        items={filteredGroups}
         value={search}
         onValueChange={setSearch}
         itemToStringValue={(group) => group.label}
@@ -1853,7 +1832,7 @@ CommandPalette — accessible command palette / spotlight search overlay.  Compo
         <CommandPalette.List>
           <CommandPalette.Results>
             {(group: CommandGroup) => (
-              <CommandPalette.Group key={group.id}>
+              <CommandPalette.Group key={group.id} items={group.items}>
                 <CommandPalette.GroupLabel>
                   {group.label}
                 </CommandPalette.GroupLabel>
@@ -1942,7 +1921,7 @@ CommandPalette — accessible command palette / spotlight search overlay.  Compo
       <CommandPalette.Root
         open={open}
         onOpenChange={setOpen}
-        items={loading ? [] : sampleGroups}
+        items={loading ? [] : filteredGroups}
         value={search}
         onValueChange={setSearch}
         itemToStringValue={(group) => group.label}
@@ -1956,7 +1935,7 @@ CommandPalette — accessible command palette / spotlight search overlay.  Compo
             <>
               <CommandPalette.Results>
                 {(group: CommandGroup) => (
-                  <CommandPalette.Group key={group.id}>
+                  <CommandPalette.Group key={group.id} items={group.items}>
                     <CommandPalette.GroupLabel>
                       {group.label}
                     </CommandPalette.GroupLabel>
@@ -4360,11 +4339,51 @@ Option sub-component
 **Examples:**
 
 ```tsx
+<div className="flex gap-2">
+      <Select
+        className="w-[200px]"
+        value={value}
+        onValueChange={(v) => setValue(v ?? "apple")}
+        items={{ apple: "Apple", banana: "Banana", cherry: "Cherry" }}
+      />
+
+      <Select
+        value={value}
+        className="w-[200px]"
+        onValueChange={(v) => setValue(v ?? "apple")}
+        items={{ apple: "Apple", banana: "Banana", cherry: "Cherry" }}
+      >
+        <Select.Option value="apple">Apple</Select.Option>
+        <Select.Option value="banana">Banana</Select.Option>
+        <Select.Option value="cherry">Cherry</Select.Option>
+      </Select>
+    </div>
+```
+
+```tsx
 <Select
       className="w-[200px]"
       value={value}
-      onValueChange={(v) => setValue(v ?? "apple")}
-      items={{ apple: "Apple", banana: "Banana", cherry: "Cherry" }}
+      onValueChange={(v) => setValue(v as string)}
+      items={{
+        bug: "Bug",
+        documentation: "Documentation",
+        feature: "Feature",
+      }}
+    />
+```
+
+```tsx
+<Select
+      className="w-[200px]"
+      value={value}
+      placeholder="Please select"
+      onValueChange={(v) => setValue(v as string | null)}
+      items={[
+        { value: "bug", label: "Bug" },
+        { value: "documentation", label: "Documentation" },
+        { value: "feature", label: "Feature" },
+      ]}
     />
 ```
 

@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       dts({
-        include: ["src/**/*", "ai/**/*"],
+        include: ["src/**/*", "ai/**/*", "scripts/theme-generator/**/*"],
         exclude: ["**/*.test.ts", "**/*.test.tsx", "**/*.stories.tsx"],
         rollupTypes: false, // Disabled - causes timeouts with many entry points
         compilerOptions: {
@@ -216,8 +216,17 @@ export default defineConfig(({ mode }) => {
           streaming: resolve(__dirname, "src/streaming/index.ts"),
           // Generative module entry point (UITreeRenderer, component map, element validator)
           generative: resolve(__dirname, "src/generative/index.ts"),
-          // AI schemas entry point (Zod schemas for runtime validation of AI-generated UI trees)
+          // AI schemas for runtime validation (compiled to avoid consumers type-checking raw .ts)
           "ai/schemas": resolve(__dirname, "ai/schemas.ts"),
+          // Theme generator utilities for consumers extending the theme
+          "scripts/theme-generator/config": resolve(
+            __dirname,
+            "scripts/theme-generator/config.ts",
+          ),
+          "scripts/theme-generator/types": resolve(
+            __dirname,
+            "scripts/theme-generator/types.ts",
+          ),
         },
         formats: ["es"],
         fileName: (format, entryName) => {

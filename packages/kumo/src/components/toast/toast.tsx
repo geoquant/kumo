@@ -138,6 +138,7 @@ type KumoToastOptionsBase = {
   variant?: KumoToastVariant;
   content?: React.ReactNode;
   actions?: Array<ButtonProps>;
+  bump?: boolean;
 };
 
 export type KumoToastOptions<Data extends object> = ToastObject<Data> &
@@ -153,6 +154,36 @@ function wrapManagerMethods<
     ...manager,
 
     add: (options: KumoToastManagerAddOptions<any>) => {
+      if (options.id) {
+        const toasts = (manager as any).toasts as
+          | Array<ToastObject<any>>
+          | undefined;
+
+        if (toasts) {
+          const existingToast = toasts.find((toast) => toast.id === options.id);
+
+          // If toast exists and is not exiting, trigger bump and prevent duplicate
+          if (existingToast && existingToast.transitionStatus !== "ending") {
+            // Reset animation by disabling then re-enabling
+            manager.update(options.id, { bump: false });
+            requestAnimationFrame(() => {
+              manager.update(options.id, {
+                bump: true,
+                ...(options.timeout !== undefined && {
+                  timeout: options.timeout,
+                }),
+              });
+            });
+            return options.id;
+          }
+
+          // If toast exists and is exiting, let it finish - don't add duplicate
+          if (existingToast && existingToast.transitionStatus === "ending") {
+            return options.id;
+          }
+        }
+      }
+
       return manager.add({
         ...options,
       });
@@ -264,6 +295,7 @@ function ToastList() {
         "data-[ending-style]:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))] data-[expanded]:data-[ending-style]:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
         "data-[ending-style]:data-[swipe-direction=up]:[transform:translateY(calc(var(--toast-swipe-movement-y)-150%))] data-[expanded]:data-[ending-style]:data-[swipe-direction=up]:[transform:translateY(calc(var(--toast-swipe-movement-y)-150%))]",
         "[&[data-ending-style]:not([data-limited]):not([data-swipe-direction])]:[transform:translateY(150%)]",
+        toast.bump && "animate-toast-bump",
       )}
     >
       <div className="absolute inset-0 rounded-[11px] bg-kumo-control/90"></div>

@@ -77,6 +77,44 @@ describe("Flow", () => {
       const node = screen.getByText("Node A");
       expect(node.getAttribute("data-node-id")).toBeTruthy();
     });
+
+    it("uses a custom id prop as data-node-id when provided", () => {
+      render(
+        <Flow>
+          <Flow.Node id="my-custom-id">Custom ID Node</Flow.Node>
+        </Flow>,
+      );
+
+      const node = screen.getByText("Custom ID Node");
+      expect(node.getAttribute("data-node-id")).toBe("my-custom-id");
+    });
+
+    it("uses a custom id on render prop elements", () => {
+      render(
+        <Flow>
+          <Flow.Node
+            id="render-custom-id"
+            render={<li data-testid="custom-render">Custom</li>}
+          />
+        </Flow>,
+      );
+
+      const node = screen.getByTestId("custom-render");
+      expect(node.getAttribute("data-node-id")).toBe("render-custom-id");
+    });
+
+    it("falls back to a generated id when no id prop is provided", () => {
+      render(
+        <Flow>
+          <Flow.Node>Auto ID</Flow.Node>
+        </Flow>,
+      );
+
+      const node = screen.getByText("Auto ID");
+      const nodeId = node.getAttribute("data-node-id");
+      expect(nodeId).toBeTruthy();
+      expect(nodeId).not.toBe("");
+    });
   });
 
   it("renders parallel branches alongside sequential nodes", () => {
@@ -226,6 +264,61 @@ describe("Flow", () => {
         </Flow>,
       );
       expect(screen.getByText("Backup Handler (disabled)")).toBeTruthy();
+    });
+  });
+
+  describe("Nested list in a parallel node", () => {
+    it("renders nested Flow.List branches inside Flow.Parallel", () => {
+      render(
+        <Flow>
+          <Flow.Parallel>
+            <Flow.List>
+              <Flow.Node>Client Users</Flow.Node>
+              <Flow.Node>Engineering Team Access</Flow.Node>
+            </Flow.List>
+            <Flow.List>
+              <Flow.Parallel>
+                <Flow.Node>All Authenticated Users</Flow.Node>
+                <Flow.Node>Client Users 2</Flow.Node>
+                <Flow.Node>Site Users</Flow.Node>
+              </Flow.Parallel>
+              <Flow.Node>Contractor Access</Flow.Node>
+            </Flow.List>
+          </Flow.Parallel>
+          <Flow.Node>Destinations</Flow.Node>
+        </Flow>,
+      );
+
+      // All nodes from both lists are rendered
+      expect(screen.getByText("Client Users")).toBeTruthy();
+      expect(screen.getByText("Engineering Team Access")).toBeTruthy();
+      expect(screen.getByText("All Authenticated Users")).toBeTruthy();
+      expect(screen.getByText("Client Users 2")).toBeTruthy();
+      expect(screen.getByText("Site Users")).toBeTruthy();
+      expect(screen.getByText("Contractor Access")).toBeTruthy();
+      expect(screen.getByText("Destinations")).toBeTruthy();
+    });
+
+    it("renders a nested parallel inside a list within a parallel", () => {
+      render(
+        <Flow>
+          <Flow.Parallel>
+            <Flow.List>
+              <Flow.Parallel>
+                <Flow.Node>Inner Branch A</Flow.Node>
+                <Flow.Node>Inner Branch B</Flow.Node>
+              </Flow.Parallel>
+              <Flow.Node>After Inner Parallel</Flow.Node>
+            </Flow.List>
+          </Flow.Parallel>
+          <Flow.Node>Final</Flow.Node>
+        </Flow>,
+      );
+
+      expect(screen.getByText("Inner Branch A")).toBeTruthy();
+      expect(screen.getByText("Inner Branch B")).toBeTruthy();
+      expect(screen.getByText("After Inner Parallel")).toBeTruthy();
+      expect(screen.getByText("Final")).toBeTruthy();
     });
   });
 

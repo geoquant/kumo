@@ -1,6 +1,6 @@
 {
   "name": "@cloudflare/kumo",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "private": false,
   "type": "module",
   "description": "Kumo - Cloudflare's component library for building modern web applications",
@@ -395,8 +395,14 @@
     "./styles/standalone": "./dist/styles/kumo-standalone.css",
     "./styles": "./dist/styles/kumo.css",
     "./styles/*": "./dist/styles/*.css",
-    "./scripts/theme-generator/config": "./scripts/theme-generator/config.ts",
-    "./scripts/theme-generator/types": "./scripts/theme-generator/types.ts"
+    "./scripts/theme-generator/config": {
+      "types": "./dist/scripts/theme-generator/config.d.ts",
+      "import": "./dist/scripts/theme-generator/config.js"
+    },
+    "./scripts/theme-generator/types": {
+      "types": "./dist/scripts/theme-generator/types.d.ts",
+      "import": "./dist/scripts/theme-generator/types.js"
+    }
   },
   "files": [
     "dist",
@@ -473,6 +479,7 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/svg-path-parser": "^1.1.6",
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/browser-playwright": "^4.0.18",
     "@vitest/ui": "catalog:",
@@ -486,6 +493,7 @@
     "playwright": "catalog:",
     "plop": "4.0.4",
     "rollup-plugin-preserve-directives": "0.4.0",
+    "svg-path-parser": "^1.1.0",
     "tailwindcss": "catalog:",
     "ts-json-schema-generator": "2.4.0",
     "tsx": "catalog:",
