@@ -91,12 +91,16 @@ import type {
   ToolMessageStatus,
 } from "~/lib/chat-types";
 import {
-  matchCreateWorkerMessage,
   updateToolMessageStatus as applyToolStatusUpdate,
   isRecord,
   findToolMessage,
 } from "~/lib/tool-middleware";
-import { BASELINE_PROMPT, buildCreateWorkerFollowUp } from "~/lib/tool-prompts";
+import { BASELINE_PROMPT } from "~/lib/tool-prompts";
+import {
+  matchToolForMessage,
+  getToolByExecuteName,
+  getToolPills,
+} from "~/lib/tool-registry";
 
 // =============================================================================
 // Custom components — must match the metadata in lib/playground.ts so the
@@ -252,10 +256,13 @@ const MODELS = [
 const DEFAULT_MODEL = MODELS[0].value;
 
 /**
- * Preset prompts: 5 card-level (from _StreamingDemo) + 1 page-level.
- * Card-level generate single component cards; page-level generate full layouts.
+ * Static preset prompts: card-level (single components) + page-level (full layouts).
+ * Tool presets are appended from {@link TOOL_REGISTRY} via {@link getToolPills}.
  */
-const PRESET_PROMPTS = [
+const STATIC_PRESETS: readonly {
+  readonly label: string;
+  readonly prompt: string;
+}[] = [
   // Card-level presets (from existing demo)
   {
     label: "User card",
@@ -294,12 +301,16 @@ const PRESET_PROMPTS = [
       "rows for MY_KV (KV Namespace, production-kv), MY_DB (D1 Database, worker-db), " +
       "AUTH_SERVICE (Service Binding, auth-worker), and ASSETS (R2 Bucket, static-assets).",
   },
-  // Tool middleware preset — triggers inline confirmation card instead of direct A/B panels
-  {
-    label: "Create worker",
-    prompt: "create a new hello world worker",
-  },
-] as const;
+];
+
+/**
+ * All preset prompts: static presets + tool pills from the registry.
+ * Tool pills are appended at the end so they appear as the last pill buttons.
+ */
+const PRESET_PROMPTS: readonly {
+  readonly label: string;
+  readonly prompt: string;
+}[] = [...STATIC_PRESETS, ...getToolPills()];
 
 // =============================================================================
 // Component
@@ -558,65 +569,70 @@ function PlaygroundContent() {
         return;
       }
 
-      // --- Execute path: call MCP proxy → completed → trigger A/B panels ---
-      if (payload.toolName === "execute_create_worker") {
-        updateToolMessageStatus(toolId, "applying");
+      // --- Execute path: look up tool definition from registry ---
+      const toolDef = getToolByExecuteName(payload.toolName);
+      if (toolDef == null) return;
 
-        // Extract worker name from params (preferred) or toolId fallback.
-        const workerName =
-          typeof payload.params["workerName"] === "string"
-            ? payload.params["workerName"]
-            : toolId.replace(/^create-worker-/, "") || "hello-world";
+      updateToolMessageStatus(toolId, "applying");
 
-        void (async () => {
-          try {
-            const res = await fetch("/api/mcp-proxy", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                toolName: "execute_create_worker",
-                params: { workerName },
-              }),
-            });
-
-            if (!res.ok) {
-              const errBody: unknown = await res.json().catch(() => null);
-              const errMsg =
-                isRecord(errBody) && typeof errBody["error"] === "string"
-                  ? errBody["error"]
-                  : `MCP proxy request failed (${String(res.status)})`;
-              throw new Error(errMsg);
-            }
-
-            const data: unknown = await res.json();
-            if (!isRecord(data)) {
-              throw new Error("Unexpected MCP proxy response shape");
-            }
-
-            // Validate structuredContent from MCP tool result.
-            const structured = isRecord(data["structuredContent"])
-              ? data["structuredContent"]
-              : null;
-            const success =
-              structured !== null && structured["success"] === true;
-
-            if (!success) {
-              throw new Error("Tool execution returned unsuccessful result");
-            }
-
-            updateToolMessageStatus(toolId, "completed");
-
-            handleSubmitRef.current(
-              undefined,
-              buildCreateWorkerFollowUp(workerName),
-            );
-          } catch (err) {
-            console.error("[tool-action] execute_create_worker error:", err);
-            // Revert to pending so the user can retry.
-            updateToolMessageStatus(toolId, "pending");
-          }
-        })();
+      // Extract string params from the action payload.
+      const params: Record<string, string> = {};
+      for (const [k, v] of Object.entries(payload.params)) {
+        if (typeof v === "string") params[k] = v;
       }
+
+      void (async () => {
+        try {
+          const res = await fetch("/api/mcp-proxy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              toolName: toolDef.mcpExecuteToolName,
+              params,
+            }),
+          });
+
+          if (!res.ok) {
+            const errBody: unknown = await res.json().catch(() => null);
+            const errMsg =
+              isRecord(errBody) && typeof errBody["error"] === "string"
+                ? errBody["error"]
+                : `MCP proxy request failed (${String(res.status)})`;
+            throw new Error(errMsg);
+          }
+
+          const data: unknown = await res.json();
+          if (!isRecord(data)) {
+            throw new Error("Unexpected MCP proxy response shape");
+          }
+
+          // Validate structuredContent via the tool definition's validator.
+          const structured = isRecord(data["structuredContent"])
+            ? data["structuredContent"]
+            : null;
+
+          if (
+            structured === null ||
+            !toolDef.validateExecuteResult(structured)
+          ) {
+            throw new Error("Tool execution returned unsuccessful result");
+          }
+
+          updateToolMessageStatus(toolId, "completed");
+
+          handleSubmitRef.current(
+            undefined,
+            toolDef.buildFollowUpPrompt(params),
+          );
+        } catch (err) {
+          console.error(
+            `[tool-action] ${toolDef.mcpExecuteToolName} error:`,
+            err,
+          );
+          // Revert to pending so the user can retry.
+          updateToolMessageStatus(toolId, "pending");
+        }
+      })();
     },
     [updateToolMessageStatus],
   );
@@ -793,13 +809,14 @@ function PlaygroundContent() {
       const msg = overrideMessage ?? inputValue.trim();
       if (!msg) return;
 
-      // --- Tool middleware: intercept "create worker" messages ---
+      // --- Tool middleware: intercept messages matching a registered tool ---
       // Instead of generating panels, call the MCP proxy to get a UI
       // resource, then render an iframe confirmation card in the chat
       // sidebar. The iframe app handles its own streaming, approval
       // buttons, and status overlays autonomously.
-      const workerName = matchCreateWorkerMessage(msg);
-      if (workerName !== null) {
+      const toolMatch = matchToolForMessage(msg);
+      if (toolMatch !== null) {
+        const [toolDef, matchedParams] = toolMatch;
         setInputValue("");
 
         // Show the user message immediately.
@@ -814,8 +831,8 @@ function PlaygroundContent() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                toolName: "create_worker",
-                params: { workerName },
+                toolName: toolDef.mcpToolName,
+                params: matchedParams,
               }),
             });
 
@@ -843,11 +860,11 @@ function PlaygroundContent() {
               throw new Error("MCP proxy response missing iframeUrl");
             }
 
-            // Derive toolId from render data or fall back to convention.
+            // Derive toolId from render data or fall back to the definition's convention.
             const toolId =
               typeof renderData["toolId"] === "string"
                 ? renderData["toolId"]
-                : `create-worker-${workerName}`;
+                : toolDef.deriveToolId(matchedParams);
 
             const toolMsg: ToolChatMessage = {
               role: "tool",
@@ -858,13 +875,16 @@ function PlaygroundContent() {
             };
             setMessages((prev) => [...prev, toolMsg]);
           } catch (err) {
-            console.error("[tool-middleware] MCP proxy error:", err);
+            console.error(
+              `[tool-middleware] ${toolDef.mcpToolName} error:`,
+              err,
+            );
             // Surface the error as an assistant message so the user sees it.
             setMessages((prev) => [
               ...prev,
               {
                 role: "assistant",
-                content: `Failed to create worker tool: ${err instanceof Error ? err.message : "unknown error"}`,
+                content: `Failed to invoke tool ${toolDef.mcpToolName}: ${err instanceof Error ? err.message : "unknown error"}`,
               },
             ]);
           }

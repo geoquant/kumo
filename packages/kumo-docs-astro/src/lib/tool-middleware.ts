@@ -13,26 +13,6 @@ import type {
 } from "~/lib/chat-types";
 
 // =============================================================================
-// Pattern matching
-// =============================================================================
-
-/**
- * Regex that matches a "create worker" user message.
- * Exported so callers can check without extracting a worker name.
- */
-export const CREATE_WORKER_PATTERN = /\bcreate\b.*\bworker\b/i;
-
-/**
- * Match a "create worker" message and extract the worker name.
- *
- * Returns the worker name if the message matches, `null` otherwise.
- * Uses `hello-world` as the default worker name for the demo.
- */
-export function matchCreateWorkerMessage(message: string): string | null {
-  return CREATE_WORKER_PATTERN.test(message) ? "hello-world" : null;
-}
-
-// =============================================================================
 // Status updates
 // =============================================================================
 
