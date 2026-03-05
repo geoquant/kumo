@@ -8,7 +8,9 @@ import { readSSEStream } from "./read-sse-stream.js";
 
 // ---------------------------------------------------------------------------
 // TOOL_CONFIRMATION_PROMPT — generates compact approval card with
-// tool_approve/tool_cancel actions. Identical to _PlaygroundPage.tsx.
+// tool_approve/tool_cancel actions.
+// Canonical copy: packages/kumo-docs-astro/src/lib/tool-prompts.ts
+// Duplicated here because kumo-mcp cannot import from kumo-docs-astro.
 // ---------------------------------------------------------------------------
 
 const TOOL_CONFIRMATION_PROMPT = `You generate confirmation cards by responding ONLY with JSONL — one JSON Patch operation per line. No plain text, no markdown fences, no explanations.

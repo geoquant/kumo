@@ -190,3 +190,12 @@ Started: 2026-03-04
 - No behavioral change — all paths (approve, cancel, intercept, follow-up) work identically
 - Files changed: `src/lib/tool-middleware.ts` (new), `src/components/demos/_PlaygroundPage.tsx` (imports updated, inline defs removed)
 - **Learnings:** Splitting pure logic from React state wrappers is clean: the pure function takes `readonly ChatMessage[]` and returns `ChatMessage[]`, the component wraps it in `setMessages(prev => ...)`. `isRecord` appears in 3 places (`tool-middleware`, `mcp-host`, `mcp-proxy` as `isPlainObject`) — not worth a shared util yet, duplicates are fine at this scale.
+
+## Task - refactor-3
+- Created `src/lib/tool-prompts.ts` with 3 exports: `TOOL_CONFIRMATION_PROMPT`, `BASELINE_PROMPT`, `buildCreateWorkerFollowUp(workerName)`
+- Removed 24-line inline `BASELINE_PROMPT` definition from top of `_PlaygroundPage.tsx`, replaced with import
+- Replaced inline follow-up prompt string (3 template literal lines) with `buildCreateWorkerFollowUp(workerName)` call
+- Updated `kumo-mcp/app/utils/stream-confirmation-card.ts` comment to reference canonical copy location
+- `TOOL_CONFIRMATION_PROMPT` duplicated in `kumo-mcp` because cross-package imports are lint-forbidden — comment links to canonical source
+- Files changed: `src/lib/tool-prompts.ts` (new), `src/components/demos/_PlaygroundPage.tsx` (import + inline removal), `packages/kumo-mcp/app/utils/stream-confirmation-card.ts` (comment update)
+- **Learnings:** `BASELINE_PROMPT` is used by Panel B (not tool-specific) but still benefits from extraction — it's a ~24-line template literal that clutters the component top. The follow-up prompt builder is trivially simple but naming it `buildCreateWorkerFollowUp` makes intent clear vs an inline string. Cross-package prompt sharing isn't possible without a shared package ��� comment-linking to the canonical copy is the pragmatic solution at this scale.
