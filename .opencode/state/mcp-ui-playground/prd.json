@@ -219,7 +219,7 @@
         "No duplicate type definitions",
         "TypeScript compiles without errors"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "refactor-2",

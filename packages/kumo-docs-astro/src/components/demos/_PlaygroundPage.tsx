@@ -115,8 +115,13 @@ import type { BundledLanguage } from "shiki";
 import {
   McpToolIframe,
   type ToolActionPayload,
-  type ToolIframeStatus,
 } from "~/components/McpToolIframe";
+import type {
+  ChatMessage,
+  TextChatMessage,
+  ToolChatMessage,
+  ToolMessageStatus,
+} from "~/lib/chat-types";
 
 // =============================================================================
 // Custom components — must match the metadata in lib/playground.ts so the
@@ -182,30 +187,6 @@ const PANEL_TAB_VALUES = new Set<string>(PANEL_TABS.map((t) => t.value));
 function isPanelTab(value: string): value is PanelTab {
   return PANEL_TAB_VALUES.has(value);
 }
-
-/**
- * Status state machine for tool confirmation messages.
- * Aliased from {@link ToolIframeStatus} — both types must stay in sync.
- */
-type ToolMessageStatus = ToolIframeStatus;
-
-/** A text message from the user or assistant. */
-interface TextChatMessage {
-  readonly role: "user" | "assistant";
-  readonly content: string;
-}
-
-/** An iframe-based tool confirmation card rendered in the chat sidebar. */
-interface ToolChatMessage {
-  readonly role: "tool";
-  readonly toolId: string;
-  readonly iframeUrl: string;
-  readonly renderData: Record<string, unknown>;
-  readonly status: ToolMessageStatus;
-}
-
-/** Conversation message for multi-turn. */
-type ChatMessage = TextChatMessage | ToolChatMessage;
 
 /** Skill metadata fetched from /api/chat/skills (client-side mirror of SkillMeta). */
 interface SkillInfo {
