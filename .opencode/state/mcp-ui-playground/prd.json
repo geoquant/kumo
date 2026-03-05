@@ -231,7 +231,7 @@
         "_PlaygroundPage.tsx imports from tool-middleware.ts",
         "No behavioral change — same flow, just extracted"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "refactor-3",
