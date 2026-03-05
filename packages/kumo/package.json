@@ -383,6 +383,10 @@
       "types": "./dist/src/generative/index.d.ts",
       "import": "./dist/generative.js"
     },
+    "./generative/graders": {
+      "types": "./dist/src/generative/graders.d.ts",
+      "import": "./dist/generative/graders.js"
+    },
     "./ai/schemas": {
       "types": "./dist/ai/schemas.d.ts",
       "import": "./dist/ai/schemas.js"

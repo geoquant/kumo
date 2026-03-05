@@ -31,8 +31,8 @@ import {
   RULE_NAMES,
   COMPOSITION_RULE_NAMES,
   parseJsonlToTree,
-} from "@cloudflare/kumo/generative";
-import type { GradeReport } from "@cloudflare/kumo/generative";
+} from "@cloudflare/kumo/generative/graders";
+import type { GradeReport } from "@cloudflare/kumo/generative/graders";
 import { readSSEStream } from "~/lib/read-sse-stream";
 import { ThemeToggle } from "~/components/ThemeToggle";
 

@@ -566,14 +566,6 @@ export function normalizeFormActionBars(tree: UITree): UITree {
   let changed = false;
   let nextElements: Record<string, UIElement> | null = null;
 
-  function appendClassName(existing: unknown, extra: string): string {
-    if (typeof existing !== "string" || existing.trim().length === 0) {
-      return extra;
-    }
-    if (existing.includes(extra)) return existing;
-    return `${existing} ${extra}`;
-  }
-
   for (const stack of Object.values(elements)) {
     if (!stack || stack.type !== "Stack") continue;
     const children = stack.children;
@@ -734,6 +726,322 @@ export function normalizeEmptySelects(tree: UITree): UITree {
   }
 
   return changed ? { ...tree, elements: nextElements } : tree;
+}
+
+// ---------------------------------------------------------------------------
+// Unified normalization — single-pass layout/style repair
+// ---------------------------------------------------------------------------
+
+/**
+ * Unified normalization pipeline that replaces 10 serial per-element
+ * traversals with 2 phases:
+ *
+ * **Phase 1 (structural linkage):** Fix parentKey���children linkage and
+ * props.children array misplacement. These are prerequisites for Phase 2.
+ *
+ * **Phase 2 (layout/style):** Single traversal over all elements to detect
+ * and apply all layout and style repairs (nested Surfaces, empty Selects,
+ * duplicate labels, checkbox group Grids, Surface orphans, counter stacks,
+ * form action bars, sibling form row Grids).
+ *
+ * For a 30-element tree this reduces ~300 element visits (10 × 30) to ~90
+ * (30 × 3 phases), and cuts shallow copies from up to 10 to at most 3.
+ */
+export function normalizeTree(tree: UITree): UITree {
+  // Phase 1a: parentKey → children linkage repair
+  let t = normalizeParentKeyToChildren(tree);
+
+  // Phase 1b: props.children array → structural children
+  t = normalizePropsChildrenToStructural(t);
+
+  // Phase 2: unified layout/style pass (single traversal, single shallow copy)
+  return normalizeLayoutAndStyle(t);
+}
+
+function appendClassName(existing: unknown, extra: string): string {
+  if (typeof existing !== "string" || existing.trim().length === 0) {
+    return extra;
+  }
+  if (existing.includes(extra)) return existing;
+  return `${existing} ${extra}`;
+}
+
+/**
+ * Single-pass layout and style normalization.
+ *
+ * Iterates all elements once, collecting parent-scoped data inline, then
+ * applies all repairs to a single shallow copy of the elements map.
+ */
+function normalizeLayoutAndStyle(tree: UITree): UITree {
+  const elements = tree.elements;
+  let nextElements: Record<string, UIElement> | null = null;
+
+  /** Lazily create the shallow copy of elements. */
+  function mut(): Record<string, UIElement> {
+    if (nextElements == null) nextElements = { ...elements };
+    return nextElements;
+  }
+
+  /** Read an element from the mutable map if started, else original. */
+  function get(key: string): UIElement | undefined {
+    return nextElements != null ? nextElements[key] : elements[key];
+  }
+
+  // --- Per-element repairs (single iteration) ---
+
+  for (const el of Object.values(elements)) {
+    if (!el) continue;
+
+    // 1. Nested Surfaces: Surface > single child Surface → lift inner children
+    if (el.type === "Surface" && el.children?.length === 1) {
+      const innerKey = el.children[0];
+      const inner = elements[innerKey];
+      if (
+        inner?.type === "Surface" &&
+        inner.children &&
+        inner.children.length > 0
+      ) {
+        const m = mut();
+        for (const childKey of inner.children) {
+          const child = m[childKey] ?? elements[childKey];
+          if (child) m[childKey] = { ...child, parentKey: el.key };
+        }
+        m[el.key] = { ...el, children: [...inner.children] };
+      }
+    }
+
+    // 2. Empty Selects → Input
+    if (el.type === "Select") {
+      const children = el.children;
+      const hasSelectOptions =
+        Array.isArray(children) &&
+        children.some((k) => get(k)?.type === "SelectOption");
+      if (!hasSelectOptions) {
+        const { children: _children, ...rest } = el;
+        mut()[el.key] = { ...rest, type: "Input" };
+      }
+    }
+
+    // 3. Checkbox group Grids → Stack
+    if (el.type === "Grid" && el.children?.length === 2) {
+      const left = elements[el.children[0]];
+      const right = elements[el.children[1]];
+      if (
+        left &&
+        right &&
+        (left.type === "Text" || left.type === "Label") &&
+        right.type === "Stack" &&
+        right.children &&
+        right.children.length > 0 &&
+        right.children.every((k) => {
+          const t = elements[k]?.type;
+          return typeof t === "string" && CHECKABLE_TYPES.has(t);
+        })
+      ) {
+        const props = el.props as Record<string, unknown>;
+        const nextProps: Record<string, unknown> = {};
+        if (typeof props["className"] === "string")
+          nextProps["className"] = props["className"];
+        if (typeof props["gap"] === "string") nextProps["gap"] = props["gap"];
+        mut()[el.key] = { ...el, type: "Stack", props: nextProps };
+      }
+    }
+
+    // 4. Counter Stacks: Stack with increment/decrement → add align=center
+    if (el.type === "Stack" && el.children && el.children.length >= 3) {
+      if (typeof el.props?.["align"] !== "string") {
+        const clusterKey = el.children.find(
+          (k) => elements[k]?.type === "Cluster",
+        );
+        if (clusterKey) {
+          const cluster = elements[clusterKey];
+          if (cluster?.children?.length === 2) {
+            const btnA = elements[cluster.children[0]];
+            const btnB = elements[cluster.children[1]];
+            if (btnA?.type === "Button" && btnB?.type === "Button") {
+              const names = new Set([btnA.action?.name, btnB.action?.name]);
+              if (names.has("increment") && names.has("decrement")) {
+                const targetA = btnA.action?.params?.["target"];
+                const targetB = btnB.action?.params?.["target"];
+                const targetKey =
+                  typeof targetA === "string"
+                    ? targetA
+                    : typeof targetB === "string"
+                      ? targetB
+                      : null;
+                if (targetKey && elements[targetKey]?.type === "Text") {
+                  const m = mut();
+                  m[el.key] = {
+                    ...el,
+                    props: { ...el.props, align: "center" },
+                  };
+                  if (typeof cluster.props?.["justify"] !== "string") {
+                    m[clusterKey] = {
+                      ...cluster,
+                      props: { ...cluster.props, justify: "center" },
+                    };
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // --- Parent-scoped repairs (require iterating children arrays) ---
+
+  // Use the latest elements (with any per-element repairs applied)
+  const elems = nextElements ?? elements;
+
+  for (const parent of Object.values(elems)) {
+    if (!parent?.children || parent.children.length === 0) continue;
+
+    // 5. Duplicate field labels: Text("Email") + Input({ label: "Email" }) → drop Text
+    if (parent.children.length >= 2) {
+      let parentChanged = false;
+      const nextChildren: string[] = [];
+      for (let i = 0; i < parent.children.length; i++) {
+        const k = parent.children[i];
+        const child = elems[k];
+        const nextKey = parent.children[i + 1];
+        const nextChild = nextKey ? elems[nextKey] : undefined;
+
+        const textLabel = readElementTextLabel(child);
+        const fieldLabel = readFieldLabelProp(nextChild);
+        if (
+          textLabel != null &&
+          fieldLabel != null &&
+          textLabel === fieldLabel &&
+          !isHeadingText(child)
+        ) {
+          parentChanged = true;
+          continue;
+        }
+        nextChildren.push(k);
+      }
+      if (parentChanged) {
+        mut()[parent.key] = { ...parent, children: nextChildren };
+      }
+    }
+
+    // 6. Sibling form row Grids: mixed variants → coerce to "2up"
+    if (parent.children.length >= 2) {
+      const rowGridKeys: string[] = [];
+      for (const childKey of parent.children) {
+        const child = elems[childKey];
+        if (!child) continue;
+        if (!isTwoColFormRowGrid(child)) continue;
+        const grandChildren = child.children;
+        if (!grandChildren) continue;
+        const t1 = elems[grandChildren[0]]?.type;
+        const t2 = elems[grandChildren[1]]?.type;
+        if (!t1 || !t2) continue;
+        if (!FORM_ROW_CONTROL_TYPES.has(t1) || !FORM_ROW_CONTROL_TYPES.has(t2))
+          continue;
+        rowGridKeys.push(childKey);
+      }
+      if (rowGridKeys.length >= 2) {
+        const variants = new Set<string>();
+        for (const key of rowGridKeys) {
+          const v = elems[key]?.props?.["variant"];
+          if (typeof v === "string") variants.add(v);
+        }
+        if (variants.size > 1) {
+          const m = mut();
+          for (const key of rowGridKeys) {
+            const child = elems[key];
+            if (!child || child.props["variant"] === "2up") continue;
+            m[key] = { ...child, props: { ...child.props, variant: "2up" } };
+          }
+        }
+      }
+    }
+
+    // 7. Form action bars: align submit buttons/clusters in form Stacks
+    if (parent.type === "Stack" && parent.children.length > 0) {
+      const hasFormControl = parent.children.some((k) => {
+        const t = elems[k]?.type;
+        return typeof t === "string" && FORM_CONTROL_TYPES.has(t);
+      });
+      if (hasFormControl) {
+        const lastKey = parent.children[parent.children.length - 1];
+        const last = elems[lastKey];
+        if (last?.type === "Button") {
+          const props = last.props as Record<string, unknown>;
+          const isSubmit =
+            last.action?.name === "submit_form" ||
+            props["variant"] === "primary";
+          if (isSubmit) {
+            mut()[last.key] = {
+              ...last,
+              props: {
+                ...props,
+                className: appendClassName(
+                  props["className"],
+                  "w-full sm:w-auto sm:self-end",
+                ),
+              },
+            };
+          }
+        } else if (last?.type === "Cluster") {
+          const clusterChildren = last.children;
+          if (clusterChildren && clusterChildren.length > 0) {
+            const allButtons = clusterChildren.every(
+              (k) => elems[k]?.type === "Button",
+            );
+            if (allButtons) {
+              const props = last.props as Record<string, unknown>;
+              const nextProps: Record<string, unknown> = { ...props };
+              nextProps["className"] = appendClassName(
+                props["className"],
+                "w-full",
+              );
+              if (props["justify"] == null) nextProps["justify"] = "end";
+              mut()[last.key] = { ...last, props: nextProps };
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // --- Surface orphans (must run after nested surfaces are flattened) ---
+
+  const finalElems = nextElements ?? elements;
+  for (const el of Object.values(finalElems)) {
+    if (!el || el.type !== "Surface") continue;
+    if (!el.children || el.children.length === 0) continue;
+
+    // Skip: single child that is already a Stack
+    if (el.children.length === 1) {
+      const onlyChild = finalElems[el.children[0]];
+      if (onlyChild?.type === "Stack") continue;
+    }
+
+    let stackKey = `auto-stack-${el.key}`;
+    const m = mut();
+    while (stackKey in m) stackKey = `${stackKey}-wrap`;
+
+    const syntheticStack: UIElement = {
+      key: stackKey,
+      type: "Stack",
+      props: { gap: "lg" },
+      children: [...el.children],
+      parentKey: el.key,
+    };
+
+    for (const childKey of el.children) {
+      const child = m[childKey];
+      if (child) m[childKey] = { ...child, parentKey: stackKey };
+    }
+
+    m[stackKey] = syntheticStack;
+    m[el.key] = { ...el, children: [stackKey] };
+  }
+
+  return nextElements != null ? { ...tree, elements: nextElements } : tree;
 }
 
 function gridItemClassNameForChild(child: UIElement | undefined): string {
@@ -1311,25 +1619,7 @@ function UITreeRendererImpl({
   const normalizedTree = useMemo(() => {
     const treeForNormalize =
       tree.root === rootKey ? tree : { ...tree, root: rootKey };
-    return normalizeFormActionBars(
-      normalizeCounterStacks(
-        normalizeSurfaceOrphans(
-          normalizeSiblingFormRowGrids(
-            normalizeCheckboxGroupGrids(
-              normalizeDuplicateFieldLabels(
-                normalizeEmptySelects(
-                  normalizePropsChildrenToStructural(
-                    normalizeNestedSurfaces(
-                      normalizeParentKeyToChildren(treeForNormalize),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    return normalizeTree(treeForNormalize);
   }, [tree, rootKey]);
 
   // Merge built-in and custom component maps. Memoize to avoid rebuilding on

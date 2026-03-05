@@ -44,7 +44,9 @@ export { validateElement, logValidationError } from "./element-validator.js";
 
 export type { ElementValidationResult } from "./element-validator.js";
 
-// Structural graders
+// Graders — re-exported for backward compatibility. New consumers should
+// import from "@cloudflare/kumo/generative/graders" to keep the main
+// generative bundle lean (graders add ~500 lines the renderer doesn't need).
 export {
   parseJsonlToTree,
   walkTree,
@@ -52,7 +54,10 @@ export {
   A11Y_LABEL_TYPES,
   MAX_DEPTH,
   RULE_NAMES,
-} from "./structural-graders.js";
+  gradeComposition,
+  COMPOSITION_RULE_NAMES,
+  EVAL_PROMPTS,
+} from "./graders.js";
 
 export type {
   WalkVisitor,
@@ -60,15 +65,9 @@ export type {
   GradeReport,
   GradeOptions,
   RuleName,
-} from "./structural-graders.js";
-
-// Composition graders
-export {
-  gradeComposition,
-  COMPOSITION_RULE_NAMES,
-} from "./composition-graders.js";
-
-export type { CompositionRuleName } from "./composition-graders.js";
+  CompositionRuleName,
+  EvalPrompt,
+} from "./graders.js";
 
 // Custom component helper
 export { defineCustomComponent } from "./define-custom-component.js";
@@ -78,12 +77,9 @@ export {
   UITreeRenderer,
   isRenderableTree,
   getUnknownTypes,
+  normalizeTree,
   normalizeSiblingFormRowGrids,
 } from "./ui-tree-renderer.js";
-
-// Eval prompts
-export { EVAL_PROMPTS } from "./eval/eval-prompts.js";
-export type { EvalPrompt } from "./eval/eval-prompts.js";
 
 // UITree → JSX converter
 export { uiTreeToJsx } from "./ui-tree-to-jsx.js";
