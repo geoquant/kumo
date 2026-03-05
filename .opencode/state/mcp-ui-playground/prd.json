@@ -207,7 +207,7 @@
         "Follow-up prompt avoids CREATE_WORKER_PATTERN to prevent re-intercept",
         "All 6 existing pills continue to work (no regression)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "refactor-1",

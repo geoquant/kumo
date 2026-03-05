@@ -162,3 +162,13 @@ Started: 2026-03-04
 - Added `isRecord` type guard to `_PlaygroundPage.tsx` for safe `unknown` narrowing
 - Files changed: `src/pages/api/mcp-proxy.ts` (+extractUIResource, +convenience fields), `src/components/demos/_PlaygroundPage.tsx` (+isRecord, async proxy call in handleSubmit)
 - **Learnings:** MCP proxy is the right layer to resolve relative iframe URLs against `MCP_BASE_URL` — avoids exposing infrastructure config to the client. `createUIResource` with `externalUrl` type stores the iframe URL in `resource.text` with `mimeType: "text/uri-list"`. The `_meta` key format is `mcpui.dev/ui-{key}` (e.g. `mcpui.dev/ui-initial-render-data`). Fire-and-forget IIFE pattern (`void (async () => { ... })()`) is the cleanest way to add async behavior in a synchronous `useCallback`.
+
+## Task - flow-2
+- Replaced mock `setTimeout(800ms)` in `handleToolAction` with real `/api/mcp-proxy` call for `execute_create_worker`
+- On `tool_approve`: status → `applying`, POST to `/api/mcp-proxy` with `toolName=execute_create_worker`, validate `structuredContent.success === true`, then status → `completed` + fire follow-up prompt
+- On failure/error: reverts to `pending` so user can retry (same pattern as iframe-app-3)
+- Cancel path unchanged: status → `cancelled`, no MCP call
+- Follow-up prompt still avoids `CREATE_WORKER_PATTERN` to prevent re-intercept
+- Worker name extracted from `payload.params["workerName"]` (preferred) with toolId-based fallback
+- Files changed: `src/components/demos/_PlaygroundPage.tsx` (handleToolAction rewritten)
+- **Learnings:** `ToolActionPayload.params` carries the original tool params from the iframe's `sendMcpMessage` — prefer extracting values from there over parsing the toolId string. The `structuredContent` field from `execute_create_worker` is a flat object `{ success: boolean, workerName: string, createdAt: string }` — use `isRecord` guard + property check rather than Zod on the host side to keep the host lightweight.
