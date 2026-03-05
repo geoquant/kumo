@@ -632,28 +632,69 @@ function PlaygroundContent() {
         return;
       }
 
-      // --- Execute path: mock delay → completed → trigger A/B panel generation ---
+      // --- Execute path: call MCP proxy → completed → trigger A/B panels ---
       if (payload.toolName === "execute_create_worker") {
         updateToolMessageStatus(toolId, "applying");
 
-        // Extract worker name from toolId (format: "create-worker-{name}")
+        // Extract worker name from params (preferred) or toolId fallback.
         const workerName =
-          toolId.replace(/^create-worker-/, "") || "hello-world";
+          typeof payload.params["workerName"] === "string"
+            ? payload.params["workerName"]
+            : toolId.replace(/^create-worker-/, "") || "hello-world";
 
-        // Mock processing delay, then transition to completed and fire A/B panels
-        setTimeout(() => {
-          updateToolMessageStatus(toolId, "completed");
+        void (async () => {
+          try {
+            const res = await fetch("/api/mcp-proxy", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                toolName: "execute_create_worker",
+                params: { workerName },
+              }),
+            });
 
-          // Follow-up prompt referencing the approved worker + CloudflareLogo.
-          // Deliberately avoids "create...worker" phrasing so it won't re-enter
-          // the tool middleware intercept in handleSubmit.
-          const followUp =
-            `Generate a deployment dashboard for the "${workerName}" Workers script. ` +
-            `Include CloudflareLogo at the top, a heading with the script name, ` +
-            `status Badge, and a Table of recent deployments.`;
+            if (!res.ok) {
+              const errBody: unknown = await res.json().catch(() => null);
+              const errMsg =
+                isRecord(errBody) && typeof errBody["error"] === "string"
+                  ? errBody["error"]
+                  : `MCP proxy request failed (${String(res.status)})`;
+              throw new Error(errMsg);
+            }
 
-          handleSubmitRef.current(undefined, followUp);
-        }, 800);
+            const data: unknown = await res.json();
+            if (!isRecord(data)) {
+              throw new Error("Unexpected MCP proxy response shape");
+            }
+
+            // Validate structuredContent from MCP tool result.
+            const structured = isRecord(data["structuredContent"])
+              ? data["structuredContent"]
+              : null;
+            const success =
+              structured !== null && structured["success"] === true;
+
+            if (!success) {
+              throw new Error("Tool execution returned unsuccessful result");
+            }
+
+            updateToolMessageStatus(toolId, "completed");
+
+            // Follow-up prompt referencing the approved worker + CloudflareLogo.
+            // Deliberately avoids "create...worker" phrasing so it won't
+            // re-enter the tool middleware intercept in handleSubmit.
+            const followUp =
+              `Generate a deployment dashboard for the "${workerName}" Workers script. ` +
+              `Include CloudflareLogo at the top, a heading with the script name, ` +
+              `status Badge, and a Table of recent deployments.`;
+
+            handleSubmitRef.current(undefined, followUp);
+          } catch (err) {
+            console.error("[tool-action] execute_create_worker error:", err);
+            // Revert to pending so the user can retry.
+            updateToolMessageStatus(toolId, "pending");
+          }
+        })();
       }
     },
     [updateToolMessageStatus],
