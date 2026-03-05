@@ -5,13 +5,33 @@
  * modules without pulling in the entire playground component.
  */
 
-import type { ToolIframeStatus } from "~/components/McpToolIframe";
+import type { UITree } from "@cloudflare/kumo/streaming";
+
+// =============================================================================
+// Tool message status
+// =============================================================================
 
 /**
  * Status state machine for tool confirmation messages.
- * Aliased from {@link ToolIframeStatus} — both types must stay in sync.
+ *
+ * ```
+ * streaming → pending → approved → applying → completed
+ *                     ↘ cancelled
+ *            error (from any state)
+ * ```
  */
-export type ToolMessageStatus = ToolIframeStatus;
+export type ToolMessageStatus =
+  | "streaming"
+  | "pending"
+  | "approved"
+  | "cancelled"
+  | "applying"
+  | "completed"
+  | "error";
+
+// =============================================================================
+// Message types
+// =============================================================================
 
 /** A text message from the user or assistant. */
 export interface TextChatMessage {
@@ -19,12 +39,17 @@ export interface TextChatMessage {
   readonly content: string;
 }
 
-/** An iframe-based tool confirmation card rendered in the chat sidebar. */
+/**
+ * An inline tool confirmation card rendered directly in the chat sidebar.
+ *
+ * The `tree` is progressively built via JSONL streaming — same pipeline
+ * the A/B panels use — and rendered with `UITreeRenderer` inline.
+ */
 export interface ToolChatMessage {
   readonly role: "tool";
   readonly toolId: string;
-  readonly iframeUrl: string;
-  readonly renderData: Record<string, unknown>;
+  /** The UITree powering the inline confirmation card. */
+  readonly tree: UITree;
   readonly status: ToolMessageStatus;
 }
 
