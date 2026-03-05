@@ -172,3 +172,11 @@ Started: 2026-03-04
 - Worker name extracted from `payload.params["workerName"]` (preferred) with toolId-based fallback
 - Files changed: `src/components/demos/_PlaygroundPage.tsx` (handleToolAction rewritten)
 - **Learnings:** `ToolActionPayload.params` carries the original tool params from the iframe's `sendMcpMessage` — prefer extracting values from there over parsing the toolId string. The `structuredContent` field from `execute_create_worker` is a flat object `{ success: boolean, workerName: string, createdAt: string }` — use `isRecord` guard + property check rather than Zod on the host side to keep the host lightweight.
+
+## Task - refactor-1
+- Extracted `ToolMessageStatus`, `TextChatMessage`, `ToolChatMessage`, `ChatMessage` from `_PlaygroundPage.tsx` into `src/lib/chat-types.ts`
+- `chat-types.ts` imports `ToolIframeStatus` from `McpToolIframe` and re-exports as `ToolMessageStatus`
+- `_PlaygroundPage.tsx` now imports all 4 types from `~/lib/chat-types` — removed inline definitions + removed unused `ToolIframeStatus` import from `McpToolIframe`
+- No other files imported these types (grep confirmed), so only 2 files changed
+- Files changed: `src/lib/chat-types.ts` (new), `src/components/demos/_PlaygroundPage.tsx` (import update + inline type removal)
+- **Learnings:** These types were only consumed within `_PlaygroundPage.tsx` — no other files needed updating. The `~/` path alias (Astro) causes LSP false positives in standalone TS — `astro check` is the authoritative typecheck. Pre-existing lint errors (66 in `skills/ns-kumo-ui-templates/`) are unrelated to this change.
