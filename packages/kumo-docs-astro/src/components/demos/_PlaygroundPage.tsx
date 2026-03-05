@@ -9,38 +9,6 @@
  * Auth is gated by ?key= query param validated against /api/chat/prompt.
  */
 
-/**
- * Minimal baseline prompt for the "no system prompt" comparison stream.
- *
- * Contains only the bare-minimum JSONL format spec and a single example so the
- * LLM produces parseable output. No design rules, no component docs, no
- * layout guidance — isolating the contribution of the full system prompt.
- */
-const BASELINE_PROMPT = `You create user interfaces by responding ONLY with JSONL — one JSON Patch operation per line. No plain text, no markdown fences, no explanations.
-
-Each line is: {"op":"add","path":"<json-pointer>","value":<value>}
-
-You build this structure: { root: "element-key", elements: { [key]: UIElement } }
-Where UIElement is: { key: string, type: string, props: object, children?: string[], parentKey?: string }
-
-Order:
-1. First line: {"op":"add","path":"/root","value":"<root-key>"}
-2. Then add elements top-down (parent before children). Parents include children array upfront.
-
-Available types: Surface, Stack, Grid, Cluster, Text, Button, Input, Select, SelectOption, Textarea, Badge, Switch, Checkbox, Table, TableHead, TableBody, TableRow, TableCell, TableHeader, Tabs, Code, Link, Banner, Field, Label, Empty, Loader, Meter, Flow, FlowNode, Div
-
-Rules: unique kebab-case keys, key field matches path, compact JSON, one object per line.
-
-Example — User: "Show a user profile card"
-
-{"op":"add","path":"/root","value":"card"}
-{"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["stack"]}}
-{"op":"add","path":"/elements/stack","value":{"key":"stack","type":"Stack","props":{"gap":"lg"},"children":["name","role","actions"],"parentKey":"card"}}
-{"op":"add","path":"/elements/name","value":{"key":"name","type":"Text","props":{"children":"Jane Cooper","variant":"heading2"},"parentKey":"stack"}}
-{"op":"add","path":"/elements/role","value":{"key":"role","type":"Text","props":{"children":"Engineering · Admin","variant":"secondary"},"parentKey":"stack"}}
-{"op":"add","path":"/elements/actions","value":{"key":"actions","type":"Cluster","props":{"gap":"sm"},"children":["edit-btn"],"parentKey":"stack"}}
-{"op":"add","path":"/elements/edit-btn","value":{"key":"edit-btn","type":"Button","props":{"children":"Edit profile","variant":"primary"},"parentKey":"actions"}}`;
-
 import {
   useCallback,
   useEffect,
@@ -128,6 +96,7 @@ import {
   isRecord,
   findToolMessage,
 } from "~/lib/tool-middleware";
+import { BASELINE_PROMPT, buildCreateWorkerFollowUp } from "~/lib/tool-prompts";
 
 // =============================================================================
 // Custom components — must match the metadata in lib/playground.ts so the
@@ -637,15 +606,10 @@ function PlaygroundContent() {
 
             updateToolMessageStatus(toolId, "completed");
 
-            // Follow-up prompt referencing the approved worker + CloudflareLogo.
-            // Deliberately avoids "create...worker" phrasing so it won't
-            // re-enter the tool middleware intercept in handleSubmit.
-            const followUp =
-              `Generate a deployment dashboard for the "${workerName}" Workers script. ` +
-              `Include CloudflareLogo at the top, a heading with the script name, ` +
-              `status Badge, and a Table of recent deployments.`;
-
-            handleSubmitRef.current(undefined, followUp);
+            handleSubmitRef.current(
+              undefined,
+              buildCreateWorkerFollowUp(workerName),
+            );
           } catch (err) {
             console.error("[tool-action] execute_create_worker error:", err);
             // Revert to pending so the user can retry.
