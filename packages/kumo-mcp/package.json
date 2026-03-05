@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "vite dev",
     "build": "wrangler deploy --dry-run --outdir=dist",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.app.json",
     "pretypecheck": "wrangler types ./types/worker-configuration.d.ts"

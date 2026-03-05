@@ -52,10 +52,11 @@ interface McpProxyRequest {
 
 /**
  * Base URL for the kumo-mcp Worker.
- * In dev, this is a separate wrangler process (typically port 8787).
- * In production/staging, this would be a service binding or deployed URL.
+ * In dev, `@cloudflare/vite-plugin` serves the Worker through Vite's dev
+ * server (default port 5173). In production/staging, this would be a
+ * service binding or deployed URL.
  */
-const MCP_BASE_URL = import.meta.env.MCP_BASE_URL ?? "http://localhost:8787";
+const MCP_BASE_URL = import.meta.env.MCP_BASE_URL ?? "http://localhost:5173";
 
 /**
  * Required `Accept` header for MCP streamable HTTP transport.
