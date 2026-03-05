@@ -80,10 +80,6 @@ import { readSSEStream } from "~/lib/read-sse-stream";
 import { HighlightedCode } from "~/components/HighlightedCode";
 import { ThemeToggle } from "~/components/ThemeToggle";
 import type { BundledLanguage } from "shiki";
-import {
-  McpToolIframe,
-  type ToolActionPayload,
-} from "~/components/McpToolIframe";
 import type {
   ChatMessage,
   TextChatMessage,
@@ -92,14 +88,16 @@ import type {
 } from "~/lib/chat-types";
 import {
   updateToolMessageStatus as applyToolStatusUpdate,
+  updateToolMessageTree as applyToolTreeUpdate,
   isRecord,
-  findToolMessage,
+  streamToolConfirmation,
 } from "~/lib/tool-middleware";
 import { BASELINE_PROMPT } from "~/lib/tool-prompts";
 import {
   matchToolForMessage,
-  getToolByExecuteName,
   getToolPills,
+  TOOL_REGISTRY,
+  type ToolDefinition,
 } from "~/lib/tool-registry";
 
 // =============================================================================
@@ -557,29 +555,50 @@ function PlaygroundContent() {
     [],
   );
 
+  /**
+   * Handle actions dispatched from inline tool confirmation cards.
+   *
+   * The UITreeRenderer fires `tool_approve` / `tool_cancel` actions
+   * with `params.toolId`. On approve, we call the MCP proxy for execution
+   * and fire the follow-up prompt on success.
+   */
   const handleToolAction = useCallback(
-    (toolId: string, payload: ToolActionPayload) => {
-      // Find the tool message this action belongs to.
-      const toolMsg = findToolMessage(messagesRef.current, toolId);
-      if (toolMsg == null) return;
+    (event: ActionEvent) => {
+      const actionName = event.actionName;
+      const params = (event.params ?? {}) as Record<string, unknown>;
+      const toolId =
+        typeof params["toolId"] === "string" ? params["toolId"] : null;
+      if (toolId === null) return;
 
-      // --- Cancel path: update status, no panel generation ---
-      if (payload.toolName === "cancel_tool") {
+      // --- Cancel path ---
+      if (actionName === "tool_cancel") {
         updateToolMessageStatus(toolId, "cancelled");
         return;
       }
 
-      // --- Execute path: look up tool definition from registry ---
-      const toolDef = getToolByExecuteName(payload.toolName);
-      if (toolDef == null) return;
+      // --- Approve path ---
+      if (actionName !== "tool_approve") return;
+
+      // Find the matching tool definition by scanning the registry.
+      // The toolId encodes the tool type (e.g. "create-worker-hello-world").
+      let matchedDef: ToolDefinition | undefined;
+
+      for (const def of TOOL_REGISTRY.values()) {
+        // Each definition's deriveExecuteParams can parse this toolId.
+        // We verify by round-tripping: derive params → derive toolId → compare.
+        const candidateParams = def.deriveExecuteParams(toolId);
+        const candidateToolId = def.deriveToolId(candidateParams);
+        if (candidateToolId === toolId) {
+          matchedDef = def;
+          break;
+        }
+      }
+
+      if (matchedDef == null) return;
+
+      const matchedParams = matchedDef.deriveExecuteParams(toolId);
 
       updateToolMessageStatus(toolId, "applying");
-
-      // Extract string params from the action payload.
-      const params: Record<string, string> = {};
-      for (const [k, v] of Object.entries(payload.params)) {
-        if (typeof v === "string") params[k] = v;
-      }
 
       void (async () => {
         try {
@@ -587,33 +606,35 @@ function PlaygroundContent() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              toolName: toolDef.mcpExecuteToolName,
-              params,
+              toolName: matchedDef.mcpExecuteToolName,
+              params: matchedParams,
             }),
           });
 
           if (!res.ok) {
-            const errBody: unknown = await res.json().catch(() => null);
+            const errBody = (await res.json().catch(() => null)) as Record<
+              string,
+              unknown
+            > | null;
             const errMsg =
-              isRecord(errBody) && typeof errBody["error"] === "string"
+              errBody !== null && typeof errBody["error"] === "string"
                 ? errBody["error"]
                 : `MCP proxy request failed (${String(res.status)})`;
             throw new Error(errMsg);
           }
 
-          const data: unknown = await res.json();
+          const data = (await res.json()) as Record<string, unknown>;
           if (!isRecord(data)) {
             throw new Error("Unexpected MCP proxy response shape");
           }
 
-          // Validate structuredContent via the tool definition's validator.
           const structured = isRecord(data["structuredContent"])
             ? data["structuredContent"]
             : null;
 
           if (
             structured === null ||
-            !toolDef.validateExecuteResult(structured)
+            !matchedDef.validateExecuteResult(structured)
           ) {
             throw new Error("Tool execution returned unsuccessful result");
           }
@@ -622,14 +643,13 @@ function PlaygroundContent() {
 
           handleSubmitRef.current(
             undefined,
-            toolDef.buildFollowUpPrompt(params),
+            matchedDef.buildFollowUpPrompt(matchedParams),
           );
         } catch (err) {
           console.error(
-            `[tool-action] ${toolDef.mcpExecuteToolName} error:`,
+            `[tool-action] ${matchedDef.mcpExecuteToolName} error:`,
             err,
           );
-          // Revert to pending so the user can retry.
           updateToolMessageStatus(toolId, "pending");
         }
       })();
@@ -810,10 +830,8 @@ function PlaygroundContent() {
       if (!msg) return;
 
       // --- Tool middleware: intercept messages matching a registered tool ---
-      // Instead of generating panels, call the MCP proxy to get a UI
-      // resource, then render an iframe confirmation card in the chat
-      // sidebar. The iframe app handles its own streaming, approval
-      // buttons, and status overlays autonomously.
+      // Stream a JSONL confirmation card inline in the chat sidebar using
+      // the same pipeline the A/B panels use (readSSEStream → createJsonlParser → applyPatch).
       const toolMatch = matchToolForMessage(msg);
       if (toolMatch !== null) {
         const [toolDef, matchedParams] = toolMatch;
@@ -823,72 +841,46 @@ function PlaygroundContent() {
         const userMsg: TextChatMessage = { role: "user", content: msg };
         setMessages((prev) => [...prev, userMsg]);
 
-        // Call MCP proxy to get the UI resource (iframe URL + render data).
-        // Fire-and-forget IIFE matching the existing stream pattern.
-        void (async () => {
-          try {
-            const res = await fetch("/api/mcp-proxy", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                toolName: toolDef.mcpToolName,
-                params: matchedParams,
-              }),
-            });
+        const toolId = toolDef.deriveToolId(matchedParams);
+        const emptyTree: UITree = { root: "", elements: {} };
 
-            if (!res.ok) {
-              const errBody: unknown = await res.json().catch(() => null);
-              const errMsg =
-                isRecord(errBody) && typeof errBody["error"] === "string"
-                  ? errBody["error"]
-                  : `MCP proxy request failed (${String(res.status)})`;
-              throw new Error(errMsg);
-            }
+        // Add the tool message with an empty tree (will be populated via streaming).
+        const toolMsg: ToolChatMessage = {
+          role: "tool",
+          toolId,
+          tree: emptyTree,
+          status: "streaming",
+        };
+        setMessages((prev) => [...prev, toolMsg]);
 
-            const data: unknown = await res.json();
-            if (!isRecord(data)) {
-              throw new Error("Unexpected MCP proxy response shape");
-            }
-
-            const iframeUrl =
-              typeof data["iframeUrl"] === "string" ? data["iframeUrl"] : null;
-            const renderData = isRecord(data["renderData"])
-              ? data["renderData"]
-              : {};
-
-            if (iframeUrl === null) {
-              throw new Error("MCP proxy response missing iframeUrl");
-            }
-
-            // Derive toolId from render data or fall back to the definition's convention.
-            const toolId =
-              typeof renderData["toolId"] === "string"
-                ? renderData["toolId"]
-                : toolDef.deriveToolId(matchedParams);
-
-            const toolMsg: ToolChatMessage = {
-              role: "tool",
-              toolId,
-              iframeUrl,
-              renderData,
-              status: "streaming",
-            };
-            setMessages((prev) => [...prev, toolMsg]);
-          } catch (err) {
-            console.error(
-              `[tool-middleware] ${toolDef.mcpToolName} error:`,
-              err,
-            );
-            // Surface the error as an assistant message so the user sees it.
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: "assistant",
-                content: `Failed to invoke tool ${toolDef.mcpToolName}: ${err instanceof Error ? err.message : "unknown error"}`,
-              },
-            ]);
-          }
-        })();
+        // Stream the confirmation card inline using the currently selected model.
+        void streamToolConfirmation(
+          {
+            message: toolDef.buildConfirmationMessage(matchedParams),
+            systemPrompt: toolDef.buildConfirmationSystemPrompt(toolId),
+            model: selectedModel,
+          },
+          {
+            onTreeUpdate: (tree) => {
+              setMessages((prev) => applyToolTreeUpdate(prev, toolId, tree));
+            },
+            onComplete: (tree) => {
+              setMessages((prev) => {
+                const updated = applyToolTreeUpdate(prev, toolId, tree);
+                return applyToolStatusUpdate(updated, toolId, "pending");
+              });
+            },
+            onError: (error) => {
+              console.error(
+                `[tool-middleware] ${toolDef.mcpExecuteToolName} stream error:`,
+                error,
+              );
+              setMessages((prev) =>
+                applyToolStatusUpdate(prev, toolId, "error"),
+              );
+            },
+          },
+        );
 
         return;
       }
@@ -1109,7 +1101,6 @@ function PlaygroundContent() {
         minimized={chatMinimized}
         onToggleMinimize={toggleChat}
         onToolAction={handleToolAction}
-        onToolStatusChange={updateToolMessageStatus}
       />
 
       {/* Right: side-by-side panels */}
@@ -2259,6 +2250,80 @@ const STATUS_CONFIG: Record<
   },
 };
 
+// =============================================================================
+// InlineToolCard — renders a streamed tool confirmation card in the chat
+// =============================================================================
+
+interface InlineToolCardProps {
+  readonly tree: UITree;
+  readonly status: ToolMessageStatus;
+  readonly onAction: (event: ActionEvent) => void;
+}
+
+/**
+ * Renders a tool confirmation card inline in the chat sidebar using
+ * `UITreeRenderer` — the same renderer the A/B panels use.
+ *
+ * Shows a spinner while streaming, the rendered card when pending,
+ * and status overlays for applying/completed/cancelled/error states.
+ */
+function InlineToolCard({ tree, status, onAction }: InlineToolCardProps) {
+  const hasTree = tree.root !== "" && Object.keys(tree.elements).length > 0;
+
+  return (
+    <div className="rounded-lg border border-kumo-line bg-kumo-elevated overflow-hidden">
+      {/* Streaming spinner before tree is populated */}
+      {status === "streaming" && !hasTree && (
+        <div className="flex items-center gap-2 px-3 py-3">
+          <SpinnerIcon size={14} className="animate-spin text-kumo-brand" />
+          <span className="text-xs text-kumo-subtle">
+            Generating confirmation…
+          </span>
+        </div>
+      )}
+
+      {/* Render the UITree when available */}
+      {hasTree && (
+        <div className="p-2">
+          <UITreeRenderer tree={tree} onAction={onAction} />
+        </div>
+      )}
+
+      {/* Status overlays */}
+      {status === "applying" && (
+        <div className="flex items-center gap-2 border-t border-kumo-line px-3 py-2">
+          <SpinnerIcon size={12} className="animate-spin text-kumo-brand" />
+          <span className="text-xs text-kumo-subtle">Applying…</span>
+        </div>
+      )}
+      {status === "completed" && (
+        <div className="flex items-center gap-2 border-t border-kumo-line px-3 py-2">
+          <CheckIcon size={12} className="text-kumo-success" />
+          <span className="text-xs text-kumo-success">Completed</span>
+        </div>
+      )}
+      {status === "cancelled" && (
+        <div className="flex items-center gap-2 border-t border-kumo-line px-3 py-2">
+          <XCircleIcon size={12} className="text-kumo-subtle" />
+          <span className="text-xs text-kumo-subtle">Cancelled</span>
+        </div>
+      )}
+      {status === "error" && (
+        <div className="flex items-center gap-2 border-t border-kumo-line px-3 py-2">
+          <WarningCircleIcon size={12} className="text-kumo-danger" />
+          <span className="text-xs text-kumo-danger">
+            Failed to generate card
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Chat sidebar
+// =============================================================================
+
 interface PlaygroundChatSidebarProps {
   readonly inputValue: string;
   readonly onInputChange: (value: string) => void;
@@ -2273,13 +2338,8 @@ interface PlaygroundChatSidebarProps {
   readonly presets: typeof PRESET_PROMPTS;
   readonly minimized: boolean;
   readonly onToggleMinimize: () => void;
-  /** Action handler for iframe tool confirmation card messages. */
-  readonly onToolAction: (toolId: string, payload: ToolActionPayload) => void;
-  /** Status change handler for tool messages (e.g. streaming → pending). */
-  readonly onToolStatusChange: (
-    toolId: string,
-    status: ToolMessageStatus,
-  ) => void;
+  /** Action handler for inline tool confirmation card actions (tool_approve / tool_cancel). */
+  readonly onToolAction: (event: ActionEvent) => void;
 }
 
 /** Right-hand chat panel: model selector, messages, input. */
@@ -2298,7 +2358,6 @@ function PlaygroundChatSidebar({
   minimized,
   onToggleMinimize,
   onToolAction,
-  onToolStatusChange,
 }: PlaygroundChatSidebarProps) {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -2389,13 +2448,11 @@ function PlaygroundChatSidebar({
 
         {messages.map((msg, i) =>
           msg.role === "tool" ? (
-            <McpToolIframe
+            <InlineToolCard
               key={msg.toolId}
-              src={msg.iframeUrl}
-              renderData={msg.renderData}
+              tree={msg.tree}
               status={msg.status}
-              onToolAction={(payload) => onToolAction(msg.toolId, payload)}
-              onStatusChange={(s) => onToolStatusChange(msg.toolId, s)}
+              onAction={onToolAction}
             />
           ) : (
             <div

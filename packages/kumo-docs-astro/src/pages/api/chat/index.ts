@@ -5,6 +5,58 @@ import { getSkillContents } from "~/lib/skills-data.generated";
 export const prerender = false;
 
 // ---------------------------------------------------------------------------
+// CORS — allow cross-origin requests from the MCP iframe origin
+// ---------------------------------------------------------------------------
+
+/**
+ * Origins allowed to make cross-origin requests to this endpoint.
+ *
+ * The MCP confirmation card iframe (served by kumo-mcp on a different origin)
+ * needs to fetch `/api/chat` to stream the tool confirmation card UI.
+ * In dev this is the Vite dev server; in prod it's the kumo-mcp Worker URL.
+ */
+const ALLOWED_ORIGINS = new Set([
+  // kumo-mcp Vite dev server
+  "http://localhost:5173",
+  // kumo-mcp wrangler dev server
+  "http://localhost:8787",
+]);
+
+/**
+ * If the production MCP base URL is configured, add it to allowed origins.
+ * This is set via `MCP_BASE_URL` env var in production deployments.
+ */
+const prodMcpUrl = import.meta.env.MCP_BASE_URL;
+if (typeof prodMcpUrl === "string" && prodMcpUrl.length > 0) {
+  try {
+    ALLOWED_ORIGINS.add(new URL(prodMcpUrl).origin);
+  } catch {
+    // Invalid URL — skip
+  }
+}
+
+/** Return CORS headers if the request origin is allowed, or empty headers. */
+function getCorsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get("Origin");
+  if (!origin || !ALLOWED_ORIGINS.has(origin)) return {};
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Accept",
+    Vary: "Origin",
+  };
+}
+
+/** Handle CORS preflight requests. */
+export const OPTIONS: APIRoute = ({ request }) => {
+  const cors = getCorsHeaders(request);
+  if (Object.keys(cors).length === 0) {
+    return new Response(null, { status: 403 });
+  }
+  return new Response(null, { status: 204, headers: cors });
+};
+
+// ---------------------------------------------------------------------------
 // Validation constants
 // ---------------------------------------------------------------------------
 
@@ -213,7 +265,16 @@ function parseChatRequest(body: unknown): ChatRequest | null {
  *
  * Rate limited: 100 req/min per IP.
  */
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async (ctx) => {
+  const response = await handlePost(ctx);
+  const cors = getCorsHeaders(ctx.request);
+  for (const [key, value] of Object.entries(cors)) {
+    response.headers.set(key, value);
+  }
+  return response;
+};
+
+const handlePost: APIRoute = async ({ request, locals }) => {
   const env = locals.runtime.env;
 
   // --- Rate limiting ---

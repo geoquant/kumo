@@ -184,6 +184,59 @@ export function normalizeSiblingFormRowGrids(tree: UITree): UITree {
 }
 
 /**
+ * Normalize parentKey → children linkage.
+ *
+ * LLMs frequently emit elements with `parentKey` set but forget to include the
+ * element key in the parent's `children` array. The renderer traverses only
+ * `children`, so these orphaned elements never appear.
+ *
+ * This pass scans every element for `parentKey` references and, when the parent
+ * exists but doesn't already list the child, appends the child key to the
+ * parent's `children` array. The result is a tree with consistent bidirectional
+ * links, ensuring all elements are reachable from the root.
+ */
+export function normalizeParentKeyToChildren(tree: UITree): UITree {
+  const elements = tree.elements;
+
+  // Collect missing child references: parentKey → child keys not in parent.children
+  const missing = new Map<string, string[]>();
+
+  for (const el of Object.values(elements)) {
+    if (!el) continue;
+    const parentKey = el.parentKey;
+    if (typeof parentKey !== "string" || parentKey === "") continue;
+
+    const parent = elements[parentKey];
+    if (!parent) continue;
+
+    const siblings = parent.children;
+    if (Array.isArray(siblings) && siblings.includes(el.key)) continue;
+
+    let list = missing.get(parentKey);
+    if (!list) {
+      list = [];
+      missing.set(parentKey, list);
+    }
+    list.push(el.key);
+  }
+
+  if (missing.size === 0) return tree;
+
+  const nextElements: Record<string, UIElement> = { ...elements };
+  for (const [parentKey, childKeys] of missing) {
+    const parent = nextElements[parentKey];
+    if (!parent) continue;
+    const existing = parent.children ?? [];
+    nextElements[parentKey] = {
+      ...parent,
+      children: [...existing, ...childKeys],
+    };
+  }
+
+  return { ...tree, elements: nextElements };
+}
+
+/**
  * Normalize nested Surfaces.
  *
  * The system prompt says never to nest Surface directly inside Surface, but LLMs
@@ -1266,7 +1319,9 @@ function UITreeRendererImpl({
               normalizeDuplicateFieldLabels(
                 normalizeEmptySelects(
                   normalizePropsChildrenToStructural(
-                    normalizeNestedSurfaces(treeForNormalize),
+                    normalizeNestedSurfaces(
+                      normalizeParentKeyToChildren(treeForNormalize),
+                    ),
                   ),
                 ),
               ),

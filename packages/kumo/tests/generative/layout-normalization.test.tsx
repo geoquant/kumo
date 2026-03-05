@@ -8,6 +8,7 @@ import {
   normalizeDuplicateFieldLabels,
   normalizeCheckboxGroupGrids,
   normalizePropsChildrenToStructural,
+  normalizeParentKeyToChildren,
 } from "../../src/generative/ui-tree-renderer";
 import type { UITree, UIElement } from "../../src/streaming/types";
 
@@ -297,6 +298,94 @@ describe("normalizePropsChildrenToStructural", () => {
     };
 
     const normalized = normalizePropsChildrenToStructural(tree);
+    expect(normalized).toBe(tree);
+  });
+});
+
+describe("normalizeParentKeyToChildren", () => {
+  it("infers children from parentKey when parent has no children array", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: { key: "card", type: "Surface", props: {} },
+        title: {
+          key: "title",
+          type: "Text",
+          props: { children: "Hello" },
+          parentKey: "card",
+        },
+        desc: {
+          key: "desc",
+          type: "Text",
+          props: { children: "World" },
+          parentKey: "card",
+        },
+      },
+    };
+
+    const normalized = normalizeParentKeyToChildren(tree);
+    expect(normalized.elements["card"]?.children).toContain("title");
+    expect(normalized.elements["card"]?.children).toContain("desc");
+    expect(normalized.elements["card"]?.children).toHaveLength(2);
+  });
+
+  it("appends missing children without duplicating existing ones", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, ["title"]),
+        title: {
+          key: "title",
+          type: "Text",
+          props: { children: "Hello" },
+          parentKey: "card",
+        },
+        desc: {
+          key: "desc",
+          type: "Text",
+          props: { children: "World" },
+          parentKey: "card",
+        },
+      },
+    };
+
+    const normalized = normalizeParentKeyToChildren(tree);
+    expect(normalized.elements["card"]?.children).toEqual(["title", "desc"]);
+  });
+
+  it("is a no-op when children already match parentKey refs", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, ["title"]),
+        title: {
+          key: "title",
+          type: "Text",
+          props: { children: "Hi" },
+          parentKey: "card",
+        },
+      },
+    };
+
+    const normalized = normalizeParentKeyToChildren(tree);
+    expect(normalized).toBe(tree);
+  });
+
+  it("ignores parentKey refs to non-existent parents", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, []),
+        orphan: {
+          key: "orphan",
+          type: "Text",
+          props: { children: "lost" },
+          parentKey: "missing-parent",
+        },
+      },
+    };
+
+    const normalized = normalizeParentKeyToChildren(tree);
     expect(normalized).toBe(tree);
   });
 });

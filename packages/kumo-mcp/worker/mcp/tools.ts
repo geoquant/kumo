@@ -1,4 +1,3 @@
-import { createUIResource } from "@mcp-ui/server";
 import { z } from "zod";
 import type { KumoPlaygroundMCP } from "./index.js";
 
@@ -18,7 +17,7 @@ export function initializeTools(agent: KumoPlaygroundMCP): void {
     {
       title: "Create Worker",
       description:
-        "Create a new Cloudflare Worker. Returns a confirmation UI for the user to approve or cancel.",
+        "Create a new Cloudflare Worker. Returns metadata for the host to render a confirmation UI.",
       annotations: {
         destructiveHint: false,
         openWorldHint: false,
@@ -28,22 +27,12 @@ export function initializeTools(agent: KumoPlaygroundMCP): void {
       },
     },
     ({ workerName }) => {
-      const toolId = `create-worker-${workerName}`;
-
       return {
         content: [
-          createUIResource({
-            uri: `ui://create-worker/${toolId}`,
-            content: {
-              type: "externalUrl",
-              iframeUrl: `/ui/create-worker-confirm`,
-            },
-            encoding: "text",
-            uiMetadata: {
-              "initial-render-data": { workerName, toolId },
-              "preferred-frame-size": ["100%", "280px"],
-            },
-          }),
+          {
+            type: "text" as const,
+            text: `Ready to create Worker "${workerName}". Awaiting user confirmation.`,
+          },
         ],
       };
     },

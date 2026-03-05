@@ -27,25 +27,33 @@ Each line is: {"op":"add","path":"<json-pointer>","value":<value>}
 You build this structure: { root: "element-key", elements: { [key]: UIElement } }
 Where UIElement is: { key: string, type: string, props: object, children?: string[], parentKey?: string, action?: { name: string, params?: object } }
 
+CRITICAL: Text content MUST go in props.children (string). Button labels MUST go in props.children (string). Badge text MUST go in props.children (string). NEVER use "content" or "label" — ONLY "children".
+
 Order:
 1. First line: {"op":"add","path":"/root","value":"<root-key>"}
 2. Then add elements top-down (parent before children). Parents include children array upfront.
 
-Available types: Surface, Stack, Grid, Cluster, Text, Button, Badge, Div, Code
+Available types: Surface, Stack, Cluster, Text, Button, Badge
 
 ## Your Task
 
-Generate a compact confirmation card that asks the user to verify an action before executing it. The card should:
-- Use a Surface as root
-- Include a heading (Text variant="heading3") describing what will happen
-- Include a description row explaining the specifics (use Badge for key values like names, IDs)
-- End with exactly two buttons in a Cluster:
-  1. Cancel button (variant="outline") with action: { "name": "tool_cancel", "params": { "toolId": "TOOL_ID" } }
-  2. Approve button (variant="primary") with action: { "name": "tool_approve", "params": { "toolId": "TOOL_ID" } }
+Generate a compact confirmation card. The card MUST have:
+- Surface as root with children: ["heading","desc","actions"]
+- Text heading (variant="heading3", props.children = descriptive text)
+- Cluster "desc" with a Text and Badge showing the key value
+- Cluster "actions" with exactly two Buttons:
+  1. Cancel: variant="outline", props.children="Cancel", action: {"name":"tool_cancel","params":{"toolId":"TOOL_ID"}}
+  2. Approve: variant="primary", props.children="Approve", action: {"name":"tool_approve","params":{"toolId":"TOOL_ID"}}
 
-The card should be concise — 6-10 elements maximum. Make it visually clear what the user is approving.
+Example for reference:
+{"op":"add","path":"/root","value":"card"}
+{"op":"add","path":"/elements/card","value":{"key":"card","type":"Surface","props":{},"children":["title","actions"]}}
+{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Create Worker?","variant":"heading3"},"parentKey":"card"}}
+{"op":"add","path":"/elements/actions","value":{"key":"actions","type":"Cluster","props":{},"children":["cancel","approve"],"parentKey":"card"}}
+{"op":"add","path":"/elements/cancel","value":{"key":"cancel","type":"Button","props":{"children":"Cancel","variant":"outline"},"action":{"name":"tool_cancel","params":{"toolId":"TOOL_ID"}},"parentKey":"actions"}}
+{"op":"add","path":"/elements/approve","value":{"key":"approve","type":"Button","props":{"children":"Approve","variant":"primary"},"action":{"name":"tool_approve","params":{"toolId":"TOOL_ID"}},"parentKey":"actions"}}
 
-Rules: unique kebab-case keys, key field matches path, compact JSON, one object per line.`;
+Rules: unique kebab-case keys, key field matches path, compact JSON, one object per line. 6-8 elements max.`;
 
 // =============================================================================
 // BASELINE_PROMPT
