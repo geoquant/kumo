@@ -216,6 +216,8 @@ export default defineConfig(({ mode }) => {
           streaming: resolve(__dirname, "src/streaming/index.ts"),
           // Generative module entry point (UITreeRenderer, component map, element validator)
           generative: resolve(__dirname, "src/generative/index.ts"),
+          // Graders subpath — structural/composition grading + eval prompts (separate to reduce bundle for renderer-only consumers)
+          "generative/graders": resolve(__dirname, "src/generative/graders.ts"),
           // AI schemas for runtime validation (compiled to avoid consumers type-checking raw .ts)
           "ai/schemas": resolve(__dirname, "ai/schemas.ts"),
           // Theme generator utilities for consumers extending the theme

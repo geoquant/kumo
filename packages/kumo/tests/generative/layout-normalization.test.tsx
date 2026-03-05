@@ -9,6 +9,8 @@ import {
   normalizeCheckboxGroupGrids,
   normalizePropsChildrenToStructural,
   normalizeParentKeyToChildren,
+  normalizeTree,
+  normalizeSurfaceOrphans,
 } from "../../src/generative/ui-tree-renderer";
 import type { UITree, UIElement } from "../../src/streaming/types";
 
@@ -387,5 +389,230 @@ describe("normalizeParentKeyToChildren", () => {
 
     const normalized = normalizeParentKeyToChildren(tree);
     expect(normalized).toBe(tree);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// normalizeTree — unified pipeline equivalence tests
+// ---------------------------------------------------------------------------
+
+describe("normalizeTree (unified pipeline)", () => {
+  /** Apply the old 10-pass chain for comparison. */
+  function oldChain(tree: UITree): UITree {
+    return normalizeFormActionBars(
+      normalizeCounterStacks(
+        normalizeSurfaceOrphans(
+          normalizeSiblingFormRowGrids(
+            normalizeCheckboxGroupGrids(
+              normalizeDuplicateFieldLabels(
+                normalizeEmptySelects(
+                  normalizePropsChildrenToStructural(
+                    normalizeNestedSurfaces(normalizeParentKeyToChildren(tree)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  it("produces same result as old chain for nested Surfaces", () => {
+    const tree: UITree = {
+      root: "outer",
+      elements: {
+        outer: el("outer", "Surface", {}, ["inner"]),
+        inner: el("inner", "Surface", {}, ["stack"]),
+        stack: el("stack", "Stack", { gap: "lg" }, ["title"]),
+        title: el("title", "Text", { children: "Hi" }),
+      },
+    };
+    expect(normalizeTree(tree).elements).toEqual(oldChain(tree).elements);
+  });
+
+  it("produces same result as old chain for empty Select", () => {
+    const tree: UITree = {
+      root: "form",
+      elements: {
+        form: el("form", "Div", {}, ["frequency"]),
+        frequency: el("frequency", "Select", { label: "Email frequency" }),
+      },
+    };
+    expect(normalizeTree(tree).elements).toEqual(oldChain(tree).elements);
+  });
+
+  it("produces same result as old chain for counter layout", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, ["stack"]),
+        stack: el("stack", "Stack", { gap: "lg" }, [
+          "title",
+          "count",
+          "actions",
+        ]),
+        title: el("title", "Text", {
+          children: "Counter",
+          variant: "heading2",
+        }),
+        count: el("count", "Text", { children: "0", variant: "heading1" }),
+        actions: el("actions", "Cluster", { gap: "sm" }, ["dec", "inc"]),
+        dec: {
+          key: "dec",
+          type: "Button",
+          props: { children: "Decrement" },
+          action: { name: "decrement", params: { target: "count" } },
+          parentKey: "actions",
+        },
+        inc: {
+          key: "inc",
+          type: "Button",
+          props: { children: "Increment" },
+          action: { name: "increment", params: { target: "count" } },
+          parentKey: "actions",
+        },
+      },
+    };
+    expect(normalizeTree(tree).elements).toEqual(oldChain(tree).elements);
+  });
+
+  it("produces same result as old chain for form action bar", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, ["stack"]),
+        stack: el("stack", "Stack", { gap: "lg" }, ["name", "submit"]),
+        name: el("name", "Input", { label: "Name" }),
+        submit: {
+          key: "submit",
+          type: "Button",
+          props: { children: "Save", variant: "primary" },
+          action: { name: "submit_form", params: { form_type: "x" } },
+          parentKey: "stack",
+        },
+      },
+    };
+    expect(normalizeTree(tree).elements).toEqual(oldChain(tree).elements);
+  });
+
+  it("produces same result as old chain for duplicate labels", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, ["stack"]),
+        stack: el("stack", "Stack", { gap: "lg" }, ["l1", "name"]),
+        l1: el("l1", "Text", { children: "Full name" }),
+        name: el("name", "Input", { label: "Full name", placeholder: "X" }),
+      },
+    };
+    expect(normalizeTree(tree).elements).toEqual(oldChain(tree).elements);
+  });
+
+  it("produces same result as old chain for checkbox group Grids", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, ["stack"]),
+        stack: el("stack", "Stack", { gap: "lg" }, ["row"]),
+        row: el("row", "Grid", { variant: "2up", gap: "base" }, [
+          "label",
+          "choices",
+        ]),
+        label: el("label", "Text", { children: "Notification channels" }),
+        choices: el("choices", "Stack", { gap: "sm" }, ["a", "b"]),
+        a: el("a", "Checkbox", { label: "Email" }),
+        b: el("b", "Checkbox", { label: "SMS" }),
+      },
+    };
+    expect(normalizeTree(tree).elements).toEqual(oldChain(tree).elements);
+  });
+
+  it("produces same result as old chain for mixed form row Grids", () => {
+    const tree: UITree = {
+      root: "form",
+      elements: {
+        form: el("form", "Div", {}, ["row-a", "row-b"]),
+        "row-a": el("row-a", "Grid", { variant: "side-by-side", gap: "base" }, [
+          "a-1",
+          "a-2",
+        ]),
+        "row-b": el("row-b", "Grid", { variant: "2-1", gap: "base" }, [
+          "b-1",
+          "b-2",
+        ]),
+        "a-1": el("a-1", "Input", { label: "Left A" }),
+        "a-2": el("a-2", "Input", { label: "Right A" }),
+        "b-1": el("b-1", "Input", { label: "Left B" }),
+        "b-2": el("b-2", "Input", { label: "Right B" }),
+      },
+    };
+    expect(normalizeTree(tree).elements).toEqual(oldChain(tree).elements);
+  });
+
+  it("produces same result as old chain for props.children misplacement", () => {
+    const tree: UITree = {
+      root: "form",
+      elements: {
+        form: el("form", "Div", {}, ["frequency"]),
+        frequency: {
+          key: "frequency",
+          type: "Select",
+          props: {
+            label: "Email frequency",
+            placeholder: "Choose",
+            children: ["freq-rt", "freq-daily"],
+          },
+          parentKey: "form",
+        },
+        "freq-rt": el("freq-rt", "SelectOption", {
+          value: "realtime",
+          children: "Real-time",
+        }),
+        "freq-daily": el("freq-daily", "SelectOption", {
+          value: "daily",
+          children: "Daily",
+        }),
+      },
+    };
+    expect(normalizeTree(tree).elements).toEqual(oldChain(tree).elements);
+  });
+
+  it("produces same result as old chain for parentKey linkage", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: { key: "card", type: "Surface", props: {} },
+        title: {
+          key: "title",
+          type: "Text",
+          props: { children: "Hello" },
+          parentKey: "card",
+        },
+        desc: {
+          key: "desc",
+          type: "Text",
+          props: { children: "World" },
+          parentKey: "card",
+        },
+      },
+    };
+    expect(normalizeTree(tree).elements).toEqual(oldChain(tree).elements);
+  });
+
+  it("is identity for an already-correct tree", () => {
+    const tree: UITree = {
+      root: "card",
+      elements: {
+        card: el("card", "Surface", {}, ["stack"]),
+        stack: el("stack", "Stack", { gap: "lg" }, ["title"]),
+        title: el("title", "Text", { children: "Hello", variant: "heading2" }),
+      },
+    };
+    const result = normalizeTree(tree);
+    // Root should be preserved
+    expect(result.root).toBe("card");
+    // Content should be equivalent
+    expect(result.elements["title"]?.props["children"]).toBe("Hello");
   });
 });

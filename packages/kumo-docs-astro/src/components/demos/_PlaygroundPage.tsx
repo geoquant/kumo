@@ -65,13 +65,15 @@ import {
   UITreeRenderer,
   isRenderableTree,
   uiTreeToJsx,
+  defineCustomComponent,
+} from "@cloudflare/kumo/generative";
+import {
   gradeTree,
   gradeComposition,
   COMPOSITION_RULE_NAMES,
   walkTree,
-  defineCustomComponent,
-} from "@cloudflare/kumo/generative";
-import type { GradeReport } from "@cloudflare/kumo/generative";
+} from "@cloudflare/kumo/generative/graders";
+import type { GradeReport } from "@cloudflare/kumo/generative/graders";
 import type { CustomComponentDefinition } from "@cloudflare/kumo/catalog";
 import { DemoButton } from "./DemoButton";
 import Markdown from "react-markdown";
