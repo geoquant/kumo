@@ -88,3 +88,12 @@ Started: 2026-03-05
 - Placeholder names match the parameter names from the TypeScript function signatures in `types.ts`
 - Files changed: `packages/kumo/src/translations/en.json` (new)
 - **Learnings:** ICU MessageFormat placeholder names should mirror the TS parameter names for tooling consistency; JSON file is purely for external tooling (translation platforms, linters) — runtime uses `.ts` files
+
+## Task - translations-3
+- Created 11 `.ts` files + 11 `.json` files for: de, es, fr, it, pt, ko, ja, zh-CN, zh-TW, ar, he
+- Each `.ts` file uses PENDING_STRINGS pattern: `type PendingStrings = ...all 43 keys...` then `Omit<KumoTranslation, PendingStrings>` + `as KumoTranslation` assertion
+- Only metadata provided per locale: `$code` (BCP 47), `$name` (native name), `$dir` ('ltr' or 'rtl')
+- RTL locales: ar (العربية) and he (עברית) have `$dir: "rtl"`
+- JSON files contain all keys with English placeholder values for translation platform ingestion
+- Files changed: 22 new files in `packages/kumo/src/translations/`
+- **Learnings:** PENDING_STRINGS pattern is clean — Omit narrows the object type so only metadata fields are required, then `as KumoTranslation` widens back. Missing keys fall back to English at runtime via registry. JSON files use English as untranslated placeholders — standard practice for sending to translation services.

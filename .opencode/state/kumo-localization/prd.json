@@ -132,7 +132,7 @@
         "All files compile — pnpm typecheck passes",
         "Any untranslated strings use PENDING_STRINGS pattern (Omit + type assertion)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "translations-4",
