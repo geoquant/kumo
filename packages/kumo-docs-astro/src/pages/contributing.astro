@@ -77,7 +77,7 @@ import Callout from "../components/docs/Callout.astro";
     <h3 class="mb-3 mt-6 text-xl font-semibold">Run the Scaffolding Tool</h3>
     <p class="mb-4 text-kumo-strong">From the workspace root, run:</p>
     <CodeBlock
-      code={`pnpm --filter @cloudflare/kumo new-component`}
+      code={`pnpm --filter @cloudflare/kumo new:component`}
       lang="bash"
     />
   </ComponentSection>
@@ -192,89 +192,39 @@ import Callout from "../components/docs/Callout.astro";
     </ul>
   </ComponentSection>
 
-  <!-- Block Scaffolding -->
+  <!-- Block Contribution -->
   <ComponentSection>
-    <Heading level={2}>Creating New Blocks</Heading>
+    <Heading level={2}>Contributing to Blocks</Heading>
     <p class="mb-4 text-kumo-strong">
-      Blocks are higher-level components that compose multiple base components.
-      Use the block scaffolding tool to create them:
-    </p>
-
-    <h3 class="mb-3 mt-6 text-xl font-semibold">Run the Block Scaffolding Tool</h3>
-    <p class="mb-4 text-kumo-strong">From the workspace root, run:</p>
-    <CodeBlock code={`pnpm --filter @cloudflare/kumo new-block`} lang="bash" />
-
-    <h3 class="mb-3 mt-6 text-xl font-semibold">What It Creates</h3>
-    <p class="mb-4 text-kumo-strong">
-      The block scaffolding tool creates the same structure as components, but
-      in the <code class="rounded bg-kumo-control px-1 py-0.5 text-sm"
-        >src/blocks</code
-      > directory:
+      Blocks are installable, source-owned patterns. There is no dedicated block
+      scaffolding command in the package scripts.
     </p>
     <ul class="mb-4 list-inside list-disc space-y-2 text-kumo-default">
       <li>
-        <strong>Block file</strong> - <code
+        <strong>Library block source</strong> - Update <code
           class="rounded bg-kumo-control px-1 py-0.5 text-sm"
-          >src/blocks/{"{name}"}/{"{name}"}.tsx</code
+          >packages/kumo/src/blocks/</code
         >
       </li>
       <li>
-        <strong>Index file</strong> - <code
+        <strong>Block metadata</strong> - Verify block entries in <code
           class="rounded bg-kumo-control px-1 py-0.5 text-sm"
-          >src/blocks/{"{name}"}/index.ts</code
+          >packages/kumo/ai/component-registry.json</code
         >
       </li>
       <li>
-        <strong>Story file</strong> - <code
+        <strong>Consumer install test</strong> - Validate block install flow with <code
           class="rounded bg-kumo-control px-1 py-0.5 text-sm"
-          >src/blocks/{"{name}"}/{"{name}"}.stories.tsx</code
+          >npx @cloudflare/kumo blocks</code
         >
       </li>
       <li>
-        <strong>Test file</strong> - <code
+        <strong>Install command</strong> - Confirm add flow with <code
           class="rounded bg-kumo-control px-1 py-0.5 text-sm"
-          >src/blocks/{"{name}"}/{"{name}"}.test.tsx</code
-        >
-      </li>
-      <li>
-        <strong>Main exports</strong> - Updates <code
-          class="rounded bg-kumo-control px-1 py-0.5 text-sm">src/index.ts</code
-        > (Blocks section)
-      </li>
-      <li>
-        <strong>Build config</strong> - Updates <code
-          class="rounded bg-kumo-control px-1 py-0.5 text-sm">vite.config.ts</code
-        >
-      </li>
-      <li>
-        <strong>Package exports</strong> - Updates <code
-          class="rounded bg-kumo-control px-1 py-0.5 text-sm">package.json</code
+          >npx @cloudflare/kumo add PageHeader</code
         >
       </li>
     </ul>
-
-    <h3 class="mb-3 mt-6 text-xl font-semibold">Example</h3>
-    <CodeBlock
-      code={`? Block name: Navigation Bar
-
-✅ Block scaffolded successfully!
-
-📁 Files created:
-   - src/blocks/navigation-bar/navigation-bar.tsx
-   - src/blocks/navigation-bar/index.ts
-   - src/blocks/navigation-bar/navigation-bar.stories.tsx
-   - src/blocks/navigation-bar/navigation-bar.test.tsx
-
-📝 Files updated:
-   - src/index.ts
-   - vite.config.ts
-   - package.json
-
-💡 Import examples:
-   import { NavigationBar } from "@cloudflare/kumo";
-   import { NavigationBar } from "@cloudflare/kumo/blocks/navigation-bar";`}
-      lang="bash"
-    />
   </ComponentSection>
 
   <!-- Chart Contribution -->
@@ -310,7 +260,7 @@ import Callout from "../components/docs/Callout.astro";
   <ComponentSection>
     <Heading level={2}>Development Workflow</Heading>
     <p class="mb-4 text-kumo-strong">
-      After scaffolding a component or block, and for chart updates, use the watch build setup
+      After scaffolding a component, or when updating blocks/charts, use the watch build setup
       to develop with the documentation site:
     </p>
 
@@ -338,7 +288,7 @@ pnpm dev`}
     <h3 class="mb-3 mt-6 text-xl font-semibold">Implementation Steps</h3>
     <ol class="list-inside list-decimal space-y-3 text-kumo-default">
       <li>
-        <strong>Implement the component/block/chart changes</strong>
+        <strong>Implement component/block/chart changes</strong>
         <p class="ml-6 mt-1 text-kumo-strong">
           Edit the generated <code class="rounded bg-kumo-control px-1 py-0.5 text-sm"
             >.tsx</code
@@ -407,17 +357,15 @@ pnpm dev`}
   <ComponentSection>
     <Heading level={2}>Testing</Heading>
     <p class="mb-4 text-kumo-strong">
-      The test suite automatically validates your component, block, or chart
-      configuration:
+      The test suite validates component and chart package exports, build config,
+      and file structure:
     </p>
     <ul class="list-inside list-disc space-y-2 text-kumo-default">
-      <li>Main entry point exports the component/block/chart</li>
+      <li>Main entry point exports the component/chart</li>
       <li>
         Deep import paths work correctly (<code
           class="rounded bg-kumo-control px-1 py-0.5 text-sm"
           >@cloudflare/kumo/components/*</code
-        > and <code class="rounded bg-kumo-control px-1 py-0.5 text-sm"
-          >@cloudflare/kumo/blocks/*</code
         >)
       </li>
       <li>Package.json exports are properly configured</li>
