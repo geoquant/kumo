@@ -25,6 +25,7 @@
   "hide-value": "Hide value",
   "reveal-value": "Reveal value",
   "value-masked": "masked",
+  "masked-sensitive-value": "{label}, masked value.",
   "value-hidden": "Value hidden",
   "click-or-press-enter-to-reveal": "Click or press Enter to reveal.",
   "previous-month": "Previous month",

@@ -81,14 +81,6 @@ const ALLOWED_UNLOCALIZED_STRINGS = new Set([
 ]);
 
 const PUNCTUATION_ONLY_RE = /^[\s.,:;!?()[\]{}'"`~^*+\-_/|\\<>@#$%&=]+$/;
-const JSX_TEXT_EXPRESSION_TYPES = new Set([
-  "Literal",
-  "TemplateLiteral",
-  "BinaryExpression",
-  "LogicalExpression",
-  "ConditionalExpression",
-]);
-
 export function isConsumerSurfaceFile(filename) {
   if (typeof filename !== "string") return false;
   if (
@@ -123,24 +115,7 @@ function isAllowedUnlocalizedString(value) {
 
 export function isTermCallee(callee) {
   if (!callee) return false;
-
-  if (callee.type === "Identifier") {
-    return callee.name === "term";
-  }
-
-  if (callee.type === "MemberExpression") {
-    if (callee.computed) {
-      return (
-        callee.property.type === "Literal" && callee.property.value === "term"
-      );
-    }
-
-    return (
-      callee.property.type === "Identifier" && callee.property.name === "term"
-    );
-  }
-
-  return false;
+  return callee.type === "Identifier" && callee.name === "term";
 }
 
 export function collectStringLiterals(node, out) {
@@ -164,7 +139,12 @@ export function collectStringLiterals(node, out) {
       }
       return;
     }
-    case "BinaryExpression":
+    case "BinaryExpression": {
+      if (node.operator !== "+") return;
+      collectStringLiterals(node.left, out);
+      collectStringLiterals(node.right, out);
+      return;
+    }
     case "LogicalExpression": {
       collectStringLiterals(node.left, out);
       collectStringLiterals(node.right, out);
@@ -213,7 +193,7 @@ export function collectStringLiterals(node, out) {
 export function isTextBearingAttributeName(name) {
   if (ATTRIBUTE_NAMES.has(name)) return true;
   if (NON_USER_FACING_ATTRIBUTE_NAMES.has(name)) return false;
-  if (name.startsWith("data-") || name.startsWith("on")) return false;
+  if (name.startsWith("data-") || /^on[A-Z]/.test(name)) return false;
   if (ARIA_IDREF_NAMES.has(name)) return false;
   if (ARIA_NON_USER_TEXT_NAMES.has(name)) return false;
   if (name.startsWith("aria-")) return true;
@@ -291,7 +271,6 @@ export const noUnlocalizedStringsRule = defineRule({
 
         for (const child of node.children ?? []) {
           if (child.type !== "JSXExpressionContainer") continue;
-          if (!JSX_TEXT_EXPRESSION_TYPES.has(child.expression.type)) continue;
 
           const strings = [];
           collectStringLiterals(child.expression, strings);

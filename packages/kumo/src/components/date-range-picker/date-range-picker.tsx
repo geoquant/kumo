@@ -123,7 +123,15 @@ function getDaysOfWeek(
 }
 
 function getFirstDayOfWeek(locale: string): number {
-  const localeInfo = new Intl.Locale(locale);
+  if (typeof Intl.Locale !== "function") return 0;
+
+  let localeInfo: Intl.Locale;
+  try {
+    localeInfo = new Intl.Locale(locale);
+  } catch {
+    return 0;
+  }
+
   const weekInfo = Reflect.get(localeInfo, "weekInfo");
   if (typeof weekInfo !== "object" || weekInfo === null) return 0;
 
@@ -184,7 +192,7 @@ function parseLocalizedYear(
       continue;
     }
 
-    if (/^[\s.,:/_()\-]+$/u.test(normalizedChar)) {
+    if (/^[-\s.,:/_()]+$/u.test(normalizedChar)) {
       continue;
     }
 
@@ -237,10 +245,12 @@ function hasAlphabeticBoundary(
 ): boolean {
   const before = input[tokenIndex - 1];
   const after = input[tokenIndex + tokenLength];
-  const isAlphabetic = (value: string | undefined): boolean =>
-    value !== undefined && /\p{L}/u.test(value);
 
   return !isAlphabetic(before) && !isAlphabetic(after);
+}
+
+function isAlphabetic(value: string | undefined): boolean {
+  return value !== undefined && /\p{L}/u.test(value);
 }
 
 function parseMonthYearInput(

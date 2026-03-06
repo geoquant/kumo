@@ -123,6 +123,7 @@ export const CloudflareLogo = forwardRef<SVGSVGElement, CloudflareLogoProps>(
   ) => {
     const { term } = useLocalize();
     const isGlyph = variant === "glyph";
+    const logoAriaLabel = `Cloudflare ${term("logo")}`;
 
     // Determine fill colors
     // Cloud glyph always uses brand colors when color="color", otherwise currentColor
@@ -139,7 +140,7 @@ export const CloudflareLogo = forwardRef<SVGSVGElement, CloudflareLogoProps>(
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           role="img"
-          aria-label={term("cloudflare-logo")}
+          aria-label={logoAriaLabel}
           className={cn(
             color === "white" && "text-white",
             color === "black" && "text-black",
@@ -167,7 +168,7 @@ export const CloudflareLogo = forwardRef<SVGSVGElement, CloudflareLogoProps>(
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label={term("cloudflare-logo")}
+        aria-label={logoAriaLabel}
         className={cn(
           // Wordmark text color - respects dark mode
           color === "color" && "text-kumo-default",

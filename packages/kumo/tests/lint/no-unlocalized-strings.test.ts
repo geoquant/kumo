@@ -68,10 +68,14 @@ describe("no-unlocalized-strings attribute detection", () => {
     expect(isTextBearingAttributeName("data-testid")).toBe(false);
     expect(isTextBearingAttributeName("onClick")).toBe(false);
   });
+
+  it("does not blanket-ignore non-event on* text props", () => {
+    expect(isTextBearingAttributeName("onboardingText")).toBe(true);
+  });
 });
 
 describe("no-unlocalized-strings expression helpers", () => {
-  it("detects direct and member term callees", () => {
+  it("only treats direct term() as localized", () => {
     expect(isTermCallee({ type: "Identifier", name: "term" })).toBe(true);
     expect(
       isTermCallee({
@@ -79,17 +83,35 @@ describe("no-unlocalized-strings expression helpers", () => {
         computed: false,
         property: { type: "Identifier", name: "term" },
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isTermCallee({
         type: "MemberExpression",
         computed: true,
         property: { type: "Literal", value: "term" },
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it("ignores string literals inside term() calls", () => {
+  it("only ignores direct term() call arguments", () => {
+    const collected: string[] = [];
+
+    collectStringLiterals(
+      {
+        type: "CallExpression",
+        callee: {
+          type: "Identifier",
+          name: "term",
+        },
+        arguments: [{ type: "Literal", value: "Delete" }],
+      },
+      collected,
+    );
+
+    expect(collected).toEqual([]);
+  });
+
+  it("collects member .term() literals to avoid bypasses", () => {
     const collected: string[] = [];
 
     collectStringLiterals(
@@ -105,7 +127,7 @@ describe("no-unlocalized-strings expression helpers", () => {
       collected,
     );
 
-    expect(collected).toEqual([]);
+    expect(collected).toEqual(["Delete"]);
   });
 
   it("collects literals from logical expressions", () => {
@@ -116,6 +138,37 @@ describe("no-unlocalized-strings expression helpers", () => {
         type: "LogicalExpression",
         left: { type: "Identifier", name: "isOpen" },
         right: { type: "Literal", value: "Delete" },
+      },
+      collected,
+    );
+
+    expect(collected).toEqual(["Delete"]);
+  });
+
+  it("does not collect literals used only in comparisons", () => {
+    const collected: string[] = [];
+
+    collectStringLiterals(
+      {
+        type: "BinaryExpression",
+        operator: "===",
+        left: { type: "Identifier", name: "controls" },
+        right: { type: "Literal", value: "full" },
+      },
+      collected,
+    );
+
+    expect(collected).toEqual([]);
+  });
+
+  it("collects literals from function arguments", () => {
+    const collected: string[] = [];
+
+    collectStringLiterals(
+      {
+        type: "CallExpression",
+        callee: { type: "Identifier", name: "formatLabel" },
+        arguments: [{ type: "Literal", value: "Delete" }],
       },
       collected,
     );
