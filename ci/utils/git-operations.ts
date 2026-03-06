@@ -17,6 +17,15 @@ export interface ChangedFilesOptions {
   cwd?: string;
 }
 
+function getErrorSummary(error: unknown): string {
+  if (error instanceof Error) {
+    const firstLine = error.message.split("\n")[0];
+    return firstLine ?? error.message;
+  }
+
+  return String(error);
+}
+
 function isSafeGitRef(ref: string): boolean {
   if (ref.length === 0) return false;
   if (ref.startsWith("-")) return false;
@@ -133,6 +142,7 @@ export function getChangedFiles(
       ["diff", "--name-only", `${baseRef}..${headRef}`],
       {
         encoding: "utf8",
+        stdio: "pipe",
         cwd: options.cwd || process.cwd(),
       },
     ).trim();
@@ -155,7 +165,7 @@ export function getChangedFiles(
     }
 
     console.warn("  Warning: Could not get changed files");
-    console.warn(`Error: ${error}`);
+    console.warn(`Error: ${getErrorSummary(error)}`);
     return null;
   }
 }
@@ -203,6 +213,7 @@ export function getNewlyAddedFiles(
       ["diff", "--name-status", `${baseRef}..${headRef}`, "--", directory],
       {
         encoding: "utf8",
+        stdio: "pipe",
         cwd: options.cwd || process.cwd(),
       },
     ).trim();
@@ -224,7 +235,7 @@ export function getNewlyAddedFiles(
     return files;
   } catch (error) {
     console.warn("Warning: Could not get newly added files");
-    console.warn(`Error: ${error}`);
+    console.warn(`Error: ${getErrorSummary(error)}`);
     return [];
   }
 }

@@ -119,7 +119,14 @@ describe("getChangedFiles", () => {
     delete process.env.GITHUB_ACTIONS;
     delete process.env.GITHUB_BASE_REF;
 
-    assert.equal(getChangedFiles({ cwd: "/" }), null);
+    const originalWarn = console.warn;
+    console.warn = () => {};
+
+    try {
+      assert.equal(getChangedFiles({ cwd: "/" }), null);
+    } finally {
+      console.warn = originalWarn;
+    }
   });
 });
 
