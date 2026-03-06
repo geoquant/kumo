@@ -199,3 +199,11 @@ Started: 2026-03-05
   - `command-palette.tsx`: "No results found" → `term("no-results-found")`
 - Each sub-component calls `useLocalize()` independently
 - Files changed: 6 component files
+
+## Task - migrate-7
+- Migrated `clipboard-text.tsx` and `code/provider.tsx` to use `useLocalize()` as fallback under existing `labels` props
+- clipboard-text: `copyAction` default → `term("copy-to-clipboard")`, tooltip text → `term("copy")`, copiedText → `term("copied")`
+- code/provider: moved `DEFAULT_LABELS` into component body as `useMemo`-wrapped `defaultLabels` using `term("copy")` and `term("copied")`
+- Existing `labels` prop still overrides localize defaults (spread pattern: `{ ...defaultLabels, ...labels }`)
+- Files changed: `clipboard-text.tsx`, `code/provider.tsx`
+- **Learnings:** Module-level constants can't use hooks; move them into the component body with `useMemo` for stable identity

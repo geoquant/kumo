@@ -241,7 +241,7 @@
         "Consumer passing labels={} gets localized defaults, consumer passing labels={{ copyAction: 'My Copy' }} gets 'My Copy'",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "rtl-1",

@@ -4,6 +4,7 @@ import { Toast } from "@base-ui/react/toast";
 import { Tooltip } from "@base-ui/react/tooltip";
 import { Button } from "../button";
 import { inputVariants } from "../input";
+import { useLocalize } from "../../localize/index.js";
 import { cn } from "../../utils/cn";
 
 // Create a toast manager for anchored "Copied" toasts
@@ -167,20 +168,24 @@ export const ClipboardText = forwardRef<HTMLDivElement, ClipboardTextProps>(
       size = KUMO_CLIPBOARD_TEXT_DEFAULT_VARIANTS.size,
       onCopy,
       tooltip,
-      labels: { copyAction = "Copy to clipboard" } = {},
+      labels: { copyAction } = {},
     },
     ref,
   ) => {
+    const { term } = useLocalize();
+    const resolvedCopyAction = copyAction ?? term("copy-to-clipboard");
     const [copied, setCopied] = useState(false);
     const buttonRef = useRef<HTMLButtonElement | null>(null);
     const sizeConfig = KUMO_CLIPBOARD_TEXT_VARIANTS.size[size];
 
     // Destructure tooltip config with defaults
     const {
-      text: tooltipText = "Copy",
-      copiedText = "Copied",
+      text: tooltipText,
+      copiedText,
       side: tooltipSide = "top",
     } = tooltip ?? {};
+    const resolvedTooltipText = tooltipText ?? term("copy");
+    const resolvedCopiedText = copiedText ?? term("copied");
 
     const copyToClipboard = useCallback(async () => {
       try {
@@ -219,7 +224,7 @@ export const ClipboardText = forwardRef<HTMLDivElement, ClipboardTextProps>(
         // Show anchored toast if tooltip mode is enabled
         if (tooltip) {
           clipboardToastManager.add({
-            description: copiedText,
+            description: resolvedCopiedText,
             positionerProps: {
               anchor: buttonRef.current,
               side: tooltipSide,
@@ -239,7 +244,7 @@ export const ClipboardText = forwardRef<HTMLDivElement, ClipboardTextProps>(
       } catch (error) {
         console.warn("Clipboard copy failed", error);
       }
-    }, [text, onCopy, tooltip, copiedText, tooltipSide]);
+    }, [text, onCopy, tooltip, resolvedCopiedText, tooltipSide]);
 
     const copyButton = (
       <Button
@@ -248,7 +253,7 @@ export const ClipboardText = forwardRef<HTMLDivElement, ClipboardTextProps>(
         variant="ghost"
         className="rounded-none border-l! border-kumo-line! px-3 relative overflow-hidden transition-all duration-200"
         onClick={copyToClipboard}
-        aria-label={copyAction}
+        aria-label={resolvedCopyAction}
       >
         <span
           className={cn(
@@ -303,7 +308,7 @@ export const ClipboardText = forwardRef<HTMLDivElement, ClipboardTextProps>(
                       "shadow-lg shadow-kumo-tip-shadow outline outline-kumo-fill",
                     )}
                   >
-                    {tooltipText}
+                    {resolvedTooltipText}
                   </Tooltip.Popup>
                 </Tooltip.Positioner>
               </Tooltip.Portal>
@@ -313,7 +318,7 @@ export const ClipboardText = forwardRef<HTMLDivElement, ClipboardTextProps>(
           copyButton
         )}
         <span className="sr-only" aria-live="polite">
-          {copied ? copiedText : ""}
+          {copied ? resolvedCopiedText : ""}
         </span>
       </div>
     );

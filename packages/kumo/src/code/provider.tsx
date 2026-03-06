@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { ShikiContext, type ShikiContextValue } from "./context";
+import { useLocalize } from "../localize/index.js";
 import type { ShikiProviderProps, BundledLanguage } from "./types";
 
 /**
@@ -29,17 +30,17 @@ import type { ShikiProviderProps, BundledLanguage } from "./types";
  * }
  * ```
  */
-const DEFAULT_LABELS = {
-  copy: "Copy",
-  copied: "Copied!",
-};
-
 export function ShikiProvider({
   engine,
   languages,
   labels,
   children,
 }: ShikiProviderProps): ReactNode {
+  const { term } = useLocalize();
+  const defaultLabels = useMemo(
+    () => ({ copy: term("copy"), copied: term("copied") }),
+    [term],
+  );
   const [state, setState] = useState<{
     highlighter: ShikiContextValue["highlighter"];
     isLoading: boolean;
@@ -101,8 +102,8 @@ export function ShikiProvider({
   }, [engine, languages]);
 
   const mergedLabels = useMemo(
-    () => ({ ...DEFAULT_LABELS, ...labels }),
-    [labels],
+    () => ({ ...defaultLabels, ...labels }),
+    [defaultLabels, labels],
   );
 
   const contextValue = useMemo<ShikiContextValue>(
