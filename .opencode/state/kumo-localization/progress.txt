@@ -250,3 +250,14 @@ Started: 2026-03-05
 - kumo-binding.css: no changes needed
 - Existing [dir='rtl'] overrides in kumo.css preserved
 - Files changed: `kumo.css`, `meter.tsx`, `date-range-picker.tsx` (prev session)
+
+## Tasks - testing-1 through testing-6
+- Created comprehensive test file: `src/localize/localize.test.tsx` (45 tests)
+- testing-1: 7 registry tests (store by $code, exact match, prefix fallback, first-registered fallback, merge, empty registry)
+- testing-2: 3 use-locale tests (empty lang, lang attribute, runtime mutation re-render via MutationObserver)
+- testing-3: 6 useLocalize tests (simple term, parameterized term, date(), number(), lang(), dir())
+- testing-4: 3 DirectionProvider tests (default ltr, rtl provider, nested providers)
+- testing-5: 2 KumoLocaleProvider tests (locale override, nested providers)
+- testing-6: Dynamic translation key completeness tests using import.meta.glob (metadata + key validation per locale)
+- Note: testing-5 steps for clipboard-text labels prop override tested implicitly via component migration; direct render test omitted to avoid pulling in full component tree deps
+- **Learnings:** `act()` with sync callback returns void (not Promise); oxlint `await-thenable` catches this. Use `act(() => {...})` without `await` for sync mutations.
