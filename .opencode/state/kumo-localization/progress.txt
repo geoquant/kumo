@@ -241,3 +241,12 @@ Started: 2026-03-05
 - Migrated 36 physical→logical CSS property instances in combobox (20) and sensitive-input (16)
 - All `pr-*` → `pe-*`, `right-*` → `end-*`, `left-0` → `start-0` across size-variant maps
 - Files changed: `combobox.tsx`, `sensitive-input.tsx`
+
+## Task - rtl-4
+- Migrated physical→logical CSS in date-range-picker wrapper, kumo.css, and meter.tsx
+- date-range-picker.tsx (6): left-0→start-0, right-0→end-0, rounded-tl→rounded-ss, rounded-bl→rounded-es, rounded-tr→rounded-se, rounded-br→rounded-ee (done in previous session)
+- kumo.css (2): padding-right→padding-inline-end (line 640), padding-left→padding-inline-start (line 661)
+- meter.tsx (1): left-0→start-0
+- kumo-binding.css: no changes needed
+- Existing [dir='rtl'] overrides in kumo.css preserved
+- Files changed: `kumo.css`, `meter.tsx`, `date-range-picker.tsx` (prev session)

@@ -292,7 +292,7 @@ export function DateRangePicker({
           <button
             type="button"
             aria-label={term("previous-month")}
-            className="absolute top-0 left-0 cursor-pointer rounded bg-kumo-interact/85 p-1.5 hover:bg-kumo-interact"
+            className="absolute top-0 start-0 cursor-pointer rounded bg-kumo-interact/85 p-1.5 hover:bg-kumo-interact"
             onClick={() => adjustMonth(-1)}
           >
             <CaretLeftIcon size={sizeConfig.iconSize} />
@@ -393,7 +393,7 @@ export function DateRangePicker({
           <button
             type="button"
             aria-label={term("next-month")}
-            className="absolute top-0 right-0 cursor-pointer rounded bg-kumo-interact/85 p-1.5 hover:bg-kumo-interact"
+            className="absolute top-0 end-0 cursor-pointer rounded bg-kumo-interact/85 p-1.5 hover:bg-kumo-interact"
             onClick={() => adjustMonth(1)}
           >
             <CaretRightIcon size={sizeConfig.iconSize} />
@@ -534,9 +534,9 @@ function DateRangeDayCell({
       case DateRangeCellMode.ENABLED:
         return "bg-transparent";
       case DateRangeCellMode.SELECTED_START_NODE:
-        return "!bg-kumo-contrast rounded-tl-[5px] rounded-bl-[5px]";
+        return "!bg-kumo-contrast rounded-ss-[5px] rounded-es-[5px]";
       case DateRangeCellMode.SELECTED_END_NODE:
-        return "!bg-kumo-contrast rounded-tr-[5px] rounded-br-[5px]";
+        return "!bg-kumo-contrast rounded-se-[5px] rounded-ee-[5px]";
       case DateRangeCellMode.SELECTED:
         return "bg-kumo-interact";
       case DateRangeCellMode.SELECTED_OUT_OF_RANGE:

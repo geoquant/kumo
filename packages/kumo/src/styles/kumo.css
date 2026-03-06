@@ -636,8 +636,8 @@
   display: block;
   width: fit-content;
   min-width: 100%;
-  /* Ensure right padding is preserved when content overflows horizontally */
-  padding-right: 1rem;
+  /* Ensure end padding is preserved when content overflows horizontally */
+  padding-inline-end: 1rem;
 }
 
 .kumo-shiki {
@@ -658,6 +658,6 @@
 
 /* Line numbers - positioned alongside code with matching line-height */
 .kumo-line-numbers {
-  padding-left: 0.75rem;
+  padding-inline-start: 0.75rem;
   line-height: 1.625; /* matches leading-relaxed */
 }
