@@ -1,0 +1,33 @@
+{"op":"add","path":"/root","value":"kv-page"}
+{"op":"add","path":"/elements/kv-page","value":{"key":"kv-page","type":"Surface","props":{},"children":["page-stack"]}}
+{"op":"add","path":"/elements/page-stack","value":{"key":"page-stack","type":"Stack","props":{"gap":"lg"},"children":["header-section","table-section"],"parentKey":"kv-page"}}
+{"op":"add","path":"/elements/header-section","value":{"key":"header-section","type":"Stack","props":{"gap":"sm"},"children":["ns-title","ns-desc","ns-actions"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/ns-title","value":{"key":"ns-title","type":"Text","props":{"children":"production-kv","variant":"heading2"},"parentKey":"header-section"}}
+{"op":"add","path":"/elements/ns-desc","value":{"key":"ns-desc","type":"Text","props":{"children":"Primary key-value store for user session data and cache.","variant":"secondary"},"parentKey":"header-section"}}
+{"op":"add","path":"/elements/ns-actions","value":{"key":"ns-actions","type":"Cluster","props":{"gap":"sm","justify":"end"},"children":["purge-btn"],"parentKey":"header-section"}}
+{"op":"add","path":"/elements/purge-btn","value":{"key":"purge-btn","type":"Button","props":{"children":"Purge cache","variant":"secondary-destructive"},"parentKey":"ns-actions","action":{"name":"purge_cache","params":{"namespace":"production-kv"}}}}
+{"op":"add","path":"/elements/table-section","value":{"key":"table-section","type":"Stack","props":{"gap":"sm"},"children":["table-title","kv-table"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/table-title","value":{"key":"table-title","type":"Text","props":{"children":"Recent reads","variant":"heading3"},"parentKey":"table-section"}}
+{"op":"add","path":"/elements/kv-table","value":{"key":"kv-table","type":"Table","props":{"layout":"fixed"},"children":["kv-thead","kv-tbody"],"parentKey":"table-section"}}
+{"op":"add","path":"/elements/kv-thead","value":{"key":"kv-thead","type":"TableHeader","props":{},"children":["kv-hrow"],"parentKey":"kv-table"}}
+{"op":"add","path":"/elements/kv-hrow","value":{"key":"kv-hrow","type":"TableRow","props":{},"children":["h-key","h-value","h-size","h-time"],"parentKey":"kv-thead"}}
+{"op":"add","path":"/elements/h-key","value":{"key":"h-key","type":"TableHead","props":{"children":"Key"},"parentKey":"kv-hrow"}}
+{"op":"add","path":"/elements/h-value","value":{"key":"h-value","type":"TableHead","props":{"children":"Value"},"parentKey":"kv-hrow"}}
+{"op":"add","path":"/elements/h-size","value":{"key":"h-size","type":"TableHead","props":{"children":"Size"},"parentKey":"kv-hrow"}}
+{"op":"add","path":"/elements/h-time","value":{"key":"h-time","type":"TableHead","props":{"children":"Last accessed"},"parentKey":"kv-hrow"}}
+{"op":"add","path":"/elements/kv-tbody","value":{"key":"kv-tbody","type":"TableBody","props":{},"children":["row-1","row-2","row-3"],"parentKey":"kv-table"}}
+{"op":"add","path":"/elements/row-1","value":{"key":"row-1","type":"TableRow","props":{},"children":["c-1-key","c-1-val","c-1-size","c-1-time"],"parentKey":"kv-tbody"}}
+{"op":"add","path":"/elements/c-1-key","value":{"key":"c-1-key","type":"TableCell","props":{"children":"user:123:session"},"parentKey":"row-1"}}
+{"op":"add","path":"/elements/c-1-val","value":{"key":"c-1-val","type":"TableCell","props":{"children":"{\"token\":\"abc123\",\"expires\":1729123456}"},"parentKey":"row-1"}}
+{"op":"add","path":"/elements/c-1-size","value":{"key":"c-1-size","type":"TableCell","props":{"children":"128 B"},"parentKey":"row-1"}}
+{"op":"add","path":"/elements/c-1-time","value":{"key":"c-1-time","type":"TableCell","props":{"children":"2 minutes ago"},"parentKey":"row-1"}}
+{"op":"add","path":"/elements/row-2","value":{"key":"row-2","type":"TableRow","props":{},"children":["c-2-key","c-2-val","c-2-size","c-2-time"],"parentKey":"kv-tbody"}}
+{"op":"add","path":"/elements/c-2-key","value":{"key":"c-2-key","type":"TableCell","props":{"children":"config:theme"},"parentKey":"row-2"}}
+{"op":"add","path":"/elements/c-2-val","value":{"key":"c-2-val","type":"TableCell","props":{"children":"dark"},"parentKey":"row-2"}}
+{"op":"add","path":"/elements/c-2-size","value":{"key":"c-2-size","type":"TableCell","props":{"children":"4 B"},"parentKey":"row-2"}}
+{"op":"add","path":"/elements/c-2-time","value":{"key":"c-2-time","type":"TableCell","props":{"children":"15 minutes ago"},"parentKey":"row-2"}}
+{"op":"add","path":"/elements/row-3","value":{"key":"row-3","type":"TableRow","props":{},"children":["c-3-key","c-3-val","c-3-size","c-3-time"],"parentKey":"kv-tbody"}}
+{"op":"add","path":"/elements/c-3-key","value":{"key":"c-3-key","type":"TableCell","props":{"children":"cache:api:products"},"parentKey":"row-3"}}
+{"op":"add","path":"/elements/c-3-val","value":{"key":"c-3-val","type":"TableCell","props":{"children":"[...]"},"parentKey":"row-3"}}
+{"op":"add","path":"/elements/c-3-size","value":{"key":"c-3-size","type":"TableCell","props":{"children":"2.4 KB"},"parentKey":"row-3"}}
+{"op":"add","path":"/elements/c-3-time","value":{"key":"c-3-time","type":"TableCell","props":{"children":"1 hour ago"},"parentKey":"row-3"}}

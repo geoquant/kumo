@@ -1,0 +1,44 @@
+{"op":"add","path":"/root","value":"page"}
+{"op":"add","path":"/elements/page","value":{"key":"page","type":"Surface","props":{},"children":["page-stack"]}}
+{"op":"add","path":"/elements/page-stack","value":{"key":"page-stack","type":"Stack","props":{"gap":"lg"},"children":["header-section","instances-section"],"parentKey":"page"}}
+{"op":"add","path":"/elements/header-section","value":{"key":"header-section","type":"Stack","props":{"gap":"sm"},"children":["header-title","header-metrics"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/header-title","value":{"key":"header-title","type":"Text","props":{"children":"SessionManager Namespace","variant":"heading2"},"parentKey":"header-section"}}
+{"op":"add","path":"/elements/header-metrics","value":{"key":"header-metrics","type":"Grid","props":{"variant":"3up","gap":"base"},"children":["ns-id-col","class-col","count-col"],"parentKey":"header-section"}}
+{"op":"add","path":"/elements/ns-id-col","value":{"key":"ns-id-col","type":"Stack","props":{"gap":"xs"},"children":["ns-label","ns-value"],"parentKey":"header-metrics"}}
+{"op":"add","path":"/elements/ns-label","value":{"key":"ns-label","type":"Text","props":{"children":"Namespace ID","variant":"secondary"},"parentKey":"ns-id-col"}}
+{"op":"add","path":"/elements/ns-value","value":{"key":"ns-value","type":"Text","props":{"children":"durable-objects-ns-abc123","variant":"body"},"parentKey":"ns-id-col"}}
+{"op":"add","path":"/elements/class-col","value":{"key":"class-col","type":"Stack","props":{"gap":"xs"},"children":["class-label","class-value"],"parentKey":"header-metrics"}}
+{"op":"add","path":"/elements/class-label","value":{"key":"class-label","type":"Text","props":{"children":"Class","variant":"secondary"},"parentKey":"class-col"}}
+{"op":"add","path":"/elements/class-value","value":{"key":"class-value","type":"Text","props":{"children":"SessionManager","variant":"body"},"parentKey":"class-col"}}
+{"op":"add","path":"/elements/count-col","value":{"key":"count-col","type":"Stack","props":{"gap":"xs"},"children":["count-label","count-value"],"parentKey":"header-metrics"}}
+{"op":"add","path":"/elements/count-label","value":{"key":"count-label","type":"Text","props":{"children":"Active instances","variant":"secondary"},"parentKey":"count-col"}}
+{"op":"add","path":"/elements/count-value","value":{"key":"count-value","type":"Text","props":{"children":"12","variant":"body"},"parentKey":"count-col"}}
+{"op":"add","path":"/elements/instances-section","value":{"key":"instances-section","type":"Stack","props":{"gap":"sm"},"children":["instances-title","instances-table"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/instances-title","value":{"key":"instances-title","type":"Text","props":{"children":"Recent instances","variant":"heading3"},"parentKey":"instances-section"}}
+{"op":"add","path":"/elements/instances-table","value":{"key":"instances-table","type":"Table","props":{"layout":"fixed"},"children":["instances-thead","instances-tbody"],"parentKey":"instances-section"}}
+{"op":"add","path":"/elements/instances-thead","value":{"key":"instances-thead","type":"TableHeader","props":{},"children":["instances-hrow"],"parentKey":"instances-table"}}
+{"op":"add","path":"/elements/instances-hrow","value":{"key":"instances-hrow","type":"TableRow","props":{},"children":["h-id","h-access","h-storage"],"parentKey":"instances-thead"}}
+{"op":"add","path":"/elements/h-id","value":{"key":"h-id","type":"TableHead","props":{"children":"ID"},"parentKey":"instances-hrow"}}
+{"op":"add","path":"/elements/h-access","value":{"key":"h-access","type":"TableHead","props":{"children":"Last access"},"parentKey":"instances-hrow"}}
+{"op":"add","path":"/elements/h-storage","value":{"key":"h-storage","type":"TableHead","props":{"children":"Storage used"},"parentKey":"instances-hrow"}}
+{"op":"add","path":"/elements/instances-tbody","value":{"key":"instances-tbody","type":"TableBody","props":{},"children":["r1","r2","r3","r4","r5"],"parentKey":"instances-table"}}
+{"op":"add","path":"/elements/r1","value":{"key":"r1","type":"TableRow","props":{},"children":["c1-id","c1-access","c1-storage"],"parentKey":"instances-tbody"}}
+{"op":"add","path":"/elements/c1-id","value":{"key":"c1-id","type":"TableCell","props":{"children":"obj-7f2a"},"parentKey":"r1"}}
+{"op":"add","path":"/elements/c1-access","value":{"key":"c1-access","type":"TableCell","props":{"children":"2 minutes ago"},"parentKey":"r1"}}
+{"op":"add","path":"/elements/c1-storage","value":{"key":"c1-storage","type":"TableCell","props":{"children":"1.2 KB"},"parentKey":"r1"}}
+{"op":"add","path":"/elements/r2","value":{"key":"r2","type":"TableRow","props":{},"children":["c2-id","c2-access","c2-storage"],"parentKey":"instances-tbody"}}
+{"op":"add","path":"/elements/c2-id","value":{"key":"c2-id","type":"TableCell","props":{"children":"obj-3b1c"},"parentKey":"r2"}}
+{"op":"add","path":"/elements/c2-access","value":{"key":"c2-access","type":"TableCell","props":{"children":"5 minutes ago"},"parentKey":"r2"}}
+{"op":"add","path":"/elements/c2-storage","value":{"key":"c2-storage","type":"TableCell","props":{"children":"0.8 KB"},"parentKey":"r2"}}
+{"op":"add","path":"/elements/r3","value":{"key":"r3","type":"TableRow","props":{},"children":["c3-id","c3-access","c3-storage"],"parentKey":"instances-tbody"}}
+{"op":"add","path":"/elements/c3-id","value":{"key":"c3-id","type":"TableCell","props":{"children":"obj-9d4e"},"parentKey":"r3"}}
+{"op":"add","path":"/elements/c3-access","value":{"key":"c3-access","type":"TableCell","props":{"children":"12 minutes ago"},"parentKey":"r3"}}
+{"op":"add","path":"/elements/c3-storage","value":{"key":"c3-storage","type":"TableCell","props":{"children":"2.1 KB"},"parentKey":"r3"}}
+{"op":"add","path":"/elements/r4","value":{"key":"r4","type":"TableRow","props":{},"children":["c4-id","c4-access","c4-storage"],"parentKey":"instances-tbody"}}
+{"op":"add","path":"/elements/c4-id","value":{"key":"c4-id","type":"TableCell","props":{"children":"obj-1a2b"},"parentKey":"r4"}}
+{"op":"add","path":"/elements/c4-access","value":{"key":"c4-access","type":"TableCell","props":{"children":"18 minutes ago"},"parentKey":"r4"}}
+{"op":"add","path":"/elements/c4-storage","value":{"key":"c4-storage","type":"TableCell","props":{"children":"0.5 KB"},"parentKey":"r4"}}
+{"op":"add","path":"/elements/r5","value":{"key":"r5","type":"TableRow","props":{},"children":["c5-id","c5-access","c5-storage"],"parentKey":"instances-tbody"}}
+{"op":"add","path":"/elements/c5-id","value":{"key":"c5-id","type":"TableCell","props":{"children":"obj-5c6d"},"parentKey":"r5"}}
+{"op":"add","path":"/elements/c5-access","value":{"key":"c5-access","type":"TableCell","props":{"children":"25 minutes ago"},"parentKey":"r5"}}
+{"op":"add","path":"/elements/c5-storage","value":{"key":"c5-storage","type":"TableCell","props":{"children":"1.0 KB"},"parentKey":"r5"}}

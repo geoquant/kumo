@@ -1,0 +1,25 @@
+{"op":"add","path":"/root","value":"wizard"}
+{"op":"add","path":"/elements/wizard","value":{"key":"wizard","type":"Surface","props":{},"children":["wizard-stack"]}}
+{"op":"add","path":"/elements/wizard-stack","value":{"key":"wizard-stack","type":"Stack","props":{"gap":"lg"},"children":["wizard-header","wizard-grid"],"parentKey":"wizard"}}
+{"op":"add","path":"/elements/wizard-header","value":{"key":"wizard-header","type":"Stack","props":{"gap":"sm"},"children":["wizard-title","wizard-desc"],"parentKey":"wizard-stack"}}
+{"op":"add","path":"/elements/wizard-title","value":{"key":"wizard-title","type":"Text","props":{"children":"Getting started","variant":"heading2"},"parentKey":"wizard-header"}}
+{"op":"add","path":"/elements/wizard-desc","value":{"key":"wizard-desc","type":"Text","props":{"children":"Complete these steps to deploy your application","variant":"secondary"},"parentKey":"wizard-header"}}
+{"op":"add","path":"/elements/wizard-grid","value":{"key":"wizard-grid","type":"Grid","props":{"variant":"3up","gap":"base"},"children":["step-1","step-2","step-3"],"parentKey":"wizard-stack"}}
+{"op":"add","path":"/elements/step-1","value":{"key":"step-1","type":"Surface","props":{},"children":["step-1-stack"],"parentKey":"wizard-grid"}}
+{"op":"add","path":"/elements/step-1-stack","value":{"key":"step-1-stack","type":"Stack","props":{"gap":"base"},"children":["step-1-num","step-1-title","step-1-desc","step-1-status"],"parentKey":"step-1"}}
+{"op":"add","path":"/elements/step-1-num","value":{"key":"step-1-num","type":"Badge","props":{"children":"1","variant":"primary"},"parentKey":"step-1-stack"}}
+{"op":"add","path":"/elements/step-1-title","value":{"key":"step-1-title","type":"Text","props":{"children":"Connect your domain","variant":"heading3"},"parentKey":"step-1-stack"}}
+{"op":"add","path":"/elements/step-1-desc","value":{"key":"step-1-desc","type":"Text","props":{"children":"Add your domain to Cloudflare to start routing traffic","variant":"secondary"},"parentKey":"step-1-stack"}}
+{"op":"add","path":"/elements/step-1-status","value":{"key":"step-1-status","type":"Badge","props":{"children":"Active","variant":"primary"},"parentKey":"step-1-stack"}}
+{"op":"add","path":"/elements/step-2","value":{"key":"step-2","type":"Surface","props":{},"children":["step-2-stack"],"parentKey":"wizard-grid"}}
+{"op":"add","path":"/elements/step-2-stack","value":{"key":"step-2-stack","type":"Stack","props":{"gap":"base"},"children":["step-2-num","step-2-title","step-2-desc","step-2-status"],"parentKey":"step-2"}}
+{"op":"add","path":"/elements/step-2-num","value":{"key":"step-2-num","type":"Badge","props":{"children":"2","variant":"secondary"},"parentKey":"step-2-stack"}}
+{"op":"add","path":"/elements/step-2-title","value":{"key":"step-2-title","type":"Text","props":{"children":"Configure SSL","variant":"heading3"},"parentKey":"step-2-stack"}}
+{"op":"add","path":"/elements/step-2-desc","value":{"key":"step-2-desc","type":"Text","props":{"children":"Set up automatic HTTPS and secure your connections","variant":"secondary"},"parentKey":"step-2-stack"}}
+{"op":"add","path":"/elements/step-2-status","value":{"key":"step-2-status","type":"Badge","props":{"children":"Pending","variant":"secondary"},"parentKey":"step-2-stack"}}
+{"op":"add","path":"/elements/step-3","value":{"key":"step-3","type":"Surface","props":{},"children":["step-3-stack"],"parentKey":"wizard-grid"}}
+{"op":"add","path":"/elements/step-3-stack","value":{"key":"step-3-stack","type":"Stack","props":{"gap":"base"},"children":["step-3-num","step-3-title","step-3-desc","step-3-status"],"parentKey":"step-3"}}
+{"op":"add","path":"/elements/step-3-num","value":{"key":"step-3-num","type":"Badge","props":{"children":"3","variant":"secondary"},"parentKey":"step-3-stack"}}
+{"op":"add","path":"/elements/step-3-title","value":{"key":"step-3-title","type":"Text","props":{"children":"Enable caching","variant":"heading3"},"parentKey":"step-3-stack"}}
+{"op":"add","path":"/elements/step-3-desc","value":{"key":"step-3-desc","type":"Text","props":{"children":"Optimize performance by caching static assets","variant":"secondary"},"parentKey":"step-3-stack"}}
+{"op":"add","path":"/elements/step-3-status","value":{"key":"step-3-status","type":"Badge","props":{"children":"Not started","variant":"secondary"},"parentKey":"step-3-stack"}}

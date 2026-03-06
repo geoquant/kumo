@@ -1,0 +1,21 @@
+# Progress Log
+PRD: kumo-localization
+Started: 2026-03-05
+
+## Codebase Patterns
+- New modules go in `packages/kumo/src/localize/` dir
+- Interface pattern: `readonly` fields for immutability, grouped by section with doc comments
+- Parameterized translation keys typed as functions `(arg: type) => string` (no MessageFormat runtime)
+- `$`-prefixed fields for metadata ($code, $name, $dir) to avoid collision with translation keys
+- Pre-existing issues: docs astro typecheck has 1 error (SearchDialog), kumo tests have 70 unhandled rejections in deep-imports.test.ts (Vite worker RPC closing) — both pre-existing
+
+---
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - core-1
+- Created `packages/kumo/src/localize/types.ts` with `KumoTranslation` interface
+- 40 translation keys: 29 simple (string), 11 parameterized (functions returning string)
+- Keys grouped by domain: General, Pagination, Sensitive Input, Date Range Picker, Table, Breadcrumbs/Empty, Cloudflare Logo, Delete Resource
+- `$dir` typed as `'ltr' | 'rtl'` union
+- Files changed: `packages/kumo/src/localize/types.ts` (new)
+- **Learnings:** typecheck is package-scoped; kumo package typechecks clean independently of docs errors

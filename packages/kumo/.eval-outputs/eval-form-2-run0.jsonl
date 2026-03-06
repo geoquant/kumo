@@ -1,0 +1,15 @@
+{"op":"add","path":"/root","value":"rule-editor"}
+{"op":"add","path":"/elements/rule-editor","value":{"key":"rule-editor","type":"Surface","props":{},"children":["editor-stack"]}}
+{"op":"add","path":"/elements/editor-stack","value":{"key":"editor-stack","type":"Stack","props":{"gap":"lg"},"children":["header","match-input","action-select","enable-switch","actions"],"parentKey":"rule-editor"}}
+{"op":"add","path":"/elements/header","value":{"key":"header","type":"Stack","props":{"gap":"sm"},"children":["title","desc"],"parentKey":"editor-stack"}}
+{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"New routing rule","variant":"heading2"},"parentKey":"header"}}
+{"op":"add","path":"/elements/desc","value":{"key":"desc","type":"Text","props":{"children":"Configure how incoming emails are processed based on the match condition.","variant":"secondary"},"parentKey":"header"}}
+{"op":"add","path":"/elements/match-input","value":{"key":"match-input","type":"Input","props":{"label":"Match condition","placeholder":"e.g., from@example.com"},"parentKey":"editor-stack"}}
+{"op":"add","path":"/elements/action-select","value":{"key":"action-select","type":"Select","props":{"label":"Action","placeholder":"Choose action"},"children":["opt-forward","opt-drop","opt-spam"],"parentKey":"editor-stack"}}
+{"op":"add","path":"/elements/opt-forward","value":{"key":"opt-forward","type":"SelectOption","props":{"value":"forward","children":"Forward"},"parentKey":"action-select"}}
+{"op":"add","path":"/elements/opt-drop","value":{"key":"opt-drop","type":"SelectOption","props":{"value":"drop","children":"Drop"},"parentKey":"action-select"}}
+{"op":"add","path":"/elements/opt-spam","value":{"key":"opt-spam","type":"SelectOption","props":{"value":"spam","children":"Mark as spam"},"parentKey":"action-select"}}
+{"op":"add","path":"/elements/enable-switch","value":{"key":"enable-switch","type":"Switch","props":{"label":"Enable rule"},"parentKey":"editor-stack"}}
+{"op":"add","path":"/elements/actions","value":{"key":"actions","type":"Cluster","props":{"gap":"sm","justify":"end"},"children":["cancel-btn","save-btn"],"parentKey":"editor-stack"}}
+{"op":"add","path":"/elements/cancel-btn","value":{"key":"cancel-btn","type":"Button","props":{"children":"Cancel","variant":"secondary"},"parentKey":"actions"}}
+{"op":"add","path":"/elements/save-btn","value":{"key":"save-btn","type":"Button","props":{"children":"Save rule","variant":"primary"},"parentKey":"actions","action":{"name":"submit_form","params":{"form_type":"routing_rule"}}}}

@@ -1,0 +1,31 @@
+{"op":"add","path":"/root","value":"wizard-page"}
+{"op":"add","path":"/elements/wizard-page","value":{"key":"wizard-page","type":"Surface","props":{},"children":["page-stack"]}}
+{"op":"add","path":"/elements/page-stack","value":{"key":"page-stack","type":"Stack","props":{"gap":"lg"},"children":["page-header","steps-list"],"parentKey":"wizard-page"}}
+{"op":"add","path":"/elements/page-header","value":{"key":"page-header","type":"Stack","props":{"gap":"sm"},"children":["page-title","page-desc"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/page-title","value":{"key":"page-title","type":"Text","props":{"children":"Getting started with Workers","variant":"heading2"},"parentKey":"page-header"}}
+{"op":"add","path":"/elements/page-desc","value":{"key":"page-desc","type":"Text","props":{"children":"Follow these steps to deploy your first application","variant":"secondary"},"parentKey":"page-header"}}
+{"op":"add","path":"/elements/steps-list","value":{"key":"steps-list","type":"Stack","props":{"gap":"base"},"children":["step-1","step-2","step-3"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/step-1","value":{"key":"step-1","type":"Surface","props":{},"children":["step-1-stack"]}}
+{"op":"add","path":"/elements/step-1-stack","value":{"key":"step-1-stack","type":"Stack","props":{"gap":"base"},"children":["step-1-header","step-1-body"],"parentKey":"step-1"}}
+{"op":"add","path":"/elements/step-1-header","value":{"key":"step-1-header","type":"Stack","props":{"gap":"sm"},"children":["step-1-num","step-1-title"],"parentKey":"step-1-stack"}}
+{"op":"add","path":"/elements/step-1-num","value":{"key":"step-1-num","type":"Text","props":{"children":"1","variant":"heading3"},"parentKey":"step-1-header"}}
+{"op":"add","path":"/elements/step-1-title","value":{"key":"step-1-title","type":"Text","props":{"children":"Connect your domain","variant":"heading2"},"parentKey":"step-1-header"}}
+{"op":"add","path":"/elements/step-1-body","value":{"key":"step-1-body","type":"Stack","props":{"gap":"xs"},"children":["step-1-desc","step-1-badge"],"parentKey":"step-1-stack"}}
+{"op":"add","path":"/elements/step-1-desc","value":{"key":"step-1-desc","type":"Text","props":{"children":"Add a custom domain to route traffic to your Worker","variant":"secondary"},"parentKey":"step-1-body"}}
+{"op":"add","path":"/elements/step-1-badge","value":{"key":"step-1-badge","type":"Badge","props":{"children":"Pending","variant":"secondary"},"parentKey":"step-1-body"}}
+{"op":"add","path":"/elements/step-2","value":{"key":"step-2","type":"Surface","props":{},"children":["step-2-stack"]}}
+{"op":"add","path":"/elements/step-2-stack","value":{"key":"step-2-stack","type":"Stack","props":{"gap":"base"},"children":["step-2-header","step-2-body"],"parentKey":"step-2"}}
+{"op":"add","path":"/elements/step-2-header","value":{"key":"step-2-header","type":"Stack","props":{"gap":"sm"},"children":["step-2-num","step-2-title"],"parentKey":"step-2-stack"}}
+{"op":"add","path":"/elements/step-2-num","value":{"key":"step-2-num","type":"Text","props":{"children":"2","variant":"heading3"},"parentKey":"step-2-header"}}
+{"op":"add","path":"/elements/step-2-title","value":{"key":"step-2-title","type":"Text","props":{"children":"Configure SSL","variant":"heading2"},"parentKey":"step-2-header"}}
+{"op":"add","path":"/elements/step-2-body","value":{"key":"step-2-body","type":"Stack","props":{"gap":"xs"},"children":["step-2-desc","step-2-badge"],"parentKey":"step-2-stack"}}
+{"op":"add","path":"/elements/step-2-desc","value":{"key":"step-2-desc","type":"Text","props":{"children":"Set up automatic HTTPS for your domain","variant":"secondary"},"parentKey":"step-2-body"}}
+{"op":"add","path":"/elements/step-2-badge","value":{"key":"step-2-badge","type":"Badge","props":{"children":"Pending","variant":"secondary"},"parentKey":"step-2-body"}}
+{"op":"add","path":"/elements/step-3","value":{"key":"step-3","type":"Surface","props":{},"children":["step-3-stack"]}}
+{"op":"add","path":"/elements/step-3-stack","value":{"key":"step-3-stack","type":"Stack","props":{"gap":"base"},"children":["step-3-header","step-3-body"],"parentKey":"step-3"}}
+{"op":"add","path":"/elements/step-3-header","value":{"key":"step-3-header","type":"Stack","props":{"gap":"sm"},"children":["step-3-num","step-3-title"],"parentKey":"step-3-stack"}}
+{"op":"add","path":"/elements/step-3-num","value":{"key":"step-3-num","type":"Text","props":{"children":"3","variant":"heading3"},"parentKey":"step-3-header"}}
+{"op":"add","path":"/elements/step-3-title","value":{"key":"step-3-title","type":"Text","props":{"children":"Enable caching","variant":"heading2"},"parentKey":"step-3-header"}}
+{"op":"add","path":"/elements/step-3-body","value":{"key":"step-3-body","type":"Stack","props":{"gap":"xs"},"children":["step-3-desc","step-3-badge"],"parentKey":"step-3-stack"}}
+{"op":"add","path":"/elements/step-3-desc","value":{"key":"step-3-desc","type":"Text","props":{"children":"Configure cache rules to improve performance","variant":"secondary"},"parentKey":"step-3-body"}}
+{"op":"add","path":"/elements/step-3-badge","value":{"key":"step-3-badge","type":"Badge","props":{"children":"Pending","variant":"secondary"},"parentKey":"step-3-body"}}

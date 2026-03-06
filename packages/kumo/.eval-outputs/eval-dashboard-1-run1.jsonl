@@ -1,0 +1,21 @@
+{"op":"add","path":"/root","value":"dashboard"}
+{"op":"add","path":"/elements/dashboard","value":{"key":"dashboard","type":"Surface","props":{},"children":["dash-stack"]}}
+{"op":"add","path":"/elements/dash-stack","value":{"key":"dash-stack","type":"Stack","props":{"gap":"lg"},"children":["dash-heading","stat-grid"],"parentKey":"dashboard"}}
+{"op":"add","path":"/elements/dash-heading","value":{"key":"dash-heading","type":"Text","props":{"children":"Traffic overview","variant":"heading2"},"parentKey":"dash-stack"}}
+{"op":"add","path":"/elements/stat-grid","value":{"key":"stat-grid","type":"Grid","props":{"variant":"4up","gap":"base"},"children":["stat-requests","stat-bandwidth","stat-cache","stat-errors"],"parentKey":"dash-stack"}}
+{"op":"add","path":"/elements/stat-requests","value":{"key":"stat-requests","type":"Surface","props":{"color":"neutral"},"children":["stat-requests-stack"],"parentKey":"stat-grid"}}
+{"op":"add","path":"/elements/stat-requests-stack","value":{"key":"stat-requests-stack","type":"Stack","props":{"gap":"sm"},"children":["stat-requests-label","stat-requests-val"],"parentKey":"stat-requests"}}
+{"op":"add","path":"/elements/stat-requests-label","value":{"key":"stat-requests-label","type":"Text","props":{"children":"Total requests","variant":"secondary"},"parentKey":"stat-requests-stack"}}
+{"op":"add","path":"/elements/stat-requests-val","value":{"key":"stat-requests-val","type":"Text","props":{"children":"1.2M","variant":"heading2"},"parentKey":"stat-requests-stack"}}
+{"op":"add","path":"/elements/stat-bandwidth","value":{"key":"stat-bandwidth","type":"Surface","props":{"color":"neutral"},"children":["stat-bandwidth-stack"],"parentKey":"stat-grid"}}
+{"op":"add","path":"/elements/stat-bandwidth-stack","value":{"key":"stat-bandwidth-stack","type":"Stack","props":{"gap":"sm"},"children":["stat-bandwidth-label","stat-bandwidth-val"],"parentKey":"stat-bandwidth"}}
+{"op":"add","path":"/elements/stat-bandwidth-label","value":{"key":"stat-bandwidth-label","type":"Text","props":{"children":"Bandwidth","variant":"secondary"},"parentKey":"stat-bandwidth-stack"}}
+{"op":"add","path":"/elements/stat-bandwidth-val","value":{"key":"stat-bandwidth-val","type":"Text","props":{"children":"4.8 GB","variant":"heading2"},"parentKey":"stat-bandwidth-stack"}}
+{"op":"add","path":"/elements/stat-cache","value":{"key":"stat-cache","type":"Surface","props":{"color":"neutral"},"children":["stat-cache-stack"],"parentKey":"stat-grid"}}
+{"op":"add","path":"/elements/stat-cache-stack","value":{"key":"stat-cache-stack","type":"Stack","props":{"gap":"sm"},"children":["stat-cache-label","stat-cache-val"],"parentKey":"stat-cache"}}
+{"op":"add","path":"/elements/stat-cache-label","value":{"key":"stat-cache-label","type":"Text","props":{"children":"Cache hit ratio","variant":"secondary"},"parentKey":"stat-cache-stack"}}
+{"op":"add","path":"/elements/stat-cache-val","value":{"key":"stat-cache-val","type":"Text","props":{"children":"94.7%","variant":"heading2"},"parentKey":"stat-cache-stack"}}
+{"op":"add","path":"/elements/stat-errors","value":{"key":"stat-errors","type":"Surface","props":{"color":"neutral"},"children":["stat-errors-stack"],"parentKey":"stat-grid"}}
+{"op":"add","path":"/elements/stat-errors-stack","value":{"key":"stat-errors-stack","type":"Stack","props":{"gap":"sm"},"children":["stat-errors-label","stat-errors-val"],"parentKey":"stat-errors"}}
+{"op":"add","path":"/elements/stat-errors-label","value":{"key":"stat-errors-label","type":"Text","props":{"children":"Error rate","variant":"secondary"},"parentKey":"stat-errors-stack"}}
+{"op":"add","path":"/elements/stat-errors-val","value":{"key":"stat-errors-val","type":"Text","props":{"children":"0.03%","variant":"heading2"},"parentKey":"stat-errors-stack"}}

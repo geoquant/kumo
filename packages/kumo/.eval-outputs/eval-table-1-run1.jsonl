@@ -1,0 +1,37 @@
+{"op":"add","path":"/root","value":"firewall-page"}
+{"op":"add","path":"/elements/firewall-page","value":{"key":"firewall-page","type":"Surface","props":{},"children":["page-stack"]}}
+{"op":"add","path":"/elements/page-stack","value":{"key":"page-stack","type":"Stack","props":{"gap":"lg"},"children":["page-header","action-bar","rules-table"],"parentKey":"firewall-page"}}
+{"op":"add","path":"/elements/page-header","value":{"key":"page-header","type":"Stack","props":{"gap":"sm"},"children":["page-title","page-desc"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/page-title","value":{"key":"page-title","type":"Text","props":{"children":"Firewall rules","variant":"heading2"},"parentKey":"page-header"}}
+{"op":"add","path":"/elements/page-desc","value":{"key":"page-desc","type":"Text","props":{"children":"Manage your security policies and traffic filtering rules.","variant":"secondary"},"parentKey":"page-header"}}
+{"op":"add","path":"/elements/action-bar","value":{"key":"action-bar","type":"Cluster","props":{"gap":"sm","justify":"end"},"children":["add-btn","export-btn"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/add-btn","value":{"key":"add-btn","type":"Button","props":{"children":"Add rule","variant":"primary"},"parentKey":"action-bar","action":{"name":"navigate","params":{"url":"/firewall/rules/new"}}}}
+{"op":"add","path":"/elements/export-btn","value":{"key":"export-btn","type":"Button","props":{"children":"Export rules","variant":"secondary"},"parentKey":"action-bar"}}
+{"op":"add","path":"/elements/rules-table","value":{"key":"rules-table","type":"Table","props":{"layout":"fixed"},"children":["table-header","table-body"],"parentKey":"page-stack"}}
+{"op":"add","path":"/elements/table-header","value":{"key":"table-header","type":"TableHeader","props":{},"children":["header-row"],"parentKey":"rules-table"}}
+{"op":"add","path":"/elements/header-row","value":{"key":"header-row","type":"TableRow","props":{},"children":["h-name","h-action","h-priority","h-status"],"parentKey":"table-header"}}
+{"op":"add","path":"/elements/h-name","value":{"key":"h-name","type":"TableHead","props":{"children":"Rule name"},"parentKey":"header-row"}}
+{"op":"add","path":"/elements/h-action","value":{"key":"h-action","type":"TableHead","props":{"children":"Action"},"parentKey":"header-row"}}
+{"op":"add","path":"/elements/h-priority","value":{"key":"h-priority","type":"TableHead","props":{"children":"Priority"},"parentKey":"header-row"}}
+{"op":"add","path":"/elements/h-status","value":{"key":"h-status","type":"TableHead","props":{"children":"Status"},"parentKey":"header-row"}}
+{"op":"add","path":"/elements/table-body","value":{"key":"table-body","type":"TableBody","props":{},"children":["row-1","row-2","row-3","row-4"],"parentKey":"rules-table"}}
+{"op":"add","path":"/elements/row-1","value":{"key":"row-1","type":"TableRow","props":{},"children":["c-name-1","c-action-1","c-priority-1","c-status-1"],"parentKey":"table-body"}}
+{"op":"add","path":"/elements/c-name-1","value":{"key":"c-name-1","type":"TableCell","props":{"children":"Block SQL Injection"},"parentKey":"row-1"}}
+{"op":"add","path":"/elements/c-action-1","value":{"key":"c-action-1","type":"Badge","props":{"children":"Block","variant":"destructive"},"parentKey":"row-1"}}
+{"op":"add","path":"/elements/c-priority-1","value":{"key":"c-priority-1","type":"TableCell","props":{"children":"High"},"parentKey":"row-1"}}
+{"op":"add","path":"/elements/c-status-1","value":{"key":"c-status-1","type":"Badge","props":{"children":"Active","variant":"primary"},"parentKey":"row-1"}}
+{"op":"add","path":"/elements/row-2","value":{"key":"row-2","type":"TableRow","props":{},"children":["c-name-2","c-action-2","c-priority-2","c-status-2"],"parentKey":"table-body"}}
+{"op":"add","path":"/elements/c-name-2","value":{"key":"c-name-2","type":"TableCell","props":{"children":"Allow API Traffic"},"parentKey":"row-2"}}
+{"op":"add","path":"/elements/c-action-2","value":{"key":"c-action-2","type":"Badge","props":{"children":"Allow","variant":"primary"},"parentKey":"row-2"}}
+{"op":"add","path":"/elements/c-priority-2","value":{"key":"c-priority-2","type":"TableCell","props":{"children":"Medium"},"parentKey":"row-2"}}
+{"op":"add","path":"/elements/c-status-2","value":{"key":"c-status-2","type":"Badge","props":{"children":"Active","variant":"primary"},"parentKey":"row-2"}}
+{"op":"add","path":"/elements/row-3","value":{"key":"row-3","type":"TableRow","props":{},"children":["c-name-3","c-action-3","c-priority-3","c-status-3"],"parentKey":"table-body"}}
+{"op":"add","path":"/elements/c-name-3","value":{"key":"c-name-3","type":"TableCell","props":{"children":"Block Port 80"},"parentKey":"row-3"}}
+{"op":"add","path":"/elements/c-action-3","value":{"key":"c-action-3","type":"Badge","props":{"children":"Block","variant":"destructive"},"parentKey":"row-3"}}
+{"op":"add","path":"/elements/c-priority-3","value":{"key":"c-priority-3","type":"TableCell","props":{"children":"Low"},"parentKey":"row-3"}}
+{"op":"add","path":"/elements/c-status-3","value":{"key":"c-status-3","type":"Badge","props":{"children":"Paused","variant":"secondary"},"parentKey":"row-3"}}
+{"op":"add","path":"/elements/row-4","value":{"key":"row-4","type":"TableRow","props":{},"children":["c-name-4","c-action-4","c-priority-4","c-status-4"],"parentKey":"table-body"}}
+{"op":"add","path":"/elements/c-name-4","value":{"key":"c-name-4","type":"TableCell","props":{"children":"Allow Internal IPs"},"parentKey":"row-4"}}
+{"op":"add","path":"/elements/c-action-4","value":{"key":"c-action-4","type":"Badge","props":{"children":"Allow","variant":"primary"},"parentKey":"row-4"}}
+{"op":"add","path":"/elements/c-priority-4","value":{"key":"c-priority-4","type":"TableCell","props":{"children":"Medium"},"parentKey":"row-4"}}
+{"op":"add","path":"/elements/c-status-4","value":{"key":"c-status-4","type":"Badge","props":{"children":"Active","variant":"primary"},"parentKey":"row-4"}}

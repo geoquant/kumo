@@ -1,0 +1,53 @@
+{"op":"add","path":"/root","value":"plan-comparison"}
+{"op":"add","path":"/elements/plan-comparison","value":{"key":"plan-comparison","type":"Surface","props":{},"children":["main-stack"]}}
+{"op":"add","path":"/elements/main-stack","value":{"key":"main-stack","type":"Stack","props":{"gap":"lg"},"children":["title","plan-grid"],"parentKey":"plan-comparison"}}
+{"op":"add","path":"/elements/title","value":{"key":"title","type":"Text","props":{"children":"Choose your plan","variant":"heading2"},"parentKey":"main-stack"}}
+{"op":"add","path":"/elements/plan-grid","value":{"key":"plan-grid","type":"Grid","props":{"variant":"2up","gap":"lg"},"children":["free-plan","pro-plan"],"parentKey":"main-stack"}}
+{"op":"add","path":"/elements/free-plan","value":{"key":"free-plan","type":"Surface","props":{},"children":["free-header","free-table","free-action"],"parentKey":"plan-grid"}}
+{"op":"add","path":"/elements/free-header","value":{"key":"free-header","type":"Stack","props":{"gap":"sm"},"children":["free-name","free-price"],"parentKey":"free-plan"}}
+{"op":"add","path":"/elements/free-name","value":{"key":"free-name","type":"Text","props":{"children":"Free","variant":"heading2"},"parentKey":"free-header"}}
+{"op":"add","path":"/elements/free-price","value":{"key":"free-price","type":"Text","props":{"children":"$0 / month","variant":"body"},"parentKey":"free-header"}}
+{"op":"add","path":"/elements/free-table","value":{"key":"free-table","type":"Table","props":{"layout":"fixed"},"children":["free-thead","free-tbody"],"parentKey":"free-plan"}}
+{"op":"add","path":"/elements/free-thead","value":{"key":"free-thead","type":"TableHeader","props":{},"children":["free-hrow"],"parentKey":"free-table"}}
+{"op":"add","path":"/elements/free-hrow","value":{"key":"free-hrow","type":"TableRow","props":{},"children":["h-feature","h-free","h-pro"],"parentKey":"free-thead"}}
+{"op":"add","path":"/elements/h-feature","value":{"key":"h-feature","type":"TableHead","props":{"children":"Feature"},"parentKey":"free-hrow"}}
+{"op":"add","path":"/elements/h-free","value":{"key":"h-free","type":"TableHead","props":{"children":"Free"},"parentKey":"free-hrow"}}
+{"op":"add","path":"/elements/h-pro","value":{"key":"h-pro","type":"TableHead","props":{"children":"Pro"},"parentKey":"free-hrow"}}
+{"op":"add","path":"/elements/free-tbody","value":{"key":"free-tbody","type":"TableBody","props":{},"children":["free-row-1","free-row-2","free-row-3"],"parentKey":"free-table"}}
+{"op":"add","path":"/elements/free-row-1","value":{"key":"free-row-1","type":"TableRow","props":{},"children":["c-f1-feature","c-f1-free","c-f1-pro"],"parentKey":"free-tbody"}}
+{"op":"add","path":"/elements/c-f1-feature","value":{"key":"c-f1-feature","type":"TableCell","props":{"children":"Dedicated IP"},"parentKey":"free-row-1"}}
+{"op":"add","path":"/elements/c-f1-free","value":{"key":"c-f1-free","type":"TableCell","props":{"children":"Yes"},"parentKey":"free-row-1"}}
+{"op":"add","path":"/elements/c-f1-pro","value":{"key":"c-f1-pro","type":"TableCell","props":{"children":"Yes"},"parentKey":"free-row-1"}}
+{"op":"add","path":"/elements/free-row-2","value":{"key":"free-row-2","type":"TableRow","props":{},"children":["c-f2-feature","c-f2-free","c-f2-pro"],"parentKey":"free-tbody"}}
+{"op":"add","path":"/elements/c-f2-feature","value":{"key":"c-f2-feature","type":"TableCell","props":{"children":"Requests / day"},"parentKey":"free-row-2"}}
+{"op":"add","path":"/elements/c-f2-free","value":{"key":"c-f2-free","type":"TableCell","props":{"children":"100K"},"parentKey":"free-row-2"}}
+{"op":"add","path":"/elements/c-f2-pro","value":{"key":"c-f2-pro","type":"TableCell","props":{"children":"Unlimited"},"parentKey":"free-row-2"}}
+{"op":"add","path":"/elements/free-row-3","value":{"key":"free-row-3","type":"TableRow","props":{},"children":["c-f3-feature","c-f3-free","c-f3-pro"],"parentKey":"free-tbody"}}
+{"op":"add","path":"/elements/c-f3-feature","value":{"key":"c-f3-feature","type":"TableCell","props":{"children":"Websites"},"parentKey":"free-row-3"}}
+{"op":"add","path":"/elements/c-f3-free","value":{"key":"c-f3-free","type":"TableCell","props":{"children":"1"},"parentKey":"free-row-3"}}
+{"op":"add","path":"/elements/c-f3-pro","value":{"key":"c-f3-pro","type":"TableCell","props":{"children":"10"},"parentKey":"free-row-3"}}
+{"op":"add","path":"/elements/free-action","value":{"key":"free-action","type":"Button","props":{"children":"Select Free","variant":"secondary"},"parentKey":"free-plan","action":{"name":"select_plan","params":{"plan":"free"}}}}
+{"op":"add","path":"/elements/pro-plan","value":{"key":"pro-plan","type":"Surface","props":{},"children":["pro-header","pro-table","pro-action"],"parentKey":"plan-grid"}}
+{"op":"add","path":"/elements/pro-header","value":{"key":"pro-header","type":"Stack","props":{"gap":"sm"},"children":["pro-name","pro-price"],"parentKey":"pro-plan"}}
+{"op":"add","path":"/elements/pro-name","value":{"key":"pro-name","type":"Text","props":{"children":"Pro","variant":"heading2"},"parentKey":"pro-header"}}
+{"op":"add","path":"/elements/pro-price","value":{"key":"pro-price","type":"Text","props":{"children":"$20 / month","variant":"body"},"parentKey":"pro-header"}}
+{"op":"add","path":"/elements/pro-table","value":{"key":"pro-table","type":"Table","props":{"layout":"fixed"},"children":["pro-thead","pro-tbody"],"parentKey":"pro-plan"}}
+{"op":"add","path":"/elements/pro-thead","value":{"key":"pro-thead","type":"TableHeader","props":{},"children":["pro-hrow"],"parentKey":"pro-table"}}
+{"op":"add","path":"/elements/pro-hrow","value":{"key":"pro-hrow","type":"TableRow","props":{},"children":["p-h-feature","p-h-free","p-h-pro"],"parentKey":"pro-thead"}}
+{"op":"add","path":"/elements/p-h-feature","value":{"key":"p-h-feature","type":"TableHead","props":{"children":"Feature"},"parentKey":"pro-hrow"}}
+{"op":"add","path":"/elements/p-h-free","value":{"key":"p-h-free","type":"TableHead","props":{"children":"Free"},"parentKey":"pro-hrow"}}
+{"op":"add","path":"/elements/p-h-pro","value":{"key":"p-h-pro","type":"TableHead","props":{"children":"Pro"},"parentKey":"pro-hrow"}}
+{"op":"add","path":"/elements/pro-tbody","value":{"key":"pro-tbody","type":"TableBody","props":{},"children":["pro-row-1","pro-row-2","pro-row-3"],"parentKey":"pro-table"}}
+{"op":"add","path":"/elements/pro-row-1","value":{"key":"pro-row-1","type":"TableRow","props":{},"children":["p-r1-feature","p-r1-free","p-r1-pro"],"parentKey":"pro-tbody"}}
+{"op":"add","path":"/elements/p-r1-feature","value":{"key":"p-r1-feature","type":"TableCell","props":{"children":"Dedicated IP"},"parentKey":"pro-row-1"}}
+{"op":"add","path":"/elements/p-r1-free","value":{"key":"p-r1-free","type":"TableCell","props":{"children":"Yes"},"parentKey":"pro-row-1"}}
+{"op":"add","path":"/elements/p-r1-pro","value":{"key":"p-r1-pro","type":"TableCell","props":{"children":"Yes"},"parentKey":"pro-row-1"}}
+{"op":"add","path":"/elements/pro-row-2","value":{"key":"pro-row-2","type":"TableRow","props":{},"children":["p-r2-feature","p-r2-free","p-r2-pro"],"parentKey":"pro-tbody"}}
+{"op":"add","path":"/elements/p-r2-feature","value":{"key":"p-r2-feature","type":"TableCell","props":{"children":"Requests / day"},"parentKey":"pro-row-2"}}
+{"op":"add","path":"/elements/p-r2-free","value":{"key":"p-r2-free","type":"TableCell","props":{"children":"100K"},"parentKey":"pro-row-2"}}
+{"op":"add","path":"/elements/p-r2-pro","value":{"key":"p-r2-pro","type":"TableCell","props":{"children":"Unlimited"},"parentKey":"pro-row-2"}}
+{"op":"add","path":"/elements/pro-row-3","value":{"key":"pro-row-3","type":"TableRow","props":{},"children":["p-r3-feature","p-r3-free","p-r3-pro"],"parentKey":"pro-tbody"}}
+{"op":"add","path":"/elements/p-r3-feature","value":{"key":"p-r3-feature","type":"TableCell","props":{"children":"Websites"},"parentKey":"pro-row-3"}}
+{"op":"add","path":"/elements/p-r3-free","value":{"key":"p-r3-free","type":"TableCell","props":{"children":"1"},"parentKey":"pro-row-3"}}
+{"op":"add","path":"/elements/p-r3-pro","value":{"key":"p-r3-pro","type":"TableCell","props":{"children":"10"},"parentKey":"pro-row-3"}}
+{"op":"add","path":"/elements/pro-action","value":{"key":"pro-action","type":"Button","props":{"children":"Select Pro","variant":"primary"},"parentKey":"pro-plan","action":{"name":"select_plan","params":{"plan":"pro"}}}}

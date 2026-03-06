@@ -1,0 +1,21 @@
+{"op":"add","path":"/root","value":"wizard"}
+{"op":"add","path":"/elements/wizard","value":{"key":"wizard","type":"Surface","props":{},"children":["wizard-stack"]}}
+{"op":"add","path":"/elements/wizard-stack","value":{"key":"wizard-stack","type":"Stack","props":{"gap":"lg"},"children":["step-1","step-2","step-3"],"parentKey":"wizard"}}
+{"op":"add","path":"/elements/step-1","value":{"key":"step-1","type":"Stack","props":{"gap":"base"},"children":["step-1-header","step-1-status","step-1-desc"],"parentKey":"wizard-stack"}}
+{"op":"add","path":"/elements/step-1-header","value":{"key":"step-1-header","type":"Stack","props":{"gap":"sm"},"children":["step-1-num","step-1-title"],"parentKey":"step-1"}}
+{"op":"add","path":"/elements/step-1-num","value":{"key":"step-1-num","type":"Badge","props":{"children":"1","variant":"primary"},"parentKey":"step-1-header"}}
+{"op":"add","path":"/elements/step-1-title","value":{"key":"step-1-title","type":"Text","props":{"children":"Connect your domain","variant":"heading2"},"parentKey":"step-1-header"}}
+{"op":"add","path":"/elements/step-1-status","value":{"key":"step-1-status","type":"Badge","props":{"children":"Active","variant":"primary"},"parentKey":"step-1"}}
+{"op":"add","path":"/elements/step-1-desc","value":{"key":"step-1-desc","type":"Text","props":{"children":"Add your domain to Cloudflare to start routing traffic.","variant":"secondary"},"parentKey":"step-1"}}
+{"op":"add","path":"/elements/step-2","value":{"key":"step-2","type":"Stack","props":{"gap":"base"},"children":["step-2-header","step-2-status","step-2-desc"],"parentKey":"wizard-stack"}}
+{"op":"add","path":"/elements/step-2-header","value":{"key":"step-2-header","type":"Stack","props":{"gap":"sm"},"children":["step-2-num","step-2-title"],"parentKey":"step-2"}}
+{"op":"add","path":"/elements/step-2-num","value":{"key":"step-2-num","type":"Badge","props":{"children":"2","variant":"secondary"},"parentKey":"step-2-header"}}
+{"op":"add","path":"/elements/step-2-title","value":{"key":"step-2-title","type":"Text","props":{"children":"Configure SSL","variant":"heading2"},"parentKey":"step-2-header"}}
+{"op":"add","path":"/elements/step-2-status","value":{"key":"step-2-status","type":"Badge","props":{"children":"Pending","variant":"secondary"},"parentKey":"step-2"}}
+{"op":"add","path":"/elements/step-2-desc","value":{"key":"step-2-desc","type":"Text","props":{"children":"Choose between Full, Full Strict, or Flexible SSL modes.","variant":"secondary"},"parentKey":"step-2"}}
+{"op":"add","path":"/elements/step-3","value":{"key":"step-3","type":"Stack","props":{"gap":"base"},"children":["step-3-header","step-3-status","step-3-desc"],"parentKey":"wizard-stack"}}
+{"op":"add","path":"/elements/step-3-header","value":{"key":"step-3-header","type":"Stack","props":{"gap":"sm"},"children":["step-3-num","step-3-title"],"parentKey":"step-3"}}
+{"op":"add","path":"/elements/step-3-num","value":{"key":"step-3-num","type":"Badge","props":{"children":"3","variant":"secondary"},"parentKey":"step-3-header"}}
+{"op":"add","path":"/elements/step-3-title","value":{"key":"step-3-title","type":"Text","props":{"children":"Enable caching","variant":"heading2"},"parentKey":"step-3-header"}}
+{"op":"add","path":"/elements/step-3-status","value":{"key":"step-3-status","type":"Badge","props":{"children":"Pending","variant":"secondary"},"parentKey":"step-3"}}
+{"op":"add","path":"/elements/step-3-desc","value":{"key":"step-3-desc","type":"Text","props":{"children":"Optimize performance with page rules and caching settings.","variant":"secondary"},"parentKey":"step-3"}}
