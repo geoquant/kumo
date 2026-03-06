@@ -77,7 +77,6 @@ export interface KumoTranslation {
 
   // ── Cloudflare Logo ───────────────────────────────────────────────────
   readonly logo: string;
-  readonly "cloudflare-logo": string;
   readonly "powered-by-cloudflare": string;
 
   // ── Delete Resource Block ─────────────────────────────────────────────

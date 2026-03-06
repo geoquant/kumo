@@ -66,7 +66,6 @@ const en: KumoTranslation = {
 
   // ── Cloudflare Logo ───────────────────────────────────────────────────
   logo: "logo",
-  "cloudflare-logo": "Cloudflare logo",
   "powered-by-cloudflare": "Powered by Cloudflare",
 
   // ── Delete Resource Block ─────────────────────────────────────────────

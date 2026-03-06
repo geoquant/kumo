@@ -1,7 +1,6 @@
 import { forwardRef } from "react";
 import { cn } from "../../utils/cn";
 import { useLocalize } from "../../localize/index.js";
-import en from "../../translations/en.js";
 
 // =============================================================================
 // Brand Colors (internal)
@@ -140,7 +139,7 @@ export const CloudflareLogo = forwardRef<SVGSVGElement, CloudflareLogoProps>(
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           role="img"
-          aria-label={term("cloudflare-logo")}
+          aria-label={`Cloudflare ${term("logo")}`}
           className={cn(
             color === "white" && "text-white",
             color === "black" && "text-black",
@@ -168,7 +167,7 @@ export const CloudflareLogo = forwardRef<SVGSVGElement, CloudflareLogoProps>(
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label={term("cloudflare-logo")}
+        aria-label={`Cloudflare ${term("logo")}`}
         className={cn(
           // Wordmark text color - respects dark mode
           color === "color" && "text-kumo-default",
@@ -325,7 +324,7 @@ export function generateCloudflareLogoSvg(
   const {
     variant = "full",
     color = "color",
-    ariaLabel = en["cloudflare-logo"],
+    ariaLabel = "Cloudflare logo",
   } = options;
 
   const isGlyph = variant === "glyph";
