@@ -133,6 +133,13 @@ export function toastVariants({
 export interface ToastyProps extends KumoToastVariantsProps {
   /** Application content. Toasts render via a portal above this. */
   children: React.ReactNode;
+  /**
+   * Viewport placement.
+   * - `bottom-right`: fixed to physical right edge (legacy behavior)
+   * - `bottom-end`: fixed to logical inline end (RTL-aware)
+   * @default "bottom-right"
+   */
+  placement?: "bottom-right" | "bottom-end";
 }
 
 type KumoToastOptionsBase = {
@@ -262,13 +269,21 @@ export const createKumoToastManager = () => {
  * </Toasty>
  * ```
  */
-export function Toasty({ children }: ToastyProps) {
+export function Toasty({ children, placement = "bottom-right" }: ToastyProps) {
+  const viewportPlacementClassName =
+    placement === "bottom-end" ? "end-4 sm:end-8" : "right-4 sm:right-8";
+
   return (
     <Toast.Provider>
       {children}
       <Toast.Portal>
-        <Toast.Viewport className="fixed top-auto end-4 bottom-4 z-1 mx-auto flex w-[calc(100%-2rem)] sm:end-8 sm:bottom-8 sm:w-[340px]">
-          <ToastList />
+        <Toast.Viewport
+          className={cn(
+            "fixed top-auto bottom-4 z-1 mx-auto flex w-[calc(100%-2rem)] sm:bottom-8 sm:w-[340px]",
+            viewportPlacementClassName,
+          )}
+        >
+          <ToastList placement={placement} />
         </Toast.Viewport>
       </Toast.Portal>
     </Toast.Provider>
@@ -278,15 +293,23 @@ export function Toasty({ children }: ToastyProps) {
 /** Alias for Toasty — provided for discoverability when migrating from other libraries */
 export const ToastProvider = Toasty;
 
-function ToastList() {
+function ToastList({
+  placement,
+}: {
+  placement: NonNullable<ToastyProps["placement"]>;
+}) {
   const { term } = useLocalize();
   const { toasts } = useKumoToastManager();
+  const rootPlacementClassName =
+    placement === "bottom-end" ? "end-0 start-auto" : "right-0 left-auto";
+
   return toasts.map((toast) => (
     <Toast.Root
       key={toast.id}
       toast={toast}
       className={cn(
-        "absolute end-0 bottom-0 start-auto z-[calc(1000-var(--toast-index))] me-0 h-[var(--height)] w-full origin-bottom select-none",
+        "absolute bottom-0 z-[calc(1000-var(--toast-index))] me-0 h-[var(--height)] w-full origin-bottom select-none",
+        rootPlacementClassName,
         toastVariants({ variant: toast.variant }),
         "[--gap:0.75rem] [--height:var(--toast-frontmost-height,var(--toast-height))] [--offset-y:calc(var(--toast-offset-y)*-1+calc(var(--toast-index)*var(--gap)*-1)+var(--toast-swipe-movement-y))] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))]",
         "[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)-(var(--toast-index)*var(--peek))-(var(--shrink)*var(--height))))_scale(var(--scale))] [transition:transform_0.5s_cubic-bezier(0.22,1,0.36,1),opacity_0.5s,height_0.15s]",

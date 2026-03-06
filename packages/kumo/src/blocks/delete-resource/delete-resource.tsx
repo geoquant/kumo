@@ -97,6 +97,12 @@ export function DeleteResource({
     normalizeForComparison(confirmationInput) ===
     normalizeForComparison(resourceName);
 
+  const normalizedDeleteButtonText = deleteButtonText?.trim();
+  const deleteActionLabel =
+    normalizedDeleteButtonText && normalizedDeleteButtonText.length > 0
+      ? normalizedDeleteButtonText
+      : term("delete-resource-type", resourceType);
+
   const handleDelete = useCallback(async () => {
     if (!isConfirmed || isDeleting) return;
     await onDelete();
@@ -158,7 +164,6 @@ export function DeleteResource({
                   resourceName,
                 )}
               >
-                {resourceName}
                 {copied ? (
                   <CheckIcon size={12} weight="bold" className="ms-1.5" />
                 ) : (
@@ -199,7 +204,7 @@ export function DeleteResource({
             disabled={!isConfirmed || isDeleting}
             loading={isDeleting}
           >
-            {deleteButtonText ?? term("delete-resource-type", resourceType)}
+            {deleteActionLabel}
           </Button>
         </div>
       </Dialog>

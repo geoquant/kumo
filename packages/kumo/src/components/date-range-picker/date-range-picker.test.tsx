@@ -1,12 +1,34 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { DateRangePicker } from "./date-range-picker";
-import { KumoLocaleProvider } from "../../localize/index.js";
+import {
+  KumoLocaleProvider,
+  registerTranslation,
+} from "../../localize/index.js";
+import { createTranslation } from "../../translations/create-translation.js";
+
+const turkishTestTranslation = createTranslation(
+  { $code: "tr-TR", $name: "Turkce Test", $dir: "ltr" },
+  {
+    "edit-month-and-year": "Ayi ve yili duzenle",
+    "previous-month": "Onceki ay",
+  },
+);
+
+const arabicTestTranslation = createTranslation(
+  { $code: "ar-EG", $name: "Arabic Test", $dir: "rtl" },
+  {
+    "edit-month-and-year": "حرر الشهر والسنة",
+    "previous-month": "الشهر السابق",
+  },
+);
+
+registerTranslation(turkishTestTranslation, arabicTestTranslation);
 
 describe("DateRangePicker", () => {
   it("keeps month editing stable for locale month names", () => {
     render(
-      <KumoLocaleProvider locale="tr">
+      <KumoLocaleProvider locale="tr-TR">
         <DateRangePicker
           onStartDateChange={() => {}}
           onEndDateChange={() => {}}
@@ -15,7 +37,7 @@ describe("DateRangePicker", () => {
     );
 
     const [monthInput] = screen.getAllByRole("textbox", {
-      name: "Edit month and year",
+      name: "Ayi ve yili duzenle",
     });
     const marchInTurkish = new Intl.DateTimeFormat("tr", {
       month: "long",
@@ -27,7 +49,7 @@ describe("DateRangePicker", () => {
       });
     }).not.toThrow();
 
-    expect(screen.getByRole("button", { name: "Previous month" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Onceki ay" })).toBeTruthy();
   });
 
   it("accepts year-first month input ordering", () => {
@@ -55,7 +77,7 @@ describe("DateRangePicker", () => {
 
   it("accepts localized year digits", () => {
     render(
-      <KumoLocaleProvider locale="ar">
+      <KumoLocaleProvider locale="ar-EG">
         <DateRangePicker
           onStartDateChange={() => {}}
           onEndDateChange={() => {}}
@@ -64,7 +86,7 @@ describe("DateRangePicker", () => {
     );
 
     const [monthInput] = screen.getAllByRole("textbox", {
-      name: "Edit month and year",
+      name: "حرر الشهر والسنة",
     });
     const marchInArabic = new Intl.DateTimeFormat("ar", {
       month: "long",
@@ -79,6 +101,6 @@ describe("DateRangePicker", () => {
       });
     }).not.toThrow();
 
-    expect(screen.getByRole("button", { name: "Previous month" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "الشهر السابق" })).toBeTruthy();
   });
 });

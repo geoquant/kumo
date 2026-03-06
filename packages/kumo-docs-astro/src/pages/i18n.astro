@@ -190,8 +190,8 @@ import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
       You can also scope RTL to a subtree using <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">DirectionProvider</code>:
     </p>
     <p class="mb-4 text-kumo-strong">
-      Kumo's <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">DirectionProvider</code> is built on Base UI's direction utility.
-      See <a class="underline" href="https://base-ui.com/react/utils/direction-provider" target="_blank" rel="noreferrer">Base UI DirectionProvider docs</a>.
+      Kumo's <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">DirectionProvider</code> is a Kumo context utility with Base UI-compatible direction semantics.
+      See <a class="underline" href="https://base-ui.com/react/utils/direction-provider" target="_blank" rel="noreferrer">Base UI direction docs</a> for the underlying direction model.
     </p>
     <CodeBlock
       code={`import { DirectionProvider } from "@cloudflare/kumo";
@@ -276,7 +276,7 @@ dir()                            // "ltr"`}
       </div>
       <div>
         <h3 class="mb-2 text-lg font-semibold"><code class="text-base">DirectionProvider</code></h3>
-        <p class="mb-2 text-kumo-strong">Provide explicit text direction for a subtree. Built on Base UI's DirectionProvider utility. Nestable — innermost wins.</p>
+        <p class="mb-2 text-kumo-strong">Provide explicit text direction for a subtree. Implemented by Kumo and aligned with Base UI direction semantics. Nestable — innermost wins.</p>
         <CodeBlock
           code={`<DirectionProvider direction="rtl">
   {/* useDirection() returns "rtl" */}

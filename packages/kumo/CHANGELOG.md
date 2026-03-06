@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-### Patch Changes
+### Minor Changes
 
 - Deprecate `useLocalize().date()` and `useLocalize().number()` in favor of direct `Intl.DateTimeFormat` and `Intl.NumberFormat` usage.
   - Both APIs remain fully functional and non-breaking in v1.

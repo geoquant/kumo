@@ -189,6 +189,26 @@ describe("registry", () => {
     expect(getTranslation("es")).toBe(fakeEs);
   });
 
+  it("normalizes translation $code during registration", () => {
+    const nonCanonicalEs: KumoTranslation = {
+      ...fakeEs,
+      $code: "es_pe",
+    };
+    registerTranslation(fakeEn, nonCanonicalEs);
+
+    expect(getTranslation("es-PE")).toBeDefined();
+    expect(getTranslation("es_pe")?.$code).toBe("es-PE");
+  });
+
+  it("ignores late registration after first lookup", () => {
+    registerTranslation(fakeEn);
+    expect(getTranslation("en")).toBe(fakeEn);
+
+    registerTranslation(fakeEs);
+
+    expect(getTranslation("es")).toBe(fakeEn);
+  });
+
   it("returns undefined when registry is empty", () => {
     expect(getTranslation("en")).toBeUndefined();
   });

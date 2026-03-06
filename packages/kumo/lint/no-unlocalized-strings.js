@@ -2,7 +2,7 @@ import { defineRule } from "oxlint";
 
 const RULE_NAME = "no-unlocalized-strings";
 
-const COMPONENTS_SEGMENT = "/src/components/";
+const COMPONENTS_SEGMENTS = ["/src/components/", "/src/blocks/"];
 
 const ATTRIBUTE_NAMES = new Set([
   "aria-label",
@@ -10,6 +10,63 @@ const ATTRIBUTE_NAMES = new Set([
   "title",
   "placeholder",
   "alt",
+]);
+
+const ARIA_IDREF_NAMES = new Set([
+  "aria-labelledby",
+  "aria-describedby",
+  "aria-controls",
+  "aria-details",
+  "aria-flowto",
+  "aria-owns",
+  "aria-activedescendant",
+  "aria-errormessage",
+]);
+
+const ARIA_NON_USER_TEXT_NAMES = new Set([
+  "aria-hidden",
+  "aria-live",
+  "aria-current",
+  "aria-atomic",
+  "aria-busy",
+  "aria-relevant",
+  "aria-modal",
+  "aria-haspopup",
+  "aria-expanded",
+  "aria-pressed",
+  "aria-selected",
+  "aria-checked",
+  "aria-disabled",
+  "aria-readonly",
+  "aria-required",
+  "aria-invalid",
+  "aria-level",
+  "aria-valuemin",
+  "aria-valuemax",
+  "aria-valuenow",
+  "aria-valuetext",
+]);
+
+const NON_USER_FACING_ATTRIBUTE_NAMES = new Set([
+  "className",
+  "id",
+  "key",
+  "name",
+  "value",
+  "type",
+  "variant",
+  "size",
+  "role",
+  "href",
+  "src",
+  "to",
+  "target",
+  "rel",
+  "dir",
+  "lang",
+  "htmlFor",
+  "tabIndex",
+  "inputMode",
 ]);
 
 const ALLOWED_UNLOCALIZED_STRINGS = new Set([
@@ -24,7 +81,9 @@ const PUNCTUATION_ONLY_RE = /^[\s.,:;!?()[\]{}'"`~^*+\-_/|\\<>@#$%&=]+$/;
 
 function isIgnoredFilename(filename) {
   if (typeof filename !== "string") return true;
-  if (!filename.includes(COMPONENTS_SEGMENT)) return true;
+  if (!COMPONENTS_SEGMENTS.some((segment) => filename.includes(segment))) {
+    return true;
+  }
 
   return (
     filename.includes("/__tests__/") ||
@@ -133,7 +192,16 @@ function collectStringLiterals(node, out) {
 }
 
 function isAllowedAttributeName(name) {
-  return ATTRIBUTE_NAMES.has(name);
+  if (ATTRIBUTE_NAMES.has(name)) return true;
+  if (NON_USER_FACING_ATTRIBUTE_NAMES.has(name)) return false;
+  if (name.startsWith("data-") || name.startsWith("on")) return false;
+  if (ARIA_IDREF_NAMES.has(name)) return false;
+  if (ARIA_NON_USER_TEXT_NAMES.has(name)) return false;
+  if (name.startsWith("aria-")) return true;
+
+  return /(label|description|message|text|title|placeholder|alt|caption)$/i.test(
+    name,
+  );
 }
 
 function getJsxAttributeName(nameNode) {
