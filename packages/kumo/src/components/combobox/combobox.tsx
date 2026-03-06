@@ -12,6 +12,7 @@ import {
   KUMO_INPUT_VARIANTS,
   type KumoInputSize,
 } from "../input/input";
+import { useLocalize } from "../../localize/index.js";
 import { cn } from "../../utils/cn";
 import { Field, type FieldErrorMatch } from "../field/field";
 
@@ -347,13 +348,14 @@ function Item({ children, ...props }: ComboboxBase.Item.Props) {
 }
 
 function Empty(props: ComboboxBase.Empty.Props) {
+  const { term } = useLocalize();
   return (
     <ComboboxBase.Empty
       {...props}
       className={cn(
         "mx-1.5 shrink-0 px-4 py-2 text-[0.925rem] leading-4 text-kumo-subtle empty:m-0 empty:p-0",
       )}
-      children={props.children ?? "No labels found."}
+      children={props.children ?? term("no-labels-found")}
     />
   );
 }

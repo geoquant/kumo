@@ -20,6 +20,7 @@ const en: KumoTranslation = {
   "copied-to-clipboard": "Copied to clipboard",
   loading: "Loading",
   "no-results-found": "No results found",
+  "no-labels-found": "No labels found.",
   optional: "optional",
   "more-information": "More information",
   cancel: "Cancel",
@@ -55,6 +56,8 @@ const en: KumoTranslation = {
 
   // ── Table ─────────────────────────────────────────────────────────────
   "resize-column": "Resize column",
+  "select-row": "Select row",
+  "select-all-rows": "Select all rows",
 
   // ── Breadcrumbs / Empty ───────────────────────────────────────────────
   "click-to-copy": "Click to copy",
@@ -62,6 +65,7 @@ const en: KumoTranslation = {
 
   // ── Cloudflare Logo ───────────────────────────────────────────────────
   logo: "logo",
+  "powered-by-cloudflare": "Powered by Cloudflare",
 
   // ── Delete Resource Block ─────────────────────────────────────────────
   "delete-resource": (resourceName) => `Delete ${resourceName}`,

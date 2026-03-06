@@ -44,5 +44,9 @@
   "type-to-confirm": "Type {resourceName} to confirm:",
   "confirm-deletion-aria-label": "Type {resourceName} to confirm deletion",
   "copy-resource-name-to-clipboard": "Copy {resourceName} to clipboard",
-  "delete-resource-type": "Delete {resourceType}"
+  "delete-resource-type": "Delete {resourceType}",
+  "no-labels-found": "No labels found.",
+  "select-row": "Select row",
+  "select-all-rows": "Select all rows",
+  "powered-by-cloudflare": "Powered by Cloudflare"
 }

@@ -184,6 +184,7 @@ const TableCheckCell = forwardRef<
     { checked, indeterminate, onValueChange, label, disabled, ...props },
     ref,
   ) => {
+    const { term } = useLocalize();
     return (
       <TableCell
         ref={ref}
@@ -196,7 +197,7 @@ const TableCheckCell = forwardRef<
           onCheckedChange={(newChecked) => {
             onValueChange?.(newChecked);
           }}
-          aria-label={label ?? "Select row"}
+          aria-label={label ?? term("select-row")}
           disabled={disabled}
           className="relative before:absolute before:-inset-3 before:content-['']"
         />
@@ -219,6 +220,7 @@ const TableCheckHead = forwardRef<
     { checked, indeterminate, onValueChange, label, disabled, ...props },
     ref,
   ) => {
+    const { term } = useLocalize();
     return (
       <TableHead
         ref={ref}
@@ -231,7 +233,7 @@ const TableCheckHead = forwardRef<
           onCheckedChange={(newChecked) => {
             onValueChange?.(newChecked);
           }}
-          aria-label={label ?? "Select all rows"}
+          aria-label={label ?? term("select-all-rows")}
           disabled={disabled}
           className="relative before:absolute before:-inset-3 before:content-['']"
         />

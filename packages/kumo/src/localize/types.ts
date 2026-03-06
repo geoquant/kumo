@@ -27,6 +27,7 @@ export interface KumoTranslation {
   readonly "copied-to-clipboard": string;
   readonly loading: string;
   readonly "no-results-found": string;
+  readonly "no-labels-found": string;
   readonly optional: string;
   readonly "more-information": string;
   readonly cancel: string;
@@ -66,6 +67,8 @@ export interface KumoTranslation {
 
   // ��─ Table ─────────────────────────────────────────────────────────────
   readonly "resize-column": string;
+  readonly "select-row": string;
+  readonly "select-all-rows": string;
 
   // ── Breadcrumbs / Empty ───────────────────────────────────────────────
   readonly "click-to-copy": string;
@@ -73,6 +76,7 @@ export interface KumoTranslation {
 
   // ── Cloudflare Logo ───────────────────────────────────────────────────
   readonly logo: string;
+  readonly "powered-by-cloudflare": string;
 
   // ── Delete Resource Block ─────────────────────────────────────────────
   readonly "delete-resource": (resourceName: string) => string;

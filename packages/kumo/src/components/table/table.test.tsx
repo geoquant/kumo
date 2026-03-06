@@ -22,4 +22,30 @@ describe("Table", () => {
 
     expect(screen.getByRole("button", { name: "Resize column" })).toBeTruthy();
   });
+
+  it("renders localized checkbox aria labels", () => {
+    render(
+      <KumoLocaleProvider locale="es">
+        <Table>
+          <Table.Header>
+            <Table.Row>
+              <Table.CheckHead />
+              <Table.Head>Name</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            <Table.Row>
+              <Table.CheckCell />
+              <Table.Cell>A</Table.Cell>
+            </Table.Row>
+          </Table.Body>
+        </Table>
+      </KumoLocaleProvider>,
+    );
+
+    expect(
+      screen.getByRole("checkbox", { name: "Select all rows" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "Select row" })).toBeTruthy();
+  });
 });

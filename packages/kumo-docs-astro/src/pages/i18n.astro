@@ -305,12 +305,13 @@ registerTranslation(myLocale);`}
     </p>
     <CodeBlock
       code={`// Uses localized default from active locale
-<ClipboardText value="npm install @cloudflare/kumo" />
+<ClipboardText text="npm install @cloudflare/kumo" />
 
 // Override specific labels
 <ClipboardText
-  value="npm install @cloudflare/kumo"
-  labels={{ copy: "Copy command", copied: "Done!" }}
+  text="npm install @cloudflare/kumo"
+  labels={{ copyAction: "Copy command" }}
+  tooltip={{ copiedText: "Done!" }}
 />`}
       lang="tsx"
     />

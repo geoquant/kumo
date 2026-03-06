@@ -9,7 +9,7 @@ Add built-in i18n/localization system with 12 locale bundles, RTL logical CSS, a
 - `DirectionProvider` and `useDirection()` for RTL support
 - `registerTranslation()` for custom locales
 - 12 built-in locale bundles: en, ar, de, es, fr, he, it, ja, ko, pt, zh-CN, zh-TW
-- All hardcoded UI strings migrated to localized `term()` calls
+- Migrates key user-facing UI strings to localized `term()` calls while preserving documented overrides
 - English remains the per-key fallback for untranslated locale terms
 - Physical CSS properties converted to logical equivalents for RTL
 - Existing `labels` props preserved as overrides

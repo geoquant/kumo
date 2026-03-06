@@ -69,8 +69,7 @@ export type CloudflareLogoVariant =
 export type CloudflareLogoColor =
   keyof typeof KUMO_CLOUDFLARE_LOGO_VARIANTS.color;
 
-export interface CloudflareLogoProps
-  extends React.SVGAttributes<SVGSVGElement> {
+export interface CloudflareLogoProps extends React.SVGAttributes<SVGSVGElement> {
   /**
    * Logo variant
    * - `glyph`: Cloud icon only
@@ -202,8 +201,7 @@ CloudflareLogo.displayName = "CloudflareLogo";
 // PoweredByCloudflare Component
 // =============================================================================
 
-export interface PoweredByCloudflareProps
-  extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+export interface PoweredByCloudflareProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   /**
    * Color scheme for the logo and text
    * @default "color"
@@ -244,6 +242,7 @@ export const PoweredByCloudflare = forwardRef<
     },
     ref,
   ) => {
+    const { term } = useLocalize();
     return (
       <a
         ref={ref}
@@ -263,9 +262,7 @@ export const PoweredByCloudflare = forwardRef<
         {...props}
       >
         <CloudflareLogo variant="glyph" color={color} className="h-4 w-auto" />
-        <span>
-          Powered by <span className="font-semibold">Cloudflare</span>
-        </span>
+        <span>{term("powered-by-cloudflare")}</span>
       </a>
     );
   },
