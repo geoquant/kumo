@@ -65,12 +65,18 @@ export interface TermFn {
 export interface LocalizeResult {
   /** Look up a translation term by key. */
   readonly term: TermFn;
-  /** Format a date using the resolved locale. */
+  /**
+   * @deprecated Use `new Intl.DateTimeFormat(lang(), options).format(value)`.
+   * Kept for backward compatibility in v1; planned removal in the next major.
+   */
   readonly date: (
     value: Date | number,
     options?: Intl.DateTimeFormatOptions,
   ) => string;
-  /** Format a number using the resolved locale. */
+  /**
+   * @deprecated Use `new Intl.NumberFormat(lang(), options).format(value)`.
+   * Kept for backward compatibility in v1; planned removal in the next major.
+   */
   readonly number: (
     value: number,
     options?: Intl.NumberFormatOptions,

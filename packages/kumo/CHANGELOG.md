@@ -1,5 +1,13 @@
 # @cloudflare/kumo
 
+## Unreleased
+
+### Patch Changes
+
+- Deprecate `useLocalize().date()` and `useLocalize().number()` in favor of direct `Intl.DateTimeFormat` and `Intl.NumberFormat` usage.
+  - Both APIs remain fully functional and non-breaking in v1.
+  - Planned removal is next major version to give migration runway.
+
 ## 1.10.0
 
 ### Minor Changes
