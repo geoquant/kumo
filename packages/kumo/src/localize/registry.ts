@@ -4,13 +4,15 @@ import type { KumoTranslation } from "./types.js";
  * Internal translation registry.
  *
  * Translations are stored in a `Map` keyed by their BCP 47 `$code`.
- * The **first** translation registered becomes the fallback when no
- * match is found during resolution.
+ * Fallback resolution first prefers explicit fallback locale (`"en"` by
+ * default), then the first translation ever registered as last resort.
  */
 const registry = new Map<string, KumoTranslation>();
 
-/** BCP 47 code of the first translation ever registered (the fallback). */
-let fallbackCode: string | undefined;
+const DEFAULT_FALLBACK_LOCALE = "en";
+
+/** BCP 47 code of the first translation ever registered (last resort). */
+let firstRegisteredCode: string | undefined;
 
 export type TranslationMatchKind = "exact" | "prefix" | "fallback" | "none";
 
@@ -18,6 +20,10 @@ export interface TranslationResolution {
   readonly translation: KumoTranslation | undefined;
   readonly matchedBy: TranslationMatchKind;
   readonly normalizedLocale: string;
+}
+
+interface TranslationResolveOptions {
+  readonly fallbackLocale?: string;
 }
 
 function normalizeLookupLocale(locale: string): string {
@@ -54,8 +60,8 @@ export function registerTranslation(
   ...translations: readonly KumoTranslation[]
 ): void {
   for (const translation of translations) {
-    if (fallbackCode === undefined) {
-      fallbackCode = translation.$code;
+    if (firstRegisteredCode === undefined) {
+      firstRegisteredCode = translation.$code;
     }
     registry.set(translation.$code, translation);
   }
@@ -67,20 +73,41 @@ export function registerTranslation(
  * Resolution order:
  * 1. **Exact match** — e.g. `"zh-CN"` → registered `"zh-CN"`.
  * 2. **Language prefix** — e.g. `"es-PE"` → registered `"es"`.
- * 3. **Fallback** — the first translation that was ever registered.
+ * 3. **Fallback** — configured fallback locale (default `"en"`).
+ * 4. **Last resort** — first translation that was ever registered.
  *
  * Returns `undefined` only when the registry is completely empty.
  */
-export function getTranslation(lang: string): KumoTranslation | undefined {
-  return resolveTranslation(lang).translation;
+export function getTranslation(
+  lang: string,
+  options?: TranslationResolveOptions,
+): KumoTranslation | undefined {
+  return resolveTranslation(lang, options).translation;
 }
 
-export function resolveTranslation(lang: string): TranslationResolution {
+function lookupExactOrPrefix(locale: string): KumoTranslation | undefined {
+  const exact = registry.get(locale);
+  if (exact !== undefined) return exact;
+
+  const hyphenIdx = locale.indexOf("-");
+  if (hyphenIdx > 0) {
+    const prefix = locale.slice(0, hyphenIdx);
+    const prefixed = registry.get(prefix);
+    if (prefixed !== undefined) return prefixed;
+  }
+
+  return undefined;
+}
+
+export function resolveTranslation(
+  lang: string,
+  options?: TranslationResolveOptions,
+): TranslationResolution {
   const normalizedLang = normalizeLookupLocale(lang);
 
   // 1. Exact match
   const exact = registry.get(normalizedLang);
-  if (exact) {
+  if (exact !== undefined) {
     return {
       translation: exact,
       matchedBy: "exact",
@@ -93,7 +120,7 @@ export function resolveTranslation(lang: string): TranslationResolution {
   if (hyphenIdx > 0) {
     const prefix = normalizedLang.slice(0, hyphenIdx);
     const prefixed = registry.get(prefix);
-    if (prefixed) {
+    if (prefixed !== undefined) {
       return {
         translation: prefixed,
         matchedBy: "prefix",
@@ -102,10 +129,27 @@ export function resolveTranslation(lang: string): TranslationResolution {
     }
   }
 
-  // 3. Fallback to first registered
-  if (fallbackCode !== undefined) {
+  // 3. Fallback to configured fallback locale (default: en)
+  const configuredFallbackLocale =
+    options?.fallbackLocale ?? DEFAULT_FALLBACK_LOCALE;
+  const normalizedFallbackLocale = normalizeLookupLocale(
+    configuredFallbackLocale,
+  );
+  const configuredFallbackTranslation = lookupExactOrPrefix(
+    normalizedFallbackLocale,
+  );
+  if (configuredFallbackTranslation !== undefined) {
     return {
-      translation: registry.get(fallbackCode),
+      translation: configuredFallbackTranslation,
+      matchedBy: "fallback",
+      normalizedLocale: normalizedLang,
+    };
+  }
+
+  // 4. Last resort: first registered translation
+  if (firstRegisteredCode !== undefined) {
+    return {
+      translation: registry.get(firstRegisteredCode),
       matchedBy: "fallback",
       normalizedLocale: normalizedLang,
     };
@@ -124,5 +168,5 @@ export function resolveTranslation(lang: string): TranslationResolution {
  */
 export function _resetRegistry(): void {
   registry.clear();
-  fallbackCode = undefined;
+  firstRegisteredCode = undefined;
 }

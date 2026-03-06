@@ -20,6 +20,10 @@ function normalizeLocale(locale: string): string {
   }
 }
 
+function normalizeAliasToken(locale: string): string {
+  return locale.replaceAll("_", "-").trim().toLowerCase();
+}
+
 function normalizeWithValidity(locale: string): {
   readonly normalizedLocale: string;
   readonly isInvalid: boolean;
@@ -54,9 +58,14 @@ function aliasCandidates(locale: string): readonly string[] {
 function normalizeAliases(
   aliases: Readonly<Record<string, string>>,
 ): ReadonlyMap<string, string> {
-  const entries: Array<readonly [string, string]> = Object.entries(aliases).map(
-    ([source, target]) => [normalizeLocale(source), normalizeLocale(target)],
-  );
+  const entries: Array<readonly [string, string]> = [];
+
+  for (const [source, target] of Object.entries(aliases)) {
+    const normalizedSource = normalizeAliasToken(source);
+    if (normalizedSource === "") continue;
+    entries.push([normalizedSource, normalizeLocale(target)]);
+  }
+
   return new Map(entries);
 }
 
@@ -64,7 +73,7 @@ function findAliasTarget(
   locale: string,
   aliases: ReadonlyMap<string, string>,
 ): string | undefined {
-  for (const candidate of aliasCandidates(locale)) {
+  for (const candidate of aliasCandidates(normalizeAliasToken(locale))) {
     const target = aliases.get(candidate);
     if (target !== undefined) return target;
   }
@@ -95,17 +104,18 @@ export function resolveLocale(
   inputLocale: string,
   aliases: Readonly<Record<string, string>>,
 ): LocaleResolutionResult {
-  const normalization = normalizeWithValidity(inputLocale);
+  // Alias order is deterministic:
+  // 1) case-insensitive alias matching (most-specific to broad)
+  // 2) canonical locale validation
+  // 3) translation lookup (performed by registry resolver)
   const normalizedAliases = normalizeAliases(aliases);
-  const effectiveLocale = resolveAliasedLocale(
-    normalization.normalizedLocale,
-    normalizedAliases,
-  );
+  const aliasedLocale = resolveAliasedLocale(inputLocale, normalizedAliases);
+  const normalization = normalizeWithValidity(aliasedLocale);
 
   return {
     inputLocale,
     normalizedLocale: normalization.normalizedLocale,
-    effectiveLocale,
+    effectiveLocale: normalization.normalizedLocale,
     isInvalid: normalization.isInvalid,
   };
 }

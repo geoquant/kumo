@@ -13,6 +13,14 @@ const DEFAULT_LOCALE = "en";
 let subscribers: Set<() => void> | undefined;
 let observer: MutationObserver | undefined;
 
+function subscribeDisabled(): () => void {
+  return () => {};
+}
+
+function getDisabledSnapshot(): string {
+  return DEFAULT_LOCALE;
+}
+
 /**
  * Read the current locale from the DOM, falling back through:
  *
@@ -83,6 +91,10 @@ function subscribe(callback: () => void): () => void {
  *
  * During SSR the hook returns `"en"`.
  */
-export function useLocale(): string {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+export function useLocale(enabled = true): string {
+  return useSyncExternalStore(
+    enabled ? subscribe : subscribeDisabled,
+    enabled ? getSnapshot : getDisabledSnapshot,
+    getServerSnapshot,
+  );
 }

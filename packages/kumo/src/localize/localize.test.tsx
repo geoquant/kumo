@@ -153,14 +153,18 @@ describe("registry", () => {
     expect(getTranslation("es-PE")).toBe(fakeEs);
   });
 
-  it("falls back to first registered when no match", () => {
+  it("falls back to explicit en locale when no match", () => {
     registerTranslation(fakeEn, fakeEs);
     expect(getTranslation("xx")).toBe(fakeEn);
   });
 
-  it("first registered translation is the fallback", () => {
+  it("falls back to en even when another locale registered first", () => {
     registerTranslation(fakeEs, fakeEn);
-    // Spanish registered first → fallback
+    expect(getTranslation("xx")).toBe(fakeEn);
+  });
+
+  it("uses first registered as last resort when en is missing", () => {
+    registerTranslation(fakeEs, fakeAr);
     expect(getTranslation("xx")).toBe(fakeEs);
   });
 
@@ -212,6 +216,15 @@ describe("resolveLocale", () => {
     expect(resolveTranslation("es").matchedBy).toBe("exact");
     expect(resolveTranslation("es-PE").matchedBy).toBe("prefix");
     expect(resolveTranslation("fr-CA").matchedBy).toBe("fallback");
+  });
+
+  it("supports custom fallback locale in lookup", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+
+    expect(
+      resolveTranslation("fr-CA", { fallbackLocale: "es" }).translation,
+    ).toBe(fakeEs);
   });
 });
 
@@ -340,7 +353,7 @@ describe("useLocalize", () => {
     expect(screen.getByTestId("output").textContent).toBe("es");
   });
 
-  it("lang() returns normalized and aliased locale", () => {
+  it("lang() returns normalized and aliased input locale", () => {
     _resetRegistry();
     registerTranslation(fakeEn, fakeEs);
 
@@ -355,6 +368,22 @@ describe("useLocalize", () => {
     );
 
     expect(screen.getByTestId("output").textContent).toBe("es-ES");
+  });
+
+  it("translationLang() returns resolved translation locale code", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "es-PE",
+        children: createElement(LocalizeConsumer, {
+          render: (r) => `${r.lang()}|${r.translationLang()}`,
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("es-PE|es");
   });
 
   it("dir() returns $dir from resolved translation", () => {
@@ -543,6 +572,58 @@ describe("KumoLocaleProvider", () => {
       );
       unmount();
     }
+  });
+
+  it("honors fallbackLocale when detectLocale=false and locale is absent", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+    document.documentElement.lang = "ar";
+
+    render(
+      createElement(KumoLocaleProvider, {
+        detectLocale: false,
+        fallbackLocale: "es",
+        children: createElement(LocalizeConsumer, {
+          render: (r) => `${r.lang()}|${r.term("close")}`,
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("es|Cerrar");
+  });
+
+  it("applies aliases case-insensitively before locale validation", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "ES_pe",
+        localeAliases: { "es-pe": "es" },
+        children: createElement(LocalizeConsumer, {
+          render: (r) => `${r.lang()}|${r.term("close")}`,
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("es|Cerrar");
+  });
+
+  it("does not observe html lang in controlled mode", () => {
+    const observeSpy = vi.spyOn(MutationObserver.prototype, "observe");
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "en",
+        children: createElement(LocalizeConsumer, {
+          render: (r) => r.term("close"),
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("Close");
+    expect(observeSpy).not.toHaveBeenCalled();
+    observeSpy.mockRestore();
   });
 
   it("locale='es' causes child to resolve Spanish", () => {
