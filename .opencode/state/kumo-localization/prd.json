@@ -75,7 +75,7 @@
         "Nested DirectionProviders: innermost wins",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "core-6",

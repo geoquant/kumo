@@ -54,3 +54,13 @@ Started: 2026-03-05
 - File is `.tsx` (not `.ts`) because it contains JSX for the context Provider
 - Files changed: `packages/kumo/src/localize/index.tsx` (new)
 - **Learnings:** JSX in localize module requires `.tsx` extension; `useMemo` on resolved locale string gives stable identity for the returned object; `TermFn` overloads give type safety without runtime cost
+
+## Task - core-5
+- Created `packages/kumo/src/localize/direction.tsx` with `DirectionProvider` and `useDirection()`
+- `DirectionProvider` accepts required `direction` prop (`'ltr' | 'rtl'`) and `children`
+- `useDirection()` returns `'ltr'` when no provider present (context default `undefined` → `?? 'ltr'`)
+- Nested providers: innermost wins (standard React context behavior)
+- Exported `Direction` type alias for reuse
+- `.displayName` set on `DirectionProvider`
+- Files changed: `packages/kumo/src/localize/direction.tsx` (new)
+- **Learnings:** Simple context pattern — no memoization needed since direction is a primitive string value
