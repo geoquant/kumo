@@ -103,12 +103,21 @@ export interface PaginationInfoProps {
 function PaginationInfo({ children, className }: PaginationInfoProps) {
   const { page, perPage, totalCount, pageLower, pageUpper, pageShowingRange } =
     usePaginationContext();
-  const { term } = useLocalize();
+  const { term, lang } = useLocalize();
+  const localizedNumberFormatter = useMemo(
+    () => new Intl.NumberFormat(lang()),
+    [lang],
+  );
 
   const content = children
     ? children({ page, perPage, totalCount, pageShowingRange })
     : totalCount && totalCount > 0
-      ? term("showing-range", pageLower, pageUpper, totalCount)
+      ? term(
+          "showing-range",
+          localizedNumberFormatter.format(pageLower),
+          localizedNumberFormatter.format(pageUpper),
+          localizedNumberFormatter.format(totalCount),
+        )
       : null;
 
   return (
@@ -422,7 +431,11 @@ function PaginationRoot(props: PaginationProps) {
       ? (props.controls ?? KUMO_PAGINATION_DEFAULT_VARIANTS.controls)
       : KUMO_PAGINATION_DEFAULT_VARIANTS.controls;
   const [editingPage, setEditingPage] = useState<number>(1);
-  const { term } = useLocalize();
+  const { term, lang } = useLocalize();
+  const localizedNumberFormatter = useMemo(
+    () => new Intl.NumberFormat(lang()),
+    [lang],
+  );
 
   useEffect(() => {
     setEditingPage(page);
@@ -478,7 +491,12 @@ function PaginationRoot(props: PaginationProps) {
     if (text) {
       return text({ page, perPage, totalCount, pageShowingRange });
     } else if (totalCount && totalCount > 0) {
-      return term("showing-range", pageLower, pageUpper, totalCount);
+      return term(
+        "showing-range",
+        localizedNumberFormatter.format(pageLower),
+        localizedNumberFormatter.format(pageUpper),
+        localizedNumberFormatter.format(totalCount),
+      );
     }
     return null;
   };

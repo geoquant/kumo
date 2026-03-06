@@ -41,9 +41,9 @@ export interface KumoTranslation {
   readonly "page-size": string;
   readonly "per-page": string;
   readonly "showing-range": (
-    start: number,
-    end: number,
-    total: number,
+    start: string | number,
+    end: string | number,
+    total: string | number,
   ) => string;
 
   // ── Sensitive Input ───────────────────────────────────────────────────
