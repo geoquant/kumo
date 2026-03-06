@@ -268,3 +268,16 @@ Started: 2026-03-05
 - Supported Locales table lists all 12 locales with $code, $name, $dir
 - Added `{ label: "Internationalization", href: "/i18n" }` to staticPages in SidebarNav.tsx, after Accessibility
 - Files changed: `i18n.astro` (new), `SidebarNav.tsx`
+
+## Task - finalize-1
+- All verification steps pass:
+  - `pnpm lint`: 0 warnings, 0 errors
+  - `pnpm --filter @cloudflare/kumo exec tsc --noEmit`: clean
+  - `pnpm --filter @cloudflare/kumo test`: 20 files, 697 tests pass
+  - `pnpm --filter @cloudflare/kumo build`: succeeds
+  - Bundle size: localize shared chunk ~1.8KB (well under 15KB limit)
+  - Docs typecheck: 3 pre-existing errors (not from our changes)
+- Created changeset: `.changeset/add-i18n-localization.md` (minor for @cloudflare/kumo)
+
+## COMPLETE
+All PRD tasks pass. The kumo-localization feature is fully implemented.

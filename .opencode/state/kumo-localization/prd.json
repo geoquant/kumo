@@ -431,7 +431,7 @@
         "Bundle size increase < 15KB uncompressed for localization system + 12 locales",
         "pnpm changeset creates a minor changeset for @cloudflare/kumo"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
