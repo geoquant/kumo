@@ -7,6 +7,7 @@
 - Deprecate `useLocalize().date()` and `useLocalize().number()` in favor of direct `Intl.DateTimeFormat` and `Intl.NumberFormat` usage.
   - Both APIs remain fully functional and non-breaking in v1.
   - Planned removal is next major version to give migration runway.
+- Update i18n docs for provider-scoped config (`localeAliases`, `detectLocale`, `direction`, `onUnknownLocale`, `warnOnUnknownLocale`), controlled vs uncontrolled behavior, and fallback guarantees.
 
 ## 1.10.0
 

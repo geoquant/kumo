@@ -20,6 +20,7 @@ import Callout from "../components/docs/Callout.astro";
       <li>12 built-in locales registered automatically on import</li>
       <li>Locale detected from <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">&lt;html lang&gt;</code> attribute (reactive)</li>
       <li>RTL support via logical CSS properties</li>
+      <li>Provider-scoped controls for aliasing, diagnostics, and direction</li>
       <li>Type-safe translation keys with parameterized string support</li>
       <li>Override any string via component <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">labels</code> props</li>
     </ul>
@@ -66,7 +67,7 @@ import Callout from "../components/docs/Callout.astro";
 <html lang="es">
   <!-- All Kumo components render in Spanish -->
 </html>`}
-      lang="html"
+      lang="tsx"
     />
     <p class="mt-4 mb-4 text-kumo-strong">
       If your app changes locale at runtime, mutate the attribute — Kumo components re-render automatically via a <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">MutationObserver</code>:
@@ -85,9 +86,8 @@ import Callout from "../components/docs/Callout.astro";
     </p>
     <ol class="mb-4 list-inside list-decimal space-y-1 text-kumo-strong">
       <li>Nearest <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoLocaleProvider</code> <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">locale</code> prop</li>
-      <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">&lt;html lang&gt;</code> attribute</li>
-      <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">navigator.language</code></li>
-      <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"en"</code> (default)</li>
+      <li>If <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">detectLocale</code> is <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">true</code> (default): <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">&lt;html lang&gt;</code> then <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">navigator.language</code></li>
+      <li>If <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">detectLocale</code> is <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">false</code> and no explicit locale is set: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"en"</code></li>
     </ol>
     <CodeBlock
       code={`import { KumoLocaleProvider } from "@cloudflare/kumo";
@@ -98,6 +98,41 @@ import Callout from "../components/docs/Callout.astro";
 </KumoLocaleProvider>`}
       lang="tsx"
     />
+    <Callout type="info">
+      Controlled mode uses an explicit <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">locale</code>. Uncontrolled mode omits <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">locale</code> and follows detection defaults.
+    </Callout>
+  </ComponentSection>
+
+  <!-- Provider Configuration -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Provider Configuration</h2>
+    <p class="mb-4 text-kumo-strong">
+      <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoLocaleProvider</code> supports scoped i18n controls. Nested providers inherit parent settings unless overridden.
+    </p>
+    <CodeBlock
+      code={`import { KumoLocaleProvider } from "@cloudflare/kumo";
+
+<KumoLocaleProvider
+  localeAliases={{ "en-US": "en", "es-PE": "es" }}
+  detectLocale={false}
+  direction="ltr"
+  warnOnUnknownLocale
+  onUnknownLocale={(diagnostic) => {
+    // diagnostic.reason: "invalid" | "unsupported"
+    // diagnostic.resolvedTranslationCode: fallback used for rendering
+  }}
+>
+  <App />
+</KumoLocaleProvider>`}
+      lang="tsx"
+    />
+    <ul class="mt-4 mb-4 list-inside list-disc space-y-1 text-kumo-strong">
+      <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">localeAliases</code>: maps locale inputs to canonical locale codes before lookup</li>
+      <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">detectLocale</code>: toggles html/navigator detection when <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">locale</code> is omitted</li>
+      <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">direction</code>: explicit subtree direction override</li>
+      <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">onUnknownLocale</code>: callback for invalid/unsupported inputs with diagnostic payload</li>
+      <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">warnOnUnknownLocale</code>: dev warning once per normalized unknown locale</li>
+    </ul>
   </ComponentSection>
 
   <!-- Translation Resolution -->
@@ -108,9 +143,15 @@ import Callout from "../components/docs/Callout.astro";
     </p>
     <ol class="mb-4 list-inside list-decimal space-y-1 text-kumo-strong">
       <li><strong>Exact match</strong> — <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"zh-CN"</code> finds the <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">zh-CN</code> translation</li>
-      <li><strong>Language prefix</strong> ��� <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"es-PE"</code> falls back to <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">es</code></li>
+      <li><strong>Language prefix</strong> — <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"es-PE"</code> falls back to <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">es</code></li>
       <li><strong>Fallback</strong> — English (the first registered translation)</li>
     </ol>
+    <Callout type="info">
+      Fallback is non-breaking: unknown locales still render via fallback translation, and missing keys resolve per-key from English.
+    </Callout>
+    <Callout type="warning">
+      Unknown locale diagnostics classify failures as <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">invalid</code> (bad BCP 47 token) or <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">unsupported</code> (valid token, no matching translation).
+    </Callout>
   </ComponentSection>
 
   <!-- RTL Support -->
@@ -124,7 +165,7 @@ import Callout from "../components/docs/Callout.astro";
       code={`<html lang="ar" dir="rtl">
   <!-- All Kumo components render right-to-left -->
 </html>`}
-      lang="html"
+      lang="tsx"
     />
     <p class="mt-4 mb-4 text-kumo-strong">
       You can also scope RTL to a subtree using <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">DirectionProvider</code>:
@@ -137,6 +178,9 @@ import Callout from "../components/docs/Callout.astro";
 </DirectionProvider>`}
       lang="tsx"
     />
+    <Callout type="info">
+      Direction precedence inside <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoLocaleProvider</code> is: explicit <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">direction</code> prop, then locale-derived direction, then <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ltr</code>.
+    </Callout>
     <Callout type="info">
       Components use logical CSS properties like <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ps-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pe-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">start-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">end-*</code> instead of <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pl-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pr-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">left-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">right-*</code>. This is enforced by lint rules.
     </Callout>
@@ -165,7 +209,7 @@ registerTranslation(th);`}
       lang="ts"
     />
     <Callout type="warning">
-      You must provide <strong>all</strong> keys in the <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoTranslation</code> interface. TypeScript will enforce completeness at compile time.
+      Custom translations should still provide <strong>all</strong> keys in the <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoTranslation</code> interface. TypeScript enforces completeness, and runtime lookup preserves per-key English fallback semantics.
     </Callout>
   </ComponentSection>
 
@@ -190,10 +234,15 @@ dir()                            // "ltr"`}
       </div>
       <div>
         <h3 class="mb-2 text-lg font-semibold"><code class="text-base">KumoLocaleProvider</code></h3>
-        <p class="mb-2 text-kumo-strong">Override locale detection for a subtree. Nestable — innermost wins.</p>
+        <p class="mb-2 text-kumo-strong">Override locale or detection for a subtree. Nestable — innermost wins, with config inheritance.</p>
         <CodeBlock
-          code={`<KumoLocaleProvider locale="ja">
-  {/* All useLocalize() calls resolve to Japanese */}
+          code={`<KumoLocaleProvider
+  locale="ja"
+  localeAliases={{ "ja-JP": "ja" }}
+  detectLocale={false}
+  warnOnUnknownLocale
+>
+  {/* All useLocalize() calls resolve with provider config */}
 </KumoLocaleProvider>`}
           lang="tsx"
         />
