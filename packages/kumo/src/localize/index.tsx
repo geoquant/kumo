@@ -124,7 +124,7 @@ KumoLocaleProvider.displayName = "KumoLocaleProvider";
  * @example
  * ```tsx
  * const { term, date, number } = useLocalize();
- * return <p>{term('showingRange', 1, 10, 100)}</p>;
+ * return <p>{term('showing-range', 1, 10, 100)}</p>;
  * ```
  */
 export function useLocalize(): LocalizeResult {

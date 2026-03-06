@@ -7,6 +7,8 @@
  * **Simple keys** are plain strings.
  * **Parameterized keys** are functions that accept runtime arguments and return
  * a string — this keeps consumers type-safe without a MessageFormat runtime.
+ *
+ * All translation keys use **kebab-case** (e.g. `"copy-to-clipboard"`).
  */
 export interface KumoTranslation {
   // ── Metadata ──────────────────────────────────────────────────────────
@@ -21,61 +23,65 @@ export interface KumoTranslation {
   readonly close: string;
   readonly copy: string;
   readonly copied: string;
-  readonly copyToClipboard: string;
-  readonly copiedToClipboard: string;
+  readonly "copy-to-clipboard": string;
+  readonly "copied-to-clipboard": string;
   readonly loading: string;
-  readonly noResultsFound: string;
+  readonly "no-results-found": string;
   readonly optional: string;
-  readonly moreInformation: string;
+  readonly "more-information": string;
   readonly cancel: string;
 
   // ── Pagination ────────────────────────────────────────────────────────
-  readonly firstPage: string;
-  readonly previousPage: string;
-  readonly nextPage: string;
-  readonly lastPage: string;
-  readonly pageNumber: string;
-  readonly pageSize: string;
-  readonly perPage: string;
-  readonly showingRange: (start: number, end: number, total: number) => string;
+  readonly "first-page": string;
+  readonly "previous-page": string;
+  readonly "next-page": string;
+  readonly "last-page": string;
+  readonly "page-number": string;
+  readonly "page-size": string;
+  readonly "per-page": string;
+  readonly "showing-range": (
+    start: number,
+    end: number,
+    total: number,
+  ) => string;
 
   // ── Sensitive Input ───────────────────────────────────────────────────
-  readonly sensitiveValue: string;
-  readonly clickToReveal: string;
-  readonly hideValue: string;
-  readonly revealValue: string;
-  readonly valueMasked: string;
-  readonly valueHidden: string;
-  readonly clickOrPressEnterToReveal: string;
+  readonly "sensitive-value": string;
+  readonly "click-to-reveal": string;
+  readonly "hide-value": string;
+  readonly "reveal-value": string;
+  readonly "value-masked": string;
+  readonly "value-hidden": string;
+  readonly "click-or-press-enter-to-reveal": string;
 
   // ── Date Range Picker ─────────────────────────────────────────────────
-  readonly previousMonth: string;
-  readonly nextMonth: string;
-  readonly editMonthAndYear: string;
-  readonly resetDates: string;
+  readonly "previous-month": string;
+  readonly "next-month": string;
+  readonly "edit-month-and-year": string;
+  readonly "reset-dates": string;
   readonly timezone: (tz: string) => string;
-  readonly selectedAsStartDate: (date: string) => string;
-  readonly selectedAsEndDate: (date: string) => string;
-  readonly withinSelectedRange: (date: string) => string;
+  readonly "selected-as-start-date": (date: string) => string;
+  readonly "selected-as-end-date": (date: string) => string;
+  readonly "within-selected-range": (date: string) => string;
 
-  // ── Table ─────────────────────────────────────────────────────────────
-  readonly resizeColumn: string;
+  // ��─ Table ─────────────────────────────────────────────────────────────
+  readonly "resize-column": string;
 
   // ── Breadcrumbs / Empty ───────────────────────────────────────────────
-  readonly clickToCopy: string;
-  readonly copyCommand: string;
+  readonly "click-to-copy": string;
+  readonly "copy-command": string;
 
   // ── Cloudflare Logo ───────────────────────────────────────────────────
-  readonly cloudflareLogo: string;
+  readonly "cloudflare-logo": string;
 
   // ── Delete Resource Block ─────────────────────────────────────────────
-  readonly deleteResource: (resourceName: string) => string;
-  readonly deleteActionCannotBeUndone: (
+  readonly "delete-resource": (resourceName: string) => string;
+  readonly "delete-action-cannot-be-undone": (
     resourceName: string,
     resourceType: string,
   ) => string;
-  readonly typeToConfirm: (resourceName: string) => string;
-  readonly confirmDeletionAriaLabel: (resourceName: string) => string;
-  readonly copyResourceNameToClipboard: (resourceName: string) => string;
-  readonly deleteResourceType: (resourceType: string) => string;
+  readonly "type-to-confirm": (resourceName: string) => string;
+  readonly "confirm-deletion-aria-label": (resourceName: string) => string;
+  readonly "copy-resource-name-to-clipboard": (resourceName: string) => string;
+  readonly "delete-resource-type": (resourceType: string) => string;
 }

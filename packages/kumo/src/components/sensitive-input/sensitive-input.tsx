@@ -114,7 +114,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
 
     // For aria-label, only use string labels (ReactNode labels can't be used for aria-label)
     const ariaLabelFallback =
-      typeof label === "string" ? label : term("sensitiveValue");
+      typeof label === "string" ? label : term("sensitive-value");
     const isControlled = controlledValue !== undefined;
     const [internalValue, setInternalValue] = useState(defaultValue);
     const value = isControlled ? controlledValue : internalValue;
@@ -382,7 +382,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
             </span>
             {isMaskedWithValue && !disabled && (
               <span className="invisible absolute left-0 top-0 whitespace-nowrap text-kumo-subtle group-focus-within/container:visible group-hover/mask:visible">
-                {term("clickToReveal")}
+                {term("click-to-reveal")}
               </span>
             )}
           </span>
@@ -394,7 +394,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
           onClick={handleToggleVisibility}
           onKeyDown={(e) => e.stopPropagation()}
           aria-label={
-            mode === "revealed" ? term("hideValue") : term("revealValue")
+            mode === "revealed" ? term("hide-value") : term("reveal-value")
           }
           tabIndex={showEyeButton ? 0 : -1}
           className={cn(
@@ -421,7 +421,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
             type="button"
             onClick={copyToClipboard}
             onKeyDown={(e) => e.stopPropagation()}
-            aria-label={copied ? term("copied") : term("copyToClipboard")}
+            aria-label={copied ? term("copied") : term("copy-to-clipboard")}
             className={cn(
               "absolute -top-px right-2 -translate-y-full cursor-pointer rounded-t-md bg-kumo-brand px-2 py-0.5 text-xs text-white opacity-0 transition-opacity group-focus-within/container:opacity-100 group-hover/container:opacity-100 hover:brightness-120 focus-visible:outline focus-visible:outline-offset-1 focus-visible:outline-kumo-ring",
             )}
@@ -445,7 +445,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
             className={containerClassName}
             onClick={handleContainerClick}
             onKeyDown={handleContainerKeyDown}
-            aria-label={`${ariaLabelFallback}, ${term("valueMasked")}.`}
+            aria-label={`${ariaLabelFallback}, ${term("value-masked")}.`}
             aria-describedby={`${maskedInstructionId} ${liveRegionId}`}
             aria-disabled={disabled}
           >
@@ -458,12 +458,12 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
         )}
         {isMaskedWithValue && (
           <span id={maskedInstructionId} className="sr-only">
-            {term("clickOrPressEnterToReveal")}
+            {term("click-or-press-enter-to-reveal")}
           </span>
         )}
         <span id={liveRegionId} className="sr-only" aria-live="polite">
-          {mode === "masked" && hasValue && term("valueHidden")}
-          {copied && term("copiedToClipboard")}
+          {mode === "masked" && hasValue && term("value-hidden")}
+          {copied && term("copied-to-clipboard")}
         </span>
       </div>
     );

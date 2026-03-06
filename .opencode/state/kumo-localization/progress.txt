@@ -10,7 +10,8 @@ Started: 2026-03-05
 - Pre-existing issues: docs astro typecheck has 1 error (SearchDialog), kumo tests have 70 unhandled rejections in deep-imports.test.ts (Vite worker RPC closing) — both pre-existing
 - `useSyncExternalStore` pattern for DOM attribute reactivity: lazy observer in `subscribe`, snapshot reads from DOM, server snapshot returns static default
 - Files with JSX must use `.tsx` extension (even non-component modules like `index.tsx` in localize/)
-- **Component migration pattern**: `import { useLocalize } from "../../localize/index.js"` → `const { term } = useLocalize()` at top of component body → replace hardcoded strings with `term("key")` calls
+- **Component migration pattern**: `import { useLocalize } from "../../localize/index.js"` → `const { term } = useLocalize()` at top of component body → replace hardcoded strings with `term("kebab-key")` calls
+- **Translation keys**: kebab-case (e.g., `term("copy-to-clipboard")` not `term("copyToClipboard")`). TypeScript interface uses quoted properties: `readonly "copy-to-clipboard": string`
 - **ParameterizedKey type**: Use negation of `string` (`extends string ? never : K`) not function matching (`extends (...args: readonly unknown[]) => string`) — avoids contravariance issues with function parameter types
 - **Sub-component localization**: Each sub-component calls `useLocalize()` independently — no need to thread props from parent. Hook is lightweight (context read + memoized object).
 - **Intl.DateTimeFormat for day abbreviations**: Use `getDaysOfWeek(locale)` with `{ weekday: "short" }` + a known Sunday date (Jan 4 2026) to derive localized day names instead of hardcoded arrays
@@ -157,3 +158,11 @@ Started: 2026-03-05
 - `PaginationPageSize.label` prop default changed from `"Per page:"` to `undefined` — resolved via `label ?? term("perPage")` to preserve existing override behavior
 - Files changed: `packages/kumo/src/components/pagination/pagination.tsx`
 - **Learnings:** When parameterized translations need raw numeric args, enrich the context with pre-computed values (pageLower/pageUpper) rather than parsing them back from a formatted string. Default prop values that are hardcoded strings should become `undefined` with `??` fallback to `term()` to maintain override semantics.
+
+## Kebab-case rename
+- Renamed all translation keys from camelCase to kebab-case across entire i18n system
+- Files changed: types.ts, en.ts, en.json, all 11 non-English .ts/.json files, 3 migrated components, localize/index.tsx doc comment, prd.json step descriptions
+- TypeScript interface keys quoted: `readonly "copy-to-clipboard": string`
+- 30 `term()` call sites updated in sensitive-input, date-range-picker, pagination
+- Feedback loops all pass: tsc clean, 652 tests, 0 lint errors
+- **Learnings:** Kebab-case keys need quoted properties in TS interfaces; the `SimpleKey`/`ParameterizedKey` conditional types work the same with kebab-case since they filter on value type not key format

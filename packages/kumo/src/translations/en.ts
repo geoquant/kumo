@@ -16,63 +16,63 @@ const en: KumoTranslation = {
   close: "Close",
   copy: "Copy",
   copied: "Copied",
-  copyToClipboard: "Copy to clipboard",
-  copiedToClipboard: "Copied to clipboard",
+  "copy-to-clipboard": "Copy to clipboard",
+  "copied-to-clipboard": "Copied to clipboard",
   loading: "Loading",
-  noResultsFound: "No results found",
+  "no-results-found": "No results found",
   optional: "(optional)",
-  moreInformation: "More information",
+  "more-information": "More information",
   cancel: "Cancel",
 
   // ── Pagination ────────────────────────────────────────────────────────
-  firstPage: "First page",
-  previousPage: "Previous page",
-  nextPage: "Next page",
-  lastPage: "Last page",
-  pageNumber: "Page number",
-  pageSize: "Page size",
-  perPage: "Per page:",
-  showingRange: (start, end, total) => `Showing ${start}-${end} of ${total}`,
+  "first-page": "First page",
+  "previous-page": "Previous page",
+  "next-page": "Next page",
+  "last-page": "Last page",
+  "page-number": "Page number",
+  "page-size": "Page size",
+  "per-page": "Per page:",
+  "showing-range": (start, end, total) => `Showing ${start}-${end} of ${total}`,
 
   // ── Sensitive Input ───────────────────────────────────────────────────
-  sensitiveValue: "Sensitive value",
-  clickToReveal: "Click to reveal",
-  hideValue: "Hide value",
-  revealValue: "Reveal value",
-  valueMasked: "masked",
-  valueHidden: "Value hidden",
-  clickOrPressEnterToReveal: "Click or press Enter to reveal.",
+  "sensitive-value": "Sensitive value",
+  "click-to-reveal": "Click to reveal",
+  "hide-value": "Hide value",
+  "reveal-value": "Reveal value",
+  "value-masked": "masked",
+  "value-hidden": "Value hidden",
+  "click-or-press-enter-to-reveal": "Click or press Enter to reveal.",
 
   // ── Date Range Picker ─────────────────────────────────────────────────
-  previousMonth: "Previous month",
-  nextMonth: "Next month",
-  editMonthAndYear: "Edit month and year",
-  resetDates: "Reset Dates",
+  "previous-month": "Previous month",
+  "next-month": "Next month",
+  "edit-month-and-year": "Edit month and year",
+  "reset-dates": "Reset Dates",
   timezone: (tz) => `Timezone: ${tz}`,
-  selectedAsStartDate: (date) => `${date}, selected as start date`,
-  selectedAsEndDate: (date) => `${date}, selected as end date`,
-  withinSelectedRange: (date) => `${date}, within selected range`,
+  "selected-as-start-date": (date) => `${date}, selected as start date`,
+  "selected-as-end-date": (date) => `${date}, selected as end date`,
+  "within-selected-range": (date) => `${date}, within selected range`,
 
   // ── Table ─────────────────────────────────────────────────────────────
-  resizeColumn: "Resize column",
+  "resize-column": "Resize column",
 
   // ── Breadcrumbs / Empty ───────────────────────────────────────────────
-  clickToCopy: "Click to copy",
-  copyCommand: "Copy command",
+  "click-to-copy": "Click to copy",
+  "copy-command": "Copy command",
 
   // ── Cloudflare Logo ───────────────────────────────────────────────────
-  cloudflareLogo: "Cloudflare logo",
+  "cloudflare-logo": "Cloudflare logo",
 
   // ── Delete Resource Block ─────────────────────────────────────────────
-  deleteResource: (resourceName) => `Delete ${resourceName}`,
-  deleteActionCannotBeUndone: (resourceName, resourceType) =>
+  "delete-resource": (resourceName) => `Delete ${resourceName}`,
+  "delete-action-cannot-be-undone": (resourceName, resourceType) =>
     `This action cannot be undone. This will permanently delete the ${resourceName} ${resourceType}.`,
-  typeToConfirm: (resourceName) => `Type ${resourceName} to confirm:`,
-  confirmDeletionAriaLabel: (resourceName) =>
+  "type-to-confirm": (resourceName) => `Type ${resourceName} to confirm:`,
+  "confirm-deletion-aria-label": (resourceName) =>
     `Type ${resourceName} to confirm deletion`,
-  copyResourceNameToClipboard: (resourceName) =>
+  "copy-resource-name-to-clipboard": (resourceName) =>
     `Copy ${resourceName} to clipboard`,
-  deleteResourceType: (resourceType) => `Delete ${resourceType}`,
+  "delete-resource-type": (resourceType) => `Delete ${resourceType}`,
 };
 
 export default en;

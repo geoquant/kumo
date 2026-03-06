@@ -291,7 +291,7 @@ export function DateRangePicker({
         <div className={cn("relative", sizeConfig.calendarWidth)}>
           <button
             type="button"
-            aria-label={term("previousMonth")}
+            aria-label={term("previous-month")}
             className="absolute top-0 left-0 cursor-pointer rounded bg-kumo-interact/85 p-1.5 hover:bg-kumo-interact"
             onClick={() => adjustMonth(-1)}
           >
@@ -392,7 +392,7 @@ export function DateRangePicker({
         <div className={cn("relative", sizeConfig.calendarWidth)}>
           <button
             type="button"
-            aria-label={term("nextMonth")}
+            aria-label={term("next-month")}
             className="absolute top-0 right-0 cursor-pointer rounded bg-kumo-interact/85 p-1.5 hover:bg-kumo-interact"
             onClick={() => adjustMonth(1)}
           >
@@ -566,11 +566,11 @@ function DateRangeDayCell({
     });
     switch (mode) {
       case DateRangeCellMode.SELECTED_START_NODE:
-        return term("selectedAsStartDate", dateStr);
+        return term("selected-as-start-date", dateStr);
       case DateRangeCellMode.SELECTED_END_NODE:
-        return term("selectedAsEndDate", dateStr);
+        return term("selected-as-end-date", dateStr);
       case DateRangeCellMode.SELECTED:
-        return term("withinSelectedRange", dateStr);
+        return term("within-selected-range", dateStr);
       default:
         return dateStr;
     }
@@ -628,7 +628,7 @@ function DateRangeMonthHeader({
       <div className="mb-3 text-center">
         <input
           key={`${month}-${year}`}
-          aria-label={term("editMonthAndYear")}
+          aria-label={term("edit-month-and-year")}
           defaultValue={`${month} ${year}`}
           className={cn(
             "w-full rounded-md border-none bg-transparent py-1.5 text-center font-semibold text-kumo-default transition-all duration-200 focus:outline-none",
@@ -685,7 +685,7 @@ function DateRangeFooter({
         onClick={reset}
         className="cursor-pointer font-semibold text-kumo-default underline underline-offset-2"
       >
-        {term("resetDates")}
+        {term("reset-dates")}
       </button>
     </div>
   );

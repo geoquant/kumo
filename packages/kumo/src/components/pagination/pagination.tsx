@@ -108,7 +108,7 @@ function PaginationInfo({ children, className }: PaginationInfoProps) {
   const content = children
     ? children({ page, perPage, totalCount, pageShowingRange })
     : totalCount && totalCount > 0
-      ? term("showingRange", pageLower, pageUpper, totalCount)
+      ? term("showing-range", pageLower, pageUpper, totalCount)
       : null;
 
   return (
@@ -148,7 +148,7 @@ function PaginationPageSize({
   className,
 }: PaginationPageSizeProps) {
   const { term } = useLocalize();
-  const resolvedLabel = label ?? term("perPage");
+  const resolvedLabel = label ?? term("per-page");
 
   return (
     <div
@@ -159,7 +159,7 @@ function PaginationPageSize({
         <span className="text-sm text-kumo-strong">{resolvedLabel}</span>
       )}
       <Select
-        label={term("pageSize")}
+        label={term("page-size")}
         value={value}
         onValueChange={(v) => onChange(v as number)}
       >
@@ -202,7 +202,7 @@ function PaginationControls({
           {controls === "full" && (
             <InputGroup.Button
               variant="secondary"
-              aria-label={term("firstPage")}
+              aria-label={term("first-page")}
               disabled={page <= 1}
               onClick={() => {
                 setPage(1);
@@ -214,7 +214,7 @@ function PaginationControls({
           )}
           <InputGroup.Button
             variant="secondary"
-            aria-label={term("previousPage")}
+            aria-label={term("previous-page")}
             disabled={page <= 1}
             onClick={() => {
               const previousPage = Math.max(page - 1, 1);
@@ -228,7 +228,7 @@ function PaginationControls({
             <InputGroup.Input
               style={{ width: 50 }}
               className="text-center"
-              aria-label={term("pageNumber")}
+              aria-label={term("page-number")}
               value={editingPage}
               onValueChange={(value: string) => {
                 setEditingPage(Number(value));
@@ -248,7 +248,7 @@ function PaginationControls({
           )}
           <InputGroup.Button
             variant="secondary"
-            aria-label={term("nextPage")}
+            aria-label={term("next-page")}
             disabled={page === maxPage}
             onClick={() => {
               const nextPage = Math.min(page + 1, maxPage);
@@ -261,7 +261,7 @@ function PaginationControls({
           {controls === "full" && (
             <InputGroup.Button
               variant="secondary"
-              aria-label={term("lastPage")}
+              aria-label={term("last-page")}
               disabled={page === maxPage}
               onClick={() => {
                 setPage(maxPage);
@@ -475,7 +475,7 @@ function PaginationRoot(props: PaginationProps) {
     if (text) {
       return text({ page, perPage, totalCount, pageShowingRange });
     } else if (totalCount && totalCount > 0) {
-      return term("showingRange", pageLower, pageUpper, totalCount);
+      return term("showing-range", pageLower, pageUpper, totalCount);
     }
     return null;
   };
