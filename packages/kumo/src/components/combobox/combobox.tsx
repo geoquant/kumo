@@ -227,10 +227,10 @@ const triggerValueIconStyles: Record<
   KumoComboboxSize,
   { padding: string; iconSize: number; iconRight: string }
 > = {
-  xs: { padding: "pr-5", iconSize: 12, iconRight: "right-1" },
-  sm: { padding: "pr-6", iconSize: 14, iconRight: "right-1.5" },
-  base: { padding: "pr-8", iconSize: 16, iconRight: "right-2" },
-  lg: { padding: "pr-10", iconSize: 18, iconRight: "right-3" },
+  xs: { padding: "pe-5", iconSize: 12, iconRight: "end-1" },
+  sm: { padding: "pe-6", iconSize: 14, iconRight: "end-1.5" },
+  base: { padding: "pe-8", iconSize: 16, iconRight: "end-2" },
+  lg: { padding: "pe-10", iconSize: 18, iconRight: "end-3" },
 };
 
 function TriggerValue({
@@ -268,28 +268,28 @@ const triggerInputIconStyles: Record<
   { padding: string; iconSize: number; clearRight: string; caretRight: string }
 > = {
   xs: {
-    padding: "pr-7",
+    padding: "pe-7",
     iconSize: 12,
-    clearRight: "right-5",
-    caretRight: "right-1",
+    clearRight: "end-5",
+    caretRight: "end-1",
   },
   sm: {
-    padding: "pr-9",
+    padding: "pe-9",
     iconSize: 14,
-    clearRight: "right-6",
-    caretRight: "right-1.5",
+    clearRight: "end-6",
+    caretRight: "end-1.5",
   },
   base: {
-    padding: "pr-12",
+    padding: "pe-12",
     iconSize: 16,
-    clearRight: "right-8",
-    caretRight: "right-2",
+    clearRight: "end-8",
+    caretRight: "end-2",
   },
   lg: {
-    padding: "pr-14",
+    padding: "pe-14",
     iconSize: 18,
-    clearRight: "right-9",
-    caretRight: "right-3",
+    clearRight: "end-9",
+    caretRight: "end-3",
   },
 };
 

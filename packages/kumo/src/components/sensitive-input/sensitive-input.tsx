@@ -334,10 +334,10 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
           tabIndex={isMaskedWithValue ? -1 : 0}
           className={cn(
             "w-full border-0 bg-transparent p-0 text-kumo-default ring-0 outline-none placeholder:text-kumo-subtle disabled:cursor-not-allowed disabled:text-kumo-subtle",
-            size === "xs" && "pr-5",
-            size === "sm" && "pr-6",
-            size === "base" && "pr-8",
-            size === "lg" && "pr-10",
+            size === "xs" && "pe-5",
+            size === "sm" && "pe-6",
+            size === "base" && "pe-8",
+            size === "lg" && "pe-10",
             isMaskedWithValue && "pointer-events-none text-transparent",
           )}
           aria-hidden={isMaskedWithValue}
@@ -347,12 +347,12 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
         {/* Mask overlay - absolutely positioned, doesn't affect layout */}
         <span
           className={cn(
-            "pointer-events-none absolute inset-y-0 left-0 flex items-center overflow-hidden select-none",
+            "pointer-events-none absolute inset-y-0 start-0 flex items-center overflow-hidden select-none",
             // Match input pr padding (space for icon)
-            size === "xs" && "right-5",
-            size === "sm" && "right-6",
-            size === "base" && "right-8",
-            size === "lg" && "right-10",
+            size === "xs" && "end-5",
+            size === "sm" && "end-6",
+            size === "base" && "end-8",
+            size === "lg" && "end-10",
             // Match the padding from inputVariants
             size === "xs" && "px-1.5",
             size === "sm" && "px-2",
@@ -381,7 +381,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
               ••••••••
             </span>
             {isMaskedWithValue && !disabled && (
-              <span className="invisible absolute left-0 top-0 whitespace-nowrap text-kumo-subtle group-focus-within/container:visible group-hover/mask:visible">
+              <span className="invisible absolute start-0 top-0 whitespace-nowrap text-kumo-subtle group-focus-within/container:visible group-hover/mask:visible">
                 {term("click-to-reveal")}
               </span>
             )}
@@ -398,12 +398,12 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
           }
           tabIndex={showEyeButton ? 0 : -1}
           className={cn(
-            "absolute top-1/2 right-0 -translate-y-1/2 cursor-pointer text-kumo-subtle outline-none hover:text-kumo-default focus:text-kumo-default",
+            "absolute top-1/2 end-0 -translate-y-1/2 cursor-pointer text-kumo-subtle outline-none hover:text-kumo-default focus:text-kumo-default",
             // Match right padding from inputVariants
-            size === "xs" && "right-1.5",
-            size === "sm" && "right-2",
-            size === "base" && "right-3",
-            size === "lg" && "right-4",
+            size === "xs" && "end-1.5",
+            size === "sm" && "end-2",
+            size === "base" && "end-3",
+            size === "lg" && "end-4",
             iconSize,
             !showEyeButton && "pointer-events-none opacity-0",
           )}
@@ -423,7 +423,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
             onKeyDown={(e) => e.stopPropagation()}
             aria-label={copied ? term("copied") : term("copy-to-clipboard")}
             className={cn(
-              "absolute -top-px right-2 -translate-y-full cursor-pointer rounded-t-md bg-kumo-brand px-2 py-0.5 text-xs text-white opacity-0 transition-opacity group-focus-within/container:opacity-100 group-hover/container:opacity-100 hover:brightness-120 focus-visible:outline focus-visible:outline-offset-1 focus-visible:outline-kumo-ring",
+              "absolute -top-px end-2 -translate-y-full cursor-pointer rounded-t-md bg-kumo-brand px-2 py-0.5 text-xs text-white opacity-0 transition-opacity group-focus-within/container:opacity-100 group-hover/container:opacity-100 hover:brightness-120 focus-visible:outline focus-visible:outline-offset-1 focus-visible:outline-kumo-ring",
             )}
           >
             {copied ? term("copied") : term("copy")}

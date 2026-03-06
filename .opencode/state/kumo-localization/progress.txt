@@ -236,3 +236,8 @@ Started: 2026-03-05
 - dialog: no changes needed (centering pattern is direction-neutral)
 - Updated lint rule: added `start`, `end` to `NON_COLOR_UTILITIES` for `text-start`/`text-end`
 - **Learnings:** `text-start`/`text-end` also trigger the no-primitive-colors lint rule since it monitors `text-*` prefix
+
+## Task - rtl-3
+- Migrated 36 physical→logical CSS property instances in combobox (20) and sensitive-input (16)
+- All `pr-*` → `pe-*`, `right-*` → `end-*`, `left-0` → `start-0` across size-variant maps
+- Files changed: `combobox.tsx`, `sensitive-input.tsx`
