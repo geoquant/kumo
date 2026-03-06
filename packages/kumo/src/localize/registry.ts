@@ -1,18 +1,6 @@
 import type { KumoTranslation } from "./types.js";
 
-/**
- * Internal translation registry.
- *
- * Translations are stored in a `Map` keyed by their BCP 47 `$code`.
- * Fallback resolution first prefers explicit fallback locale (`"en"` by
- * default), then the first translation ever registered as last resort.
- */
-const registry = new Map<string, KumoTranslation>();
-
 const DEFAULT_FALLBACK_LOCALE = "en";
-
-/** BCP 47 code of the first translation ever registered (last resort). */
-let firstRegisteredCode: string | undefined;
 
 export type TranslationMatchKind = "exact" | "prefix" | "fallback" | "none";
 
@@ -26,6 +14,21 @@ interface TranslationResolveOptions {
   readonly fallbackLocale?: string;
 }
 
+export interface TranslationRegistry {
+  readonly registerTranslation: (
+    ...translations: readonly KumoTranslation[]
+  ) => void;
+  readonly getTranslation: (
+    lang: string,
+    options?: TranslationResolveOptions,
+  ) => KumoTranslation | undefined;
+  readonly resolveTranslation: (
+    lang: string,
+    options?: TranslationResolveOptions,
+  ) => TranslationResolution;
+  readonly reset: () => void;
+}
+
 function normalizeLookupLocale(locale: string): string {
   const normalizedSeparators = locale.replaceAll("_", "-").trim();
   if (normalizedSeparators === "") return "en";
@@ -36,6 +39,131 @@ function normalizeLookupLocale(locale: string): string {
   } catch {
     return normalizedSeparators;
   }
+}
+
+function createTranslationRegistry(
+  ...initialTranslations: readonly KumoTranslation[]
+): TranslationRegistry {
+  const store = new Map<string, KumoTranslation>();
+  let firstCode: string | undefined;
+
+  function registerTranslation(
+    ...translations: readonly KumoTranslation[]
+  ): void {
+    for (const translation of translations) {
+      const normalizedCode = normalizeLookupLocale(translation.$code);
+      const normalizedTranslation: KumoTranslation =
+        normalizedCode === translation.$code
+          ? translation
+          : {
+              ...translation,
+              $code: normalizedCode,
+            };
+
+      if (firstCode === undefined) {
+        firstCode = normalizedCode;
+      }
+      store.set(normalizedCode, normalizedTranslation);
+    }
+  }
+
+  function lookupExactOrPrefix(locale: string): KumoTranslation | undefined {
+    const exact = store.get(locale);
+    if (exact !== undefined) return exact;
+
+    const segments = locale.split("-");
+    for (let i = segments.length - 1; i > 0; i -= 1) {
+      const candidate = segments.slice(0, i).join("-");
+      const prefixed = store.get(candidate);
+      if (prefixed !== undefined) return prefixed;
+    }
+
+    return undefined;
+  }
+
+  function resolveTranslation(
+    lang: string,
+    options?: TranslationResolveOptions,
+  ): TranslationResolution {
+    const normalizedLang = normalizeLookupLocale(lang);
+
+    const exact = store.get(normalizedLang);
+    if (exact !== undefined) {
+      return {
+        translation: exact,
+        matchedBy: "exact",
+        normalizedLocale: normalizedLang,
+      };
+    }
+
+    const prefixed = lookupExactOrPrefix(normalizedLang);
+    if (prefixed !== undefined) {
+      return {
+        translation: prefixed,
+        matchedBy: "prefix",
+        normalizedLocale: normalizedLang,
+      };
+    }
+
+    const configuredFallbackLocale =
+      options?.fallbackLocale ?? DEFAULT_FALLBACK_LOCALE;
+    const normalizedFallbackLocale = normalizeLookupLocale(
+      configuredFallbackLocale,
+    );
+    const configuredFallbackTranslation = lookupExactOrPrefix(
+      normalizedFallbackLocale,
+    );
+    if (configuredFallbackTranslation !== undefined) {
+      return {
+        translation: configuredFallbackTranslation,
+        matchedBy: "fallback",
+        normalizedLocale: normalizedLang,
+      };
+    }
+
+    if (firstCode !== undefined) {
+      return {
+        translation: store.get(firstCode),
+        matchedBy: "fallback",
+        normalizedLocale: normalizedLang,
+      };
+    }
+
+    return {
+      translation: undefined,
+      matchedBy: "none",
+      normalizedLocale: normalizedLang,
+    };
+  }
+
+  function getTranslation(
+    lang: string,
+    options?: TranslationResolveOptions,
+  ): KumoTranslation | undefined {
+    return resolveTranslation(lang, options).translation;
+  }
+
+  function reset(): void {
+    store.clear();
+    firstCode = undefined;
+  }
+
+  registerTranslation(...initialTranslations);
+
+  return {
+    registerTranslation,
+    getTranslation,
+    resolveTranslation,
+    reset,
+  };
+}
+
+const defaultTranslationRegistry = createTranslationRegistry();
+
+export function createScopedTranslationRegistry(
+  ...translations: readonly KumoTranslation[]
+): TranslationRegistry {
+  return createTranslationRegistry(...translations);
 }
 
 /**
@@ -59,21 +187,7 @@ function normalizeLookupLocale(locale: string): string {
 export function registerTranslation(
   ...translations: readonly KumoTranslation[]
 ): void {
-  for (const translation of translations) {
-    const normalizedCode = normalizeLookupLocale(translation.$code);
-    const normalizedTranslation: KumoTranslation =
-      normalizedCode === translation.$code
-        ? translation
-        : {
-            ...translation,
-            $code: normalizedCode,
-          };
-
-    if (firstRegisteredCode === undefined) {
-      firstRegisteredCode = normalizedCode;
-    }
-    registry.set(normalizedCode, normalizedTranslation);
-  }
+  defaultTranslationRegistry.registerTranslation(...translations);
 }
 
 /**
@@ -91,80 +205,14 @@ export function getTranslation(
   lang: string,
   options?: TranslationResolveOptions,
 ): KumoTranslation | undefined {
-  return resolveTranslation(lang, options).translation;
-}
-
-function lookupExactOrPrefix(locale: string): KumoTranslation | undefined {
-  const exact = registry.get(locale);
-  if (exact !== undefined) return exact;
-
-  const segments = locale.split("-");
-  for (let i = segments.length - 1; i > 0; i -= 1) {
-    const candidate = segments.slice(0, i).join("-");
-    const prefixed = registry.get(candidate);
-    if (prefixed !== undefined) return prefixed;
-  }
-
-  return undefined;
+  return defaultTranslationRegistry.getTranslation(lang, options);
 }
 
 export function resolveTranslation(
   lang: string,
   options?: TranslationResolveOptions,
 ): TranslationResolution {
-  const normalizedLang = normalizeLookupLocale(lang);
-
-  // 1. Exact match
-  const exact = registry.get(normalizedLang);
-  if (exact !== undefined) {
-    return {
-      translation: exact,
-      matchedBy: "exact",
-      normalizedLocale: normalizedLang,
-    };
-  }
-
-  // 2. Progressive prefix fallback — trim from the right
-  const prefixed = lookupExactOrPrefix(normalizedLang);
-  if (prefixed !== undefined) {
-    return {
-      translation: prefixed,
-      matchedBy: "prefix",
-      normalizedLocale: normalizedLang,
-    };
-  }
-
-  // 3. Fallback to configured fallback locale (default: en)
-  const configuredFallbackLocale =
-    options?.fallbackLocale ?? DEFAULT_FALLBACK_LOCALE;
-  const normalizedFallbackLocale = normalizeLookupLocale(
-    configuredFallbackLocale,
-  );
-  const configuredFallbackTranslation = lookupExactOrPrefix(
-    normalizedFallbackLocale,
-  );
-  if (configuredFallbackTranslation !== undefined) {
-    return {
-      translation: configuredFallbackTranslation,
-      matchedBy: "fallback",
-      normalizedLocale: normalizedLang,
-    };
-  }
-
-  // 4. Last resort: first registered translation
-  if (firstRegisteredCode !== undefined) {
-    return {
-      translation: registry.get(firstRegisteredCode),
-      matchedBy: "fallback",
-      normalizedLocale: normalizedLang,
-    };
-  }
-
-  return {
-    translation: undefined,
-    matchedBy: "none",
-    normalizedLocale: normalizedLang,
-  };
+  return defaultTranslationRegistry.resolveTranslation(lang, options);
 }
 
 /**
@@ -172,6 +220,5 @@ export function resolveTranslation(
  * @internal
  */
 export function _resetRegistry(): void {
-  registry.clear();
-  firstRegisteredCode = undefined;
+  defaultTranslationRegistry.reset();
 }

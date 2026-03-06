@@ -108,6 +108,14 @@ const fakeAr: KumoTranslation = {
   close: "إغلاق",
 };
 
+const fakeFr: KumoTranslation = {
+  ...fakeEn,
+  $code: "fr",
+  $name: "Français",
+  $dir: "ltr",
+  close: "Fermer",
+};
+
 const fakeZhHant: KumoTranslation = {
   ...fakeEn,
   $code: "zh-Hant",
@@ -798,6 +806,24 @@ describe("KumoLocaleProvider", () => {
       }),
     );
     expect(screen.getByTestId("output").textContent).toBe("Close");
+  });
+
+  it("uses provider-scoped translations without mutating global registry", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "fr",
+        translations: [fakeFr],
+        children: createElement(LocalizeConsumer, {
+          render: (r) => r.term("close"),
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("Fermer");
+    expect(resolveTranslation("fr").matchedBy).toBe("fallback");
   });
 
   it("applies localeAliases before translation lookup", () => {

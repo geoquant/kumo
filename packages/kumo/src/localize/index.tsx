@@ -7,7 +7,10 @@ import {
   type ReactNode,
 } from "react";
 
-import { resolveTranslation } from "./registry.js";
+import {
+  createScopedTranslationRegistry,
+  resolveTranslation,
+} from "./registry.js";
 import type { KumoTranslation } from "./types.js";
 import { useLocale } from "./use-locale.js";
 import { DirectionProvider, type Direction } from "./direction.js";
@@ -118,6 +121,7 @@ const warnedFallbackLocales = new Set<string>();
 function validateFallbackLocale(
   inputFallbackLocale: string,
   localeAliases: Readonly<Record<string, string>>,
+  resolveTranslationFn: typeof resolveTranslation,
 ): {
   readonly effectiveFallbackLocale: string;
   readonly shouldWarn: boolean;
@@ -127,7 +131,7 @@ function validateFallbackLocale(
     inputFallbackLocale,
     localeAliases,
   ).effectiveLocale;
-  const resolution = resolveTranslation(normalized, {
+  const resolution = resolveTranslationFn(normalized, {
     fallbackLocale: normalized,
   });
 
@@ -178,6 +182,7 @@ interface LocaleProviderConfig {
   readonly warnOnUnknownLocale: boolean;
   readonly direction?: Direction;
   readonly onUnknownLocale?: UnknownLocaleCallback;
+  readonly resolveTranslation: typeof resolveTranslation;
 }
 
 const LocaleConfigContext = createContext<LocaleProviderConfig | undefined>(
@@ -206,6 +211,11 @@ interface KumoLocaleProviderProps {
   readonly direction?: Direction;
   /** Callback fired when locale input is invalid or unsupported. */
   readonly onUnknownLocale?: UnknownLocaleCallback;
+  /**
+   * Optional per-provider translations resolved before parent/global registry.
+   * Useful for request-scoped or subtree-scoped catalogs.
+   */
+  readonly translations?: readonly KumoTranslation[];
   readonly children: ReactNode;
 }
 
@@ -226,9 +236,28 @@ export function KumoLocaleProvider({
   warnOnUnknownLocale,
   direction,
   onUnknownLocale,
+  translations,
   children,
 }: KumoLocaleProviderProps): ReactNode {
   const parentConfig = useContext(LocaleConfigContext);
+  const parentResolveTranslation =
+    parentConfig?.resolveTranslation ?? resolveTranslation;
+  const scopedResolveTranslation = useMemo<typeof resolveTranslation>(() => {
+    if (translations === undefined || translations.length === 0) {
+      return parentResolveTranslation;
+    }
+
+    const scopedRegistry = createScopedTranslationRegistry(...translations);
+    return (lang, options) => {
+      const scopedResolution = scopedRegistry.resolveTranslation(lang, options);
+      if (scopedResolution.matchedBy !== "none") {
+        return scopedResolution;
+      }
+
+      return parentResolveTranslation(lang, options);
+    };
+  }, [parentResolveTranslation, translations]);
+
   const mergedLocale = locale ?? parentConfig?.locale;
   const mergedDetectLocale = detectLocale ?? parentConfig?.detectLocale ?? true;
   const mergedLocaleAliases = useMemo<Readonly<Record<string, string>>>(
@@ -244,8 +273,13 @@ export function KumoLocaleProvider({
   const fallbackInput =
     fallbackLocale ?? parentConfig?.fallbackLocale ?? DEFAULT_LOCALE;
   const fallbackValidation = useMemo(
-    () => validateFallbackLocale(fallbackInput, mergedLocaleAliases),
-    [fallbackInput, mergedLocaleAliases],
+    () =>
+      validateFallbackLocale(
+        fallbackInput,
+        mergedLocaleAliases,
+        scopedResolveTranslation,
+      ),
+    [fallbackInput, mergedLocaleAliases, scopedResolveTranslation],
   );
   const shouldDetectLocale = mergedLocale === undefined && mergedDetectLocale;
   const detected = useLocale(shouldDetectLocale);
@@ -260,6 +294,7 @@ export function KumoLocaleProvider({
         warnOnUnknownLocale ?? parentConfig?.warnOnUnknownLocale ?? false,
       direction: direction ?? parentConfig?.direction,
       onUnknownLocale: onUnknownLocale ?? parentConfig?.onUnknownLocale,
+      resolveTranslation: scopedResolveTranslation,
     }),
     [
       fallbackLocale,
@@ -271,6 +306,7 @@ export function KumoLocaleProvider({
       mergedLocale,
       onUnknownLocale,
       parentConfig,
+      scopedResolveTranslation,
       warnOnUnknownLocale,
     ],
   );
@@ -283,7 +319,7 @@ export function KumoLocaleProvider({
   );
   const providerDirection =
     value.direction ??
-    resolveTranslation(
+    value.resolveTranslation(
       providerLocaleResolution.isInvalid
         ? value.fallbackLocale
         : providerLocaleResolution.effectiveLocale,
@@ -339,6 +375,7 @@ KumoLocaleProvider.displayName = "KumoLocaleProvider";
  */
 export function useLocalize(): LocalizeResult {
   const config = useContext(LocaleConfigContext);
+  const resolveTranslationFn = config?.resolveTranslation ?? resolveTranslation;
   const shouldDetectLocale =
     config?.locale === undefined && config?.detectLocale !== false;
   const detected = useLocale(shouldDetectLocale);
@@ -356,8 +393,8 @@ export function useLocalize(): LocalizeResult {
     ? fallbackLocale
     : resolvedLocale;
   const resolution = useMemo(
-    () => resolveTranslation(translationLookupLocale, { fallbackLocale }),
-    [fallbackLocale, translationLookupLocale],
+    () => resolveTranslationFn(translationLookupLocale, { fallbackLocale }),
+    [fallbackLocale, resolveTranslationFn, translationLookupLocale],
   );
 
   const unknownLocaleDiagnostic = useMemo<
@@ -430,7 +467,7 @@ export function useLocalize(): LocalizeResult {
 
   return useMemo(() => {
     const translation = resolution.translation;
-    const fallbackResolution = resolveTranslation(fallbackLocale, {
+    const fallbackResolution = resolveTranslationFn(fallbackLocale, {
       fallbackLocale,
     });
     const fallbackTranslation = fallbackResolution.translation ?? translation;
@@ -478,6 +515,7 @@ export function useLocalize(): LocalizeResult {
     config?.direction,
     fallbackLocale,
     resolution.translation,
+    resolveTranslationFn,
     resolvedLocale,
   ]);
 }
