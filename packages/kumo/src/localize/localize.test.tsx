@@ -114,6 +114,16 @@ function DirectionConsumer(): ReactNode {
   return createElement("div", { "data-testid": "dir" }, dir);
 }
 
+function DirectionAgreementConsumer(): ReactNode {
+  const dirFromHook = useDirection();
+  const dirFromLocalize = useLocalize().dir();
+  return createElement(
+    "div",
+    { "data-testid": "dir-agreement" },
+    `${dirFromHook}|${dirFromLocalize}`,
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // testing-1: registry.ts
 // ═══════════════════════════════════════════════════════════════════════
@@ -592,6 +602,53 @@ describe("KumoLocaleProvider", () => {
       resolvedTranslationCode: "en",
       reason: "unsupported",
     });
+  });
+
+  it("uses locale-derived rtl when explicit direction is absent", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs, fakeAr);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "ar",
+        children: createElement(DirectionAgreementConsumer),
+      }),
+    );
+
+    expect(screen.getByTestId("dir-agreement").textContent).toBe("rtl|rtl");
+  });
+
+  it("explicit direction override has precedence and stays in sync", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs, fakeAr);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "ar",
+        direction: "ltr",
+        children: createElement(DirectionAgreementConsumer),
+      }),
+    );
+
+    expect(screen.getByTestId("dir-agreement").textContent).toBe("ltr|ltr");
+  });
+
+  it("nested providers with conflicting directions use nearest provider", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs, fakeAr);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "ar",
+        direction: "rtl",
+        children: createElement(KumoLocaleProvider, {
+          direction: "ltr",
+          children: createElement(DirectionAgreementConsumer),
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("dir-agreement").textContent).toBe("ltr|ltr");
   });
 });
 

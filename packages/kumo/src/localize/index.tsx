@@ -9,7 +9,7 @@ import {
 import { resolveTranslation } from "./registry.js";
 import type { KumoTranslation } from "./types.js";
 import { useLocale } from "./use-locale.js";
-import type { Direction } from "./direction.js";
+import { DirectionProvider, type Direction } from "./direction.js";
 import { resolveLocale } from "./resolve-locale.js";
 
 // Side-effect: eagerly register all 12 built-in translations.
@@ -163,6 +163,7 @@ export function KumoLocaleProvider({
   children,
 }: KumoLocaleProviderProps): ReactNode {
   const parentConfig = useContext(LocaleConfigContext);
+  const detected = useLocale();
 
   const value = useMemo<LocaleProviderConfig>(
     () => ({
@@ -188,9 +189,23 @@ export function KumoLocaleProvider({
     ],
   );
 
+  const providerInputLocale =
+    value.locale ?? (!value.detectLocale ? DEFAULT_LOCALE : detected);
+  const providerLocaleResolution = useMemo(
+    () => resolveLocale(providerInputLocale, value.localeAliases),
+    [providerInputLocale, value.localeAliases],
+  );
+  const providerDirection =
+    value.direction ??
+    resolveTranslation(providerLocaleResolution.effectiveLocale).translation
+      ?.$dir ??
+    "ltr";
+
   return (
     <LocaleConfigContext.Provider value={value}>
-      {children}
+      <DirectionProvider direction={providerDirection}>
+        {children}
+      </DirectionProvider>
     </LocaleConfigContext.Provider>
   );
 }
