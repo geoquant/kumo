@@ -97,3 +97,10 @@ Started: 2026-03-05
 - JSON files contain all keys with English placeholder values for translation platform ingestion
 - Files changed: 22 new files in `packages/kumo/src/translations/`
 - **Learnings:** PENDING_STRINGS pattern is clean — Omit narrows the object type so only metadata fields are required, then `as KumoTranslation` widens back. Missing keys fall back to English at runtime via registry. JSON files use English as untranslated placeholders — standard practice for sending to translation services.
+
+## Task - translations-4
+- Created `packages/kumo/src/translations/index.ts` — imports all 12 locale files and calls `registerTranslation(en, ar, de, es, fr, he, it, ja, ko, pt, zhCN, zhTW)`
+- English registered first (becomes fallback)
+- Added side-effect import `import "../translations/index.js"` to `packages/kumo/src/localize/index.tsx`
+- Files changed: `packages/kumo/src/translations/index.ts` (new), `packages/kumo/src/localize/index.tsx` (modified)
+- **Learnings:** Side-effect imports for registration are clean — no exports needed, just `import "path"`. The import in localize/index.tsx means any consumer using `useLocalize()` automatically gets all translations registered.

@@ -146,7 +146,7 @@
         "This module is imported by src/localize/index.ts",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "migrate-1",

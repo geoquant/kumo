@@ -4,6 +4,9 @@ import { getTranslation } from "./registry.js";
 import type { KumoTranslation } from "./types.js";
 import { useLocale } from "./use-locale.js";
 
+// Side-effect: eagerly register all 12 built-in translations.
+import "../translations/index.js";
+
 // Re-exports for public API
 export { registerTranslation } from "./registry.js";
 export type { KumoTranslation } from "./types.js";
