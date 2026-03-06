@@ -12,10 +12,12 @@ import type { KumoTranslation } from "./types.js";
 import {
   registerTranslation,
   getTranslation,
+  resolveTranslation,
   _resetRegistry,
 } from "./registry.js";
 import { useLocalize, KumoLocaleProvider } from "./index.js";
 import { DirectionProvider, useDirection } from "./direction.js";
+import { resolveLocale } from "./resolve-locale.js";
 import en from "../translations/en.js";
 import es from "../translations/es.js";
 
@@ -160,6 +162,45 @@ describe("registry", () => {
   });
 });
 
+describe("resolveLocale", () => {
+  it("resolves es-ES to es through alias map", () => {
+    const localeResolution = resolveLocale("es-ES", { "es-ES": "es" });
+    expect(localeResolution.effectiveLocale).toBe("es");
+
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+    const translationResolution = resolveTranslation(
+      localeResolution.effectiveLocale,
+    );
+    expect(translationResolution.translation).toBe(fakeEs);
+    expect(translationResolution.matchedBy).toBe("exact");
+  });
+
+  it("applies progressive aliases from specific to broad", () => {
+    const localeResolution = resolveLocale("zh-Hant-HK", {
+      zh: "en",
+      "zh-Hant": "es",
+    });
+
+    expect(localeResolution.effectiveLocale).toBe("es");
+  });
+
+  it("falls back to en for invalid locale input", () => {
+    const localeResolution = resolveLocale("not a locale", {});
+    expect(localeResolution.effectiveLocale).toBe("en");
+    expect(localeResolution.isInvalid).toBe(true);
+  });
+
+  it("uses exact then prefix then fallback translation lookup", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+
+    expect(resolveTranslation("es").matchedBy).toBe("exact");
+    expect(resolveTranslation("es-PE").matchedBy).toBe("prefix");
+    expect(resolveTranslation("fr-CA").matchedBy).toBe("fallback");
+  });
+});
+
 // ═══════════════════════════════════════════════════════════════════════
 // testing-2: use-locale.ts (via useLocalize integration)
 // ═══════════════════════════════════════════════════════════════════════
@@ -283,6 +324,23 @@ describe("useLocalize", () => {
       }),
     );
     expect(screen.getByTestId("output").textContent).toBe("es");
+  });
+
+  it("lang() returns normalized and aliased locale", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "es_ES",
+        localeAliases: { es: "es-ES" },
+        children: createElement(LocalizeConsumer, {
+          render: (r) => r.lang(),
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("es-ES");
   });
 
   it("dir() returns $dir from resolved translation", () => {

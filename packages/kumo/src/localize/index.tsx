@@ -10,6 +10,7 @@ import { resolveTranslation } from "./registry.js";
 import type { KumoTranslation } from "./types.js";
 import { useLocale } from "./use-locale.js";
 import type { Direction } from "./direction.js";
+import { resolveLocale } from "./resolve-locale.js";
 
 // Side-effect: eagerly register all 12 built-in translations.
 import "../translations/index.js";
@@ -94,50 +95,6 @@ export type UnknownLocaleCallback = (
 ) => void;
 
 const DEFAULT_LOCALE = "en";
-
-function normalizeResolvedLocale(locale: string): string {
-  const normalizedSeparators = locale.replaceAll("_", "-").trim();
-  if (normalizedSeparators === "") return DEFAULT_LOCALE;
-
-  try {
-    const canonical = Intl.getCanonicalLocales(normalizedSeparators)[0];
-    return canonical ?? DEFAULT_LOCALE;
-  } catch {
-    return DEFAULT_LOCALE;
-  }
-}
-
-function normalizeWithValidity(locale: string): {
-  readonly normalizedLocale: string;
-  readonly isInvalid: boolean;
-} {
-  const normalizedSeparators = locale.replaceAll("_", "-").trim();
-  if (normalizedSeparators === "") {
-    return { normalizedLocale: DEFAULT_LOCALE, isInvalid: true };
-  }
-
-  try {
-    const canonical = Intl.getCanonicalLocales(normalizedSeparators)[0];
-    return {
-      normalizedLocale: canonical ?? DEFAULT_LOCALE,
-      isInvalid: canonical === undefined,
-    };
-  } catch {
-    return { normalizedLocale: DEFAULT_LOCALE, isInvalid: true };
-  }
-}
-
-function resolveAliasedLocale(
-  locale: string,
-  aliases: Readonly<Record<string, string>>,
-): string {
-  for (const [aliasSource, aliasTarget] of Object.entries(aliases)) {
-    if (normalizeResolvedLocale(aliasSource) !== locale) continue;
-    return normalizeResolvedLocale(aliasTarget);
-  }
-
-  return locale;
-}
 
 function getTermValue(
   translation: KumoTranslation | undefined,
@@ -262,11 +219,12 @@ export function useLocalize(): LocalizeResult {
   const inputLocale =
     config?.locale ??
     (config?.detectLocale === false ? DEFAULT_LOCALE : detected);
-  const normalization = normalizeWithValidity(inputLocale);
-  const resolvedLocale = resolveAliasedLocale(
-    normalization.normalizedLocale,
-    config?.localeAliases ?? {},
+  const localeAliases = config?.localeAliases ?? {};
+  const localeResolution = useMemo(
+    () => resolveLocale(inputLocale, localeAliases),
+    [inputLocale, localeAliases],
   );
+  const resolvedLocale = localeResolution.effectiveLocale;
 
   const resolution = resolveTranslation(resolvedLocale);
 
@@ -276,10 +234,10 @@ export function useLocalize(): LocalizeResult {
     const resolvedTranslationCode =
       resolution.translation?.$code ?? DEFAULT_LOCALE;
 
-    if (normalization.isInvalid) {
+    if (localeResolution.isInvalid) {
       return {
-        inputLocale,
-        normalizedLocale: resolvedLocale,
+        inputLocale: localeResolution.inputLocale,
+        normalizedLocale: localeResolution.normalizedLocale,
         resolvedTranslationCode,
         reason: "invalid",
       };
@@ -287,7 +245,7 @@ export function useLocalize(): LocalizeResult {
 
     if (resolution.matchedBy === "fallback") {
       return {
-        inputLocale,
+        inputLocale: localeResolution.inputLocale,
         normalizedLocale: resolvedLocale,
         resolvedTranslationCode,
         reason: "unsupported",
@@ -295,7 +253,13 @@ export function useLocalize(): LocalizeResult {
     }
 
     return undefined;
-  }, [inputLocale, normalization.isInvalid, resolution, resolvedLocale]);
+  }, [
+    localeResolution.inputLocale,
+    localeResolution.isInvalid,
+    localeResolution.normalizedLocale,
+    resolution,
+    resolvedLocale,
+  ]);
 
   useEffect(() => {
     if (unknownLocaleDiagnostic === undefined) return;
