@@ -110,13 +110,27 @@ enum DateRangeCellMode {
  * Derive localized day-of-week abbreviations from Intl.DateTimeFormat.
  * Week starts Sunday (index 0) to match the grid layout.
  */
-function getDaysOfWeek(locale: string): readonly string[] {
+function getDaysOfWeek(
+  locale: string,
+  weekStartsOn: number,
+): readonly string[] {
   const formatter = new Intl.DateTimeFormat(locale, { weekday: "short" });
   // Jan 4 2026 is a Sunday — iterate 7 days starting from Sunday
   return Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(2026, 0, 4 + i);
+    const date = new Date(2026, 0, 4 + weekStartsOn + i);
     return formatter.format(date);
   });
+}
+
+function getFirstDayOfWeek(locale: string): number {
+  const localeInfo = new Intl.Locale(locale);
+  const weekInfo = Reflect.get(localeInfo, "weekInfo");
+  if (typeof weekInfo !== "object" || weekInfo === null) return 0;
+
+  const firstDay = Reflect.get(weekInfo, "firstDay");
+  if (typeof firstDay !== "number") return 0;
+
+  return firstDay % 7;
 }
 
 function normalizeToken(value: string, locale: string): string {
@@ -143,28 +157,46 @@ function parseLocalizedYear(
   locale: string,
   localizedDigits: ReadonlyMap<string, string>,
 ): number | undefined {
-  const normalizedYear = normalizeToken(rawYear, locale).replace(/\s+/g, "");
+  const normalizedYear = normalizeToken(rawYear, locale);
   if (normalizedYear.length === 0) return undefined;
 
-  const isNegative = normalizedYear.startsWith("-");
-  const rawDigits = isNegative ? normalizedYear.slice(1) : normalizedYear;
-  if (rawDigits.length === 0 || rawDigits.length > 6) return undefined;
-
+  let isNegative = false;
   let asciiDigits = "";
+  let sawSign = false;
 
-  for (const char of rawDigits) {
+  for (const char of normalizedYear) {
+    if (char === "-" && !sawSign && asciiDigits.length === 0) {
+      isNegative = true;
+      sawSign = true;
+      continue;
+    }
+
     const normalizedChar = normalizeToken(char, locale);
+
     if (/^\d$/.test(normalizedChar)) {
       asciiDigits += normalizedChar;
       continue;
     }
 
     const localizedDigit = localizedDigits.get(normalizedChar);
-    if (localizedDigit === undefined) {
-      return undefined;
+    if (localizedDigit !== undefined) {
+      asciiDigits += localizedDigit;
+      continue;
     }
 
-    asciiDigits += localizedDigit;
+    if (/^[\s.,:/_()\-]+$/u.test(normalizedChar)) {
+      continue;
+    }
+
+    if (normalizedChar === "年") {
+      continue;
+    }
+
+    return undefined;
+  }
+
+  if (asciiDigits.length === 0 || asciiDigits.length > 6) {
+    return undefined;
   }
 
   const parsedYear = Number.parseInt(asciiDigits, 10);
@@ -175,15 +207,13 @@ function parseLocalizedYear(
 
 function getMonthLookup(locale: string): ReadonlyMap<string, number> {
   const lookup = new Map<string, number>();
+  const longFormatter = new Intl.DateTimeFormat(locale, { month: "long" });
+  const shortFormatter = new Intl.DateTimeFormat(locale, { month: "short" });
 
   for (let monthIndex = 0; monthIndex < 12; monthIndex += 1) {
     const date = new Date(2026, monthIndex, 1);
-    const longName = new Intl.DateTimeFormat(locale, { month: "long" }).format(
-      date,
-    );
-    const shortName = new Intl.DateTimeFormat(locale, {
-      month: "short",
-    }).format(date);
+    const longName = longFormatter.format(date);
+    const shortName = shortFormatter.format(date);
 
     const normalizedLongName = normalizeToken(longName, locale);
     const normalizedShortName = normalizeToken(shortName, locale);
@@ -200,6 +230,19 @@ function getMonthLookup(locale: string): ReadonlyMap<string, number> {
   return lookup;
 }
 
+function hasAlphabeticBoundary(
+  input: string,
+  tokenIndex: number,
+  tokenLength: number,
+): boolean {
+  const before = input[tokenIndex - 1];
+  const after = input[tokenIndex + tokenLength];
+  const isAlphabetic = (value: string | undefined): boolean =>
+    value !== undefined && /\p{L}/u.test(value);
+
+  return !isAlphabetic(before) && !isAlphabetic(after);
+}
+
 function parseMonthYearInput(
   input: string,
   locale: string,
@@ -207,28 +250,31 @@ function parseMonthYearInput(
 ): { monthIndex: number; year: number } | undefined {
   const normalizedInput = normalizeToken(input, locale);
   const localizedDigits = getLocalizedDigitMap(locale);
+  const monthEntries = Array.from(monthLookup.entries()).sort(
+    (a, b) => b[0].length - a[0].length,
+  );
 
-  for (const [monthToken, monthIndex] of monthLookup.entries()) {
-    if (normalizedInput.startsWith(`${monthToken} `)) {
-      const year = parseLocalizedYear(
-        normalizedInput.slice(monthToken.length),
-        locale,
-        localizedDigits,
-      );
-      if (year !== undefined) {
-        return { monthIndex, year };
+  for (const [monthToken, monthIndex] of monthEntries) {
+    const tokenIndex = normalizedInput.indexOf(monthToken);
+    if (tokenIndex < 0) continue;
+    if (/\p{L}/u.test(monthToken)) {
+      if (
+        !hasAlphabeticBoundary(normalizedInput, tokenIndex, monthToken.length)
+      ) {
+        continue;
       }
     }
 
-    if (normalizedInput.endsWith(` ${monthToken}`)) {
-      const year = parseLocalizedYear(
-        normalizedInput.slice(0, -monthToken.length),
-        locale,
-        localizedDigits,
-      );
-      if (year !== undefined) {
-        return { monthIndex, year };
-      }
+    const beforeToken = normalizedInput.slice(0, tokenIndex);
+    const afterToken = normalizedInput.slice(tokenIndex + monthToken.length);
+    const year = parseLocalizedYear(
+      `${beforeToken} ${afterToken}`,
+      locale,
+      localizedDigits,
+    );
+
+    if (year !== undefined) {
+      return { monthIndex, year };
     }
   }
 
@@ -299,6 +345,10 @@ export function DateRangePicker({
 }: DateRangePickerProps) {
   const { term, lang } = useLocalize();
   const resolvedLocale = lang();
+  const weekStartsOn = useMemo(
+    () => getFirstDayOfWeek(resolvedLocale),
+    [resolvedLocale],
+  );
 
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -337,9 +387,9 @@ export function DateRangePicker({
       const copyDate = new Date(date);
       copyDate.setDate(1);
       copyDate.setMonth(copyDate.getMonth() + (monthOffset || 0));
-      return copyDate.getDay();
+      return (copyDate.getDay() - weekStartsOn + 7) % 7;
     },
-    [],
+    [weekStartsOn],
   );
 
   const getNumberOfDaysInMonth = useCallback(
@@ -418,6 +468,7 @@ export function DateRangePicker({
             month={getMonthName(viewingMonth)}
             year={getDateYear(viewingMonth)}
             size={size}
+            weekStartsOn={weekStartsOn}
             updateCurrentMonth={({ monthIndex, year }) => {
               setViewingMonth(new Date(year, monthIndex, 1));
             }}
@@ -519,6 +570,7 @@ export function DateRangePicker({
             month={getMonthName(viewingMonth, 1)}
             year={getDateYear(viewingMonth, 1)}
             size={size}
+            weekStartsOn={weekStartsOn}
             updateCurrentMonth={({ monthIndex, year }) => {
               setViewingMonth(new Date(year, monthIndex - 1, 1));
             }}
@@ -721,11 +773,13 @@ function DateRangeMonthHeader({
   month,
   year,
   size = KUMO_DATE_RANGE_PICKER_DEFAULT_VARIANTS.size,
+  weekStartsOn = 0,
   updateCurrentMonth,
 }: {
   month?: string;
   year?: number;
   size?: KumoDateRangePickerSize;
+  weekStartsOn?: number;
   updateCurrentMonth?: (nextMonth: {
     monthIndex: number;
     year: number;
@@ -738,10 +792,9 @@ function DateRangeMonthHeader({
     () => getMonthLookup(resolvedLocale),
     [resolvedLocale],
   );
-
   const daysOfWeek = useMemo(
-    () => getDaysOfWeek(resolvedLocale),
-    [resolvedLocale],
+    () => getDaysOfWeek(resolvedLocale, weekStartsOn),
+    [resolvedLocale, weekStartsOn],
   );
 
   return (

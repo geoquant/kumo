@@ -55,6 +55,7 @@ const fakeEn: KumoTranslation = {
   "hide-value": "Hide value",
   "reveal-value": "Reveal value",
   "value-masked": "masked",
+  "masked-sensitive-value": (label) => `${label}, masked value.`,
   "value-hidden": "Value hidden",
   "click-or-press-enter-to-reveal": "Click or press Enter to reveal.",
   "previous-month": "Previous month",
@@ -727,6 +728,39 @@ describe("KumoLocaleProvider", () => {
     );
     expect(fallbackWarnings).toHaveLength(0);
     warnSpy.mockRestore();
+  });
+
+  it("uses fallbackLocale when input locale token is invalid", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "not a locale",
+        fallbackLocale: "es",
+        children: createElement(LocalizeConsumer, {
+          render: (r) =>
+            `${r.lang()}|${r.translationLang()}|${r.term("close")}`,
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("en|es|Cerrar");
+  });
+
+  it("keeps direction aligned with fallback locale when input locale is invalid", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeAr);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "not a locale",
+        fallbackLocale: "ar",
+        children: createElement(DirectionAgreementConsumer),
+      }),
+    );
+
+    expect(screen.getByTestId("dir-agreement").textContent).toBe("rtl|rtl");
   });
 
   it("locale='es' causes child to resolve Spanish", () => {

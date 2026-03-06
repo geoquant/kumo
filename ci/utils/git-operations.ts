@@ -17,15 +17,19 @@ export interface ChangedFilesOptions {
   cwd?: string;
 }
 
-const GIT_REF_PATTERN = /^[A-Za-z0-9._/-]+$/;
-
 function isSafeGitRef(ref: string): boolean {
-  return (
-    ref.length > 0 &&
-    !ref.startsWith("-") &&
-    !ref.includes("..") &&
-    GIT_REF_PATTERN.test(ref)
-  );
+  if (ref.length === 0) return false;
+  if (ref.startsWith("-")) return false;
+
+  try {
+    execFileSync("git", ["check-ref-format", "--branch", ref], {
+      encoding: "utf8",
+      stdio: "pipe",
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -41,8 +45,7 @@ export function getGitRefs(): GitRefs {
   // If baseRef exists (PR context), verify it's available
   if (baseRef) {
     if (!isSafeGitRef(baseRef)) {
-      console.warn(`  Ignoring unsafe base ref: ${baseRef}`);
-      return { baseRef: undefined, headRef };
+      throw new Error(`Unsafe base ref: ${baseRef}`);
     }
 
     try {
@@ -115,6 +118,10 @@ export function getChangedFiles(
     const { baseRef, headRef } = getGitRefs();
 
     if (!baseRef) {
+      if (process.env.CI || process.env.GITHUB_ACTIONS) {
+        throw new Error("Could not determine base ref for file changes");
+      }
+
       console.warn("  Warning: Could not determine base ref for file changes");
       return null;
     }
@@ -143,6 +150,10 @@ export function getChangedFiles(
 
     return files;
   } catch (error) {
+    if (process.env.CI || process.env.GITHUB_ACTIONS) {
+      throw error;
+    }
+
     console.warn("  Warning: Could not get changed files");
     console.warn(`Error: ${error}`);
     return null;

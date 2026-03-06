@@ -37,10 +37,10 @@ import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-kumo-line text-start">
-            <th class="px-3 py-2 text-start font-medium text-kumo-default">Code</th>
-            <th class="px-3 py-2 text-start font-medium text-kumo-default">Name</th>
-            <th class="px-3 py-2 text-start font-medium text-kumo-default">Direction</th>
+          <tr class="border-b border-kumo-line text-left">
+            <th class="px-3 py-2 text-left font-medium text-kumo-default">Code</th>
+            <th class="px-3 py-2 text-left font-medium text-kumo-default">Name</th>
+            <th class="px-3 py-2 text-left font-medium text-kumo-default">Direction</th>
           </tr>
         </thead>
         <tbody class="text-kumo-strong">
@@ -65,8 +65,7 @@ import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
   <ComponentSection>
     <h2 class="mb-4 text-2xl font-bold">Example</h2>
     <p class="mb-4 text-kumo-strong">
-      This matrix shows the same four translated switch labels in each quadrant,
-      combining layout direction (<code class="rounded bg-kumo-control px-1 py-0.5 text-sm">LTR</code> / <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">RTL</code>) with label placement (<code class="rounded bg-kumo-control px-1 py-0.5 text-sm">controlFirst=true</code> / <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">controlFirst=false</code>).
+      This matrix demonstrates direction-aware layout behavior using sample translated labels, combining layout direction (<code class="rounded bg-kumo-control px-1 py-0.5 text-sm">LTR</code> / <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">RTL</code>) with label placement (<code class="rounded bg-kumo-control px-1 py-0.5 text-sm">controlFirst=true</code> / <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">controlFirst=false</code>).
     </p>
     <I18nSwitchGridDemo client:visible />
   </ComponentSection>
@@ -102,7 +101,7 @@ import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
     <ol class="mb-4 list-inside list-decimal space-y-1 text-kumo-strong">
       <li>Nearest <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoLocaleProvider</code> <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">locale</code> prop</li>
       <li>If <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">detectLocale</code> is <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">true</code> (default): <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">&lt;html lang&gt;</code> then <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">navigator.language</code></li>
-      <li>If <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">detectLocale</code> is <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">false</code> and no explicit locale is set: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"en"</code></li>
+      <li>If <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">detectLocale</code> is <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">false</code> and no explicit locale is set: provider <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">fallbackLocale</code> (default <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"en"</code>)</li>
     </ol>
     <CodeBlock
       code={`import { KumoLocaleProvider } from "@cloudflare/kumo";
@@ -131,6 +130,7 @@ import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
 
 <KumoLocaleProvider
   localeAliases={{ "en-US": "en", "es-PE": "es" }}
+  fallbackLocale="es"
   detectLocale={false}
   direction="ltr"
   warnOnUnknownLocale
@@ -145,6 +145,7 @@ import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
     />
     <ul class="mt-4 mb-4 list-inside list-disc space-y-1 text-kumo-strong">
       <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">localeAliases</code>: maps locale inputs to canonical locale codes before lookup</li>
+      <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">fallbackLocale</code>: fallback translation locale for unsupported locales and missing keys (default: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"en"</code>)</li>
       <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">detectLocale</code>: toggles html/navigator detection when <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">locale</code> is omitted</li>
       <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">direction</code>: explicit subtree direction override</li>
       <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">onUnknownLocale</code>: callback for invalid/unsupported inputs with diagnostic payload</li>
@@ -161,11 +162,11 @@ import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
     <ol class="mb-4 list-inside list-decimal space-y-1 text-kumo-strong">
       <li><strong>Exact match</strong> — <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"zh-CN"</code> finds the <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">zh-CN</code> translation</li>
       <li><strong>Language prefix</strong> — <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"es-PE"</code> falls back to <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">es</code></li>
-      <li><strong>Fallback</strong> — English (the first registered translation)</li>
+      <li><strong>Fallback</strong> — provider <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">fallbackLocale</code> (default English)</li>
     </ol>
     <div class="mt-4 space-y-4">
       <Callout type="info">
-        Fallback is non-breaking: unknown locales still render via fallback translation, and missing keys always resolve per-key from English.
+        Fallback is non-breaking: unknown locales still render via fallback translation, and missing keys resolve per-key from the configured fallback locale (default English).
       </Callout>
       <Callout type="warning">
         Unknown locale diagnostics classify failures as <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">invalid</code> (bad BCP 47 token) or <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">unsupported</code> (valid token, no matching translation).
@@ -235,7 +236,7 @@ registerTranslation(th);`}
     />
     <div class="mt-4">
       <Callout type="warning">
-        Custom translations should still provide <strong>all</strong> keys in the <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoTranslation</code> interface. TypeScript enforces completeness, and runtime lookup preserves per-key English fallback semantics.
+        Custom translations should still provide <strong>all</strong> keys in the <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoTranslation</code> interface. TypeScript enforces completeness, and runtime lookup preserves per-key fallback semantics from the configured <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">fallbackLocale</code> (default English).
       </Callout>
     </div>
   </ComponentSection>
@@ -246,18 +247,26 @@ registerTranslation(th);`}
     <div class="space-y-6">
       <div>
         <h3 class="mb-2 text-lg font-semibold"><code class="text-base">useLocalize()</code></h3>
-        <p class="mb-2 text-kumo-strong">React hook providing localized term lookup and Intl formatting.</p>
+        <p class="mb-2 text-kumo-strong">React hook providing localized term lookup and locale helpers.</p>
         <CodeBlock
-          code={`const { term, date, number, lang, dir } = useLocalize();
+          code={`const { term, lang, translationLang, dir } = useLocalize();
 
 term("close")                    // "Close"
 term("showing-range", 1, 10, 50) // "Showing 1-10 of 50"
-date(new Date(), { month: "long" }) // "March"
-number(1234.5)                   // "1,234.5"
 lang()                           // "en"
-dir()                            // "ltr"`}
+translationLang()                // "en"
+dir()                            // "ltr"
+
+// Preferred date/number formatting:
+new Intl.DateTimeFormat(lang(), { month: "long" }).format(new Date())
+new Intl.NumberFormat(lang()).format(1234.5)`}
           lang="ts"
         />
+        <div class="mt-3">
+          <Callout type="info">
+            <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">date()</code> and <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">number()</code> are available for backward compatibility, but deprecated in favor of native Intl formatters.
+          </Callout>
+        </div>
       </div>
       <div>
         <h3 class="mb-2 text-lg font-semibold"><code class="text-base">KumoLocaleProvider</code></h3>

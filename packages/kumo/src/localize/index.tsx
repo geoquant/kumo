@@ -283,9 +283,14 @@ export function KumoLocaleProvider({
   );
   const providerDirection =
     value.direction ??
-    resolveTranslation(providerLocaleResolution.effectiveLocale, {
-      fallbackLocale: value.fallbackLocale,
-    }).translation?.$dir ??
+    resolveTranslation(
+      providerLocaleResolution.isInvalid
+        ? value.fallbackLocale
+        : providerLocaleResolution.effectiveLocale,
+      {
+        fallbackLocale: value.fallbackLocale,
+      },
+    ).translation?.$dir ??
     "ltr";
 
   useEffect(() => {
@@ -347,9 +352,12 @@ export function useLocalize(): LocalizeResult {
     [inputLocale, localeAliases],
   );
   const resolvedLocale = localeResolution.effectiveLocale;
+  const translationLookupLocale = localeResolution.isInvalid
+    ? fallbackLocale
+    : resolvedLocale;
   const resolution = useMemo(
-    () => resolveTranslation(resolvedLocale, { fallbackLocale }),
-    [fallbackLocale, resolvedLocale],
+    () => resolveTranslation(translationLookupLocale, { fallbackLocale }),
+    [fallbackLocale, translationLookupLocale],
   );
 
   const unknownLocaleDiagnostic = useMemo<

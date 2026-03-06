@@ -48,7 +48,6 @@ const ARIA_NON_USER_TEXT_NAMES = new Set([
   "aria-valuemin",
   "aria-valuemax",
   "aria-valuenow",
-  "aria-valuetext",
 ]);
 
 const NON_USER_FACING_ATTRIBUTE_NAMES = new Set([
@@ -82,6 +81,13 @@ const ALLOWED_UNLOCALIZED_STRINGS = new Set([
 ]);
 
 const PUNCTUATION_ONLY_RE = /^[\s.,:;!?()[\]{}'"`~^*+\-_/|\\<>@#$%&=]+$/;
+const JSX_TEXT_EXPRESSION_TYPES = new Set([
+  "Literal",
+  "TemplateLiteral",
+  "BinaryExpression",
+  "LogicalExpression",
+  "ConditionalExpression",
+]);
 
 export function isConsumerSurfaceFile(filename) {
   if (typeof filename !== "string") return false;
@@ -115,7 +121,7 @@ function isAllowedUnlocalizedString(value) {
   return ALLOWED_UNLOCALIZED_STRINGS.has(value.trim());
 }
 
-function isTermCallee(callee) {
+export function isTermCallee(callee) {
   if (!callee) return false;
 
   if (callee.type === "Identifier") {
@@ -123,18 +129,21 @@ function isTermCallee(callee) {
   }
 
   if (callee.type === "MemberExpression") {
-    if (callee.property.type === "Identifier") {
-      return callee.property.name === "term";
+    if (callee.computed) {
+      return (
+        callee.property.type === "Literal" && callee.property.value === "term"
+      );
     }
-    if (callee.property.type === "Literal") {
-      return callee.property.value === "term";
-    }
+
+    return (
+      callee.property.type === "Identifier" && callee.property.name === "term"
+    );
   }
 
   return false;
 }
 
-function collectStringLiterals(node, out) {
+export function collectStringLiterals(node, out) {
   if (!node) return;
 
   switch (node.type) {
@@ -275,6 +284,26 @@ export const noUnlocalizedStringsRule = defineRule({
           )
         ) {
           context.report({ node, messageId: RULE_NAME });
+        }
+      },
+      JSXElement(node) {
+        if (isIgnoredFilename(context.filename)) return;
+
+        for (const child of node.children ?? []) {
+          if (child.type !== "JSXExpressionContainer") continue;
+          if (!JSX_TEXT_EXPRESSION_TYPES.has(child.expression.type)) continue;
+
+          const strings = [];
+          collectStringLiterals(child.expression, strings);
+          if (
+            strings.some(
+              (value) =>
+                isLikelyUserFacingText(value) &&
+                !isAllowedUnlocalizedString(value),
+            )
+          ) {
+            context.report({ node: child, messageId: RULE_NAME });
+          }
         }
       },
     };

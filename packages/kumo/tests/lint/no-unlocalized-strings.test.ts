@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  collectStringLiterals,
   isConsumerSurfaceFile,
+  isTermCallee,
   isTextBearingAttributeName,
 } from "../../lint/no-unlocalized-strings.js";
 
@@ -54,6 +56,7 @@ describe("no-unlocalized-strings scope", () => {
 describe("no-unlocalized-strings attribute detection", () => {
   it("includes clear text-bearing attributes", () => {
     expect(isTextBearingAttributeName("aria-label")).toBe(true);
+    expect(isTextBearingAttributeName("aria-valuetext")).toBe(true);
     expect(isTextBearingAttributeName("label")).toBe(true);
     expect(isTextBearingAttributeName("helperText")).toBe(true);
   });
@@ -64,5 +67,59 @@ describe("no-unlocalized-strings attribute detection", () => {
     expect(isTextBearingAttributeName("aria-labelledby")).toBe(false);
     expect(isTextBearingAttributeName("data-testid")).toBe(false);
     expect(isTextBearingAttributeName("onClick")).toBe(false);
+  });
+});
+
+describe("no-unlocalized-strings expression helpers", () => {
+  it("detects direct and member term callees", () => {
+    expect(isTermCallee({ type: "Identifier", name: "term" })).toBe(true);
+    expect(
+      isTermCallee({
+        type: "MemberExpression",
+        computed: false,
+        property: { type: "Identifier", name: "term" },
+      }),
+    ).toBe(true);
+    expect(
+      isTermCallee({
+        type: "MemberExpression",
+        computed: true,
+        property: { type: "Literal", value: "term" },
+      }),
+    ).toBe(true);
+  });
+
+  it("ignores string literals inside term() calls", () => {
+    const collected: string[] = [];
+
+    collectStringLiterals(
+      {
+        type: "CallExpression",
+        callee: {
+          type: "MemberExpression",
+          computed: false,
+          property: { type: "Identifier", name: "term" },
+        },
+        arguments: [{ type: "Literal", value: "Delete" }],
+      },
+      collected,
+    );
+
+    expect(collected).toEqual([]);
+  });
+
+  it("collects literals from logical expressions", () => {
+    const collected: string[] = [];
+
+    collectStringLiterals(
+      {
+        type: "LogicalExpression",
+        left: { type: "Identifier", name: "isOpen" },
+        right: { type: "Literal", value: "Delete" },
+      },
+      collected,
+    );
+
+    expect(collected).toEqual(["Delete"]);
   });
 });

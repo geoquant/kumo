@@ -7,6 +7,24 @@ import {
 } from "../../localize/index.js";
 import { createTranslation } from "../../translations/create-translation.js";
 
+function getFirstMonthInputValue(): string {
+  const [firstInput] = screen.getAllByRole("textbox");
+  if (!(firstInput instanceof HTMLInputElement)) {
+    throw new Error("Expected month input to be HTMLInputElement");
+  }
+
+  return firstInput.value;
+}
+
+function getSecondMonthInputValue(): string {
+  const [, secondInput] = screen.getAllByRole("textbox");
+  if (!(secondInput instanceof HTMLInputElement)) {
+    throw new Error("Expected second month input to be HTMLInputElement");
+  }
+
+  return secondInput.value;
+}
+
 const turkishTestTranslation = createTranslation(
   { $code: "tr-TR", $name: "Turkce Test", $dir: "ltr" },
   {
@@ -42,14 +60,20 @@ describe("DateRangePicker", () => {
     const marchInTurkish = new Intl.DateTimeFormat("tr", {
       month: "long",
     }).format(new Date(2026, 2, 1));
+    const aprilInTurkish = new Intl.DateTimeFormat("tr", {
+      month: "long",
+    }).format(new Date(2026, 3, 1));
 
     expect(() => {
       fireEvent.blur(monthInput, {
-        target: { value: `${marchInTurkish} 2026` },
+        target: { value: `${marchInTurkish} 2028` },
       });
     }).not.toThrow();
 
-    expect(screen.getByRole("button", { name: "Onceki ay" })).toBeTruthy();
+    expect(getFirstMonthInputValue()).toContain(marchInTurkish);
+    expect(getFirstMonthInputValue()).toContain("2028");
+    expect(getSecondMonthInputValue()).toContain(aprilInTurkish);
+    expect(getSecondMonthInputValue()).toContain("2028");
   });
 
   it("accepts year-first month input ordering", () => {
@@ -66,13 +90,43 @@ describe("DateRangePicker", () => {
       name: "Edit month and year",
     });
 
+    const aprilInEnglish = new Intl.DateTimeFormat("en", {
+      month: "long",
+    }).format(new Date(2026, 3, 1));
+
     expect(() => {
       fireEvent.blur(monthInput, {
-        target: { value: "2026 march" },
+        target: { value: "2028 march" },
       });
     }).not.toThrow();
 
-    expect(screen.getByRole("button", { name: "Previous month" })).toBeTruthy();
+    expect(getFirstMonthInputValue()).toContain("2028");
+    expect(getSecondMonthInputValue()).toContain(aprilInEnglish);
+    expect(getSecondMonthInputValue()).toContain("2028");
+  });
+
+  it("accepts punctuation around month-year input", () => {
+    render(
+      <KumoLocaleProvider locale="en">
+        <DateRangePicker
+          onStartDateChange={() => {}}
+          onEndDateChange={() => {}}
+        />
+      </KumoLocaleProvider>,
+    );
+
+    const [monthInput] = screen.getAllByRole("textbox", {
+      name: "Edit month and year",
+    });
+
+    expect(() => {
+      fireEvent.blur(monthInput, {
+        target: { value: "March, 2028" },
+      });
+    }).not.toThrow();
+
+    expect(getFirstMonthInputValue()).toContain("March");
+    expect(getFirstMonthInputValue()).toContain("2028");
   });
 
   it("accepts localized year digits", () => {
@@ -91,9 +145,12 @@ describe("DateRangePicker", () => {
     const marchInArabic = new Intl.DateTimeFormat("ar", {
       month: "long",
     }).format(new Date(2026, 2, 1));
+    const aprilInArabic = new Intl.DateTimeFormat("ar", {
+      month: "long",
+    }).format(new Date(2026, 3, 1));
     const yearInArabicDigits = new Intl.NumberFormat("ar", {
       useGrouping: false,
-    }).format(2026);
+    }).format(2028);
 
     expect(() => {
       fireEvent.blur(monthInput, {
@@ -101,6 +158,60 @@ describe("DateRangePicker", () => {
       });
     }).not.toThrow();
 
-    expect(screen.getByRole("button", { name: "الشهر السابق" })).toBeTruthy();
+    expect(getFirstMonthInputValue()).toContain(marchInArabic);
+    expect(getFirstMonthInputValue()).toContain(yearInArabicDigits);
+    expect(getSecondMonthInputValue()).toContain(aprilInArabic);
+    expect(getSecondMonthInputValue()).toContain(yearInArabicDigits);
+  });
+
+  it("accepts compact CJK month-year format", () => {
+    render(
+      <KumoLocaleProvider locale="ja-JP">
+        <DateRangePicker
+          onStartDateChange={() => {}}
+          onEndDateChange={() => {}}
+        />
+      </KumoLocaleProvider>,
+    );
+
+    const [monthInput] = screen.getAllByRole("textbox", {
+      name: "Edit month and year",
+    });
+    const marchInJapanese = new Intl.DateTimeFormat("ja-JP", {
+      month: "long",
+    }).format(new Date(2026, 2, 1));
+    expect(() => {
+      fireEvent.blur(monthInput, {
+        target: { value: `2028年${marchInJapanese}` },
+      });
+    }).not.toThrow();
+
+    expect(getFirstMonthInputValue()).toContain(marchInJapanese);
+    expect(getFirstMonthInputValue()).toContain("2028");
+  });
+
+  it("ignores embedded month token inside a larger word", () => {
+    render(
+      <KumoLocaleProvider locale="en">
+        <DateRangePicker
+          onStartDateChange={() => {}}
+          onEndDateChange={() => {}}
+        />
+      </KumoLocaleProvider>,
+    );
+
+    const [monthInput] = screen.getAllByRole("textbox", {
+      name: "Edit month and year",
+    });
+    if (!(monthInput instanceof HTMLInputElement)) {
+      throw new Error("Expected month input to be HTMLInputElement");
+    }
+    const originalSecondValue = getSecondMonthInputValue();
+
+    fireEvent.blur(monthInput, {
+      target: { value: "smarch 2026" },
+    });
+
+    expect(getSecondMonthInputValue()).toBe(originalSecondValue);
   });
 });
