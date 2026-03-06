@@ -1,12 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Table } from "./table";
-import { KumoLocaleProvider } from "../../localize/index.js";
+import {
+  KumoLocaleProvider,
+  registerTranslation,
+} from "../../localize/index.js";
+import { createTranslation } from "../../translations/create-translation.js";
+
+const testSpanish = createTranslation(
+  { $code: "es-AR", $name: "Español Test", $dir: "ltr" },
+  {
+    "resize-column": "Redimensionar columna",
+    "select-all-rows": "Seleccionar todas las filas",
+    "select-row": "Seleccionar fila",
+  },
+);
 
 describe("Table", () => {
   it("renders localized resize handle aria label", () => {
+    registerTranslation(testSpanish);
+
     render(
-      <KumoLocaleProvider locale="es">
+      <KumoLocaleProvider locale="es-AR">
         <Table>
           <Table.Header>
             <Table.Row>
@@ -20,12 +35,16 @@ describe("Table", () => {
       </KumoLocaleProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "Resize column" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Redimensionar columna" }),
+    ).toBeTruthy();
   });
 
   it("renders localized checkbox aria labels", () => {
+    registerTranslation(testSpanish);
+
     render(
-      <KumoLocaleProvider locale="es">
+      <KumoLocaleProvider locale="es-AR">
         <Table>
           <Table.Header>
             <Table.Row>
@@ -44,8 +63,10 @@ describe("Table", () => {
     );
 
     expect(
-      screen.getByRole("checkbox", { name: "Select all rows" }),
+      screen.getByRole("checkbox", { name: "Seleccionar todas las filas" }),
     ).toBeTruthy();
-    expect(screen.getByRole("checkbox", { name: "Select row" })).toBeTruthy();
+    expect(
+      screen.getByRole("checkbox", { name: "Seleccionar fila" }),
+    ).toBeTruthy();
   });
 });

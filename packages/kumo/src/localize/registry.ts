@@ -89,10 +89,10 @@ function lookupExactOrPrefix(locale: string): KumoTranslation | undefined {
   const exact = registry.get(locale);
   if (exact !== undefined) return exact;
 
-  const hyphenIdx = locale.indexOf("-");
-  if (hyphenIdx > 0) {
-    const prefix = locale.slice(0, hyphenIdx);
-    const prefixed = registry.get(prefix);
+  const segments = locale.split("-");
+  for (let i = segments.length - 1; i > 0; i -= 1) {
+    const candidate = segments.slice(0, i).join("-");
+    const prefixed = registry.get(candidate);
     if (prefixed !== undefined) return prefixed;
   }
 
@@ -115,18 +115,14 @@ export function resolveTranslation(
     };
   }
 
-  // 2. Language prefix — take everything before the first hyphen
-  const hyphenIdx = normalizedLang.indexOf("-");
-  if (hyphenIdx > 0) {
-    const prefix = normalizedLang.slice(0, hyphenIdx);
-    const prefixed = registry.get(prefix);
-    if (prefixed !== undefined) {
-      return {
-        translation: prefixed,
-        matchedBy: "prefix",
-        normalizedLocale: normalizedLang,
-      };
-    }
+  // 2. Progressive prefix fallback — trim from the right
+  const prefixed = lookupExactOrPrefix(normalizedLang);
+  if (prefixed !== undefined) {
+    return {
+      translation: prefixed,
+      matchedBy: "prefix",
+      normalizedLocale: normalizedLang,
+    };
   }
 
   // 3. Fallback to configured fallback locale (default: en)

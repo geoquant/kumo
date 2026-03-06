@@ -322,7 +322,7 @@ export function FlowDiagram({
               className="absolute h-full rounded-full bg-kumo-fill"
               style={{
                 width: `${scrollThumbWidth}%`,
-                left: scrollLeft,
+                insetInlineStart: scrollLeft,
               }}
             />
           </div>

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import type { KumoTranslation } from "./types.js";
 import {
@@ -105,6 +105,14 @@ const fakeAr: KumoTranslation = {
   $name: "العربية",
   $dir: "rtl",
   close: "إغلاق",
+};
+
+const fakeZhHant: KumoTranslation = {
+  ...fakeEn,
+  $code: "zh-Hant",
+  $name: "中文（繁體）",
+  $dir: "ltr",
+  close: "關閉",
 };
 
 // ── Helpers ─────────────────────────────────────────────────────────────
@@ -224,6 +232,18 @@ describe("resolveLocale", () => {
     expect(resolveTranslation("fr-CA").matchedBy).toBe("fallback");
   });
 
+  it("uses progressive prefix lookup for script+region locales", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeZhHant);
+
+    const resolution = resolveTranslation("zh-Hant-HK", {
+      fallbackLocale: "en",
+    });
+
+    expect(resolution.translation).toBe(fakeZhHant);
+    expect(resolution.matchedBy).toBe("prefix");
+  });
+
   it("supports custom fallback locale in lookup", () => {
     _resetRegistry();
     registerTranslation(fakeEn, fakeEs);
@@ -281,11 +301,10 @@ describe("useLocale (via useLocalize().lang())", () => {
     act(() => {
       document.documentElement.lang = "es";
     });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
 
-    expect(screen.getByTestId("output").textContent).toBe("Cerrar");
+    await waitFor(() => {
+      expect(screen.getByTestId("output").textContent).toBe("Cerrar");
+    });
   });
 });
 
