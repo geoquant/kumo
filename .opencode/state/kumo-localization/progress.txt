@@ -10,6 +10,7 @@ Started: 2026-03-05
 - Pre-existing issues: docs astro typecheck has 1 error (SearchDialog), kumo tests have 70 unhandled rejections in deep-imports.test.ts (Vite worker RPC closing) — both pre-existing
 - `useSyncExternalStore` pattern for DOM attribute reactivity: lazy observer in `subscribe`, snapshot reads from DOM, server snapshot returns static default
 - Files with JSX must use `.tsx` extension (even non-component modules like `index.tsx` in localize/)
+- **Component migration pattern**: `import { useLocalize } from "../../localize/index.js"` → `const { term } = useLocalize()` at top of component body → replace hardcoded strings with `term("key")` calls
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -104,3 +105,19 @@ Started: 2026-03-05
 - Added side-effect import `import "../translations/index.js"` to `packages/kumo/src/localize/index.tsx`
 - Files changed: `packages/kumo/src/translations/index.ts` (new), `packages/kumo/src/localize/index.tsx` (modified)
 - **Learnings:** Side-effect imports for registration are clean — no exports needed, just `import "path"`. The import in localize/index.tsx means any consumer using `useLocalize()` automatically gets all translations registered.
+
+## Task - migrate-1
+- Migrated `packages/kumo/src/components/sensitive-input/sensitive-input.tsx` to use `useLocalize()`
+- Added `import { useLocalize } from "../../localize/index.js"` and `const { term } = useLocalize()` at top of component body
+- Replaced 11 hardcoded string occurrences with `term()` calls:
+  - `"Sensitive value"` → `term("sensitiveValue")` (aria-label fallback)
+  - `"Click to reveal"` → `term("clickToReveal")` (mask hover text)
+  - `"Hide value"` / `"Reveal value"` → `term("hideValue")` / `term("revealValue")` (eye button aria-label)
+  - `"Copied"` / `"Copy to clipboard"` → `term("copied")` / `term("copyToClipboard")` (copy button aria-label)
+  - `"Copied"` / `"Copy"` → `term("copied")` / `term("copy")` (copy button visible text)
+  - `"masked"` → `term("valueMasked")` (in composite aria-label)
+  - `"Click or press Enter to reveal."` → `term("clickOrPressEnterToReveal")` (sr-only instruction)
+  - `"Value hidden"` → `term("valueHidden")` (live region)
+  - `"Copied to clipboard"` → `term("copiedToClipboard")` (live region)
+- Files changed: `packages/kumo/src/components/sensitive-input/sensitive-input.tsx`
+- **Learnings:** Migration pattern is straightforward: import `useLocalize`, destructure `{ term }`, replace strings. The `term()` calls are drop-in replacements — no structural changes needed. LSP may show false errors about `.tsx` vs `.ts` resolution but `tsc` resolves correctly.

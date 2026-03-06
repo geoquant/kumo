@@ -9,6 +9,7 @@ import {
   type ComponentPropsWithoutRef,
   type ReactNode,
 } from "react";
+import { useLocalize } from "../../localize/index.js";
 import { cn } from "../../utils/cn";
 import { Input as BaseInput } from "@base-ui/react/input";
 import {
@@ -109,9 +110,11 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
     },
     ref,
   ) => {
+    const { term } = useLocalize();
+
     // For aria-label, only use string labels (ReactNode labels can't be used for aria-label)
     const ariaLabelFallback =
-      typeof label === "string" ? label : "Sensitive value";
+      typeof label === "string" ? label : term("sensitiveValue");
     const isControlled = controlledValue !== undefined;
     const [internalValue, setInternalValue] = useState(defaultValue);
     const value = isControlled ? controlledValue : internalValue;
@@ -379,7 +382,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
             </span>
             {isMaskedWithValue && !disabled && (
               <span className="invisible absolute left-0 top-0 whitespace-nowrap text-kumo-subtle group-focus-within/container:visible group-hover/mask:visible">
-                Click to reveal
+                {term("clickToReveal")}
               </span>
             )}
           </span>
@@ -390,7 +393,9 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
           type="button"
           onClick={handleToggleVisibility}
           onKeyDown={(e) => e.stopPropagation()}
-          aria-label={mode === "revealed" ? "Hide value" : "Reveal value"}
+          aria-label={
+            mode === "revealed" ? term("hideValue") : term("revealValue")
+          }
           tabIndex={showEyeButton ? 0 : -1}
           className={cn(
             "absolute top-1/2 right-0 -translate-y-1/2 cursor-pointer text-kumo-subtle outline-none hover:text-kumo-default focus:text-kumo-default",
@@ -416,12 +421,12 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
             type="button"
             onClick={copyToClipboard}
             onKeyDown={(e) => e.stopPropagation()}
-            aria-label={copied ? "Copied" : "Copy to clipboard"}
+            aria-label={copied ? term("copied") : term("copyToClipboard")}
             className={cn(
               "absolute -top-px right-2 -translate-y-full cursor-pointer rounded-t-md bg-kumo-brand px-2 py-0.5 text-xs text-white opacity-0 transition-opacity group-focus-within/container:opacity-100 group-hover/container:opacity-100 hover:brightness-120 focus-visible:outline focus-visible:outline-offset-1 focus-visible:outline-kumo-ring",
             )}
           >
-            {copied ? "Copied" : "Copy"}
+            {copied ? term("copied") : term("copy")}
           </button>
         )}
       </>
@@ -440,7 +445,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
             className={containerClassName}
             onClick={handleContainerClick}
             onKeyDown={handleContainerKeyDown}
-            aria-label={`${ariaLabelFallback}, masked.`}
+            aria-label={`${ariaLabelFallback}, ${term("valueMasked")}.`}
             aria-describedby={`${maskedInstructionId} ${liveRegionId}`}
             aria-disabled={disabled}
           >
@@ -453,12 +458,12 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
         )}
         {isMaskedWithValue && (
           <span id={maskedInstructionId} className="sr-only">
-            Click or press Enter to reveal.
+            {term("clickOrPressEnterToReveal")}
           </span>
         )}
         <span id={liveRegionId} className="sr-only" aria-live="polite">
-          {mode === "masked" && hasValue && "Value hidden"}
-          {copied && "Copied to clipboard"}
+          {mode === "masked" && hasValue && term("valueHidden")}
+          {copied && term("copiedToClipboard")}
         </span>
       </div>
     );

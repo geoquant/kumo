@@ -159,7 +159,7 @@
         "pnpm typecheck passes",
         "pnpm --filter @cloudflare/kumo test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "migrate-2",
