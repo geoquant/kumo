@@ -201,13 +201,13 @@ describe("registry", () => {
     expect(getTranslation("es_pe")?.$code).toBe("es-PE");
   });
 
-  it("ignores late registration after first lookup", () => {
+  it("allows registration after first lookup", () => {
     registerTranslation(fakeEn);
     expect(getTranslation("en")).toBe(fakeEn);
 
     registerTranslation(fakeEs);
 
-    expect(getTranslation("es")).toBe(fakeEn);
+    expect(getTranslation("es")).toBe(fakeEs);
   });
 
   it("returns undefined when registry is empty", () => {

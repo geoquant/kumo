@@ -240,7 +240,7 @@ registerTranslation(th);`}
       </Callout>
       <div class="mt-3">
         <Callout type="warning">
-          Call <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">registerTranslation()</code> during app startup, before any component calls <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">useLocalize()</code>. Once locale lookup starts, late registrations are ignored to keep localization deterministic.
+          Register translations during app startup when possible. You can still call <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">registerTranslation()</code> later, and subsequent lookups will use the newly registered locale.
         </Callout>
       </div>
     </div>
@@ -308,7 +308,7 @@ registerTranslation(myLocale);`}
         />
         <div class="mt-3">
           <Callout type="warning">
-            Late registration after first locale lookup is ignored.
+            Startup registration is recommended, but late registration is supported.
           </Callout>
         </div>
       </div>

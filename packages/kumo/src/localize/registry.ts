@@ -13,8 +13,6 @@ const DEFAULT_FALLBACK_LOCALE = "en";
 
 /** BCP 47 code of the first translation ever registered (last resort). */
 let firstRegisteredCode: string | undefined;
-let isRegistryLocked = false;
-let hasWarnedLockedRegistry = false;
 
 export type TranslationMatchKind = "exact" | "prefix" | "fallback" | "none";
 
@@ -50,9 +48,6 @@ function normalizeLookupLocale(locale: string): string {
  * The very first translation registered (across all calls) becomes the
  * fallback returned by {@link getTranslation} when no match is found.
  *
- * Registration is intended for app startup. After locale lookup starts,
- * additional registrations are ignored to keep SSR/request behavior stable.
- *
  * @example
  * ```ts
  * import { en } from "../translations/en.js";
@@ -64,17 +59,6 @@ function normalizeLookupLocale(locale: string): string {
 export function registerTranslation(
   ...translations: readonly KumoTranslation[]
 ): void {
-  if (isRegistryLocked) {
-    if (process.env.NODE_ENV !== "test" && !hasWarnedLockedRegistry) {
-      hasWarnedLockedRegistry = true;
-      console.warn(
-        "[kumo/localize] registerTranslation() called after locale lookup started. " +
-          "Ignored to keep localization deterministic across requests.",
-      );
-    }
-    return;
-  }
-
   for (const translation of translations) {
     const normalizedCode = normalizeLookupLocale(translation.$code);
     const normalizedTranslation: KumoTranslation =
@@ -128,7 +112,6 @@ export function resolveTranslation(
   lang: string,
   options?: TranslationResolveOptions,
 ): TranslationResolution {
-  isRegistryLocked = true;
   const normalizedLang = normalizeLookupLocale(lang);
 
   // 1. Exact match
@@ -191,6 +174,4 @@ export function resolveTranslation(
 export function _resetRegistry(): void {
   registry.clear();
   firstRegisteredCode = undefined;
-  isRegistryLocked = false;
-  hasWarnedLockedRegistry = false;
 }
