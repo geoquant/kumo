@@ -25,6 +25,25 @@ function getSecondMonthInputValue(): string {
   return secondInput.value;
 }
 
+function getFirstWeekdayHeaderText(container: HTMLElement): string {
+  const weekdayGrid = container.querySelector(".grid.grid-cols-7");
+  if (!(weekdayGrid instanceof HTMLDivElement)) {
+    throw new Error("Expected weekday header grid to exist");
+  }
+
+  const firstCell = weekdayGrid.firstElementChild;
+  if (!(firstCell instanceof HTMLDivElement)) {
+    throw new Error("Expected first weekday cell to exist");
+  }
+
+  const value = firstCell.textContent?.trim();
+  if (!value) {
+    throw new Error("Expected first weekday text to exist");
+  }
+
+  return value;
+}
+
 const turkishTestTranslation = createTranslation(
   { $code: "tr-TR", $name: "Turkce Test", $dir: "ltr" },
   {
@@ -213,5 +232,89 @@ describe("DateRangePicker", () => {
     });
 
     expect(getSecondMonthInputValue()).toBe(originalSecondValue);
+  });
+
+  it("ignores year text with alphabetic suffix", () => {
+    render(
+      <KumoLocaleProvider locale="en">
+        <DateRangePicker
+          onStartDateChange={() => {}}
+          onEndDateChange={() => {}}
+        />
+      </KumoLocaleProvider>,
+    );
+
+    const [monthInput] = screen.getAllByRole("textbox", {
+      name: "Edit month and year",
+    });
+    const originalSecondValue = getSecondMonthInputValue();
+
+    fireEvent.blur(monthInput, {
+      target: { value: "March 2028abc" },
+    });
+
+    expect(getSecondMonthInputValue()).toBe(originalSecondValue);
+  });
+
+  it("accepts separators around localized year digits", () => {
+    render(
+      <KumoLocaleProvider locale="ar-EG">
+        <DateRangePicker
+          onStartDateChange={() => {}}
+          onEndDateChange={() => {}}
+        />
+      </KumoLocaleProvider>,
+    );
+
+    const [monthInput] = screen.getAllByRole("textbox", {
+      name: "حرر الشهر والسنة",
+    });
+    const marchInArabic = new Intl.DateTimeFormat("ar", {
+      month: "long",
+    }).format(new Date(2026, 2, 1));
+    const yearInArabicDigits = new Intl.NumberFormat("ar", {
+      useGrouping: false,
+    }).format(2028);
+
+    fireEvent.blur(monthInput, {
+      target: { value: `${marchInArabic} (${yearInArabicDigits})` },
+    });
+
+    expect(getFirstMonthInputValue()).toContain(marchInArabic);
+    expect(getFirstMonthInputValue()).toContain(yearInArabicDigits);
+  });
+
+  it("uses Monday as first weekday for en-GB", () => {
+    const { container } = render(
+      <KumoLocaleProvider locale="en-GB">
+        <DateRangePicker
+          onStartDateChange={() => {}}
+          onEndDateChange={() => {}}
+        />
+      </KumoLocaleProvider>,
+    );
+
+    const mondayLabel = new Intl.DateTimeFormat("en-GB", {
+      weekday: "short",
+    }).format(new Date(2026, 0, 5));
+
+    expect(getFirstWeekdayHeaderText(container)).toBe(mondayLabel);
+  });
+
+  it("uses Sunday as first weekday for en-US", () => {
+    const { container } = render(
+      <KumoLocaleProvider locale="en-US">
+        <DateRangePicker
+          onStartDateChange={() => {}}
+          onEndDateChange={() => {}}
+        />
+      </KumoLocaleProvider>,
+    );
+
+    const sundayLabel = new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+    }).format(new Date(2026, 0, 4));
+
+    expect(getFirstWeekdayHeaderText(container)).toBe(sundayLabel);
   });
 });
