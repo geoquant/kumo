@@ -117,7 +117,7 @@
         "JSON keys match KumoTranslation interface keys",
         "File is valid JSON"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "translations-3",

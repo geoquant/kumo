@@ -80,3 +80,11 @@ Started: 2026-03-05
 - Key string values matched exactly to source components (e.g. `valueMasked: "masked"` not `"Value masked"`)
 - Files changed: `packages/kumo/src/translations/en.ts` (new)
 - **Learnings:** `deleteActionCannotBeUndone` bundles the whole sentence including resource name + type; `valueMasked` in sensitive-input is just `"masked"` (lowercase, used as suffix in aria-label)
+
+## Task - translations-2
+- Created `packages/kumo/src/translations/en.json` with all 46 keys (3 metadata + 43 translation)
+- 32 simple string keys stored as plain strings
+- 11 parameterized keys use ICU MessageFormat placeholders: `{start}`, `{end}`, `{total}`, `{tz}`, `{date}`, `{resourceName}`, `{resourceType}`
+- Placeholder names match the parameter names from the TypeScript function signatures in `types.ts`
+- Files changed: `packages/kumo/src/translations/en.json` (new)
+- **Learnings:** ICU MessageFormat placeholder names should mirror the TS parameter names for tooling consistency; JSON file is purely for external tooling (translation platforms, linters) — runtime uses `.ts` files

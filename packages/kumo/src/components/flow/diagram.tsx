@@ -34,6 +34,12 @@ const DEFAULT_PADDING = {
 /** Minimum scrollbar thumb size in percentage to ensure visibility */
 const MIN_SCROLLBAR_THUMB_SIZE = 10;
 
+/** Check whether a pointer event originated from a flow node element. */
+const isEventFromNode = (e: PointerEvent) => {
+  const target = e.target as HTMLElement;
+  return target.closest("[data-node-id]") !== null;
+};
+
 // Vertical orientation is currently a no-op
 type Orientation = "horizontal" | "vertical";
 type Align = "start" | "center";
@@ -212,11 +218,6 @@ export function FlowDiagram({
     wrapper.addEventListener("wheel", handleWheel, { passive: false });
     return () => wrapper.removeEventListener("wheel", handleWheel);
   }, [canvas, bounds, x, y]);
-
-  const isEventFromNode = (e: PointerEvent) => {
-    const target = e.target as HTMLElement;
-    return target.closest("[data-node-id]") !== null;
-  };
 
   const handlePanStart = (e: PointerEvent) => {
     if (isEventFromNode(e)) return;
