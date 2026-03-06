@@ -2,7 +2,11 @@ import { defineRule } from "oxlint";
 
 const RULE_NAME = "no-unlocalized-strings";
 
-const COMPONENTS_SEGMENTS = ["/src/components/", "/src/blocks/"];
+const CONSUMER_SURFACE_SEGMENTS = [
+  "/src/components/",
+  "/src/blocks/",
+  "/src/code/",
+];
 
 const ATTRIBUTE_NAMES = new Set([
   "aria-label",
@@ -79,19 +83,25 @@ const ALLOWED_UNLOCALIZED_STRINGS = new Set([
 
 const PUNCTUATION_ONLY_RE = /^[\s.,:;!?()[\]{}'"`~^*+\-_/|\\<>@#$%&=]+$/;
 
-function isIgnoredFilename(filename) {
-  if (typeof filename !== "string") return true;
-  if (!COMPONENTS_SEGMENTS.some((segment) => filename.includes(segment))) {
-    return true;
+export function isConsumerSurfaceFile(filename) {
+  if (typeof filename !== "string") return false;
+  if (
+    !CONSUMER_SURFACE_SEGMENTS.some((segment) => filename.includes(segment))
+  ) {
+    return false;
   }
 
-  return (
+  return !(
     filename.includes("/__tests__/") ||
     filename.includes("/stories/") ||
     filename.includes(".test.") ||
     filename.includes(".spec.") ||
     filename.includes(".stories.")
   );
+}
+
+function isIgnoredFilename(filename) {
+  return !isConsumerSurfaceFile(filename);
 }
 
 function isLikelyUserFacingText(value) {
@@ -191,7 +201,7 @@ function collectStringLiterals(node, out) {
   }
 }
 
-function isAllowedAttributeName(name) {
+export function isTextBearingAttributeName(name) {
   if (ATTRIBUTE_NAMES.has(name)) return true;
   if (NON_USER_FACING_ATTRIBUTE_NAMES.has(name)) return false;
   if (name.startsWith("data-") || name.startsWith("on")) return false;
@@ -202,6 +212,10 @@ function isAllowedAttributeName(name) {
   return /(label|description|message|text|title|placeholder|alt|caption)$/i.test(
     name,
   );
+}
+
+function isAllowedAttributeName(name) {
+  return isTextBearingAttributeName(name);
 }
 
 function getJsxAttributeName(nameNode) {
