@@ -64,3 +64,10 @@ Started: 2026-03-05
 - `.displayName` set on `DirectionProvider`
 - Files changed: `packages/kumo/src/localize/direction.tsx` (new)
 - **Learnings:** Simple context pattern — no memoization needed since direction is a primitive string value
+
+## Task - core-6
+- Added localize public API exports to `packages/kumo/src/index.ts` before `PLOP_INJECT_EXPORT` marker
+- Exports: `useLocalize`, `KumoLocaleProvider`, `registerTranslation`, `KumoTranslation` (type) from `./localize`; `DirectionProvider`, `useDirection` from `./localize/direction`
+- No vite config or package.json changes needed — exports go through main barrel file
+- Files changed: `packages/kumo/src/index.ts`
+- **Learnings:** `moduleResolution: "bundler"` resolves `"./localize"` → `./localize/index.tsx` correctly; LSP may lag behind actual tsc behavior

@@ -210,6 +210,14 @@ export {
   TimeseriesChart,
   ChartLegend,
 } from "./components/chart";
+// Localize
+export {
+  useLocalize,
+  KumoLocaleProvider,
+  registerTranslation,
+  type KumoTranslation,
+} from "./localize";
+export { DirectionProvider, useDirection } from "./localize/direction";
 // PLOP_INJECT_EXPORT
 
 // Utils

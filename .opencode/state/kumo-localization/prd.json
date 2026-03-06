@@ -91,7 +91,7 @@
         "pnpm --filter @cloudflare/kumo build succeeds",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "translations-1",
