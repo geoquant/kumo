@@ -12,6 +12,14 @@ const registry = new Map<string, KumoTranslation>();
 /** BCP 47 code of the first translation ever registered (the fallback). */
 let fallbackCode: string | undefined;
 
+export type TranslationMatchKind = "exact" | "prefix" | "fallback" | "none";
+
+export interface TranslationResolution {
+  readonly translation: KumoTranslation | undefined;
+  readonly matchedBy: TranslationMatchKind;
+  readonly normalizedLocale: string;
+}
+
 function normalizeLookupLocale(locale: string): string {
   const normalizedSeparators = locale.replaceAll("_", "-").trim();
   if (normalizedSeparators === "") return "en";
@@ -64,26 +72,50 @@ export function registerTranslation(
  * Returns `undefined` only when the registry is completely empty.
  */
 export function getTranslation(lang: string): KumoTranslation | undefined {
+  return resolveTranslation(lang).translation;
+}
+
+export function resolveTranslation(lang: string): TranslationResolution {
   const normalizedLang = normalizeLookupLocale(lang);
 
   // 1. Exact match
   const exact = registry.get(normalizedLang);
-  if (exact) return exact;
+  if (exact) {
+    return {
+      translation: exact,
+      matchedBy: "exact",
+      normalizedLocale: normalizedLang,
+    };
+  }
 
   // 2. Language prefix — take everything before the first hyphen
   const hyphenIdx = normalizedLang.indexOf("-");
   if (hyphenIdx > 0) {
     const prefix = normalizedLang.slice(0, hyphenIdx);
     const prefixed = registry.get(prefix);
-    if (prefixed) return prefixed;
+    if (prefixed) {
+      return {
+        translation: prefixed,
+        matchedBy: "prefix",
+        normalizedLocale: normalizedLang,
+      };
+    }
   }
 
   // 3. Fallback to first registered
   if (fallbackCode !== undefined) {
-    return registry.get(fallbackCode);
+    return {
+      translation: registry.get(fallbackCode),
+      matchedBy: "fallback",
+      normalizedLocale: normalizedLang,
+    };
   }
 
-  return undefined;
+  return {
+    translation: undefined,
+    matchedBy: "none",
+    normalizedLocale: normalizedLang,
+  };
 }
 
 /**

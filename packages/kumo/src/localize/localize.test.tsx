@@ -5,7 +5,7 @@
  * direction.tsx (DirectionProvider, useDirection), and translation key completeness.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import type { KumoTranslation } from "./types.js";
@@ -433,6 +433,107 @@ describe("KumoLocaleProvider", () => {
       }),
     );
     expect(screen.getByTestId("output").textContent).toBe("Close");
+  });
+
+  it("applies localeAliases before translation lookup", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "en-US",
+        localeAliases: { "en-US": "en" },
+        children: createElement(LocalizeConsumer, {
+          render: (r) => r.term("close"),
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("Close");
+  });
+
+  it("detectLocale=false with no locale falls back to en", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+    document.documentElement.lang = "es";
+
+    render(
+      createElement(KumoLocaleProvider, {
+        detectLocale: false,
+        children: createElement(LocalizeConsumer, {
+          render: (r) => r.lang(),
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("en");
+  });
+
+  it("detectLocale=false inherits nearest provider locale", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+    document.documentElement.lang = "en";
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "es",
+        children: createElement(KumoLocaleProvider, {
+          detectLocale: false,
+          children: createElement(LocalizeConsumer, {
+            render: (r) => r.lang(),
+          }),
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("es");
+  });
+
+  it("calls onUnknownLocale for invalid locale tokens", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+    const onUnknownLocale = vi.fn();
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "not a locale",
+        onUnknownLocale,
+        children: createElement(LocalizeConsumer, {
+          render: (r) => r.lang(),
+        }),
+      }),
+    );
+
+    expect(onUnknownLocale).toHaveBeenCalledWith({
+      inputLocale: "not a locale",
+      normalizedLocale: "en",
+      resolvedTranslationCode: "en",
+      reason: "invalid",
+    });
+  });
+
+  it("calls onUnknownLocale for unsupported but valid locale", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+    const onUnknownLocale = vi.fn();
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "fr-CA",
+        onUnknownLocale,
+        children: createElement(LocalizeConsumer, {
+          render: (r) => r.term("close"),
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("Close");
+    expect(onUnknownLocale).toHaveBeenCalledWith({
+      inputLocale: "fr-CA",
+      normalizedLocale: "fr-CA",
+      resolvedTranslationCode: "en",
+      reason: "unsupported",
+    });
   });
 });
 

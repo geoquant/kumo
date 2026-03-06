@@ -1,8 +1,15 @@
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  type ReactNode,
+} from "react";
 
-import { getTranslation } from "./registry.js";
+import { resolveTranslation } from "./registry.js";
 import type { KumoTranslation } from "./types.js";
 import { useLocale } from "./use-locale.js";
+import type { Direction } from "./direction.js";
 
 // Side-effect: eagerly register all 12 built-in translations.
 import "../translations/index.js";
@@ -73,6 +80,19 @@ export interface LocalizeResult {
   readonly dir: () => "ltr" | "rtl";
 }
 
+export type UnknownLocaleReason = "invalid" | "unsupported";
+
+export interface UnknownLocaleDiagnostic {
+  readonly inputLocale: string;
+  readonly normalizedLocale: string;
+  readonly resolvedTranslationCode: string;
+  readonly reason: UnknownLocaleReason;
+}
+
+export type UnknownLocaleCallback = (
+  diagnostic: UnknownLocaleDiagnostic,
+) => void;
+
 const DEFAULT_LOCALE = "en";
 
 function normalizeResolvedLocale(locale: string): string {
@@ -85,6 +105,38 @@ function normalizeResolvedLocale(locale: string): string {
   } catch {
     return DEFAULT_LOCALE;
   }
+}
+
+function normalizeWithValidity(locale: string): {
+  readonly normalizedLocale: string;
+  readonly isInvalid: boolean;
+} {
+  const normalizedSeparators = locale.replaceAll("_", "-").trim();
+  if (normalizedSeparators === "") {
+    return { normalizedLocale: DEFAULT_LOCALE, isInvalid: true };
+  }
+
+  try {
+    const canonical = Intl.getCanonicalLocales(normalizedSeparators)[0];
+    return {
+      normalizedLocale: canonical ?? DEFAULT_LOCALE,
+      isInvalid: canonical === undefined,
+    };
+  } catch {
+    return { normalizedLocale: DEFAULT_LOCALE, isInvalid: true };
+  }
+}
+
+function resolveAliasedLocale(
+  locale: string,
+  aliases: Readonly<Record<string, string>>,
+): string {
+  for (const [aliasSource, aliasTarget] of Object.entries(aliases)) {
+    if (normalizeResolvedLocale(aliasSource) !== locale) continue;
+    return normalizeResolvedLocale(aliasTarget);
+  }
+
+  return locale;
 }
 
 function getTermValue(
@@ -108,13 +160,31 @@ function isTermFunction(
  * Context value is the locale override string, or `undefined` when no
  * provider is present (fall through to `useLocale()`).
  */
-const LocaleOverrideContext = createContext<string | undefined>(undefined);
+interface LocaleProviderConfig {
+  readonly locale?: string;
+  readonly localeAliases: Readonly<Record<string, string>>;
+  readonly detectLocale: boolean;
+  readonly direction?: Direction;
+  readonly onUnknownLocale?: UnknownLocaleCallback;
+}
+
+const LocaleConfigContext = createContext<LocaleProviderConfig | undefined>(
+  undefined,
+);
 
 // ── KumoLocaleProvider ─────────────────────────────────────────────────
 
 interface KumoLocaleProviderProps {
   /** BCP 47 locale code to force for this subtree. */
   readonly locale?: string;
+  /** Locale alias mapping applied before translation lookup. */
+  readonly localeAliases?: Readonly<Record<string, string>>;
+  /** Toggle browser/html locale detection fallback when `locale` is absent. */
+  readonly detectLocale?: boolean;
+  /** Explicit direction override for this subtree. */
+  readonly direction?: Direction;
+  /** Callback fired when locale input is invalid or unsupported. */
+  readonly onUnknownLocale?: UnknownLocaleCallback;
   readonly children: ReactNode;
 }
 
@@ -129,12 +199,42 @@ interface KumoLocaleProviderProps {
  */
 export function KumoLocaleProvider({
   locale,
+  localeAliases,
+  detectLocale,
+  direction,
+  onUnknownLocale,
   children,
 }: KumoLocaleProviderProps): ReactNode {
+  const parentConfig = useContext(LocaleConfigContext);
+
+  const value = useMemo<LocaleProviderConfig>(
+    () => ({
+      locale: locale ?? parentConfig?.locale,
+      localeAliases:
+        parentConfig === undefined
+          ? (localeAliases ?? {})
+          : {
+              ...parentConfig.localeAliases,
+              ...localeAliases,
+            },
+      detectLocale: detectLocale ?? parentConfig?.detectLocale ?? true,
+      direction: direction ?? parentConfig?.direction,
+      onUnknownLocale: onUnknownLocale ?? parentConfig?.onUnknownLocale,
+    }),
+    [
+      detectLocale,
+      direction,
+      locale,
+      localeAliases,
+      onUnknownLocale,
+      parentConfig,
+    ],
+  );
+
   return (
-    <LocaleOverrideContext.Provider value={locale}>
+    <LocaleConfigContext.Provider value={value}>
       {children}
-    </LocaleOverrideContext.Provider>
+    </LocaleConfigContext.Provider>
   );
 }
 KumoLocaleProvider.displayName = "KumoLocaleProvider";
@@ -157,13 +257,57 @@ KumoLocaleProvider.displayName = "KumoLocaleProvider";
  * ```
  */
 export function useLocalize(): LocalizeResult {
-  const override = useContext(LocaleOverrideContext);
+  const config = useContext(LocaleConfigContext);
   const detected = useLocale();
-  const resolvedLocale = normalizeResolvedLocale(override ?? detected);
+  const inputLocale =
+    config?.locale ??
+    (config?.detectLocale === false ? DEFAULT_LOCALE : detected);
+  const normalization = normalizeWithValidity(inputLocale);
+  const resolvedLocale = resolveAliasedLocale(
+    normalization.normalizedLocale,
+    config?.localeAliases ?? {},
+  );
+
+  const resolution = resolveTranslation(resolvedLocale);
+
+  const unknownLocaleDiagnostic = useMemo<
+    UnknownLocaleDiagnostic | undefined
+  >(() => {
+    const resolvedTranslationCode =
+      resolution.translation?.$code ?? DEFAULT_LOCALE;
+
+    if (normalization.isInvalid) {
+      return {
+        inputLocale,
+        normalizedLocale: resolvedLocale,
+        resolvedTranslationCode,
+        reason: "invalid",
+      };
+    }
+
+    if (resolution.matchedBy === "fallback") {
+      return {
+        inputLocale,
+        normalizedLocale: resolvedLocale,
+        resolvedTranslationCode,
+        reason: "unsupported",
+      };
+    }
+
+    return undefined;
+  }, [inputLocale, normalization.isInvalid, resolution, resolvedLocale]);
+
+  useEffect(() => {
+    if (unknownLocaleDiagnostic === undefined) return;
+    if (config?.onUnknownLocale === undefined) return;
+
+    config.onUnknownLocale(unknownLocaleDiagnostic);
+  }, [config?.onUnknownLocale, unknownLocaleDiagnostic]);
 
   return useMemo(() => {
-    const translation = getTranslation(resolvedLocale);
-    const fallbackTranslation = getTranslation(DEFAULT_LOCALE) ?? translation;
+    const translation = resolution.translation;
+    const fallbackResolution = resolveTranslation(DEFAULT_LOCALE);
+    const fallbackTranslation = fallbackResolution.translation ?? translation;
 
     function term(key: SimpleKey): string;
     function term<K extends ParameterizedKey>(
@@ -196,8 +340,9 @@ export function useLocalize(): LocalizeResult {
 
     const lang = (): string => resolvedLocale;
 
-    const dir = (): "ltr" | "rtl" => translation?.$dir ?? "ltr";
+    const dir = (): "ltr" | "rtl" =>
+      config?.direction ?? translation?.$dir ?? "ltr";
 
     return { term, date, number, lang, dir };
-  }, [resolvedLocale]);
+  }, [config?.direction, resolution.translation, resolvedLocale]);
 }
