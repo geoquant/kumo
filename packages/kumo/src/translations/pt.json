@@ -38,7 +38,7 @@
   "resize-column": "Resize column",
   "click-to-copy": "Click to copy",
   "copy-command": "Copy command",
-  "cloudflare-logo": "Cloudflare logo",
+  "logo": "logo",
   "delete-resource": "Delete {resourceName}",
   "delete-action-cannot-be-undone": "This action cannot be undone. This will permanently delete the {resourceName} {resourceType}.",
   "type-to-confirm": "Type {resourceName} to confirm:",

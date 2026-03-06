@@ -72,7 +72,7 @@ export interface KumoTranslation {
   readonly "copy-command": string;
 
   // ── Cloudflare Logo ───────────────────────────────────────────────────
-  readonly "cloudflare-logo": string;
+  readonly logo: string;
 
   // ── Delete Resource Block ─────────────────────────────────────────────
   readonly "delete-resource": (resourceName: string) => string;

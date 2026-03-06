@@ -61,7 +61,7 @@ const en: KumoTranslation = {
   "copy-command": "Copy command",
 
   // ── Cloudflare Logo ───────────────────────────────────────────────────
-  "cloudflare-logo": "Cloudflare logo",
+  logo: "logo",
 
   // ── Delete Resource Block ─────────────────────────────────────────────
   "delete-resource": (resourceName) => `Delete ${resourceName}`,

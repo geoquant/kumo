@@ -59,7 +59,7 @@ const fakeEn: KumoTranslation = {
   "resize-column": "Resize column",
   "click-to-copy": "Click to copy",
   "copy-command": "Copy command",
-  "cloudflare-logo": "Cloudflare logo",
+  logo: "logo",
   "delete-resource": (n) => `Delete ${n}`,
   "delete-action-cannot-be-undone": (n, t) =>
     `This action cannot be undone. This will permanently delete the ${n} ${t}.`,

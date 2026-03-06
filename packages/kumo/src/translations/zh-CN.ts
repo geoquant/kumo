@@ -45,7 +45,7 @@ type PendingStrings =
   | "resize-column"
   | "click-to-copy"
   | "copy-command"
-  | "cloudflare-logo"
+  | "logo"
   | "delete-resource"
   | "delete-action-cannot-be-undone"
   | "type-to-confirm"
