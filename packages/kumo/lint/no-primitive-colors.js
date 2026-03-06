@@ -74,7 +74,7 @@ const NON_COLOR_UTILITIES = new Set([
   "current",
   "inherit",
   "none",
-  // Border utilities (not colors)
+  // Border utilities (not colors) — physical and logical
   "0",
   "2",
   "4",
@@ -83,6 +83,8 @@ const NON_COLOR_UTILITIES = new Set([
   "r",
   "b",
   "l",
+  "s",
+  "e",
   "x",
   "y",
   "solid",
@@ -105,8 +107,8 @@ const NON_COLOR_UTILITIES = new Set([
 const NON_COLOR_PATTERNS = [
   // Gradient directions: bg-linear-to-r, bg-linear-to-bl, etc.
   /^linear-to-[trbl]{1,2}$/,
-  // Border directional + size: border-l-2, border-t-4, etc.
-  /^[trblxy]-\d+$/,
+  // Border directional + size: border-l-2, border-t-4, border-s-2, border-e-4, etc.
+  /^[trblsexy]-\d+$/,
   // Outline/ring offset utilities: outline-offset-3, ring-offset-2, etc.
   /^offset-\d+$/,
   // Generic numeric utilities

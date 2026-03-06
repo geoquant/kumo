@@ -109,7 +109,7 @@ export function Empty({
         <div
           className={cn(
             "group/cmd relative inline-flex h-10 max-w-8/10 transform-gpu items-center gap-2 rounded-lg font-mono shadow-sm",
-            "bg-kumo-overlay pr-2 pl-3",
+            "bg-kumo-overlay pe-2 ps-3",
             "transition-all duration-300 hover:border-kumo-interact/80 hover:shadow-md",
             "border border-kumo-fill/60",
           )}

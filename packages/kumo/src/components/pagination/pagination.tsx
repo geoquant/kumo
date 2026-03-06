@@ -292,7 +292,7 @@ function PaginationSeparator({ className }: PaginationSeparatorProps) {
   return (
     <div
       data-slot="pagination-separator"
-      className={cn("mx-2 h-6 border-l border-kumo-line", className)}
+      className={cn("mx-2 h-6 border-s border-kumo-line", className)}
     />
   );
 }

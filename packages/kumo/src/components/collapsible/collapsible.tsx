@@ -97,7 +97,7 @@ export const Collapsible = forwardRef<HTMLDivElement, CollapsibleProps>(
           <div
             id={contentId}
             className={cn(
-              "my-2 space-y-4 border-l-2 border-kumo-fill pl-4",
+              "my-2 space-y-4 border-s-2 border-kumo-fill ps-4",
               className,
             )}
           >

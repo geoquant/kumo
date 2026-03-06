@@ -207,3 +207,15 @@ Started: 2026-03-05
 - Existing `labels` prop still overrides localize defaults (spread pattern: `{ ...defaultLabels, ...labels }`)
 - Files changed: `clipboard-text.tsx`, `code/provider.tsx`
 - **Learnings:** Module-level constants can't use hooks; move them into the component body with `useMemo` for stable identity
+
+## Task - rtl-1
+- Migrated 6 simple components from physical to logical Tailwind utilities:
+  - breadcrumbs: `mr-4` → `me-4`
+  - cloudflare-logo: `pl-2.5` → `ps-2.5`, `pr-3` → `pe-3`
+  - collapsible: `border-l-2` → `border-s-2`, `pl-4` → `ps-4`
+  - empty: `pr-2` → `pe-2`, `pl-3` → `ps-3`
+  - layer-card: `pr-3` → `pe-3`
+  - pagination: `border-l` → `border-s`
+- chart components had no physical directional utilities
+- Updated `no-primitive-colors` lint rule (both `lint/` and `packages/kumo/lint/`) to recognize `s` and `e` as valid non-color border utilities (alongside `t`, `r`, `b`, `l`)
+- **Learnings:** Custom oxlint rules need updating when introducing logical CSS properties; `border-s` was flagged as unknown token

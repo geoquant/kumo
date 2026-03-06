@@ -68,7 +68,7 @@ function LayerCardPrimary({ children, className }: LayerCardProps) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 overflow-hidden rounded-lg bg-kumo-base p-4 pr-3 text-inherit no-underline ring ring-kumo-fill",
+        "flex flex-col gap-2 overflow-hidden rounded-lg bg-kumo-base p-4 pe-3 text-inherit no-underline ring ring-kumo-fill",
         className,
       )}
     >
