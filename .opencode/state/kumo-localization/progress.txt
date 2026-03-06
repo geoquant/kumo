@@ -166,3 +166,18 @@ Started: 2026-03-05
 - 30 `term()` call sites updated in sensitive-input, date-range-picker, pagination
 - Feedback loops all pass: tsc clean, 652 tests, 0 lint errors
 - **Learnings:** Kebab-case keys need quoted properties in TS interfaces; the `SimpleKey`/`ParameterizedKey` conditional types work the same with kebab-case since they filter on value type not key format
+
+## Task - migrate-4
+- Migrated `packages/kumo/src/blocks/delete-resource/delete-resource.tsx` to use `useLocalize()`
+- Replaced 8 hardcoded string occurrences with `term()` calls:
+  - `Delete {resourceName}` (title) → `term("delete-resource", resourceName)`
+  - `Close` (aria-label) → `term("close")`
+  - `This action cannot be undone...` (paragraph) → `term("delete-action-cannot-be-undone", resourceName, resourceType)`
+  - `Type {resourceName} to confirm:` (instruction) → `term("type-to-confirm", resourceName)`
+  - `Copy {resourceName} to clipboard` (aria-label) → `term("copy-resource-name-to-clipboard", resourceName)`
+  - `Type {resourceName} to confirm deletion` (input aria-label) → `term("confirm-deletion-aria-label", resourceName)`
+  - `Cancel` (button) → `term("cancel")`
+  - `Delete {resourceType}` (button fallback) → `term("delete-resource-type", resourceType)`
+- Changed `||` to `??` for deleteButtonText fallback (preserves intentional empty string overrides)
+- Restructured "Type...to confirm" section: instruction text from `term()` as flat string, copy button as sibling element
+- Files changed: `packages/kumo/src/blocks/delete-resource/delete-resource.tsx`

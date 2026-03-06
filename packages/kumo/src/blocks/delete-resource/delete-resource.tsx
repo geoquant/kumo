@@ -15,6 +15,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { Banner } from "../../components/banner";
+import { useLocalize } from "../../localize/index.js";
 
 export const KUMO_DELETE_RESOURCE_VARIANTS = {
   size: {
@@ -76,6 +77,7 @@ export function DeleteResource({
   errorMessage,
   className,
 }: DeleteResourceProps) {
+  const { term } = useLocalize();
   const [confirmationInput, setConfirmationInput] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -111,7 +113,7 @@ export function DeleteResource({
       <Dialog size={size} className={cn("p-0", className)}>
         <div className="flex items-center justify-between border-b border-kumo-line px-6 py-4">
           <DialogTitle className="text-lg font-semibold">
-            Delete {resourceName}
+            {term("delete-resource", resourceName)}
           </DialogTitle>
           <DialogClose
             render={(props) => (
@@ -120,7 +122,7 @@ export function DeleteResource({
                 variant="ghost"
                 shape="square"
                 size="sm"
-                aria-label="Close"
+                aria-label={term("close")}
                 disabled={isDeleting}
               >
                 <XIcon size={18} />
@@ -137,41 +139,36 @@ export function DeleteResource({
               </Banner>
             )}
             <p className="text-base text-kumo-subtle max-w-prose text-pretty">
-              This action cannot be undone. This will permanently delete the{" "}
-              <span className="font-medium text-kumo-default">
-                {resourceName}
-              </span>{" "}
-              {resourceType.toLowerCase()}.
+              {term(
+                "delete-action-cannot-be-undone",
+                resourceName,
+                resourceType,
+              )}
             </p>
           </div>
 
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-1.5 text-base">
-              <span>
-                Type{" "}
-                <button
-                  className="font-mono text-sm inline font-semibold bg-kumo-tint hover:bg-kumo-fill rounded-md px-2 py-1 group hover:cursor-pointer"
-                  onClick={handleCopy}
-                  aria-label={`Copy ${resourceName} to clipboard`}
-                >
-                  {resourceName}
-
-                  {copied ? (
-                    <CheckIcon
-                      size={12}
-                      weight="bold"
-                      className="inline ml-1.5"
-                    />
-                  ) : (
-                    <CopyIcon
-                      size={12}
-                      weight="bold"
-                      className="inline text-kumo-subtle group-hover:text-kumo-default ml-1.5"
-                    />
-                  )}
-                </button>{" "}
-                to confirm:
-              </span>
+            <div className="flex items-center gap-1.5 text-base flex-wrap">
+              <span>{term("type-to-confirm", resourceName)}</span>
+              <button
+                className="font-mono text-sm inline-flex items-center font-semibold bg-kumo-tint hover:bg-kumo-fill rounded-md px-2 py-1 group hover:cursor-pointer"
+                onClick={handleCopy}
+                aria-label={term(
+                  "copy-resource-name-to-clipboard",
+                  resourceName,
+                )}
+              >
+                {resourceName}
+                {copied ? (
+                  <CheckIcon size={12} weight="bold" className="ml-1.5" />
+                ) : (
+                  <CopyIcon
+                    size={12}
+                    weight="bold"
+                    className="text-kumo-subtle group-hover:text-kumo-default ml-1.5"
+                  />
+                )}
+              </button>
             </div>
             <Input
               placeholder={resourceName}
@@ -182,7 +179,7 @@ export function DeleteResource({
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
-              aria-label={`Type ${resourceName} to confirm deletion`}
+              aria-label={term("confirm-deletion-aria-label", resourceName)}
               className="w-full"
             />
           </div>
@@ -192,7 +189,7 @@ export function DeleteResource({
           <DialogClose
             render={(props) => (
               <Button {...props} variant="secondary" disabled={isDeleting}>
-                Cancel
+                {term("cancel")}
               </Button>
             )}
           />
@@ -202,7 +199,7 @@ export function DeleteResource({
             disabled={!isConfirmed || isDeleting}
             loading={isDeleting}
           >
-            {deleteButtonText || `Delete ${resourceType}`}
+            {deleteButtonText ?? term("delete-resource-type", resourceType)}
           </Button>
         </div>
       </Dialog>
