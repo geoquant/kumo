@@ -26,7 +26,7 @@ const staticPages: NavItem[] = [
   { label: "Contributing", href: "/contributing" },
   { label: "Colors", href: "/colors" },
   { label: "Accessibility", href: "/accessibility" },
-  { label: "i18n", href: "/i18n" },
+  { label: "Internationalization", href: "/i18n" },
   { label: "Figma Resources", href: "/figma" },
   { label: "CLI", href: "/cli" },
   { label: "Registry", href: "/registry" },
