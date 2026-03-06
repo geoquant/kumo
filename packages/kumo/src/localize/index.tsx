@@ -101,6 +101,7 @@ export type UnknownLocaleCallback = (
 ) => void;
 
 const DEFAULT_LOCALE = "en";
+const warnedUnknownLocales = new Set<string>();
 
 function getTermValue(
   translation: KumoTranslation | undefined,
@@ -127,6 +128,7 @@ interface LocaleProviderConfig {
   readonly locale?: string;
   readonly localeAliases: Readonly<Record<string, string>>;
   readonly detectLocale: boolean;
+  readonly warnOnUnknownLocale: boolean;
   readonly direction?: Direction;
   readonly onUnknownLocale?: UnknownLocaleCallback;
 }
@@ -144,6 +146,8 @@ interface KumoLocaleProviderProps {
   readonly localeAliases?: Readonly<Record<string, string>>;
   /** Toggle browser/html locale detection fallback when `locale` is absent. */
   readonly detectLocale?: boolean;
+  /** Emit a development warning once per normalized unknown locale. */
+  readonly warnOnUnknownLocale?: boolean;
   /** Explicit direction override for this subtree. */
   readonly direction?: Direction;
   /** Callback fired when locale input is invalid or unsupported. */
@@ -164,6 +168,7 @@ export function KumoLocaleProvider({
   locale,
   localeAliases,
   detectLocale,
+  warnOnUnknownLocale,
   direction,
   onUnknownLocale,
   children,
@@ -182,6 +187,8 @@ export function KumoLocaleProvider({
               ...localeAliases,
             },
       detectLocale: detectLocale ?? parentConfig?.detectLocale ?? true,
+      warnOnUnknownLocale:
+        warnOnUnknownLocale ?? parentConfig?.warnOnUnknownLocale ?? false,
       direction: direction ?? parentConfig?.direction,
       onUnknownLocale: onUnknownLocale ?? parentConfig?.onUnknownLocale,
     }),
@@ -192,6 +199,7 @@ export function KumoLocaleProvider({
       localeAliases,
       onUnknownLocale,
       parentConfig,
+      warnOnUnknownLocale,
     ],
   );
 
@@ -284,10 +292,24 @@ export function useLocalize(): LocalizeResult {
 
   useEffect(() => {
     if (unknownLocaleDiagnostic === undefined) return;
-    if (config?.onUnknownLocale === undefined) return;
+    if (config?.onUnknownLocale !== undefined) {
+      config.onUnknownLocale(unknownLocaleDiagnostic);
+    }
 
-    config.onUnknownLocale(unknownLocaleDiagnostic);
-  }, [config?.onUnknownLocale, unknownLocaleDiagnostic]);
+    if (config?.warnOnUnknownLocale !== true) return;
+
+    const warnedKey = unknownLocaleDiagnostic.normalizedLocale;
+    if (warnedUnknownLocales.has(warnedKey)) return;
+
+    warnedUnknownLocales.add(warnedKey);
+    console.warn(
+      `[kumo] Unknown locale '${unknownLocaleDiagnostic.inputLocale}' (${unknownLocaleDiagnostic.reason}); using '${unknownLocaleDiagnostic.resolvedTranslationCode}'.`,
+    );
+  }, [
+    config?.onUnknownLocale,
+    config?.warnOnUnknownLocale,
+    unknownLocaleDiagnostic,
+  ]);
 
   return useMemo(() => {
     const translation = resolution.translation;
@@ -330,4 +352,10 @@ export function useLocalize(): LocalizeResult {
 
     return { term, date, number, lang, dir };
   }, [config?.direction, resolution.translation, resolvedLocale]);
+}
+
+// Test helper: reset warn-once cache.
+// Only intended for test suites.
+export function _resetUnknownLocaleWarnings(): void {
+  warnedUnknownLocales.clear();
 }

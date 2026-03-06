@@ -15,7 +15,11 @@ import {
   resolveTranslation,
   _resetRegistry,
 } from "./registry.js";
-import { useLocalize, KumoLocaleProvider } from "./index.js";
+import {
+  useLocalize,
+  KumoLocaleProvider,
+  _resetUnknownLocaleWarnings,
+} from "./index.js";
 import { DirectionProvider, useDirection } from "./direction.js";
 import { resolveLocale } from "./resolve-locale.js";
 import en from "../translations/en.js";
@@ -472,8 +476,73 @@ describe("DirectionProvider & useDirection", () => {
 describe("KumoLocaleProvider", () => {
   beforeEach(() => {
     _resetRegistry();
+    _resetUnknownLocaleWarnings();
     registerTranslation(fakeEn, fakeEs);
     document.documentElement.lang = "en";
+  });
+
+  it("handles expected locale inputs and fallbacks", () => {
+    const cases = [
+      {
+        locale: "en",
+        localeAliases: undefined,
+        expectedLang: "en",
+        expectedTerm: "Close",
+      },
+      {
+        locale: "en-US",
+        localeAliases: { "en-US": "en" },
+        expectedLang: "en",
+        expectedTerm: "Close",
+      },
+      {
+        locale: "es-ES",
+        localeAliases: { "es-ES": "es" },
+        expectedLang: "es",
+        expectedTerm: "Cerrar",
+      },
+      {
+        locale: "es-PE",
+        localeAliases: undefined,
+        expectedLang: "es-PE",
+        expectedTerm: "Cerrar",
+      },
+      {
+        locale: "pt-BR",
+        localeAliases: { "pt-BR": "es" },
+        expectedLang: "es",
+        expectedTerm: "Cerrar",
+      },
+      {
+        locale: "zh-Hant-HK",
+        localeAliases: { "zh-Hant": "es" },
+        expectedLang: "es",
+        expectedTerm: "Cerrar",
+      },
+      {
+        locale: "not a locale",
+        localeAliases: undefined,
+        expectedLang: "en",
+        expectedTerm: "Close",
+      },
+    ] as const;
+
+    for (const testCase of cases) {
+      const { unmount } = render(
+        createElement(KumoLocaleProvider, {
+          locale: testCase.locale,
+          localeAliases: testCase.localeAliases,
+          children: createElement(LocalizeConsumer, {
+            render: (r) => `${r.lang()}|${r.term("close")}`,
+          }),
+        }),
+      );
+
+      expect(screen.getByTestId("output").textContent).toBe(
+        `${testCase.expectedLang}|${testCase.expectedTerm}`,
+      );
+      unmount();
+    }
   });
 
   it("locale='es' causes child to resolve Spanish", () => {
@@ -518,6 +587,26 @@ describe("KumoLocaleProvider", () => {
     );
 
     expect(screen.getByTestId("output").textContent).toBe("Close");
+  });
+
+  it("nested localeAliases prefer nearest provider on conflicts", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "es-ES",
+        localeAliases: { "es-ES": "en" },
+        children: createElement(KumoLocaleProvider, {
+          localeAliases: { "es-ES": "es" },
+          children: createElement(LocalizeConsumer, {
+            render: (r) => r.term("close"),
+          }),
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("Cerrar");
   });
 
   it("detectLocale=false with no locale falls back to en", () => {
@@ -602,6 +691,30 @@ describe("KumoLocaleProvider", () => {
       resolvedTranslationCode: "en",
       reason: "unsupported",
     });
+  });
+
+  it("warns once per normalized unknown locale per runtime", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const renderTree = (): void => {
+      render(
+        createElement(KumoLocaleProvider, {
+          locale: "fr-CA",
+          warnOnUnknownLocale: true,
+          children: createElement(LocalizeConsumer, {
+            render: (r) => r.term("close"),
+          }),
+        }),
+      );
+    };
+
+    renderTree();
+    renderTree();
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    warnSpy.mockRestore();
   });
 
   it("uses locale-derived rtl when explicit direction is absent", () => {
