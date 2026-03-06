@@ -36,6 +36,9 @@ function pushModeScopedBaseVariables(
   config: ThemeConfig,
   themeName: string,
   useNewNames: boolean,
+  options: {
+    wrapInBaseLayer?: boolean;
+  } = {},
 ): void {
   const textEntries: Array<{ name: string; light: string; dark: string }> = [];
   const colorEntries: Array<{ name: string; light: string; dark: string }> = [];
@@ -71,33 +74,45 @@ function pushModeScopedBaseVariables(
     themeName === "kumo" ? `:root, ${themeSelector}` : `${themeSelector}`;
   const darkSelector =
     themeName === "kumo"
-      ? `[data-mode="dark"], ${themeSelector}[data-mode="dark"], ${themeSelector} [data-mode="dark"]`
-      : `${themeSelector}[data-mode="dark"], ${themeSelector} [data-mode="dark"]`;
+      ? `:root[data-mode="dark"], [data-mode="dark"]:not([data-theme]), [data-mode="dark"] ${themeSelector}, ${themeSelector}[data-mode="dark"], ${themeSelector} [data-mode="dark"]`
+      : `[data-mode="dark"] ${themeSelector}, ${themeSelector}[data-mode="dark"], ${themeSelector} [data-mode="dark"]`;
 
-  lines.push("");
-  lines.push(`${lightSelector} {`);
+  const ruleLines: string[] = [];
+  ruleLines.push(`${lightSelector} {`);
 
   for (const entry of textEntries) {
-    lines.push(`  --text-color-${entry.name}: ${entry.light};`);
+    ruleLines.push(`  --text-color-${entry.name}: ${entry.light};`);
   }
 
   for (const entry of colorEntries) {
-    lines.push(`  --color-${entry.name}: ${entry.light};`);
+    ruleLines.push(`  --color-${entry.name}: ${entry.light};`);
   }
 
-  lines.push("}");
-  lines.push("");
-  lines.push(`${darkSelector} {`);
+  ruleLines.push("}");
+  ruleLines.push("");
+  ruleLines.push(`${darkSelector} {`);
 
   for (const entry of textEntries) {
-    lines.push(`  --text-color-${entry.name}: ${entry.dark};`);
+    ruleLines.push(`  --text-color-${entry.name}: ${entry.dark};`);
   }
 
   for (const entry of colorEntries) {
-    lines.push(`  --color-${entry.name}: ${entry.dark};`);
+    ruleLines.push(`  --color-${entry.name}: ${entry.dark};`);
   }
 
-  lines.push("}");
+  ruleLines.push("}");
+
+  lines.push("");
+  if (options.wrapInBaseLayer) {
+    lines.push("@layer base {");
+    for (const line of ruleLines) {
+      lines.push(`  ${line}`);
+    }
+    lines.push("}");
+    return;
+  }
+
+  lines.push(...ruleLines);
 }
 
 /**
@@ -159,7 +174,9 @@ export function generateKumoThemeCSS(
 
   // Explicit runtime vars avoid transient unresolved light-dark() values
   // during class/DOM mutations in some browser style recalculation paths.
-  pushModeScopedBaseVariables(lines, config, "kumo", useNewNames);
+  pushModeScopedBaseVariables(lines, config, "kumo", useNewNames, {
+    wrapInBaseLayer: true,
+  });
 
   return lines.join("\n");
 }
@@ -225,7 +242,9 @@ export function generateThemeOverrideCSS(
     "}",
   ];
 
-  pushModeScopedBaseVariables(lines, config, themeName, useNewNames);
+  pushModeScopedBaseVariables(lines, config, themeName, useNewNames, {
+    wrapInBaseLayer: true,
+  });
 
   return `${lines.join("\n")}\n`;
 }
