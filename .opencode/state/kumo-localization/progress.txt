@@ -142,3 +142,18 @@ Started: 2026-03-05
 - **Fixed `ParameterizedKey` type** in `localize/index.tsx`: changed from `extends (...args: readonly unknown[]) => string` to `extends string ? never : K` — contravariance of function params caused `never` type resolution
 - Files changed: `packages/kumo/src/components/date-range-picker/date-range-picker.tsx`, `packages/kumo/src/localize/index.tsx`
 - **Learnings:** First use of parameterized `term()` calls exposed a type-level bug in `ParameterizedKey`. Function contravariance means `(date: string) => string` does NOT extend `(...args: readonly unknown[]) => string`. Negation pattern (`extends string ? never : K`) is simpler and correct. Sub-components should call `useLocalize()` directly — no prop threading needed.
+
+## Task - migrate-3
+- Migrated `packages/kumo/src/components/pagination/pagination.tsx` to use `useLocalize()`
+- Added `pageLower` and `pageUpper` to `PaginationContextValue` so sub-components can call `term('showingRange', lower, upper, total)` with raw numbers instead of pre-formatted string
+- Three sub-components each call `useLocalize()` independently: `PaginationInfo`, `PaginationPageSize`, `PaginationControls`
+- `PaginationRoot` also calls `useLocalize()` for legacy mode rendering
+- Replaced 10 hardcoded string occurrences:
+  - `"Showing {range} of {total}"` (Info + legacy) → `term("showingRange", pageLower, pageUpper, totalCount)`
+  - `"Per page:"` default label → `term("perPage")` (via `resolvedLabel` pattern to preserve prop override)
+  - `"Page size"` Select aria-label → `term("pageSize")`
+  - `"First page"` / `"Previous page"` / `"Next page"` / `"Last page"` aria-labels → `term("firstPage")` etc.
+  - `"Page number"` input aria-label → `term("pageNumber")`
+- `PaginationPageSize.label` prop default changed from `"Per page:"` to `undefined` — resolved via `label ?? term("perPage")` to preserve existing override behavior
+- Files changed: `packages/kumo/src/components/pagination/pagination.tsx`
+- **Learnings:** When parameterized translations need raw numeric args, enrich the context with pre-computed values (pageLower/pageUpper) rather than parsing them back from a formatted string. Default prop values that are hardcoded strings should become `undefined` with `??` fallback to `term()` to maintain override semantics.

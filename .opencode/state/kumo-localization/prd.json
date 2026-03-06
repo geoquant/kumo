@@ -186,7 +186,7 @@
         "Component renders correct English text (no visual change)",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "migrate-4",

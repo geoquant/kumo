@@ -15,6 +15,7 @@ import {
 } from "@phosphor-icons/react";
 import { cn } from "../../utils/cn";
 import { Select } from "../select";
+import { useLocalize } from "../../localize/index.js";
 
 const DEFAULT_PAGE_SIZE_OPTIONS = [25, 50, 100, 250] as const;
 
@@ -63,6 +64,8 @@ interface PaginationContextValue {
   perPage?: number;
   totalCount?: number;
   maxPage: number;
+  pageLower: number;
+  pageUpper: number;
   pageShowingRange: string;
   setPage: (page: number) => void;
   editingPage: number;
@@ -98,18 +101,14 @@ export interface PaginationInfoProps {
 }
 
 function PaginationInfo({ children, className }: PaginationInfoProps) {
-  const { page, perPage, totalCount, pageShowingRange } =
+  const { page, perPage, totalCount, pageLower, pageUpper, pageShowingRange } =
     usePaginationContext();
+  const { term } = useLocalize();
 
   const content = children
     ? children({ page, perPage, totalCount, pageShowingRange })
     : totalCount && totalCount > 0
-      ? (
-          <>
-            Showing <span className="tabular-nums">{pageShowingRange}</span> of{" "}
-            <span className="tabular-nums">{totalCount}</span>
-          </>
-        )
+      ? term("showingRange", pageLower, pageUpper, totalCount)
       : null;
 
   return (
@@ -145,17 +144,22 @@ function PaginationPageSize({
   value,
   onChange,
   options = DEFAULT_PAGE_SIZE_OPTIONS as unknown as number[],
-  label = "Per page:",
+  label,
   className,
 }: PaginationPageSizeProps) {
+  const { term } = useLocalize();
+  const resolvedLabel = label ?? term("perPage");
+
   return (
     <div
       data-slot="pagination-page-size"
       className={cn("flex items-center gap-2", className)}
     >
-      {label && <span className="text-sm text-kumo-strong">{label}</span>}
+      {resolvedLabel && (
+        <span className="text-sm text-kumo-strong">{resolvedLabel}</span>
+      )}
       <Select
-        label="Page size"
+        label={term("pageSize")}
         value={value}
         onValueChange={(v) => onChange(v as number)}
       >
@@ -186,6 +190,7 @@ function PaginationControls({
 }: PaginationControlsProps) {
   const { page, maxPage, setPage, editingPage, setEditingPage } =
     usePaginationContext();
+  const { term } = useLocalize();
 
   return (
     <div
@@ -197,7 +202,7 @@ function PaginationControls({
           {controls === "full" && (
             <InputGroup.Button
               variant="secondary"
-              aria-label="First page"
+              aria-label={term("firstPage")}
               disabled={page <= 1}
               onClick={() => {
                 setPage(1);
@@ -209,7 +214,7 @@ function PaginationControls({
           )}
           <InputGroup.Button
             variant="secondary"
-            aria-label="Previous page"
+            aria-label={term("previousPage")}
             disabled={page <= 1}
             onClick={() => {
               const previousPage = Math.max(page - 1, 1);
@@ -223,7 +228,7 @@ function PaginationControls({
             <InputGroup.Input
               style={{ width: 50 }}
               className="text-center"
-              aria-label="Page number"
+              aria-label={term("pageNumber")}
               value={editingPage}
               onValueChange={(value: string) => {
                 setEditingPage(Number(value));
@@ -243,7 +248,7 @@ function PaginationControls({
           )}
           <InputGroup.Button
             variant="secondary"
-            aria-label="Next page"
+            aria-label={term("nextPage")}
             disabled={page === maxPage}
             onClick={() => {
               const nextPage = Math.min(page + 1, maxPage);
@@ -256,7 +261,7 @@ function PaginationControls({
           {controls === "full" && (
             <InputGroup.Button
               variant="secondary"
-              aria-label="Last page"
+              aria-label={term("lastPage")}
               disabled={page === maxPage}
               onClick={() => {
                 setPage(maxPage);
@@ -414,19 +419,24 @@ function PaginationRoot(props: PaginationProps) {
       ? (props.controls ?? KUMO_PAGINATION_DEFAULT_VARIANTS.controls)
       : KUMO_PAGINATION_DEFAULT_VARIANTS.controls;
   const [editingPage, setEditingPage] = useState<number>(1);
+  const { term } = useLocalize();
 
   useEffect(() => {
     setEditingPage(page);
   }, [page]);
 
-  const pageShowingRange = useMemo(() => {
+  const { pageLower, pageUpper, pageShowingRange } = useMemo(() => {
     let lower = page * (perPage ?? 1) - (perPage ?? 0) + 1;
     let upper = Math.min(page * (perPage ?? 0), totalCount ?? 0);
 
     if (Number.isNaN(lower)) lower = 0;
     if (Number.isNaN(upper)) upper = 0;
 
-    return `${lower}-${upper}`;
+    return {
+      pageLower: lower,
+      pageUpper: upper,
+      pageShowingRange: `${lower}-${upper}`,
+    };
   }, [page, perPage, totalCount]);
 
   const maxPage = useMemo(() => {
@@ -438,6 +448,8 @@ function PaginationRoot(props: PaginationProps) {
     perPage,
     totalCount,
     maxPage,
+    pageLower,
+    pageUpper,
     pageShowingRange,
     setPage,
     editingPage,
@@ -463,12 +475,7 @@ function PaginationRoot(props: PaginationProps) {
     if (text) {
       return text({ page, perPage, totalCount, pageShowingRange });
     } else if (totalCount && totalCount > 0) {
-      return (
-        <>
-          Showing <span className="tabular-nums">{pageShowingRange}</span> of{" "}
-          <span className="tabular-nums">{totalCount}</span>
-        </>
-      );
+      return term("showingRange", pageLower, pageUpper, totalCount);
     }
     return null;
   };
