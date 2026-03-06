@@ -1,0 +1,263 @@
+---
+import DocLayout from "../layouts/DocLayout.astro";
+import ComponentSection from "../components/docs/ComponentSection.astro";
+import CodeBlock from "../components/docs/CodeBlock.astro";
+import Callout from "../components/docs/Callout.astro";
+---
+
+<DocLayout
+  title="Internationalization"
+  description="Kumo provides a built-in localization system with 12 locales, RTL support, and type-safe translation lookups."
+>
+  <!-- Overview -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Overview</h2>
+    <p class="mb-4 text-kumo-strong">
+      Kumo ships with a lightweight i18n system that localizes all built-in UI
+      strings. The system is designed to be zero-config for most use cases:
+    </p>
+    <ul class="mb-4 list-inside list-disc space-y-1 text-kumo-strong">
+      <li>12 built-in locales registered automatically on import</li>
+      <li>Locale detected from <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">&lt;html lang&gt;</code> attribute (reactive)</li>
+      <li>RTL support via logical CSS properties</li>
+      <li>Type-safe translation keys with parameterized string support</li>
+      <li>Override any string via component <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">labels</code> props</li>
+    </ul>
+  </ComponentSection>
+
+  <!-- Supported Locales -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Supported Locales</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-kumo-line text-start">
+            <th class="px-3 py-2 text-start font-medium text-kumo-default">Code</th>
+            <th class="px-3 py-2 text-start font-medium text-kumo-default">Name</th>
+            <th class="px-3 py-2 text-start font-medium text-kumo-default">Direction</th>
+          </tr>
+        </thead>
+        <tbody class="text-kumo-strong">
+          <tr class="border-b border-kumo-line"><td class="px-3 py-2"><code class="text-sm">en</code></td><td class="px-3 py-2">English</td><td class="px-3 py-2">LTR</td></tr>
+          <tr class="border-b border-kumo-line"><td class="px-3 py-2"><code class="text-sm">ar</code></td><td class="px-3 py-2">العربية</td><td class="px-3 py-2">RTL</td></tr>
+          <tr class="border-b border-kumo-line"><td class="px-3 py-2"><code class="text-sm">de</code></td><td class="px-3 py-2">Deutsch</td><td class="px-3 py-2">LTR</td></tr>
+          <tr class="border-b border-kumo-line"><td class="px-3 py-2"><code class="text-sm">es</code></td><td class="px-3 py-2">Español</td><td class="px-3 py-2">LTR</td></tr>
+          <tr class="border-b border-kumo-line"><td class="px-3 py-2"><code class="text-sm">fr</code></td><td class="px-3 py-2">Français</td><td class="px-3 py-2">LTR</td></tr>
+          <tr class="border-b border-kumo-line"><td class="px-3 py-2"><code class="text-sm">he</code></td><td class="px-3 py-2">עברית</td><td class="px-3 py-2">RTL</td></tr>
+          <tr class="border-b border-kumo-line"><td class="px-3 py-2"><code class="text-sm">it</code></td><td class="px-3 py-2">Italiano</td><td class="px-3 py-2">LTR</td></tr>
+          <tr class="border-b border-kumo-line"><td class="px-3 py-2"><code class="text-sm">ja</code></td><td class="px-3 py-2">日本語</td><td class="px-3 py-2">LTR</td></tr>
+          <tr class="border-b border-kumo-line"><td class="px-3 py-2"><code class="text-sm">ko</code></td><td class="px-3 py-2">한국어</td><td class="px-3 py-2">LTR</td></tr>
+          <tr class="border-b border-kumo-line"><td class="px-3 py-2"><code class="text-sm">pt</code></td><td class="px-3 py-2">Português</td><td class="px-3 py-2">LTR</td></tr>
+          <tr class="border-b border-kumo-line"><td class="px-3 py-2"><code class="text-sm">zh-CN</code></td><td class="px-3 py-2">简体中文</td><td class="px-3 py-2">LTR</td></tr>
+          <tr><td class="px-3 py-2"><code class="text-sm">zh-TW</code></td><td class="px-3 py-2">繁體中文</td><td class="px-3 py-2">LTR</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </ComponentSection>
+
+  <!-- Quick Start -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Quick Start</h2>
+    <p class="mb-4 text-kumo-strong">
+      Kumo reads the <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">&lt;html lang&gt;</code> attribute to determine the active locale. Set it to a supported BCP 47 code:
+    </p>
+    <CodeBlock
+      code={`<!-- Your HTML -->
+<html lang="es">
+  <!-- All Kumo components render in Spanish -->
+</html>`}
+      lang="html"
+    />
+    <p class="mt-4 mb-4 text-kumo-strong">
+      If your app changes locale at runtime, mutate the attribute — Kumo components re-render automatically via a <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">MutationObserver</code>:
+    </p>
+    <CodeBlock
+      code={`document.documentElement.lang = "fr"; // Components re-render in French`}
+      lang="ts"
+    />
+  </ComponentSection>
+
+  <!-- Locale Resolution -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Locale Resolution</h2>
+    <p class="mb-4 text-kumo-strong">
+      The locale is resolved in this order:
+    </p>
+    <ol class="mb-4 list-inside list-decimal space-y-1 text-kumo-strong">
+      <li>Nearest <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoLocaleProvider</code> <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">locale</code> prop</li>
+      <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">&lt;html lang&gt;</code> attribute</li>
+      <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">navigator.language</code></li>
+      <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"en"</code> (default)</li>
+    </ol>
+    <CodeBlock
+      code={`import { KumoLocaleProvider } from "@cloudflare/kumo";
+
+// Force a subtree to use a specific locale
+<KumoLocaleProvider locale="de">
+  <MyComponent /> {/* Renders in German */}
+</KumoLocaleProvider>`}
+      lang="tsx"
+    />
+  </ComponentSection>
+
+  <!-- Translation Resolution -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Translation Resolution</h2>
+    <p class="mb-4 text-kumo-strong">
+      Once a locale is determined, Kumo resolves the translation object:
+    </p>
+    <ol class="mb-4 list-inside list-decimal space-y-1 text-kumo-strong">
+      <li><strong>Exact match</strong> — <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"zh-CN"</code> finds the <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">zh-CN</code> translation</li>
+      <li><strong>Language prefix</strong> ��� <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"es-PE"</code> falls back to <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">es</code></li>
+      <li><strong>Fallback</strong> — English (the first registered translation)</li>
+    </ol>
+  </ComponentSection>
+
+  <!-- RTL Support -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">RTL Support</h2>
+    <p class="mb-4 text-kumo-strong">
+      Kumo uses CSS logical properties throughout, so layouts automatically mirror in RTL mode.
+      Set <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">dir="rtl"</code> on a parent element:
+    </p>
+    <CodeBlock
+      code={`<html lang="ar" dir="rtl">
+  <!-- All Kumo components render right-to-left -->
+</html>`}
+      lang="html"
+    />
+    <p class="mt-4 mb-4 text-kumo-strong">
+      You can also scope RTL to a subtree using <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">DirectionProvider</code>:
+    </p>
+    <CodeBlock
+      code={`import { DirectionProvider } from "@cloudflare/kumo";
+
+<DirectionProvider direction="rtl">
+  <MyArabicSection />
+</DirectionProvider>`}
+      lang="tsx"
+    />
+    <Callout type="info">
+      Components use logical CSS properties like <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ps-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pe-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">start-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">end-*</code> instead of <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pl-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pr-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">left-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">right-*</code>. This is enforced by lint rules.
+    </Callout>
+  </ComponentSection>
+
+  <!-- Custom Locales -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Custom Locales</h2>
+    <p class="mb-4 text-kumo-strong">
+      Register additional translations using <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">registerTranslation</code>:
+    </p>
+    <CodeBlock
+      code={`import { registerTranslation } from "@cloudflare/kumo";
+import type { KumoTranslation } from "@cloudflare/kumo";
+
+const th: KumoTranslation = {
+  $code: "th",
+  $name: "ไทย",
+  $dir: "ltr",
+  close: "ปิด",
+  copy: "คัดลอก",
+  // ... all other keys
+};
+
+registerTranslation(th);`}
+      lang="ts"
+    />
+    <Callout type="warning">
+      You must provide <strong>all</strong> keys in the <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoTranslation</code> interface. TypeScript will enforce completeness at compile time.
+    </Callout>
+  </ComponentSection>
+
+  <!-- API Reference -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">API Reference</h2>
+    <div class="space-y-6">
+      <div>
+        <h3 class="mb-2 text-lg font-semibold"><code class="text-base">useLocalize()</code></h3>
+        <p class="mb-2 text-kumo-strong">React hook providing localized term lookup and Intl formatting.</p>
+        <CodeBlock
+          code={`const { term, date, number, lang, dir } = useLocalize();
+
+term("close")                    // "Close"
+term("showing-range", 1, 10, 50) // "Showing 1-10 of 50"
+date(new Date(), { month: "long" }) // "March"
+number(1234.5)                   // "1,234.5"
+lang()                           // "en"
+dir()                            // "ltr"`}
+          lang="ts"
+        />
+      </div>
+      <div>
+        <h3 class="mb-2 text-lg font-semibold"><code class="text-base">KumoLocaleProvider</code></h3>
+        <p class="mb-2 text-kumo-strong">Override locale detection for a subtree. Nestable — innermost wins.</p>
+        <CodeBlock
+          code={`<KumoLocaleProvider locale="ja">
+  {/* All useLocalize() calls resolve to Japanese */}
+</KumoLocaleProvider>`}
+          lang="tsx"
+        />
+      </div>
+      <div>
+        <h3 class="mb-2 text-lg font-semibold"><code class="text-base">DirectionProvider</code></h3>
+        <p class="mb-2 text-kumo-strong">Provide explicit text direction for a subtree. Nestable — innermost wins.</p>
+        <CodeBlock
+          code={`<DirectionProvider direction="rtl">
+  {/* useDirection() returns "rtl" */}
+</DirectionProvider>`}
+          lang="tsx"
+        />
+      </div>
+      <div>
+        <h3 class="mb-2 text-lg font-semibold"><code class="text-base">registerTranslation()</code></h3>
+        <p class="mb-2 text-kumo-strong">Register one or more translation objects. The first translation registered becomes the fallback.</p>
+        <CodeBlock
+          code={`import { registerTranslation } from "@cloudflare/kumo";
+registerTranslation(myLocale);`}
+          lang="ts"
+        />
+      </div>
+    </div>
+  </ComponentSection>
+
+  <!-- Labels Props Interaction -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Labels Props Interaction</h2>
+    <p class="mb-4 text-kumo-strong">
+      Some components accept a <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">labels</code> prop for one-off string overrides.
+      When provided, the prop value takes precedence over the localized default:
+    </p>
+    <CodeBlock
+      code={`// Uses localized default from active locale
+<ClipboardText value="npm install @cloudflare/kumo" />
+
+// Override specific labels
+<ClipboardText
+  value="npm install @cloudflare/kumo"
+  labels={{ copy: "Copy command", copied: "Done!" }}
+/>`}
+      lang="tsx"
+    />
+    <Callout type="info">
+      The <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">labels</code> prop is optional. If omitted, the component falls back to the localized translation. If provided, prop values win for the specified keys.
+    </Callout>
+  </ComponentSection>
+
+  <!-- SSR Considerations -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">SSR Considerations</h2>
+    <p class="mb-4 text-kumo-strong">
+      During server-side rendering, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">useLocalize()</code> defaults to <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"en"</code> because <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">document</code> and <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">navigator</code> are not available.
+    </p>
+    <p class="mb-4 text-kumo-strong">
+      To match the server-rendered locale with the client, use <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoLocaleProvider</code>:
+    </p>
+    <CodeBlock
+      code={`// In your SSR entry point, pass the locale from the request
+<KumoLocaleProvider locale={requestLocale}>
+  <App />
+</KumoLocaleProvider>`}
+      lang="tsx"
+    />
+  </ComponentSection>
+</DocLayout>

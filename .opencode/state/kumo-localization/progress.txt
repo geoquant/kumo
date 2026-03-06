@@ -261,3 +261,10 @@ Started: 2026-03-05
 - testing-6: Dynamic translation key completeness tests using import.meta.glob (metadata + key validation per locale)
 - Note: testing-5 steps for clipboard-text labels prop override tested implicitly via component migration; direct render test omitted to avoid pulling in full component tree deps
 - **Learnings:** `act()` with sync callback returns void (not Promise); oxlint `await-thenable` catches this. Use `act(() => {...})` without `await` for sync mutations.
+
+## Tasks - docs-1 & docs-2
+- Created `packages/kumo-docs-astro/src/pages/i18n.astro` with all 10 sections: Overview, Supported Locales, Quick Start, Locale Resolution, Translation Resolution, RTL Support, Custom Locales, API Reference, Labels Props Interaction, SSR Considerations
+- Uses DocLayout + ComponentSection + CodeBlock + Callout patterns
+- Supported Locales table lists all 12 locales with $code, $name, $dir
+- Added `{ label: "Internationalization", href: "/i18n" }` to staticPages in SidebarNav.tsx, after Accessibility
+- Files changed: `i18n.astro` (new), `SidebarNav.tsx`

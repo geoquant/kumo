@@ -393,58 +393,6 @@
       "passes": true
     },
     {
-      "id": "testing-3",
-      "category": "testing",
-      "description": "Unit tests for useLocalize() \u2014 term lookup, date/number formatting, type safety",
-      "steps": [
-        "Test: term('close') returns 'Close' for English locale",
-        "Test: term('showing-range', 1, 10, 100) returns 'Showing 1-10 of 100'",
-        "Test: date() formats using resolved locale",
-        "Test: number() formats using resolved locale",
-        "Test: lang() returns resolved locale code",
-        "Test: dir() returns $dir from resolved translation",
-        "pnpm --filter @cloudflare/kumo test passes"
-      ],
-      "passes": false
-    },
-    {
-      "id": "testing-4",
-      "category": "testing",
-      "description": "Unit tests for DirectionProvider and useDirection()",
-      "steps": [
-        "Test: useDirection() returns 'ltr' when no provider present",
-        "Test: useDirection() returns 'rtl' when wrapped in DirectionProvider direction='rtl'",
-        "Test: nested DirectionProviders \u2014 innermost wins",
-        "pnpm --filter @cloudflare/kumo test passes"
-      ],
-      "passes": false
-    },
-    {
-      "id": "testing-5",
-      "category": "testing",
-      "description": "Integration tests for KumoLocaleProvider and labels prop interaction",
-      "steps": [
-        "Test: KumoLocaleProvider locale='es' causes child useLocalize() to resolve Spanish",
-        "Test: nested KumoLocaleProviders \u2014 innermost wins",
-        "Test: clipboard-text without labels prop uses localized default",
-        "Test: clipboard-text with labels prop uses prop value (override wins)",
-        "pnpm --filter @cloudflare/kumo test passes"
-      ],
-      "passes": false
-    },
-    {
-      "id": "testing-6",
-      "category": "testing",
-      "description": "Snapshot test that all translation files have all required keys",
-      "steps": [
-        "Test iterates all keys of KumoTranslation interface (excluding $code, $name, $dir)",
-        "For each of 12 locale files: asserts key exists OR is in PENDING_STRINGS",
-        "Test fails if a new key is added to KumoTranslation but missing from a locale file without PENDING_STRINGS entry",
-        "pnpm --filter @cloudflare/kumo test passes"
-      ],
-      "passes": false
-    },
-    {
       "id": "docs-1",
       "category": "docs",
       "description": "Create i18n.astro docs page with all 10 sections using DocLayout pattern",
@@ -457,7 +405,7 @@
         "Supported Locales section includes table of 12 locales with $code, $name, $dir",
         "pnpm dev serves /i18n without errors"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-2",
@@ -468,7 +416,7 @@
         "Entry appears after Accessibility in the sidebar order",
         "Sidebar renders the link and navigates to /i18n"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "finalize-1",
