@@ -127,6 +127,52 @@ function normalizeToken(value: string, locale: string): string {
     .toLocaleLowerCase(locale);
 }
 
+function getLocalizedDigitMap(locale: string): ReadonlyMap<string, string> {
+  const formatter = new Intl.NumberFormat(locale, { useGrouping: false });
+  const map = new Map<string, string>();
+
+  for (let digit = 0; digit <= 9; digit += 1) {
+    map.set(normalizeToken(formatter.format(digit), locale), String(digit));
+  }
+
+  return map;
+}
+
+function parseLocalizedYear(
+  rawYear: string,
+  locale: string,
+  localizedDigits: ReadonlyMap<string, string>,
+): number | undefined {
+  const normalizedYear = normalizeToken(rawYear, locale).replace(/\s+/g, "");
+  if (normalizedYear.length === 0) return undefined;
+
+  const isNegative = normalizedYear.startsWith("-");
+  const rawDigits = isNegative ? normalizedYear.slice(1) : normalizedYear;
+  if (rawDigits.length === 0 || rawDigits.length > 6) return undefined;
+
+  let asciiDigits = "";
+
+  for (const char of rawDigits) {
+    const normalizedChar = normalizeToken(char, locale);
+    if (/^\d$/.test(normalizedChar)) {
+      asciiDigits += normalizedChar;
+      continue;
+    }
+
+    const localizedDigit = localizedDigits.get(normalizedChar);
+    if (localizedDigit === undefined) {
+      return undefined;
+    }
+
+    asciiDigits += localizedDigit;
+  }
+
+  const parsedYear = Number.parseInt(asciiDigits, 10);
+  if (!Number.isFinite(parsedYear)) return undefined;
+
+  return isNegative ? -parsedYear : parsedYear;
+}
+
 function getMonthLookup(locale: string): ReadonlyMap<string, number> {
   const lookup = new Map<string, number>();
 
@@ -159,24 +205,34 @@ function parseMonthYearInput(
   locale: string,
   monthLookup: ReadonlyMap<string, number>,
 ): { monthIndex: number; year: number } | undefined {
-  const trimmedInput = input.trim();
-  const matched = /^(.*?)\s+(-?\d{1,6})$/.exec(trimmedInput);
-  if (!matched) {
-    return undefined;
+  const normalizedInput = normalizeToken(input, locale);
+  const localizedDigits = getLocalizedDigitMap(locale);
+
+  for (const [monthToken, monthIndex] of monthLookup.entries()) {
+    if (normalizedInput.startsWith(`${monthToken} `)) {
+      const year = parseLocalizedYear(
+        normalizedInput.slice(monthToken.length),
+        locale,
+        localizedDigits,
+      );
+      if (year !== undefined) {
+        return { monthIndex, year };
+      }
+    }
+
+    if (normalizedInput.endsWith(` ${monthToken}`)) {
+      const year = parseLocalizedYear(
+        normalizedInput.slice(0, -monthToken.length),
+        locale,
+        localizedDigits,
+      );
+      if (year !== undefined) {
+        return { monthIndex, year };
+      }
+    }
   }
 
-  const monthToken = normalizeToken(matched[1], locale);
-  const monthIndex = monthLookup.get(monthToken);
-  if (monthIndex === undefined) {
-    return undefined;
-  }
-
-  const year = Number.parseInt(matched[2], 10);
-  if (!Number.isFinite(year)) {
-    return undefined;
-  }
-
-  return { monthIndex, year };
+  return undefined;
 }
 
 /**

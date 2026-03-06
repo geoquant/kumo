@@ -39,7 +39,7 @@ function isLikelyUserFacingText(value) {
   const text = value.trim();
   if (text.length === 0) return false;
   if (PUNCTUATION_ONLY_RE.test(text)) return false;
-  return /[A-Za-z]/.test(text);
+  return /\p{L}/u.test(text);
 }
 
 function isAllowedUnlocalizedString(value) {
@@ -63,54 +63,6 @@ function isTermCallee(callee) {
   }
 
   return false;
-}
-
-function hasTermCall(node) {
-  if (!node) return false;
-
-  switch (node.type) {
-    case "CallExpression": {
-      if (isTermCallee(node.callee)) return true;
-      if (hasTermCall(node.callee)) return true;
-      for (const arg of node.arguments) {
-        if (arg.type === "SpreadElement") {
-          if (hasTermCall(arg.argument)) return true;
-          continue;
-        }
-        if (hasTermCall(arg)) return true;
-      }
-      return false;
-    }
-    case "TemplateLiteral": {
-      return node.expressions.some((expr) => hasTermCall(expr));
-    }
-    case "BinaryExpression":
-    case "LogicalExpression": {
-      return hasTermCall(node.left) || hasTermCall(node.right);
-    }
-    case "ConditionalExpression": {
-      return (
-        hasTermCall(node.test) ||
-        hasTermCall(node.consequent) ||
-        hasTermCall(node.alternate)
-      );
-    }
-    case "UnaryExpression":
-    case "UpdateExpression": {
-      return hasTermCall(node.argument);
-    }
-    case "ArrayExpression": {
-      return node.elements.some((element) => element && hasTermCall(element));
-    }
-    case "ObjectExpression": {
-      return node.properties.some((prop) => {
-        if (prop.type !== "Property") return false;
-        return hasTermCall(prop.key) || hasTermCall(prop.value);
-      });
-    }
-    default:
-      return false;
-  }
 }
 
 function collectStringLiterals(node, out) {
@@ -141,7 +93,6 @@ function collectStringLiterals(node, out) {
       return;
     }
     case "ConditionalExpression": {
-      collectStringLiterals(node.test, out);
       collectStringLiterals(node.consequent, out);
       collectStringLiterals(node.alternate, out);
       return;
@@ -160,13 +111,15 @@ function collectStringLiterals(node, out) {
     case "ObjectExpression": {
       for (const prop of node.properties) {
         if (prop.type !== "Property") continue;
-        collectStringLiterals(prop.key, out);
         collectStringLiterals(prop.value, out);
       }
       return;
     }
     case "CallExpression": {
-      collectStringLiterals(node.callee, out);
+      if (isTermCallee(node.callee)) {
+        return;
+      }
+
       for (const arg of node.arguments) {
         if (arg.type === "SpreadElement") {
           collectStringLiterals(arg.argument, out);
@@ -229,8 +182,6 @@ export const noUnlocalizedStringsRule = defineRule({
         }
 
         if (node.value.type !== "JSXExpressionContainer") return;
-
-        if (hasTermCall(node.value.expression)) return;
 
         const strings = [];
         collectStringLiterals(node.value.expression, strings);

@@ -4,6 +4,9 @@
 **Effort:** XL (3-5 days)
 **Date:** 2026-03-05
 
+> Implementation note: English is the canonical translation set. Non-English
+> locale bundles can fall back to English per-key until overrides are added.
+
 ## Problem Statement
 
 **Who:** Kumo consumers building products for non-English markets; screen reader users in non-English locales

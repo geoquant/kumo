@@ -19,7 +19,7 @@ const fakeEn: KumoTranslation = {
   "copied-to-clipboard": "Copied to clipboard",
   loading: "Loading",
   "no-results-found": "No results found",
-  optional: "(optional)",
+  optional: "optional",
   "more-information": "More information",
   cancel: "Cancel",
   "first-page": "First page",

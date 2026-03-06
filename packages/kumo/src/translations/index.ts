@@ -1,13 +1,7 @@
 /**
- * Eagerly registers all 12 Kumo translation locales.
+ * Built-in Kumo translation locales.
  *
- * **English is registered first** so it becomes the fallback when no
- * match is found during locale resolution.
- *
- * Import this module for its side-effect:
- * ```ts
- * import "../translations/index.js";
- * ```
+ * English is first so it remains the fallback locale.
  */
 import { registerTranslation } from "../localize/registry";
 
@@ -24,5 +18,25 @@ import pt from "./pt";
 import zhCN from "./zh-CN";
 import zhTW from "./zh-TW";
 
-// English first — it becomes the fallback for unmatched locales.
-registerTranslation(en, ar, de, es, fr, he, it, ja, ko, pt, zhCN, zhTW);
+const BUILTIN_TRANSLATIONS = [
+  en,
+  ar,
+  de,
+  es,
+  fr,
+  he,
+  it,
+  ja,
+  ko,
+  pt,
+  zhCN,
+  zhTW,
+] as const;
+
+let registered = false;
+
+export function registerBuiltInTranslations(): void {
+  if (registered) return;
+  registerTranslation(...BUILTIN_TRANSLATIONS);
+  registered = true;
+}

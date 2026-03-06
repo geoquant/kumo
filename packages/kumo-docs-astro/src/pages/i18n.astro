@@ -8,23 +8,27 @@ import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
 
 <DocLayout
   title="Internationalization"
-  description="Kumo provides a built-in localization system with 12 locales, RTL support, and type-safe translation lookups."
+  description="Kumo provides a built-in localization system with 12 locale bundles, RTL support, and type-safe translation lookups."
 >
   <!-- Overview -->
   <ComponentSection>
     <h2 class="mb-4 text-2xl font-bold">Overview</h2>
     <p class="mb-4 text-kumo-strong">
-      Kumo ships with a lightweight i18n system that localizes all built-in UI
-      strings. The system is designed to be zero-config for most use cases:
+      Kumo ships with a lightweight i18n system for built-in UI strings. The
+      system is designed to be zero-config for most use cases:
     </p>
     <ul class="mb-4 list-inside list-disc space-y-1 text-kumo-strong">
-      <li>12 built-in locales registered automatically on import</li>
+      <li>12 built-in locale bundles registered automatically on import</li>
       <li>Locale detected from <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">&lt;html lang&gt;</code> attribute (reactive)</li>
       <li>RTL support via logical CSS properties</li>
       <li>Provider-scoped controls for aliasing, diagnostics, and direction</li>
       <li>Type-safe translation keys with parameterized string support</li>
       <li>Override any string via component <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">labels</code> props</li>
     </ul>
+    <p class="mb-4 text-kumo-strong">
+      English is the canonical source for all terms. Other locale bundles may
+      fall back to English for keys that are not yet overridden.
+    </p>
   </ComponentSection>
 
   <!-- Supported Locales -->
@@ -76,7 +80,7 @@ import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
     <CodeBlock
       code={`<!-- Your HTML -->
 <html lang="es">
-  <!-- All Kumo components render in Spanish -->
+  <!-- Kumo resolves locale as "es" for this document -->
 </html>`}
       lang="tsx"
     />
@@ -84,7 +88,7 @@ import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
       If your app changes locale at runtime, mutate the attribute — Kumo components re-render automatically via a <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">MutationObserver</code>:
     </p>
     <CodeBlock
-      code={`document.documentElement.lang = "fr"; // Components re-render in French`}
+      code={`document.documentElement.lang = "fr"; // Components re-render with locale "fr"`}
       lang="ts"
     />
   </ComponentSection>
@@ -105,7 +109,7 @@ import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
 
 // Force a subtree to use a specific locale
 <KumoLocaleProvider locale="de">
-  <MyComponent /> {/* Renders in German */}
+  <MyComponent /> {/* Locale resolves as "de" */}
 </KumoLocaleProvider>`}
       lang="tsx"
     />
@@ -161,7 +165,7 @@ import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
     </ol>
     <div class="mt-4 space-y-4">
       <Callout type="info">
-        Fallback is non-breaking: unknown locales still render via fallback translation, and missing keys resolve per-key from English.
+        Fallback is non-breaking: unknown locales still render via fallback translation, and missing keys always resolve per-key from English.
       </Callout>
       <Callout type="warning">
         Unknown locale diagnostics classify failures as <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">invalid</code> (bad BCP 47 token) or <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">unsupported</code> (valid token, no matching translation).
@@ -282,7 +286,7 @@ dir()                            // "ltr"`}
       </div>
       <div>
         <h3 class="mb-2 text-lg font-semibold"><code class="text-base">registerTranslation()</code></h3>
-        <p class="mb-2 text-kumo-strong">Register one or more translation objects. The first translation registered becomes the fallback.</p>
+        <p class="mb-2 text-kumo-strong">Register one or more translation objects. English remains the default fallback unless you override provider fallback settings.</p>
         <CodeBlock
           code={`import { registerTranslation } from "@cloudflare/kumo";
 registerTranslation(myLocale);`}

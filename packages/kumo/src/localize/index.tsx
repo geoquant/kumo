@@ -12,9 +12,9 @@ import type { KumoTranslation } from "./types.js";
 import { useLocale } from "./use-locale.js";
 import { DirectionProvider, type Direction } from "./direction.js";
 import { resolveLocale } from "./resolve-locale.js";
+import { registerBuiltInTranslations } from "../translations/index.js";
 
-// Side-effect: eagerly register all 12 built-in translations.
-import "../translations/index.js";
+registerBuiltInTranslations();
 
 // Re-exports for public API
 export { registerTranslation } from "./registry.js";
