@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 
@@ -24,9 +25,11 @@ export type { KumoTranslation } from "./types.js";
 /**
  * Translation keys whose value is a string (not a function).
  */
+type TermKey = Exclude<Extract<keyof KumoTranslation, string>, `$${string}`>;
+
 type SimpleKey = {
-  [K in keyof KumoTranslation]: KumoTranslation[K] extends string ? K : never;
-}[keyof KumoTranslation];
+  [K in TermKey]: KumoTranslation[K] extends string ? K : never;
+}[TermKey];
 
 /**
  * Translation keys whose value is a function returning a string.
@@ -35,8 +38,10 @@ type SimpleKey = {
  * contravariance issues with function parameter types.
  */
 type ParameterizedKey = {
-  [K in keyof KumoTranslation]: KumoTranslation[K] extends string ? never : K;
-}[keyof KumoTranslation];
+  [K in TermKey]: KumoTranslation[K] extends (...args: infer _A) => string
+    ? K
+    : never;
+}[TermKey];
 
 /**
  * Extract the parameter types from a parameterized translation key.
@@ -332,8 +337,10 @@ export function useLocalize(): LocalizeResult {
     [inputLocale, localeAliases],
   );
   const resolvedLocale = localeResolution.effectiveLocale;
-
-  const resolution = resolveTranslation(resolvedLocale, { fallbackLocale });
+  const resolution = useMemo(
+    () => resolveTranslation(resolvedLocale, { fallbackLocale }),
+    [fallbackLocale, resolvedLocale],
+  );
 
   const unknownLocaleDiagnostic = useMemo<
     UnknownLocaleDiagnostic | undefined
@@ -364,15 +371,29 @@ export function useLocalize(): LocalizeResult {
     localeResolution.inputLocale,
     localeResolution.isInvalid,
     localeResolution.normalizedLocale,
-    resolution,
+    fallbackLocale,
+    resolution.matchedBy,
+    resolution.translation,
     resolvedLocale,
   ]);
 
+  const lastUnknownLocaleCallbackKeyRef = useRef<string | undefined>(undefined);
+
   useEffect(() => {
-    if (unknownLocaleDiagnostic === undefined) return;
-    if (config?.onUnknownLocale !== undefined) {
-      config.onUnknownLocale(unknownLocaleDiagnostic);
+    if (unknownLocaleDiagnostic === undefined) {
+      lastUnknownLocaleCallbackKeyRef.current = undefined;
+      return;
     }
+
+    const callbackKey = `${unknownLocaleDiagnostic.reason}|${unknownLocaleDiagnostic.inputLocale}|${unknownLocaleDiagnostic.normalizedLocale}|${unknownLocaleDiagnostic.resolvedTranslationCode}`;
+
+    if (config?.onUnknownLocale !== undefined) {
+      if (lastUnknownLocaleCallbackKeyRef.current !== callbackKey) {
+        config.onUnknownLocale(unknownLocaleDiagnostic);
+      }
+    }
+
+    lastUnknownLocaleCallbackKeyRef.current = callbackKey;
 
     if (config?.warnOnUnknownLocale !== true) return;
 

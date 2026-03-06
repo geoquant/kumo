@@ -808,6 +808,25 @@ describe("KumoLocaleProvider", () => {
     });
   });
 
+  it("does not call onUnknownLocale again when rerendered with same unknown locale", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+    const onUnknownLocale = vi.fn();
+
+    const tree = createElement(KumoLocaleProvider, {
+      locale: "fr-CA",
+      onUnknownLocale,
+      children: createElement(LocalizeConsumer, {
+        render: (r) => r.term("close"),
+      }),
+    });
+
+    const { rerender } = render(tree);
+    rerender(tree);
+
+    expect(onUnknownLocale).toHaveBeenCalledTimes(1);
+  });
+
   it("warns once per normalized unknown locale per runtime", () => {
     _resetRegistry();
     registerTranslation(fakeEn, fakeEs);

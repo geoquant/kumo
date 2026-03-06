@@ -133,7 +133,7 @@ export interface PaginationPageSizeProps {
   /** Callback when page size changes */
   onChange: (size: number) => void;
   /** Available page size options */
-  options?: number[];
+  options?: readonly number[];
   /** Label text shown before the selector */
   label?: ReactNode;
   /** Additional CSS classes */
@@ -143,7 +143,7 @@ export interface PaginationPageSizeProps {
 function PaginationPageSize({
   value,
   onChange,
-  options = DEFAULT_PAGE_SIZE_OPTIONS as unknown as number[],
+  options = DEFAULT_PAGE_SIZE_OPTIONS,
   label,
   className,
 }: PaginationPageSizeProps) {
@@ -161,7 +161,10 @@ function PaginationPageSize({
       <Select
         label={term("page-size")}
         value={value}
-        onValueChange={(v) => onChange(v as number)}
+        onValueChange={(nextValue) => {
+          if (typeof nextValue !== "number") return;
+          onChange(nextValue);
+        }}
       >
         {options.map((size) => (
           <Select.Option key={size} value={size}>

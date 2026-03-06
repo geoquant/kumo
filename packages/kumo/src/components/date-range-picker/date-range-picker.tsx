@@ -119,6 +119,66 @@ function getDaysOfWeek(locale: string): readonly string[] {
   });
 }
 
+function normalizeToken(value: string, locale: string): string {
+  return value
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase(locale);
+}
+
+function getMonthLookup(locale: string): ReadonlyMap<string, number> {
+  const lookup = new Map<string, number>();
+
+  for (let monthIndex = 0; monthIndex < 12; monthIndex += 1) {
+    const date = new Date(2026, monthIndex, 1);
+    const longName = new Intl.DateTimeFormat(locale, { month: "long" }).format(
+      date,
+    );
+    const shortName = new Intl.DateTimeFormat(locale, {
+      month: "short",
+    }).format(date);
+
+    const normalizedLongName = normalizeToken(longName, locale);
+    const normalizedShortName = normalizeToken(shortName, locale);
+
+    if (!lookup.has(normalizedLongName)) {
+      lookup.set(normalizedLongName, monthIndex);
+    }
+
+    if (!lookup.has(normalizedShortName)) {
+      lookup.set(normalizedShortName, monthIndex);
+    }
+  }
+
+  return lookup;
+}
+
+function parseMonthYearInput(
+  input: string,
+  locale: string,
+  monthLookup: ReadonlyMap<string, number>,
+): { monthIndex: number; year: number } | undefined {
+  const trimmedInput = input.trim();
+  const matched = /^(.*?)\s+(-?\d{1,6})$/.exec(trimmedInput);
+  if (!matched) {
+    return undefined;
+  }
+
+  const monthToken = normalizeToken(matched[1], locale);
+  const monthIndex = monthLookup.get(monthToken);
+  if (monthIndex === undefined) {
+    return undefined;
+  }
+
+  const year = Number.parseInt(matched[2], 10);
+  if (!Number.isFinite(year)) {
+    return undefined;
+  }
+
+  return { monthIndex, year };
+}
+
 /**
  * DateRangePicker component props.
  *
@@ -302,8 +362,8 @@ export function DateRangePicker({
             month={getMonthName(viewingMonth)}
             year={getDateYear(viewingMonth)}
             size={size}
-            updateCurrentMonth={(dateString) => {
-              setViewingMonth(new Date(dateString));
+            updateCurrentMonth={({ monthIndex, year }) => {
+              setViewingMonth(new Date(year, monthIndex, 1));
             }}
           />
 
@@ -403,10 +463,8 @@ export function DateRangePicker({
             month={getMonthName(viewingMonth, 1)}
             year={getDateYear(viewingMonth, 1)}
             size={size}
-            updateCurrentMonth={(dateString) => {
-              const date = new Date(dateString);
-              date.setMonth(date.getMonth() - 1);
-              setViewingMonth(date);
+            updateCurrentMonth={({ monthIndex, year }) => {
+              setViewingMonth(new Date(year, monthIndex - 1, 1));
             }}
           />
 
@@ -612,11 +670,18 @@ function DateRangeMonthHeader({
   month?: string;
   year?: number;
   size?: KumoDateRangePickerSize;
-  updateCurrentMonth?: (dateString: string) => void;
+  updateCurrentMonth?: (nextMonth: {
+    monthIndex: number;
+    year: number;
+  }) => void;
 }) {
   const { term, lang } = useLocalize();
   const resolvedLocale = lang();
   const sizeConfig = getSizeConfig(size);
+  const monthLookup = useMemo(
+    () => getMonthLookup(resolvedLocale),
+    [resolvedLocale],
+  );
 
   const daysOfWeek = useMemo(
     () => getDaysOfWeek(resolvedLocale),
@@ -636,7 +701,13 @@ function DateRangeMonthHeader({
           )}
           onBlur={(e) => {
             if (e.currentTarget.value.length === 0) return;
-            updateCurrentMonth?.(e.currentTarget.value);
+            const parsedMonth = parseMonthYearInput(
+              e.currentTarget.value,
+              resolvedLocale,
+              monthLookup,
+            );
+            if (parsedMonth === undefined) return;
+            updateCurrentMonth?.(parsedMonth);
           }}
         />
       </div>
