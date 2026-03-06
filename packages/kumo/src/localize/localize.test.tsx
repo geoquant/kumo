@@ -682,8 +682,10 @@ describe("translation key completeness", () => {
 
   // For each locale file (excluding index.ts), check key completeness
   for (const [path, mod] of Object.entries(localeModules)) {
-    // Skip index.ts (it's a registration side-effect, not a translation)
-    if (path.endsWith("/index.ts")) continue;
+    // Skip helper modules; only locale translation objects are tested.
+    if (path.endsWith("/index.ts") || path.endsWith("/create-translation.ts")) {
+      continue;
+    }
 
     const fileName = path.split("/").pop();
     const translation = mod.default;
@@ -694,12 +696,7 @@ describe("translation key completeness", () => {
       expect(["ltr", "rtl"]).toContain(translation.$dir);
     });
 
-    it(`${fileName} has all translation keys or uses PENDING_STRINGS`, () => {
-      // If a locale uses Omit<KumoTranslation, PendingStrings> + cast,
-      // the missing keys won't exist at runtime. That's acceptable IF
-      // the file explicitly declares PendingStrings. The runtime fallback
-      // in getTranslation handles this. Here we just verify the key is
-      // either present or the file is a known stub with metadata only.
+    it(`${fileName} has all translation keys`, () => {
       const presentKeys = Object.keys(translation).filter(
         (k) => !METADATA_KEYS.has(k),
       );
@@ -714,7 +711,8 @@ describe("translation key completeness", () => {
         }
       }
 
-      // Non-English: every key present must be a valid translation key
+      // Non-English: every key present must be a valid translation key.
+      // Locales now include complete key sets via English-backed helper.
       for (const key of presentKeys) {
         expect(
           allTranslationKeys,
