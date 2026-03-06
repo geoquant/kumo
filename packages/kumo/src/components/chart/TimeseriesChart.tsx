@@ -3,6 +3,7 @@ import type { LineSeriesOption, BarSeriesOption } from "echarts/charts";
 import type { EChartsOption } from "echarts";
 import { useEffect, useMemo, useRef } from "react";
 import { Chart, ChartEvents } from "./EChart";
+import { useLocalize } from "../../localize/index.js";
 
 /** A single data series rendered on a `TimeseriesChart` */
 export interface TimeseriesData {
@@ -110,9 +111,25 @@ export function TimeseriesChart({
   gradient,
   loading,
 }: TimeseriesChartProps) {
+  const { lang } = useLocalize();
   const chartRef = useRef<echarts.ECharts | null>(null);
   const incompleteBefore = incomplete?.before;
   const incompleteAfter = incomplete?.after;
+  const locale = lang();
+
+  const timestampFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "medium",
+      }),
+    [locale],
+  );
+
+  const numberFormatter = useMemo(
+    () => new Intl.NumberFormat(locale),
+    [locale],
+  );
 
   const options = useMemo(() => {
     const transformSeries: Array<LineSeriesOption | BarSeriesOption> = [];
@@ -222,13 +239,18 @@ export function TimeseriesChart({
           const ts = first?.value?.[0] ?? first?.axisValue;
           const header =
             ts != null
-              ? `<div style="font-weight:600;margin-bottom:4px;">${formatTimestamp(ts)}</div>`
+              ? `<div style="font-weight:600;margin-bottom:4px;">${formatTimestamp(ts, timestampFormatter)}</div>`
               : "";
 
           const rows = filteredParams
             .map((param: any) => {
               const value = param?.value?.[1];
-              return `${param.marker} ${param.seriesName}: <strong>${yAxisTickLabelFormat ? yAxisTickLabelFormat(value) : value}</strong>`;
+              const localizedValue = yAxisTickLabelFormat
+                ? yAxisTickLabelFormat(value)
+                : typeof value === "number"
+                  ? numberFormatter.format(value)
+                  : value;
+              return `${param.marker} ${param.seriesName}: <strong>${localizedValue}</strong>`;
             })
             .join("<br/>");
 
@@ -280,6 +302,8 @@ export function TimeseriesChart({
     yAxisTickCount,
     incompleteBefore,
     incompleteAfter,
+    numberFormatter,
+    timestampFormatter,
     type,
     gradient,
     echarts,
@@ -438,16 +462,14 @@ function colorWithOpacity(color: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
-/** Zero-pads a number to two digits (e.g. `5` → `"05"`) */
-function pad(n: number) {
-  return n.toString().padStart(2, "0");
-}
-
 /**
- * Formats a timestamp as `"YYYY-MM-DD HH:mm:ss"` for use in chart tooltips.
+ * Formats a timestamp for chart tooltips using the active locale.
  * Accepts a Unix timestamp in milliseconds, an ISO date string, or a `Date` object.
  */
-function formatTimestamp(ts: number | string | Date): string {
+function formatTimestamp(
+  ts: number | string | Date,
+  formatter: Intl.DateTimeFormat,
+): string {
   const d = new Date(ts);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  return formatter.format(d);
 }
