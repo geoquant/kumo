@@ -3,7 +3,8 @@ import {
   CaretRightIcon,
   GlobeHemisphereWestIcon,
 } from "@phosphor-icons/react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useLocalize } from "../../localize/index.js";
 import { cn } from "../../utils/cn";
 
 /** DateRangePicker size and variant definitions mapping names to their Tailwind classes. */
@@ -105,7 +106,18 @@ enum DateRangeCellMode {
   SELECTED_OUT_OF_RANGE,
 }
 
-const DAYS_OF_WEEK = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
+/**
+ * Derive localized day-of-week abbreviations from Intl.DateTimeFormat.
+ * Week starts Sunday (index 0) to match the grid layout.
+ */
+function getDaysOfWeek(locale: string): readonly string[] {
+  const formatter = new Intl.DateTimeFormat(locale, { weekday: "short" });
+  // Jan 4 2026 is a Sunday — iterate 7 days starting from Sunday
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(2026, 0, 4 + i);
+    return formatter.format(date);
+  });
+}
 
 /**
  * DateRangePicker component props.
@@ -169,6 +181,9 @@ export function DateRangePicker({
   timezone = "New York, NY, USA (GMT-4)",
   className,
 }: DateRangePickerProps) {
+  const { term, lang } = useLocalize();
+  const resolvedLocale = lang();
+
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [viewingMonth, setViewingMonth] = useState<Date>(new Date());
@@ -186,11 +201,14 @@ export function DateRangePicker({
     onEndDateChange(date); // Pass the updated endDate to the parent component
   };
 
-  const getMonthName = useCallback((date: Date, monthOffset?: number) => {
-    const copyDate = new Date(date);
-    copyDate.setMonth(copyDate.getMonth() + (monthOffset || 0));
-    return copyDate.toLocaleString("default", { month: "long" });
-  }, []);
+  const getMonthName = useCallback(
+    (date: Date, monthOffset?: number) => {
+      const copyDate = new Date(date);
+      copyDate.setMonth(copyDate.getMonth() + (monthOffset || 0));
+      return copyDate.toLocaleString(resolvedLocale, { month: "long" });
+    },
+    [resolvedLocale],
+  );
 
   const getDateYear = useCallback((date: Date, monthOffset?: number) => {
     const copyDate = new Date(date);
@@ -273,7 +291,7 @@ export function DateRangePicker({
         <div className={cn("relative", sizeConfig.calendarWidth)}>
           <button
             type="button"
-            aria-label="Previous month"
+            aria-label={term("previousMonth")}
             className="absolute top-0 left-0 cursor-pointer rounded bg-kumo-interact/85 p-1.5 hover:bg-kumo-interact"
             onClick={() => adjustMonth(-1)}
           >
@@ -302,57 +320,57 @@ export function DateRangePicker({
                     getDateFromIndex(viewingMonth, 0, index) >= startDate &&
                     getDateFromIndex(viewingMonth, 0, index) <= endDate &&
                     index >
-                    getNumberOfDaysInMonth(viewingMonth, 0) +
-                    getMonthsStartingDay(viewingMonth, 0) -
-                    1) ||
-                    // Before current month range
-                    (startDate &&
-                      endDate &&
-                      getDateFromIndex(viewingMonth, 0, index) >= startDate &&
-                      getDateFromIndex(viewingMonth, 0, index) <= endDate &&
-                      index < getMonthsStartingDay(viewingMonth, 0))
+                      getNumberOfDaysInMonth(viewingMonth, 0) +
+                        getMonthsStartingDay(viewingMonth, 0) -
+                        1) ||
+                  // Before current month range
+                  (startDate &&
+                    endDate &&
+                    getDateFromIndex(viewingMonth, 0, index) >= startDate &&
+                    getDateFromIndex(viewingMonth, 0, index) <= endDate &&
+                    index < getMonthsStartingDay(viewingMonth, 0))
                     ? DateRangeCellMode.SELECTED_OUT_OF_RANGE
                     : // Before current month range
-                    index < getMonthsStartingDay(viewingMonth, 0)
+                      index < getMonthsStartingDay(viewingMonth, 0)
                       ? DateRangeCellMode.OUT_OF_RANGE
                       : // After current month range
-                      index >
-                        getNumberOfDaysInMonth(viewingMonth, 0) +
-                        getMonthsStartingDay(viewingMonth, 0) -
-                        1
+                        index >
+                          getNumberOfDaysInMonth(viewingMonth, 0) +
+                            getMonthsStartingDay(viewingMonth, 0) -
+                            1
                         ? DateRangeCellMode.OUT_OF_RANGE
                         : // Selected start date
-                        isDateEqual(
-                          getDateFromIndex(viewingMonth, 0, index),
-                          startDate,
-                        )
+                          isDateEqual(
+                              getDateFromIndex(viewingMonth, 0, index),
+                              startDate,
+                            )
                           ? DateRangeCellMode.SELECTED_START_NODE
                           : // Selected end date
-                          isDateEqual(
-                            getDateFromIndex(viewingMonth, 0, index),
-                            endDate,
-                          )
+                            isDateEqual(
+                                getDateFromIndex(viewingMonth, 0, index),
+                                endDate,
+                              )
                             ? DateRangeCellMode.SELECTED_END_NODE
                             : // Selected date range
-                            startDate &&
-                              getDateFromIndex(viewingMonth, 0, index) >=
                               startDate &&
-                              endDate &&
-                              getDateFromIndex(viewingMonth, 0, index) <=
-                              endDate
+                                getDateFromIndex(viewingMonth, 0, index) >=
+                                  startDate &&
+                                endDate &&
+                                getDateFromIndex(viewingMonth, 0, index) <=
+                                  endDate
                               ? DateRangeCellMode.SELECTED
                               : // Hovering past a starting date and no end date selected
-                              startDate &&
-                                !endDate &&
-                                hoveringDate &&
-                                hoveringDate > startDate &&
-                                getDateFromIndex(viewingMonth, 0, index) <=
-                                hoveringDate &&
-                                getDateFromIndex(viewingMonth, 0, index) >
-                                startDate
+                                startDate &&
+                                  !endDate &&
+                                  hoveringDate &&
+                                  hoveringDate > startDate &&
+                                  getDateFromIndex(viewingMonth, 0, index) <=
+                                    hoveringDate &&
+                                  getDateFromIndex(viewingMonth, 0, index) >
+                                    startDate
                                 ? DateRangeCellMode.SELECTED
                                 : // Default to enabled date
-                                DateRangeCellMode.ENABLED
+                                  DateRangeCellMode.ENABLED
                 }
                 onClick={(date) => {
                   if (!startDate || date < startDate) {
@@ -374,7 +392,7 @@ export function DateRangePicker({
         <div className={cn("relative", sizeConfig.calendarWidth)}>
           <button
             type="button"
-            aria-label="Next month"
+            aria-label={term("nextMonth")}
             className="absolute top-0 right-0 cursor-pointer rounded bg-kumo-interact/85 p-1.5 hover:bg-kumo-interact"
             onClick={() => adjustMonth(1)}
           >
@@ -405,57 +423,57 @@ export function DateRangePicker({
                     getDateFromIndex(viewingMonth, 1, index) >= startDate &&
                     getDateFromIndex(viewingMonth, 1, index) <= endDate &&
                     index >
-                    getNumberOfDaysInMonth(viewingMonth, 1) +
-                    getMonthsStartingDay(viewingMonth, 1) -
-                    1) ||
-                    // Before current month range
-                    (startDate &&
-                      endDate &&
-                      getDateFromIndex(viewingMonth, 1, index) >= startDate &&
-                      getDateFromIndex(viewingMonth, 1, index) <= endDate &&
-                      index < getMonthsStartingDay(viewingMonth, 1))
+                      getNumberOfDaysInMonth(viewingMonth, 1) +
+                        getMonthsStartingDay(viewingMonth, 1) -
+                        1) ||
+                  // Before current month range
+                  (startDate &&
+                    endDate &&
+                    getDateFromIndex(viewingMonth, 1, index) >= startDate &&
+                    getDateFromIndex(viewingMonth, 1, index) <= endDate &&
+                    index < getMonthsStartingDay(viewingMonth, 1))
                     ? DateRangeCellMode.SELECTED_OUT_OF_RANGE
                     : // Before current month range
-                    index < getMonthsStartingDay(viewingMonth, 1)
+                      index < getMonthsStartingDay(viewingMonth, 1)
                       ? DateRangeCellMode.OUT_OF_RANGE
                       : // After current month range
-                      index >
-                        getNumberOfDaysInMonth(viewingMonth, 1) +
-                        getMonthsStartingDay(viewingMonth, 1) -
-                        1
+                        index >
+                          getNumberOfDaysInMonth(viewingMonth, 1) +
+                            getMonthsStartingDay(viewingMonth, 1) -
+                            1
                         ? DateRangeCellMode.OUT_OF_RANGE
                         : // Selected start date
-                        isDateEqual(
-                          getDateFromIndex(viewingMonth, 1, index),
-                          startDate,
-                        )
+                          isDateEqual(
+                              getDateFromIndex(viewingMonth, 1, index),
+                              startDate,
+                            )
                           ? DateRangeCellMode.SELECTED_START_NODE
                           : // Selected end date
-                          isDateEqual(
-                            getDateFromIndex(viewingMonth, 1, index),
-                            endDate,
-                          )
+                            isDateEqual(
+                                getDateFromIndex(viewingMonth, 1, index),
+                                endDate,
+                              )
                             ? DateRangeCellMode.SELECTED_END_NODE
                             : // Selected date range
-                            startDate &&
-                              getDateFromIndex(viewingMonth, 1, index) >=
                               startDate &&
-                              endDate &&
-                              getDateFromIndex(viewingMonth, 1, index) <=
-                              endDate
+                                getDateFromIndex(viewingMonth, 1, index) >=
+                                  startDate &&
+                                endDate &&
+                                getDateFromIndex(viewingMonth, 1, index) <=
+                                  endDate
                               ? DateRangeCellMode.SELECTED
                               : // Hovering past a starting date and no end date selected
-                              startDate &&
-                                !endDate &&
-                                hoveringDate &&
-                                hoveringDate > startDate &&
-                                getDateFromIndex(viewingMonth, 1, index) <=
-                                hoveringDate &&
-                                getDateFromIndex(viewingMonth, 1, index) >
-                                startDate
+                                startDate &&
+                                  !endDate &&
+                                  hoveringDate &&
+                                  hoveringDate > startDate &&
+                                  getDateFromIndex(viewingMonth, 1, index) <=
+                                    hoveringDate &&
+                                  getDateFromIndex(viewingMonth, 1, index) >
+                                    startDate
                                 ? DateRangeCellMode.SELECTED
                                 : // Default to enabled date
-                                DateRangeCellMode.ENABLED
+                                  DateRangeCellMode.ENABLED
                 }
                 onClick={(date) => {
                   if (!startDate || date < startDate) {
@@ -501,6 +519,8 @@ function DateRangeDayCell({
   onClick?: (date: Date) => void;
   isHoveringDate?: (date: Date) => void;
 }) {
+  const { term, lang } = useLocalize();
+  const resolvedLocale = lang();
   const sizeConfig = getSizeConfig(size);
 
   const getDateNumberFromDate = useCallback((date: Date) => {
@@ -538,7 +558,7 @@ function DateRangeDayCell({
   }, [mode]);
 
   const getAriaLabel = useCallback(() => {
-    const dateStr = date.toLocaleDateString("en-US", {
+    const dateStr = date.toLocaleDateString(resolvedLocale, {
       weekday: "long",
       month: "long",
       day: "numeric",
@@ -546,15 +566,15 @@ function DateRangeDayCell({
     });
     switch (mode) {
       case DateRangeCellMode.SELECTED_START_NODE:
-        return `${dateStr}, selected as start date`;
+        return term("selectedAsStartDate", dateStr);
       case DateRangeCellMode.SELECTED_END_NODE:
-        return `${dateStr}, selected as end date`;
+        return term("selectedAsEndDate", dateStr);
       case DateRangeCellMode.SELECTED:
-        return `${dateStr}, within selected range`;
+        return term("withinSelectedRange", dateStr);
       default:
         return dateStr;
     }
-  }, [date, mode]);
+  }, [date, mode, resolvedLocale, term]);
 
   return (
     <button
@@ -594,14 +614,21 @@ function DateRangeMonthHeader({
   size?: KumoDateRangePickerSize;
   updateCurrentMonth?: (dateString: string) => void;
 }) {
+  const { term, lang } = useLocalize();
+  const resolvedLocale = lang();
   const sizeConfig = getSizeConfig(size);
+
+  const daysOfWeek = useMemo(
+    () => getDaysOfWeek(resolvedLocale),
+    [resolvedLocale],
+  );
 
   return (
     <div>
       <div className="mb-3 text-center">
         <input
           key={`${month}-${year}`}
-          aria-label="Edit month and year"
+          aria-label={term("editMonthAndYear")}
           defaultValue={`${month} ${year}`}
           className={cn(
             "w-full rounded-md border-none bg-transparent py-1.5 text-center font-semibold text-kumo-default transition-all duration-200 focus:outline-none",
@@ -615,7 +642,7 @@ function DateRangeMonthHeader({
       </div>
 
       <div className="mt-2 grid grid-cols-7 gap-1">
-        {DAYS_OF_WEEK.map((day) => (
+        {daysOfWeek.map((day) => (
           <div
             key={day}
             className={cn(
@@ -641,20 +668,24 @@ function DateRangeFooter({
   size?: KumoDateRangePickerSize;
   reset?: () => void;
 }) {
+  const { term } = useLocalize();
   const sizeConfig = getSizeConfig(size);
 
   return (
     <div
-      className={cn("flex items-center gap-2 text-kumo-strong", sizeConfig.textSize)}
+      className={cn(
+        "flex items-center gap-2 text-kumo-strong",
+        sizeConfig.textSize,
+      )}
     >
       <GlobeHemisphereWestIcon size={sizeConfig.iconSize} />
-      <span className="flex-1">Timezone: {timezone}</span>
+      <span className="flex-1">{term("timezone", timezone ?? "")}</span>
       <button
         type="button"
         onClick={reset}
         className="cursor-pointer font-semibold text-kumo-default underline underline-offset-2"
       >
-        Reset Dates
+        {term("resetDates")}
       </button>
     </div>
   );

@@ -173,7 +173,7 @@
         "Component renders correct English text (no visual change for default locale)",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "migrate-3",

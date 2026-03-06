@@ -11,6 +11,9 @@ Started: 2026-03-05
 - `useSyncExternalStore` pattern for DOM attribute reactivity: lazy observer in `subscribe`, snapshot reads from DOM, server snapshot returns static default
 - Files with JSX must use `.tsx` extension (even non-component modules like `index.tsx` in localize/)
 - **Component migration pattern**: `import { useLocalize } from "../../localize/index.js"` → `const { term } = useLocalize()` at top of component body → replace hardcoded strings with `term("key")` calls
+- **ParameterizedKey type**: Use negation of `string` (`extends string ? never : K`) not function matching (`extends (...args: readonly unknown[]) => string`) — avoids contravariance issues with function parameter types
+- **Sub-component localization**: Each sub-component calls `useLocalize()` independently — no need to thread props from parent. Hook is lightweight (context read + memoized object).
+- **Intl.DateTimeFormat for day abbreviations**: Use `getDaysOfWeek(locale)` with `{ weekday: "short" }` + a known Sunday date (Jan 4 2026) to derive localized day names instead of hardcoded arrays
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -121,3 +124,21 @@ Started: 2026-03-05
   - `"Copied to clipboard"` → `term("copiedToClipboard")` (live region)
 - Files changed: `packages/kumo/src/components/sensitive-input/sensitive-input.tsx`
 - **Learnings:** Migration pattern is straightforward: import `useLocalize`, destructure `{ term }`, replace strings. The `term()` calls are drop-in replacements — no structural changes needed. LSP may show false errors about `.tsx` vs `.ts` resolution but `tsc` resolves correctly.
+
+## Task - migrate-2
+- Migrated `packages/kumo/src/components/date-range-picker/date-range-picker.tsx` to use `useLocalize()` and `Intl.DateTimeFormat`
+- Main component: `const { term, lang } = useLocalize()` — uses both `term()` for strings and `lang()` for locale-aware formatting
+- Replaced hardcoded `"en-US"` and `"default"` locale in `toLocaleDateString`/`toLocaleString` with `resolvedLocale` from `lang()`
+- Replaced module-level `DAYS_OF_WEEK` array with `getDaysOfWeek(locale)` using `Intl.DateTimeFormat({ weekday: "short" })` + Jan 4 2026 (a Sunday)
+- Each sub-component (`DateRangeDayCell`, `DateRangeMonthHeader`, `DateRangeFooter`) calls `useLocalize()` independently
+- Replaced 12 hardcoded strings:
+  - `"Previous month"` / `"Next month"` → `term("previousMonth")` / `term("nextMonth")`
+  - `"Edit month and year"` → `term("editMonthAndYear")`
+  - `"Timezone: {tz}"` → `term("timezone", tz)` (parameterized)
+  - `"Reset Dates"` → `term("resetDates")`
+  - `", selected as start date"` → `term("selectedAsStartDate", dateStr)` (parameterized)
+  - `", selected as end date"` → `term("selectedAsEndDate", dateStr)` (parameterized)
+  - `", within selected range"` → `term("withinSelectedRange", dateStr)` (parameterized)
+- **Fixed `ParameterizedKey` type** in `localize/index.tsx`: changed from `extends (...args: readonly unknown[]) => string` to `extends string ? never : K` — contravariance of function params caused `never` type resolution
+- Files changed: `packages/kumo/src/components/date-range-picker/date-range-picker.tsx`, `packages/kumo/src/localize/index.tsx`
+- **Learnings:** First use of parameterized `term()` calls exposed a type-level bug in `ParameterizedKey`. Function contravariance means `(date: string) => string` does NOT extend `(...args: readonly unknown[]) => string`. Negation pattern (`extends string ? never : K`) is simpler and correct. Sub-components should call `useLocalize()` directly — no prop threading needed.

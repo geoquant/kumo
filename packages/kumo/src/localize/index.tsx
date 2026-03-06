@@ -22,13 +22,12 @@ type SimpleKey = {
 
 /**
  * Translation keys whose value is a function returning a string.
+ *
+ * Uses negation of `string` rather than direct function matching to avoid
+ * contravariance issues with function parameter types.
  */
 type ParameterizedKey = {
-  [K in keyof KumoTranslation]: KumoTranslation[K] extends (
-    ...args: readonly unknown[]
-  ) => string
-    ? K
-    : never;
+  [K in keyof KumoTranslation]: KumoTranslation[K] extends string ? never : K;
 }[keyof KumoTranslation];
 
 /**
