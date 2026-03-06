@@ -3,6 +3,7 @@ import DocLayout from "../layouts/DocLayout.astro";
 import ComponentSection from "../components/docs/ComponentSection.astro";
 import CodeBlock from "../components/docs/CodeBlock.astro";
 import Callout from "../components/docs/Callout.astro";
+import { I18nSwitchGridDemo } from "../components/demos/I18nDemo";
 ---
 
 <DocLayout
@@ -54,6 +55,16 @@ import Callout from "../components/docs/Callout.astro";
         </tbody>
       </table>
     </div>
+  </ComponentSection>
+
+  <!-- Direction and State Matrix -->
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Example</h2>
+    <p class="mb-4 text-kumo-strong">
+      This matrix shows the same four translated switch labels in each quadrant,
+      combining layout direction (<code class="rounded bg-kumo-control px-1 py-0.5 text-sm">LTR</code> / <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">RTL</code>) with label placement (<code class="rounded bg-kumo-control px-1 py-0.5 text-sm">controlFirst=true</code> / <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">controlFirst=false</code>).
+    </p>
+    <I18nSwitchGridDemo client:visible />
   </ComponentSection>
 
   <!-- Quick Start -->
@@ -174,6 +185,10 @@ import Callout from "../components/docs/Callout.astro";
     <p class="mt-4 mb-4 text-kumo-strong">
       You can also scope RTL to a subtree using <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">DirectionProvider</code>:
     </p>
+    <p class="mb-4 text-kumo-strong">
+      Kumo's <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">DirectionProvider</code> is built on Base UI's direction utility.
+      See <a class="underline" href="https://base-ui.com/react/utils/direction-provider" target="_blank" rel="noreferrer">Base UI DirectionProvider docs</a>.
+    </p>
     <CodeBlock
       code={`import { DirectionProvider } from "@cloudflare/kumo";
 
@@ -257,7 +272,7 @@ dir()                            // "ltr"`}
       </div>
       <div>
         <h3 class="mb-2 text-lg font-semibold"><code class="text-base">DirectionProvider</code></h3>
-        <p class="mb-2 text-kumo-strong">Provide explicit text direction for a subtree. Nestable — innermost wins.</p>
+        <p class="mb-2 text-kumo-strong">Provide explicit text direction for a subtree. Built on Base UI's DirectionProvider utility. Nestable — innermost wins.</p>
         <CodeBlock
           code={`<DirectionProvider direction="rtl">
   {/* useDirection() returns "rtl" */}
