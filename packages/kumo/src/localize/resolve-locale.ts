@@ -8,18 +8,6 @@ export interface LocaleResolutionResult {
   readonly isInvalid: boolean;
 }
 
-function normalizeLocale(locale: string): string {
-  const normalizedSeparators = locale.replaceAll("_", "-").trim();
-  if (normalizedSeparators === "") return DEFAULT_LOCALE;
-
-  try {
-    const canonical = Intl.getCanonicalLocales(normalizedSeparators)[0];
-    return canonical ?? DEFAULT_LOCALE;
-  } catch {
-    return DEFAULT_LOCALE;
-  }
-}
-
 function normalizeAliasToken(locale: string): string {
   return locale.replaceAll("_", "-").trim().toLowerCase();
 }
