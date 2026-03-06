@@ -19,3 +19,13 @@ Started: 2026-03-05
 - `$dir` typed as `'ltr' | 'rtl'` union
 - Files changed: `packages/kumo/src/localize/types.ts` (new)
 - **Learnings:** typecheck is package-scoped; kumo package typechecks clean independently of docs errors
+
+## Task - core-2
+- Created `packages/kumo/src/localize/registry.ts` with `registerTranslation()` and `getTranslation()`
+- `registerTranslation()` accepts variadic `KumoTranslation` args, stores in Map keyed by `$code`
+- `getTranslation(lang)` resolves: exact match → language prefix (before first hyphen) → first registered fallback
+- First registered translation tracked via `fallbackCode` variable
+- Multiple calls merge into existing registry (Map.set doesn't clear)
+- `_resetRegistry()` exported for test cleanup
+- Files changed: `packages/kumo/src/localize/registry.ts` (new)
+- **Learnings:** Keep module-level mutable state minimal (one Map + one string); `_resetRegistry` with underscore prefix convention for test-only exports

@@ -28,7 +28,7 @@
         "Multiple calls to registerTranslation() merge (don't replace) the registry",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "core-3",
