@@ -42,7 +42,12 @@ export {
 /**
  * @deprecated Use {@link DatePicker} with `mode="range"` instead.
  */
-export { DateRangePicker } from "./components/date-range-picker";
+export {
+  DateRangePicker,
+  type DateRangeDayAriaLabelContext,
+  type DateRangeDayCellMode,
+  type DateRangePickerAriaLabels,
+} from "./components/date-range-picker";
 export { Checkbox, type CheckboxProps } from "./components/checkbox";
 export { ClipboardText } from "./components/clipboard-text";
 export { Code, CodeBlock } from "./components/code";

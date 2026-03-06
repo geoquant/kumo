@@ -137,16 +137,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>((props, ref) => {
   // A11y enforcement: warn in dev if no accessible name provided
   if (process.env.NODE_ENV !== "production") {
     const hasLabel = Boolean(label);
-    const hasPlaceholderAndAriaLabel = Boolean(
-      inputProps.placeholder && inputProps["aria-label"],
-    );
+    const hasAriaLabel = Boolean(inputProps["aria-label"]);
     const hasAriaLabelledBy = Boolean(inputProps["aria-labelledby"]);
 
-    if (!hasLabel && !hasPlaceholderAndAriaLabel && !hasAriaLabelledBy) {
+    if (!hasLabel && !hasAriaLabel && !hasAriaLabelledBy) {
       console.warn(
         "[Kumo Input]: Input must have an accessible name. Provide either:\n" +
           "  - label prop: <Input label='Email' />\n" +
-          "  - placeholder + aria-label: <Input placeholder='Email' aria-label='Email address' />\n" +
+          "  - aria-label: <Input aria-label='Email address' />\n" +
           "  - aria-labelledby for custom label association",
       );
     }
@@ -195,7 +193,7 @@ Input.displayName = "Input";
  *
  * **Accessible Name Required:** Input should have one of:
  * 1. `label` prop (recommended) - enables Field wrapper with label/description/error
- * 2. `placeholder` + `aria-label` - for bare inputs with visual placeholder
+ * 2. `aria-label` - for bare inputs without visible label
  * 3. `aria-labelledby` - for custom label association
  *
  * Missing accessible names will trigger console warnings in development.
@@ -205,8 +203,8 @@ Input.displayName = "Input";
  * <Input label="Email" placeholder="you@example.com" />
  *
  * @example
- * // Bare input with placeholder and aria-label
- * <Input placeholder="Search..." aria-label="Search products" />
+ * // Bare input with aria-label
+ * <Input aria-label="Search products" />
  *
  * @example
  * // Custom label association
