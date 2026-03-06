@@ -238,6 +238,16 @@ describe("resolveLocale", () => {
     expect(localeResolution.effectiveLocale).toBe("es");
   });
 
+  it("ignores aliases whose target locale is invalid", () => {
+    const localeResolution = resolveLocale("pt-BR", {
+      "pt-BR": "not a locale",
+      pt: "es",
+    });
+
+    expect(localeResolution.effectiveLocale).toBe("es");
+    expect(localeResolution.isInvalid).toBe(false);
+  });
+
   it("falls back to en for invalid locale input", () => {
     const localeResolution = resolveLocale("not a locale", {});
     expect(localeResolution.effectiveLocale).toBe("en");

@@ -284,6 +284,34 @@ describe("DateRangePicker", () => {
     expect(getFirstMonthInputValue()).toContain(yearInArabicDigits);
   });
 
+  it("accepts Arabic comma as localized separator", () => {
+    render(
+      <KumoLocaleProvider locale="ar-EG">
+        <DateRangePicker
+          onStartDateChange={() => {}}
+          onEndDateChange={() => {}}
+        />
+      </KumoLocaleProvider>,
+    );
+
+    const [monthInput] = screen.getAllByRole("textbox", {
+      name: "حرر الشهر والسنة",
+    });
+    const marchInArabic = new Intl.DateTimeFormat("ar", {
+      month: "long",
+    }).format(new Date(2026, 2, 1));
+    const yearInArabicDigits = new Intl.NumberFormat("ar", {
+      useGrouping: false,
+    }).format(2028);
+
+    fireEvent.blur(monthInput, {
+      target: { value: `${marchInArabic}، ${yearInArabicDigits}` },
+    });
+
+    expect(getFirstMonthInputValue()).toContain(marchInArabic);
+    expect(getFirstMonthInputValue()).toContain(yearInArabicDigits);
+  });
+
   it("uses Monday as first weekday for en-GB", () => {
     const { container } = render(
       <KumoLocaleProvider locale="en-GB">

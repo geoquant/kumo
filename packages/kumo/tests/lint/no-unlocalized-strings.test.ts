@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  collectSpreadAttributeStrings,
   collectStringLiterals,
   isConsumerSurfaceFile,
   isTermCallee,
@@ -75,7 +76,7 @@ describe("no-unlocalized-strings attribute detection", () => {
 });
 
 describe("no-unlocalized-strings expression helpers", () => {
-  it("only treats direct term() as localized", () => {
+  it("treats direct term() and localize.term() as localized", () => {
     expect(isTermCallee({ type: "Identifier", name: "term" })).toBe(true);
     expect(
       isTermCallee({
@@ -83,7 +84,7 @@ describe("no-unlocalized-strings expression helpers", () => {
         computed: false,
         property: { type: "Identifier", name: "term" },
       }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       isTermCallee({
         type: "MemberExpression",
@@ -111,7 +112,7 @@ describe("no-unlocalized-strings expression helpers", () => {
     expect(collected).toEqual([]);
   });
 
-  it("collects member .term() literals to avoid bypasses", () => {
+  it("ignores member .term() call arguments", () => {
     const collected: string[] = [];
 
     collectStringLiterals(
@@ -127,7 +128,7 @@ describe("no-unlocalized-strings expression helpers", () => {
       collected,
     );
 
-    expect(collected).toEqual(["Delete"]);
+    expect(collected).toEqual([]);
   });
 
   it("collects literals from logical expressions", () => {
@@ -169,6 +170,33 @@ describe("no-unlocalized-strings expression helpers", () => {
         type: "CallExpression",
         callee: { type: "Identifier", name: "formatLabel" },
         arguments: [{ type: "Literal", value: "Delete" }],
+      },
+      collected,
+    );
+
+    expect(collected).toEqual(["Delete"]);
+  });
+
+  it("collects text-bearing literals from JSX spread object props", () => {
+    const collected: string[] = [];
+
+    collectSpreadAttributeStrings(
+      {
+        type: "ObjectExpression",
+        properties: [
+          {
+            type: "Property",
+            computed: false,
+            key: { type: "Identifier", name: "title" },
+            value: { type: "Literal", value: "Delete" },
+          },
+          {
+            type: "Property",
+            computed: false,
+            key: { type: "Identifier", name: "className" },
+            value: { type: "Literal", value: "btn-danger" },
+          },
+        ],
       },
       collected,
     );

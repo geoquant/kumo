@@ -115,7 +115,20 @@ function isAllowedUnlocalizedString(value) {
 
 export function isTermCallee(callee) {
   if (!callee) return false;
-  return callee.type === "Identifier" && callee.name === "term";
+
+  if (callee.type === "Identifier") {
+    return callee.name === "term";
+  }
+
+  if (
+    callee.type === "MemberExpression" &&
+    callee.computed === false &&
+    callee.property?.type === "Identifier"
+  ) {
+    return callee.property.name === "term";
+  }
+
+  return false;
 }
 
 export function collectStringLiterals(node, out) {
@@ -213,6 +226,64 @@ function getJsxAttributeName(nameNode) {
   return undefined;
 }
 
+function getPropertyName(keyNode) {
+  if (!keyNode) return undefined;
+  if (keyNode.type === "Identifier") return keyNode.name;
+  if (keyNode.type === "Literal" && typeof keyNode.value === "string") {
+    return keyNode.value;
+  }
+  return undefined;
+}
+
+export function collectSpreadAttributeStrings(node, out) {
+  if (!node) return;
+
+  switch (node.type) {
+    case "ObjectExpression": {
+      for (const prop of node.properties) {
+        if (prop.type === "SpreadElement") {
+          collectSpreadAttributeStrings(prop.argument, out);
+          continue;
+        }
+
+        if (prop.type !== "Property" || prop.computed) continue;
+
+        const keyName = getPropertyName(prop.key);
+        if (!keyName || !isAllowedAttributeName(keyName)) continue;
+
+        collectStringLiterals(prop.value, out);
+      }
+      return;
+    }
+    case "ConditionalExpression": {
+      collectSpreadAttributeStrings(node.consequent, out);
+      collectSpreadAttributeStrings(node.alternate, out);
+      return;
+    }
+    case "LogicalExpression": {
+      collectSpreadAttributeStrings(node.left, out);
+      collectSpreadAttributeStrings(node.right, out);
+      return;
+    }
+    case "CallExpression": {
+      for (const arg of node.arguments) {
+        if (arg.type === "SpreadElement") {
+          collectSpreadAttributeStrings(arg.argument, out);
+          continue;
+        }
+        collectSpreadAttributeStrings(arg, out);
+      }
+      return;
+    }
+    case "ArrayExpression": {
+      for (const element of node.elements) {
+        if (element) collectSpreadAttributeStrings(element, out);
+      }
+      return;
+    }
+  }
+}
+
 export const noUnlocalizedStringsRule = defineRule({
   meta: {
     type: "problem",
@@ -268,6 +339,23 @@ export const noUnlocalizedStringsRule = defineRule({
       },
       JSXElement(node) {
         if (isIgnoredFilename(context.filename)) return;
+
+        const attributes = node.openingElement?.attributes ?? [];
+        for (const attribute of attributes) {
+          if (attribute.type !== "JSXSpreadAttribute") continue;
+
+          const strings = [];
+          collectSpreadAttributeStrings(attribute.argument, strings);
+          if (
+            strings.some(
+              (value) =>
+                isLikelyUserFacingText(value) &&
+                !isAllowedUnlocalizedString(value),
+            )
+          ) {
+            context.report({ node: attribute, messageId: RULE_NAME });
+          }
+        }
 
         for (const child of node.children ?? []) {
           if (child.type !== "JSXExpressionContainer") continue;

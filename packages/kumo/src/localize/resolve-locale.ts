@@ -63,7 +63,11 @@ function normalizeAliases(
   for (const [source, target] of Object.entries(aliases)) {
     const normalizedSource = normalizeAliasToken(source);
     if (normalizedSource === "") continue;
-    entries.push([normalizedSource, normalizeLocale(target)]);
+
+    const normalizedTarget = normalizeWithValidity(target);
+    if (normalizedTarget.isInvalid) continue;
+
+    entries.push([normalizedSource, normalizedTarget.normalizedLocale]);
   }
 
   return new Map(entries);

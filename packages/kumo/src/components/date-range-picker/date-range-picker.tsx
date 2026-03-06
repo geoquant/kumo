@@ -192,7 +192,7 @@ function parseLocalizedYear(
       continue;
     }
 
-    if (/^[-\s.,:/_()]+$/u.test(normalizedChar)) {
+    if (/^[\p{Z}\p{P}]+$/u.test(normalizedChar)) {
       continue;
     }
 

@@ -4,6 +4,7 @@
 
 ### Minor Changes
 
+- Add built-in localization infrastructure with pre-registered locale bundles, `KumoLocaleProvider`, `useLocalize()`, and RTL direction support.
 - Deprecate `useLocalize().date()` and `useLocalize().number()` in favor of direct `Intl.DateTimeFormat` and `Intl.NumberFormat` usage.
   - Both APIs remain fully functional and non-breaking in v1.
   - Planned removal is next major version to give migration runway.

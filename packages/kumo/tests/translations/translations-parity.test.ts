@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import en from "../../src/translations/en";
+import { createTranslation } from "../../src/translations/create-translation";
 
 const OPTIONAL_KEYS = new Set<string>(["cloudflare-logo"]);
 
@@ -101,4 +103,38 @@ describe("translation JSON parity", () => {
       }
     });
   }
+});
+
+describe("createTranslation function-key coverage", () => {
+  it("applies catalog templates for every function-valued translation key", () => {
+    const functionKeys = Object.entries(en)
+      .filter(
+        ([key, value]) => !key.startsWith("$") && typeof value === "function",
+      )
+      .map(([key]) => key)
+      .sort();
+
+    const catalogEntries = functionKeys.map((key) => [key, `__${key}__`]);
+    const catalog = Object.fromEntries(catalogEntries);
+
+    const translation = createTranslation(
+      {
+        $code: "zz",
+        $name: "Template Coverage",
+        $dir: "ltr",
+      },
+      catalog,
+    );
+
+    for (const key of functionKeys) {
+      const value = Reflect.get(translation, key);
+      expect(typeof value, `Expected '${key}' to remain callable`).toBe(
+        "function",
+      );
+
+      if (typeof value !== "function") continue;
+      const formatted = Reflect.apply(value, undefined, []);
+      expect(formatted).toBe(`__${key}__`);
+    }
+  });
 });

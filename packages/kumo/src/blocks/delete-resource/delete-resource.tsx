@@ -164,6 +164,7 @@ export function DeleteResource({
                   resourceName,
                 )}
               >
+                <span className="leading-none">{resourceName}</span>
                 {copied ? (
                   <CheckIcon size={12} weight="bold" className="ms-1.5" />
                 ) : (
