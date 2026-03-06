@@ -188,3 +188,14 @@ Started: 2026-03-05
 - 2 SVG string generator labels → parameterized via new `ariaLabel` option on `GenerateCloudflareLogoSvgOptions` (defaults to "Cloudflare logo")
 - Files changed: `packages/kumo/src/components/cloudflare-logo/cloudflare-logo.tsx`
 - **Learnings:** Non-component utility functions can't use hooks; expose label as option param with English default
+
+## Task - migrate-6
+- Migrated 6 components to use `useLocalize()`:
+  - `label.tsx`: "(optional)" → `term("optional")`, "More information" → `term("more-information")`
+  - `toast.tsx`: "Close" → `term("close")`
+  - `table.tsx`: "Resize column" → `term("resize-column")`
+  - `breadcrumbs.tsx`: "Click to copy" → `term("click-to-copy")`, "Copy" → `term("copy")`
+  - `empty.tsx`: "Copy command" → `term("copy-command")`
+  - `command-palette.tsx`: "No results found" → `term("no-results-found")`
+- Each sub-component calls `useLocalize()` independently
+- Files changed: 6 component files

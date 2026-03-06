@@ -11,6 +11,7 @@ import {
 import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
 import { Button } from "../../components/button";
 import { SkeletonLine } from "../../components/loader/skeleton-line";
+import { useLocalize } from "../../localize/index.js";
 import { useLinkComponent } from "../../utils/link-provider";
 import { cn } from "../../utils/cn";
 
@@ -134,6 +135,7 @@ function MobileEllipsis() {
 }
 
 function Clipboard({ text }: { text: string }) {
+  const { term } = useLocalize();
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
@@ -161,8 +163,8 @@ function Clipboard({ text }: { text: string }) {
       size="sm"
       className="opacity-0 transition-[opacity] group-hover:opacity-100"
       onClick={handleCopyDeeplink}
-      title="Click to copy"
-      aria-label="Copy"
+      title={term("click-to-copy")}
+      aria-label={term("copy")}
     >
       {isCopied ? (
         <CheckIcon weight="bold" className="text-kumo-success" />

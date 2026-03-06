@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { cn } from "../../utils";
+import { useLocalize } from "../../localize/index.js";
 import { Checkbox } from "../checkbox";
 
 /** Table layout and row variant definitions mapping names to their Tailwind classes. */
@@ -144,12 +145,13 @@ const TableResizeHandle = forwardRef<
   HTMLButtonElement,
   React.HTMLAttributes<HTMLButtonElement>
 >((props, ref) => {
+  const { term } = useLocalize();
   return (
     <button
       ref={ref}
       {...props}
       type="button"
-      aria-label="Resize column"
+      aria-label={term("resize-column")}
       className={cn(
         "invisible h-full group-hover:visible", // Make the handle invisible by default
         "w-[10px]", // Hitting area

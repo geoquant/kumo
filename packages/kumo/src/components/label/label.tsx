@@ -1,6 +1,7 @@
 import { Info } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { cn } from "../../utils/cn";
+import { useLocalize } from "../../localize/index.js";
 import { Tooltip } from "../tooltip";
 
 /** Label variant definitions (currently empty, reserved for future additions). */
@@ -91,17 +92,20 @@ export function Label({
   htmlFor,
   asContent = false,
 }: LabelProps) {
+  const { term } = useLocalize();
   const content = (
     <>
       {children}
       {showOptional && (
-        <span className="font-normal text-kumo-strong">(optional)</span>
+        <span className="font-normal text-kumo-strong">
+          ({term("optional")})
+        </span>
       )}
       {tooltip && (
         <Tooltip content={tooltip}>
           <Info
             className="size-4 cursor-help text-kumo-strong"
-            aria-label="More information"
+            aria-label={term("more-information")}
           />
         </Tooltip>
       )}

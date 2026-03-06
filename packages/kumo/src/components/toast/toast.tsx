@@ -10,6 +10,7 @@ import {
   WarningIcon,
   WarningOctagonIcon,
 } from "@phosphor-icons/react/dist/ssr";
+import { useLocalize } from "../../localize/index.js";
 
 /**
  * Toast styling configuration for Figma plugin consumption.
@@ -278,6 +279,7 @@ export function Toasty({ children }: ToastyProps) {
 export const ToastProvider = Toasty;
 
 function ToastList() {
+  const { term } = useLocalize();
   const { toasts } = useKumoToastManager();
   return toasts.map((toast) => (
     <Toast.Root
@@ -324,7 +326,7 @@ function ToastList() {
         )}
         <Toast.Close
           className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded border-none bg-transparent text-current/50 hover:bg-kumo-contrast/10 hover:text-current"
-          aria-label="Close"
+          aria-label={term("close")}
         >
           <XIcon className="h-3 w-3" />
         </Toast.Close>

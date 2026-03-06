@@ -17,6 +17,7 @@ import {
 
 import { Surface } from "../surface";
 import { Loader } from "../loader";
+import { useLocalize } from "../../localize/index.js";
 import { cn } from "../../utils";
 import type {
   HighlightRange,
@@ -353,10 +354,13 @@ function Item<T>({
  * Re-export of Autocomplete.Empty with default styling.
  */
 function Empty({ children }: CommandPaletteEmptyProps) {
+  const { term } = useLocalize();
   return (
     <Autocomplete.Empty>
       <div className="p-8 text-center">
-        <p className="text-kumo-strong">{children ?? "No results found"}</p>
+        <p className="text-kumo-strong">
+          {children ?? term("no-results-found")}
+        </p>
       </div>
     </Autocomplete.Empty>
   );

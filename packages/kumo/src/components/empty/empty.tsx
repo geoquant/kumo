@@ -1,6 +1,7 @@
 import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Button } from "../../components/button";
+import { useLocalize } from "../../localize/index.js";
 import { cn } from "../../utils/cn";
 
 /** Empty state size variant definitions mapping sizes to their Tailwind classes. */
@@ -92,6 +93,7 @@ export function Empty({
   size = "base",
   className,
 }: EmptyProps) {
+  const { term } = useLocalize();
   const [emptyStateCopied, setEmptyStateCopied] = useState<boolean>(false);
 
   return (
@@ -121,7 +123,7 @@ export function Empty({
             size="sm"
             variant="ghost"
             shape="square"
-            aria-label="Copy command"
+            aria-label={term("copy-command")}
             onClick={async () => {
               setEmptyStateCopied(true);
               setTimeout(() => {
@@ -131,7 +133,10 @@ export function Empty({
             }}
           >
             {emptyStateCopied ? (
-              <CheckIcon size={16} className="animate-bounce-in text-kumo-success" />
+              <CheckIcon
+                size={16}
+                className="animate-bounce-in text-kumo-success"
+              />
             ) : (
               <CopyIcon
                 size={16}
