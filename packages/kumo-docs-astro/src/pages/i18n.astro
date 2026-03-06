@@ -98,9 +98,11 @@ import Callout from "../components/docs/Callout.astro";
 </KumoLocaleProvider>`}
       lang="tsx"
     />
-    <Callout type="info">
-      Controlled mode uses an explicit <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">locale</code>. Uncontrolled mode omits <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">locale</code> and follows detection defaults.
-    </Callout>
+    <div class="mt-4">
+      <Callout type="info">
+        Controlled mode uses an explicit <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">locale</code>. Uncontrolled mode omits <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">locale</code> and follows detection defaults.
+      </Callout>
+    </div>
   </ComponentSection>
 
   <!-- Provider Configuration -->
@@ -146,12 +148,14 @@ import Callout from "../components/docs/Callout.astro";
       <li><strong>Language prefix</strong> — <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">"es-PE"</code> falls back to <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">es</code></li>
       <li><strong>Fallback</strong> — English (the first registered translation)</li>
     </ol>
-    <Callout type="info">
-      Fallback is non-breaking: unknown locales still render via fallback translation, and missing keys resolve per-key from English.
-    </Callout>
-    <Callout type="warning">
-      Unknown locale diagnostics classify failures as <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">invalid</code> (bad BCP 47 token) or <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">unsupported</code> (valid token, no matching translation).
-    </Callout>
+    <div class="mt-4 space-y-4">
+      <Callout type="info">
+        Fallback is non-breaking: unknown locales still render via fallback translation, and missing keys resolve per-key from English.
+      </Callout>
+      <Callout type="warning">
+        Unknown locale diagnostics classify failures as <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">invalid</code> (bad BCP 47 token) or <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">unsupported</code> (valid token, no matching translation).
+      </Callout>
+    </div>
   </ComponentSection>
 
   <!-- RTL Support -->
@@ -178,12 +182,14 @@ import Callout from "../components/docs/Callout.astro";
 </DirectionProvider>`}
       lang="tsx"
     />
-    <Callout type="info">
-      Direction precedence inside <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoLocaleProvider</code> is: explicit <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">direction</code> prop, then locale-derived direction, then <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ltr</code>.
-    </Callout>
-    <Callout type="info">
-      Components use logical CSS properties like <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ps-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pe-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">start-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">end-*</code> instead of <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pl-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pr-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">left-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">right-*</code>. This is enforced by lint rules.
-    </Callout>
+    <div class="mt-4 space-y-4">
+      <Callout type="info">
+        Direction precedence inside <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoLocaleProvider</code> is: explicit <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">direction</code> prop, then locale-derived direction, then <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ltr</code>.
+      </Callout>
+      <Callout type="info">
+        Components use logical CSS properties like <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ps-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pe-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">start-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">end-*</code> instead of <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pl-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pr-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">left-*</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">right-*</code>. This is enforced by lint rules.
+      </Callout>
+    </div>
   </ComponentSection>
 
   <!-- Custom Locales -->
@@ -208,9 +214,11 @@ const th: KumoTranslation = {
 registerTranslation(th);`}
       lang="ts"
     />
-    <Callout type="warning">
-      Custom translations should still provide <strong>all</strong> keys in the <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoTranslation</code> interface. TypeScript enforces completeness, and runtime lookup preserves per-key English fallback semantics.
-    </Callout>
+    <div class="mt-4">
+      <Callout type="warning">
+        Custom translations should still provide <strong>all</strong> keys in the <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">KumoTranslation</code> interface. TypeScript enforces completeness, and runtime lookup preserves per-key English fallback semantics.
+      </Callout>
+    </div>
   </ComponentSection>
 
   <!-- API Reference -->
@@ -287,9 +295,11 @@ registerTranslation(myLocale);`}
 />`}
       lang="tsx"
     />
-    <Callout type="info">
-      The <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">labels</code> prop is optional. If omitted, the component falls back to the localized translation. If provided, prop values win for the specified keys.
-    </Callout>
+    <div class="mt-4">
+      <Callout type="info">
+        The <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">labels</code> prop is optional. If omitted, the component falls back to the localized translation. If provided, prop values win for the specified keys.
+      </Callout>
+    </div>
   </ComponentSection>
 
   <!-- SSR Considerations -->
