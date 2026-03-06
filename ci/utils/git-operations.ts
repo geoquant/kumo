@@ -1,4 +1,4 @@
-import { execFileSync } from "child_process";
+import { execSync, execFileSync } from "child_process";
 
 /**
  * Git operations utility for CI scripts
@@ -17,30 +17,6 @@ export interface ChangedFilesOptions {
   cwd?: string;
 }
 
-function getErrorSummary(error: unknown): string {
-  if (error instanceof Error) {
-    const firstLine = error.message.split("\n")[0];
-    return firstLine ?? error.message;
-  }
-
-  return String(error);
-}
-
-function isSafeGitRef(ref: string): boolean {
-  if (ref.length === 0) return false;
-  if (ref.startsWith("-")) return false;
-
-  try {
-    execFileSync("git", ["check-ref-format", "--branch", ref], {
-      encoding: "utf8",
-      stdio: "pipe",
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Gets the base and head refs for the current CI context
  * Uses GitHub Actions variables with fallback for shallow clones
@@ -48,30 +24,23 @@ function isSafeGitRef(ref: string): boolean {
 export function getGitRefs(): GitRefs {
   // GitHub Actions provides these environment variables
   const baseRef = process.env.GITHUB_BASE_REF;
-  const headRef =
-    process.env.GITHUB_HEAD_REF || process.env.GITHUB_SHA || "HEAD";
+  const headRef = process.env.GITHUB_HEAD_REF || process.env.GITHUB_SHA || "HEAD";
 
   // If baseRef exists (PR context), verify it's available
   if (baseRef) {
-    if (!isSafeGitRef(baseRef)) {
-      throw new Error(`Unsafe base ref: ${baseRef}`);
-    }
-
     try {
       // Fetch the base branch for comparison
-      execFileSync(
-        "git",
-        ["fetch", "origin", `${baseRef}:refs/remotes/origin/${baseRef}`],
-        {
-          encoding: "utf8",
-          stdio: "pipe",
-        },
-      );
+      execSync(`git fetch origin ${baseRef}:refs/remotes/origin/${baseRef}`, {
+        encoding: "utf8",
+        stdio: "pipe",
+      });
       const fallbackRef = `origin/${baseRef}`;
       console.log(`Using base ref: ${fallbackRef}`);
       return { baseRef: fallbackRef, headRef };
     } catch (error) {
-      console.warn(`  Could not fetch base branch ${baseRef}: ${error}`);
+      console.warn(
+        `  Could not fetch base branch ${baseRef}: ${error}`,
+      );
     }
   }
 
@@ -80,7 +49,7 @@ export function getGitRefs(): GitRefs {
   if (!process.env.CI && !process.env.GITHUB_ACTIONS) {
     // First verify origin/main exists
     try {
-      execFileSync("git", ["rev-parse", "--verify", "origin/main"], {
+      execSync("git rev-parse --verify origin/main", {
         encoding: "utf8",
         stdio: "pipe",
       });
@@ -94,14 +63,10 @@ export function getGitRefs(): GitRefs {
 
     // Try to find merge-base
     try {
-      const mergeBase = execFileSync(
-        "git",
-        ["merge-base", "origin/main", "HEAD"],
-        {
-          encoding: "utf8",
-          stdio: "pipe",
-        },
-      ).trim();
+      const mergeBase = execSync("git merge-base origin/main HEAD", {
+        encoding: "utf8",
+        stdio: "pipe",
+      }).trim();
       console.log(
         `Using local fallback ref (merge-base): ${mergeBase.slice(0, 8)}`,
       );
@@ -127,22 +92,18 @@ export function getChangedFiles(
     const { baseRef, headRef } = getGitRefs();
 
     if (!baseRef) {
-      if (process.env.CI || process.env.GITHUB_ACTIONS) {
-        throw new Error("Could not determine base ref for file changes");
-      }
-
-      console.warn("  Warning: Could not determine base ref for file changes");
+      console.warn(
+        "  Warning: Could not determine base ref for file changes",
+      );
       return null;
     }
 
     // Use two-dot diff for shallow clones (no merge base needed)
     // Two dots compares the tips directly: baseRef..headRef
-    const changedFiles = execFileSync(
-      "git",
-      ["diff", "--name-only", `${baseRef}..${headRef}`],
+    const changedFiles = execSync(
+      `git diff --name-only ${baseRef}..${headRef}`,
       {
         encoding: "utf8",
-        stdio: "pipe",
         cwd: options.cwd || process.cwd(),
       },
     ).trim();
@@ -160,12 +121,8 @@ export function getChangedFiles(
 
     return files;
   } catch (error) {
-    if (process.env.CI || process.env.GITHUB_ACTIONS) {
-      throw error;
-    }
-
     console.warn("  Warning: Could not get changed files");
-    console.warn(`Error: ${getErrorSummary(error)}`);
+    console.warn(`Error: ${error}`);
     return null;
   }
 }
@@ -213,7 +170,6 @@ export function getNewlyAddedFiles(
       ["diff", "--name-status", `${baseRef}..${headRef}`, "--", directory],
       {
         encoding: "utf8",
-        stdio: "pipe",
         cwd: options.cwd || process.cwd(),
       },
     ).trim();
@@ -235,7 +191,7 @@ export function getNewlyAddedFiles(
     return files;
   } catch (error) {
     console.warn("Warning: Could not get newly added files");
-    console.warn(`Error: ${getErrorSummary(error)}`);
+    console.warn(`Error: ${error}`);
     return [];
   }
 }
@@ -267,8 +223,12 @@ export function logPullRequestContext(): void {
   } else if (process.env.GITHUB_EVENT_NAME === "pull_request_target") {
     console.log("Detected PR context: Pull request target event");
   } else if (process.env.GITHUB_PR_NUMBER) {
-    console.log(`Detected PR context: PR #${process.env.GITHUB_PR_NUMBER}`);
+    console.log(
+      `Detected PR context: PR #${process.env.GITHUB_PR_NUMBER}`,
+    );
   } else if (process.env.CI_FORCE_PR_VALIDATION === "true") {
     console.log("Detected PR context: Manual validation override");
   }
 }
+
+

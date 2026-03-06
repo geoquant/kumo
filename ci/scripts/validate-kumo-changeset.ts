@@ -126,16 +126,7 @@ function main() {
 }
 
 function checkForKumoChanges(): boolean {
-  let result: boolean | null;
-
-  try {
-    result = hasChangesInPath(KUMO_PATH);
-  } catch (error) {
-    console.warn(
-      `⚠️  Warning: Could not determine kumo changes from git diff (${error}), assuming changes exist`,
-    );
-    return true;
-  }
+  const result = hasChangesInPath(KUMO_PATH);
 
   if (result === null) {
     console.warn(
