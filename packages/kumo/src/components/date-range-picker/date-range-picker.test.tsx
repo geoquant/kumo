@@ -345,4 +345,47 @@ describe("DateRangePicker", () => {
 
     expect(getFirstWeekdayHeaderText(container)).toBe(sundayLabel);
   });
+
+  it("allows overriding control and day aria labels", () => {
+    const observedModeNames = new Set<string>();
+    render(
+      <DateRangePicker
+        onStartDateChange={() => {}}
+        onEndDateChange={() => {}}
+        ariaLabels={{
+          previousMonth: "Back one month",
+          nextMonth: "Forward one month",
+          editMonthAndYear: "Change month and year",
+          dayCell: ({ defaultLabel, modeName }) => {
+            if (modeName) {
+              observedModeNames.add(modeName);
+            }
+            return `Day: ${defaultLabel}`;
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Back one month" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Forward one month" }),
+    ).toBeTruthy();
+    expect(
+      screen.getAllByRole("textbox", { name: "Change month and year" }).length,
+    ).toBe(2);
+    expect(screen.getAllByRole("button", { name: /Day:/ }).length).toBe(84);
+    expect(observedModeNames.size).toBeGreaterThan(0);
+  });
+
+  it("falls back to defaults when aria override is blank", () => {
+    render(
+      <DateRangePicker
+        onStartDateChange={() => {}}
+        onEndDateChange={() => {}}
+        ariaLabels={{ previousMonth: "   " }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Previous month" })).toBeTruthy();
+  });
 });

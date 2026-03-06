@@ -38,4 +38,39 @@ describe("Breadcrumb", () => {
       screen.getByRole("navigation", { name: "migas de pan" }),
     ).toBeTruthy();
   });
+
+  it("allows overriding navigation and clipboard aria labels", () => {
+    render(
+      <Breadcrumb ariaLabel="Path navigation">
+        <Breadcrumb.Link href="/">Home</Breadcrumb.Link>
+        <Breadcrumb.Separator />
+        <Breadcrumb.Current>Docs</Breadcrumb.Current>
+        <Breadcrumb.Clipboard
+          text="https://example.com/docs"
+          ariaLabel="Copy this path"
+          title="Copy URL"
+        />
+      </Breadcrumb>,
+    );
+
+    expect(
+      screen.getByRole("navigation", { name: "Path navigation" }),
+    ).toBeTruthy();
+    expect(
+      screen.getAllByRole("button", { name: "Copy this path" }).length,
+    ).toBe(2);
+    expect(screen.getAllByTitle("Copy URL").length).toBe(2);
+  });
+
+  it("falls back to localized aria-label when override is blank", () => {
+    render(
+      <Breadcrumb ariaLabel="   ">
+        <Breadcrumb.Link href="/">Home</Breadcrumb.Link>
+        <Breadcrumb.Separator />
+        <Breadcrumb.Current>Docs</Breadcrumb.Current>
+      </Breadcrumb>,
+    );
+
+    expect(screen.getByRole("navigation", { name: "breadcrumb" })).toBeTruthy();
+  });
 });

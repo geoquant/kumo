@@ -16,6 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import { Banner } from "../../components/banner";
 import { useLocalize } from "../../localize/index.js";
+import { resolveAriaLabel } from "../../utils/resolve-aria-label";
 
 export const KUMO_DELETE_RESOURCE_VARIANTS = {
   size: {
@@ -62,6 +63,12 @@ export interface DeleteResourceProps extends KumoDeleteResourceVariantsProps {
   className?: string;
   /** Error message to display if the delete action fails */
   errorMessage?: string;
+  /** Optional aria-label override for the close button. */
+  closeAriaLabel?: string;
+  /** Optional aria-label override for the resource-name copy button. */
+  copyResourceNameAriaLabel?: string;
+  /** Optional aria-label override for the confirmation input. */
+  confirmInputAriaLabel?: string;
 }
 
 export function DeleteResource({
@@ -76,6 +83,9 @@ export function DeleteResource({
   size = KUMO_DELETE_RESOURCE_DEFAULT_VARIANTS.size,
   errorMessage,
   className,
+  closeAriaLabel,
+  copyResourceNameAriaLabel,
+  confirmInputAriaLabel,
 }: DeleteResourceProps) {
   const { term } = useLocalize();
   const [confirmationInput, setConfirmationInput] = useState("");
@@ -128,7 +138,7 @@ export function DeleteResource({
                 variant="ghost"
                 shape="square"
                 size="sm"
-                aria-label={term("close")}
+                aria-label={resolveAriaLabel(closeAriaLabel, term("close"))}
                 disabled={isDeleting}
               >
                 <XIcon size={18} />
@@ -159,9 +169,9 @@ export function DeleteResource({
               <button
                 className="font-mono text-sm inline-flex items-center font-semibold bg-kumo-tint hover:bg-kumo-fill rounded-md px-2 py-1 group hover:cursor-pointer"
                 onClick={handleCopy}
-                aria-label={term(
-                  "copy-resource-name-to-clipboard",
-                  resourceName,
+                aria-label={resolveAriaLabel(
+                  copyResourceNameAriaLabel,
+                  term("copy-resource-name-to-clipboard", resourceName),
                 )}
               >
                 <span className="leading-none">{resourceName}</span>
@@ -185,7 +195,10 @@ export function DeleteResource({
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
-              aria-label={term("confirm-deletion-aria-label", resourceName)}
+              aria-label={resolveAriaLabel(
+                confirmInputAriaLabel,
+                term("confirm-deletion-aria-label", resourceName),
+              )}
               className="w-full"
             />
           </div>

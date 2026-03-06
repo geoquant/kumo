@@ -5,6 +5,7 @@ import {
 } from "@base-ui/react/toast";
 import type React from "react";
 import { cn } from "../../utils/cn";
+import { resolveAriaLabel } from "../../utils/resolve-aria-label";
 import { Button, ButtonProps } from "../../components/button";
 import {
   WarningIcon,
@@ -147,6 +148,7 @@ type KumoToastOptionsBase = {
   content?: React.ReactNode;
   actions?: Array<ButtonProps>;
   bump?: boolean;
+  closeAriaLabel?: string;
 };
 
 export type KumoToastOptions<Data extends object> = ToastObject<Data> &
@@ -349,7 +351,7 @@ function ToastList({
         )}
         <Toast.Close
           className="absolute top-2 end-2 flex h-4 w-4 items-center justify-center rounded border-none bg-transparent text-current/50 hover:bg-kumo-contrast/10 hover:text-current"
-          aria-label={term("close")}
+          aria-label={resolveAriaLabel(toast.closeAriaLabel, term("close"))}
         >
           <XIcon className="h-3 w-3" />
         </Toast.Close>

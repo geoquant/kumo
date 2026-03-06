@@ -6,6 +6,7 @@ import {
 import { useCallback, useMemo, useState } from "react";
 import { useLocalize } from "../../localize/index.js";
 import { cn } from "../../utils/cn";
+import { resolveAriaLabel } from "../../utils/resolve-aria-label";
 
 /** DateRangePicker size and variant definitions mapping names to their Tailwind classes. */
 export const KUMO_DATE_RANGE_PICKER_VARIANTS = {
@@ -104,6 +105,49 @@ enum DateRangeCellMode {
   SELECTED_END_NODE,
   SELECTED,
   SELECTED_OUT_OF_RANGE,
+}
+
+export interface DateRangeDayAriaLabelContext {
+  date: Date;
+  mode?: number;
+  modeName?: DateRangeDayCellMode;
+  defaultLabel: string;
+}
+
+export type DateRangeDayCellMode =
+  | "out-of-range"
+  | "enabled"
+  | "selected-start"
+  | "selected-end"
+  | "selected"
+  | "selected-out-of-range";
+
+export interface DateRangePickerAriaLabels {
+  previousMonth?: string;
+  nextMonth?: string;
+  editMonthAndYear?: string;
+  dayCell?: (context: DateRangeDayAriaLabelContext) => string;
+}
+
+function getDayCellModeName(
+  mode: DateRangeCellMode | undefined,
+): DateRangeDayCellMode | undefined {
+  switch (mode) {
+    case DateRangeCellMode.OUT_OF_RANGE:
+      return "out-of-range";
+    case DateRangeCellMode.ENABLED:
+      return "enabled";
+    case DateRangeCellMode.SELECTED_START_NODE:
+      return "selected-start";
+    case DateRangeCellMode.SELECTED_END_NODE:
+      return "selected-end";
+    case DateRangeCellMode.SELECTED:
+      return "selected";
+    case DateRangeCellMode.SELECTED_OUT_OF_RANGE:
+      return "selected-out-of-range";
+    default:
+      return undefined;
+  }
 }
 
 /**
@@ -327,6 +371,8 @@ export interface DateRangePickerProps extends KumoDateRangePickerVariantsProps {
   timezone?: string;
   /** Additional CSS classes merged via `cn()`. */
   className?: string;
+  /** Optional aria-label overrides for controls and day cells. */
+  ariaLabels?: DateRangePickerAriaLabels;
 }
 
 /**
@@ -352,6 +398,7 @@ export function DateRangePicker({
   variant = KUMO_DATE_RANGE_PICKER_DEFAULT_VARIANTS.variant,
   timezone = "New York, NY, USA (GMT-4)",
   className,
+  ariaLabels,
 }: DateRangePickerProps) {
   const { term, lang } = useLocalize();
   const resolvedLocale = lang();
@@ -467,7 +514,10 @@ export function DateRangePicker({
         <div className={cn("relative", sizeConfig.calendarWidth)}>
           <button
             type="button"
-            aria-label={term("previous-month")}
+            aria-label={resolveAriaLabel(
+              ariaLabels?.previousMonth,
+              term("previous-month"),
+            )}
             className="absolute top-0 start-0 cursor-pointer rounded bg-kumo-interact/85 p-1.5 hover:bg-kumo-interact"
             onClick={() => adjustMonth(-1)}
           >
@@ -479,6 +529,10 @@ export function DateRangePicker({
             year={getDateYear(viewingMonth)}
             size={size}
             weekStartsOn={weekStartsOn}
+            editMonthAndYearAriaLabel={resolveAriaLabel(
+              ariaLabels?.editMonthAndYear,
+              term("edit-month-and-year"),
+            )}
             updateCurrentMonth={({ monthIndex, year }) => {
               setViewingMonth(new Date(year, monthIndex, 1));
             }}
@@ -490,6 +544,7 @@ export function DateRangePicker({
                 key={index}
                 date={getDateFromIndex(viewingMonth, 0, index)}
                 size={size}
+                resolveAriaLabel={ariaLabels?.dayCell}
                 mode={
                   // After current month range
                   (startDate &&
@@ -569,7 +624,10 @@ export function DateRangePicker({
         <div className={cn("relative", sizeConfig.calendarWidth)}>
           <button
             type="button"
-            aria-label={term("next-month")}
+            aria-label={resolveAriaLabel(
+              ariaLabels?.nextMonth,
+              term("next-month"),
+            )}
             className="absolute top-0 end-0 cursor-pointer rounded bg-kumo-interact/85 p-1.5 hover:bg-kumo-interact"
             onClick={() => adjustMonth(1)}
           >
@@ -581,6 +639,10 @@ export function DateRangePicker({
             year={getDateYear(viewingMonth, 1)}
             size={size}
             weekStartsOn={weekStartsOn}
+            editMonthAndYearAriaLabel={resolveAriaLabel(
+              ariaLabels?.editMonthAndYear,
+              term("edit-month-and-year"),
+            )}
             updateCurrentMonth={({ monthIndex, year }) => {
               setViewingMonth(new Date(year, monthIndex - 1, 1));
             }}
@@ -592,6 +654,7 @@ export function DateRangePicker({
                 key={index}
                 date={getDateFromIndex(viewingMonth, 1, index)}
                 size={size}
+                resolveAriaLabel={ariaLabels?.dayCell}
                 mode={
                   // After current month range
                   (startDate &&
@@ -688,12 +751,14 @@ function DateRangeDayCell({
   size = KUMO_DATE_RANGE_PICKER_DEFAULT_VARIANTS.size,
   onClick,
   isHoveringDate,
+  resolveAriaLabel,
 }: {
   date: Date;
   mode?: DateRangeCellMode;
   size?: KumoDateRangePickerSize;
   onClick?: (date: Date) => void;
   isHoveringDate?: (date: Date) => void;
+  resolveAriaLabel?: (context: DateRangeDayAriaLabelContext) => string;
 }) {
   const { term, lang } = useLocalize();
   const resolvedLocale = lang();
@@ -740,17 +805,30 @@ function DateRangeDayCell({
       day: "numeric",
       year: "numeric",
     });
-    switch (mode) {
-      case DateRangeCellMode.SELECTED_START_NODE:
-        return term("selected-as-start-date", dateStr);
-      case DateRangeCellMode.SELECTED_END_NODE:
-        return term("selected-as-end-date", dateStr);
-      case DateRangeCellMode.SELECTED:
-        return term("within-selected-range", dateStr);
-      default:
-        return dateStr;
+    const defaultLabel = (() => {
+      switch (mode) {
+        case DateRangeCellMode.SELECTED_START_NODE:
+          return term("selected-as-start-date", dateStr);
+        case DateRangeCellMode.SELECTED_END_NODE:
+          return term("selected-as-end-date", dateStr);
+        case DateRangeCellMode.SELECTED:
+          return term("within-selected-range", dateStr);
+        default:
+          return dateStr;
+      }
+    })();
+
+    if (resolveAriaLabel) {
+      return resolveAriaLabel({
+        date,
+        mode,
+        modeName: getDayCellModeName(mode),
+        defaultLabel,
+      });
     }
-  }, [date, mode, resolvedLocale, term]);
+
+    return defaultLabel;
+  }, [date, mode, resolvedLocale, resolveAriaLabel, term]);
 
   return (
     <button
@@ -784,18 +862,20 @@ function DateRangeMonthHeader({
   year,
   size = KUMO_DATE_RANGE_PICKER_DEFAULT_VARIANTS.size,
   weekStartsOn = 0,
+  editMonthAndYearAriaLabel,
   updateCurrentMonth,
 }: {
   month?: string;
   year?: number;
   size?: KumoDateRangePickerSize;
   weekStartsOn?: number;
+  editMonthAndYearAriaLabel: string;
   updateCurrentMonth?: (nextMonth: {
     monthIndex: number;
     year: number;
   }) => void;
 }) {
-  const { term, lang } = useLocalize();
+  const { lang } = useLocalize();
   const resolvedLocale = lang();
   const sizeConfig = getSizeConfig(size);
   const monthLookup = useMemo(
@@ -812,7 +892,7 @@ function DateRangeMonthHeader({
       <div className="mb-3 text-center">
         <input
           key={`${month}-${year}`}
-          aria-label={term("edit-month-and-year")}
+          aria-label={editMonthAndYearAriaLabel}
           defaultValue={`${month} ${year}`}
           className={cn(
             "w-full rounded-md border-none bg-transparent py-1.5 text-center font-semibold text-kumo-default transition-all duration-200 focus:outline-none",

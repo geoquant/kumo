@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "../../components/button";
 import { useLocalize } from "../../localize/index.js";
 import { cn } from "../../utils/cn";
+import { resolveAriaLabel } from "../../utils/resolve-aria-label";
 
 /** Empty state size variant definitions mapping sizes to their Tailwind classes. */
 export const KUMO_EMPTY_VARIANTS = {
@@ -74,6 +75,8 @@ export interface EmptyProps extends KumoEmptyVariantsProps {
   contents?: React.ReactNode;
   /** Additional CSS classes merged via `cn()`. */
   className?: string;
+  /** Optional aria-label override for the copy command button. */
+  copyCommandAriaLabel?: string;
 }
 
 /**
@@ -92,6 +95,7 @@ export function Empty({
   contents,
   size = "base",
   className,
+  copyCommandAriaLabel,
 }: EmptyProps) {
   const { term } = useLocalize();
   const [emptyStateCopied, setEmptyStateCopied] = useState<boolean>(false);
@@ -123,7 +127,10 @@ export function Empty({
             size="sm"
             variant="ghost"
             shape="square"
-            aria-label={term("copy-command")}
+            aria-label={resolveAriaLabel(
+              copyCommandAriaLabel,
+              term("copy-command"),
+            )}
             onClick={async () => {
               setEmptyStateCopied(true);
               setTimeout(() => {

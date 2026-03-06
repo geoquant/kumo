@@ -16,6 +16,7 @@ import {
 import { cn } from "../../utils/cn";
 import { Select } from "../select";
 import { useLocalize } from "../../localize/index.js";
+import { resolveAriaLabel } from "../../utils/resolve-aria-label";
 
 const DEFAULT_PAGE_SIZE_OPTIONS = [25, 50, 100, 250] as const;
 
@@ -194,15 +195,34 @@ PaginationPageSize.displayName = "Pagination.PageSize";
 export interface PaginationControlsProps extends KumoPaginationVariantsProps {
   /** Additional CSS classes */
   className?: string;
+  /** Optional aria-label overrides for control buttons/inputs. */
+  ariaLabels?: {
+    firstPage?: string;
+    previousPage?: string;
+    pageNumber?: string;
+    nextPage?: string;
+    lastPage?: string;
+  };
 }
 
 function PaginationControls({
   controls = KUMO_PAGINATION_DEFAULT_VARIANTS.controls,
   className,
+  ariaLabels,
 }: PaginationControlsProps) {
   const { page, maxPage, setPage, editingPage, setEditingPage } =
     usePaginationContext();
   const { term } = useLocalize();
+  const resolvedAriaLabels = {
+    firstPage: resolveAriaLabel(ariaLabels?.firstPage, term("first-page")),
+    previousPage: resolveAriaLabel(
+      ariaLabels?.previousPage,
+      term("previous-page"),
+    ),
+    pageNumber: resolveAriaLabel(ariaLabels?.pageNumber, term("page-number")),
+    nextPage: resolveAriaLabel(ariaLabels?.nextPage, term("next-page")),
+    lastPage: resolveAriaLabel(ariaLabels?.lastPage, term("last-page")),
+  };
 
   return (
     <div
@@ -214,7 +234,7 @@ function PaginationControls({
           {controls === "full" && (
             <InputGroup.Button
               variant="secondary"
-              aria-label={term("first-page")}
+              aria-label={resolvedAriaLabels.firstPage}
               disabled={page <= 1}
               onClick={() => {
                 setPage(1);
@@ -226,7 +246,7 @@ function PaginationControls({
           )}
           <InputGroup.Button
             variant="secondary"
-            aria-label={term("previous-page")}
+            aria-label={resolvedAriaLabels.previousPage}
             disabled={page <= 1}
             onClick={() => {
               const previousPage = Math.max(page - 1, 1);
@@ -240,7 +260,7 @@ function PaginationControls({
             <InputGroup.Input
               style={{ width: 50 }}
               className="text-center"
-              aria-label={term("page-number")}
+              aria-label={resolvedAriaLabels.pageNumber}
               value={editingPage}
               onValueChange={(value: string) => {
                 setEditingPage(Number(value));
@@ -260,7 +280,7 @@ function PaginationControls({
           )}
           <InputGroup.Button
             variant="secondary"
-            aria-label={term("next-page")}
+            aria-label={resolvedAriaLabels.nextPage}
             disabled={page === maxPage}
             onClick={() => {
               const nextPage = Math.min(page + 1, maxPage);
@@ -273,7 +293,7 @@ function PaginationControls({
           {controls === "full" && (
             <InputGroup.Button
               variant="secondary"
-              aria-label={term("last-page")}
+              aria-label={resolvedAriaLabels.lastPage}
               disabled={page === maxPage}
               onClick={() => {
                 setPage(maxPage);
@@ -375,6 +395,8 @@ export interface PaginationLegacyProps
   extends PaginationBaseProps,
     KumoPaginationVariantsProps {
   children?: never;
+  /** @deprecated Use Pagination.Controls with ariaLabels prop instead */
+  controlsAriaLabels?: PaginationControlsProps["ariaLabels"];
   /** @deprecated Use Pagination.Info with children prop instead */
   text?: (props: {
     page?: number;
@@ -430,6 +452,8 @@ function PaginationRoot(props: PaginationProps) {
     "controls" in props
       ? (props.controls ?? KUMO_PAGINATION_DEFAULT_VARIANTS.controls)
       : KUMO_PAGINATION_DEFAULT_VARIANTS.controls;
+  const controlsAriaLabels =
+    "controlsAriaLabels" in props ? props.controlsAriaLabels : undefined;
   const [editingPage, setEditingPage] = useState<number>(1);
   const { term, lang } = useLocalize();
   const localizedNumberFormatter = useMemo(
@@ -513,7 +537,10 @@ function PaginationRoot(props: PaginationProps) {
         >
           {getPaginationText()}
         </div>
-        <PaginationControls controls={controls} />
+        <PaginationControls
+          controls={controls}
+          ariaLabels={controlsAriaLabels}
+        />
       </div>
     </PaginationContext.Provider>
   );

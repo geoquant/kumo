@@ -1,6 +1,7 @@
 import { Info } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { cn } from "../../utils/cn";
+import { resolveAriaLabel } from "../../utils/resolve-aria-label";
 import { useLocalize } from "../../localize/index.js";
 import { Tooltip } from "../tooltip";
 
@@ -46,6 +47,8 @@ export interface LabelProps extends KumoLabelVariantsProps {
   showOptional?: boolean;
   /** Tooltip content displayed next to the label via an info icon. */
   tooltip?: ReactNode;
+  /** Accessible text for the tooltip info icon. */
+  tooltipAriaLabel?: string;
   /** Additional CSS classes merged via `cn()`. */
   className?: string;
   /** The id of the form element this label is associated with */
@@ -88,6 +91,7 @@ export function Label({
   children,
   showOptional = false,
   tooltip,
+  tooltipAriaLabel,
   className,
   htmlFor,
   asContent = false,
@@ -105,7 +109,10 @@ export function Label({
         <Tooltip content={tooltip}>
           <Info
             className="size-4 cursor-help text-kumo-strong"
-            aria-label={term("more-information")}
+            aria-label={resolveAriaLabel(
+              tooltipAriaLabel,
+              term("more-information"),
+            )}
           />
         </Tooltip>
       )}

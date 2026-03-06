@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { cn } from "../../utils";
+import { resolveAriaLabel } from "../../utils/resolve-aria-label";
 import { useLocalize } from "../../localize/index.js";
 import { Checkbox } from "../checkbox";
 
@@ -146,12 +147,16 @@ const TableResizeHandle = forwardRef<
   React.HTMLAttributes<HTMLButtonElement>
 >((props, ref) => {
   const { term } = useLocalize();
+  const ariaLabel = resolveAriaLabel(
+    props["aria-label"],
+    term("resize-column"),
+  );
   return (
     <button
       ref={ref}
       {...props}
       type="button"
-      aria-label={term("resize-column")}
+      aria-label={ariaLabel}
       className={cn(
         "invisible h-full group-hover:visible", // Make the handle invisible by default
         "w-[10px]", // Hitting area
@@ -159,6 +164,7 @@ const TableResizeHandle = forwardRef<
         "cursor-col-resize touch-none select-none", // Prevent selection and touch events
         "absolute top-0 end-0", // Position the handle
         "m-0 bg-kumo-base p-0", // Override the stratus button styles
+        props.className,
       )}
     >
       <span className="h-5 w-[2px] rounded bg-kumo-ring" />
@@ -197,7 +203,7 @@ const TableCheckCell = forwardRef<
           onCheckedChange={(newChecked) => {
             onValueChange?.(newChecked);
           }}
-          aria-label={label ?? term("select-row")}
+          aria-label={resolveAriaLabel(label, term("select-row"))}
           disabled={disabled}
           className="relative before:absolute before:-inset-3 before:content-['']"
         />
@@ -233,7 +239,7 @@ const TableCheckHead = forwardRef<
           onCheckedChange={(newChecked) => {
             onValueChange?.(newChecked);
           }}
-          aria-label={label ?? term("select-all-rows")}
+          aria-label={resolveAriaLabel(label, term("select-all-rows"))}
           disabled={disabled}
           className="relative before:absolute before:-inset-3 before:content-['']"
         />

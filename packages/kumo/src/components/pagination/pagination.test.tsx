@@ -42,4 +42,66 @@ describe("Pagination", () => {
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Ultima pagina" })).toBeTruthy();
   });
+
+  it("allows overriding control aria labels", () => {
+    render(
+      <Pagination page={2} setPage={() => {}} perPage={25} totalCount={50}>
+        <Pagination.Controls
+          controls="full"
+          ariaLabels={{
+            firstPage: "Go to first",
+            previousPage: "Go to previous",
+            pageNumber: "Current page number",
+            nextPage: "Go to next",
+            lastPage: "Go to last",
+          }}
+        />
+      </Pagination>,
+    );
+
+    expect(screen.getByRole("button", { name: "Go to first" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Go to previous" })).toBeTruthy();
+    expect(
+      screen.getByRole("textbox", { name: "Current page number" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Go to next" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Go to last" })).toBeTruthy();
+  });
+
+  it("falls back to localized label when override is blank", () => {
+    render(
+      <Pagination page={2} setPage={() => {}} perPage={25} totalCount={50}>
+        <Pagination.Controls
+          controls="full"
+          ariaLabels={{
+            nextPage: "   ",
+          }}
+        />
+      </Pagination>,
+    );
+
+    expect(screen.getByRole("button", { name: "Next page" })).toBeTruthy();
+  });
+
+  it("supports aria label overrides in legacy mode", () => {
+    render(
+      <Pagination
+        page={2}
+        setPage={() => {}}
+        perPage={25}
+        totalCount={50}
+        controlsAriaLabels={{
+          previousPage: "Previous legacy page",
+          nextPage: "Next legacy page",
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Previous legacy page" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Next legacy page" }),
+    ).toBeTruthy();
+  });
 });

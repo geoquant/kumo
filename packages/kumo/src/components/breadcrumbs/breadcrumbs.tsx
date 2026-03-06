@@ -14,6 +14,7 @@ import { SkeletonLine } from "../../components/loader/skeleton-line";
 import { useLocalize } from "../../localize/index.js";
 import { useLinkComponent } from "../../utils/link-provider";
 import { cn } from "../../utils/cn";
+import { resolveAriaLabel } from "../../utils/resolve-aria-label";
 
 /** Breadcrumbs size variant definitions. */
 export const KUMO_BREADCRUMBS_VARIANTS = {
@@ -57,6 +58,12 @@ export function breadcrumbsVariants({
 export interface BreadcrumbsItemProps {
   href: string;
   icon?: React.ReactNode;
+}
+
+export interface BreadcrumbsClipboardProps {
+  text: string;
+  title?: string;
+  ariaLabel?: string;
 }
 
 const Link = ({
@@ -134,9 +141,11 @@ function MobileEllipsis() {
   );
 }
 
-function Clipboard({ text }: { text: string }) {
+function Clipboard({ text, title, ariaLabel }: BreadcrumbsClipboardProps) {
   const { term } = useLocalize();
   const [isCopied, setIsCopied] = useState(false);
+  const resolvedTitle = title ?? term("click-to-copy");
+  const resolvedAriaLabel = resolveAriaLabel(ariaLabel, term("copy"));
 
   useEffect(() => {
     if (!isCopied) return;
@@ -163,8 +172,8 @@ function Clipboard({ text }: { text: string }) {
       size="sm"
       className="opacity-0 transition-[opacity] group-hover:opacity-100"
       onClick={handleCopyDeeplink}
-      title={term("click-to-copy")}
-      aria-label={term("copy")}
+      title={resolvedTitle}
+      aria-label={resolvedAriaLabel}
     >
       {isCopied ? (
         <CheckIcon weight="bold" className="text-kumo-success" />
@@ -194,6 +203,8 @@ export interface BreadcrumbsProps
     KumoBreadcrumbsVariantsProps {
   /** Additional CSS classes merged via `cn()`. */
   className?: string;
+  /** Optional aria-label override for the `<nav>` landmark. */
+  ariaLabel?: string;
 }
 
 /**
@@ -213,6 +224,7 @@ export function Breadcrumb({
   children,
   size = "base",
   className,
+  ariaLabel,
 }: BreadcrumbsProps) {
   const { term } = useLocalize();
   const childArray = Children.toArray(children);
@@ -221,7 +233,7 @@ export function Breadcrumb({
   return (
     <nav
       className={cn(breadcrumbsVariants({ size }), className)}
-      aria-label={term("breadcrumb")}
+      aria-label={resolveAriaLabel(ariaLabel, term("breadcrumb"))}
     >
       <div className="contents sm:hidden">{mobileChildren}</div>
       <div className="hidden sm:contents">{childArray}</div>

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useLocalize } from "../../localize/index.js";
 import { cn } from "../../utils/cn";
+import { resolveAriaLabel } from "../../utils/resolve-aria-label";
 import { Input as BaseInput } from "@base-ui/react/input";
 import {
   inputVariants,
@@ -75,6 +76,14 @@ export interface SensitiveInputProps
   description?: ReactNode;
   /** Error message or validation error object */
   error?: string | { message: ReactNode; match: FieldErrorMatch };
+  /** Optional aria-label override for the copy button. */
+  copyAriaLabel?: string;
+  /** Optional aria-label override for the reveal button. */
+  revealAriaLabel?: string;
+  /** Optional aria-label override for the hide button. */
+  hideAriaLabel?: string;
+  /** Optional aria-label override for the masked interactive container. */
+  maskedAriaLabel?: string;
 }
 
 /**
@@ -106,6 +115,10 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
       description,
       error,
       required,
+      copyAriaLabel,
+      revealAriaLabel,
+      hideAriaLabel,
+      maskedAriaLabel,
       ...inputProps
     },
     ref,
@@ -115,6 +128,14 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
     // For aria-label, only use string labels (ReactNode labels can't be used for aria-label)
     const ariaLabelFallback =
       typeof label === "string" ? label : term("sensitive-value");
+    const inputAriaLabel =
+      typeof inputProps["aria-label"] === "string"
+        ? inputProps["aria-label"]
+        : undefined;
+    const maskedDefaultAriaLabel = term(
+      "masked-sensitive-value",
+      ariaLabelFallback,
+    );
     const isControlled = controlledValue !== undefined;
     const [internalValue, setInternalValue] = useState(defaultValue);
     const value = isControlled ? controlledValue : internalValue;
@@ -394,7 +415,9 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
           onClick={handleToggleVisibility}
           onKeyDown={(e) => e.stopPropagation()}
           aria-label={
-            mode === "revealed" ? term("hide-value") : term("reveal-value")
+            mode === "revealed"
+              ? resolveAriaLabel(hideAriaLabel, term("hide-value"))
+              : resolveAriaLabel(revealAriaLabel, term("reveal-value"))
           }
           tabIndex={showEyeButton ? 0 : -1}
           className={cn(
@@ -421,7 +444,10 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
             type="button"
             onClick={copyToClipboard}
             onKeyDown={(e) => e.stopPropagation()}
-            aria-label={copied ? term("copied") : term("copy-to-clipboard")}
+            aria-label={resolveAriaLabel(
+              copyAriaLabel,
+              copied ? term("copied") : term("copy-to-clipboard"),
+            )}
             className={cn(
               "absolute -top-px end-2 -translate-y-full cursor-pointer rounded-t-md bg-kumo-brand px-2 py-0.5 text-xs text-white opacity-0 transition-opacity group-focus-within/container:opacity-100 group-hover/container:opacity-100 hover:brightness-120 focus-visible:outline focus-visible:outline-offset-1 focus-visible:outline-kumo-ring",
             )}
@@ -445,7 +471,10 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
             className={containerClassName}
             onClick={handleContainerClick}
             onKeyDown={handleContainerKeyDown}
-            aria-label={term("masked-sensitive-value", ariaLabelFallback)}
+            aria-label={resolveAriaLabel(
+              maskedAriaLabel,
+              resolveAriaLabel(inputAriaLabel, maskedDefaultAriaLabel),
+            )}
             aria-describedby={`${maskedInstructionId} ${liveRegionId}`}
             aria-disabled={disabled}
           >

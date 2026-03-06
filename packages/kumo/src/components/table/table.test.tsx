@@ -40,6 +40,43 @@ describe("Table", () => {
     ).toBeTruthy();
   });
 
+  it("allows overriding resize handle aria label", () => {
+    render(
+      <Table>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head>
+              Name
+              <Table.ResizeHandle aria-label="Adjust column width" />
+            </Table.Head>
+          </Table.Row>
+        </Table.Header>
+      </Table>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Adjust column width" }),
+    ).toBeTruthy();
+  });
+
+  it("merges custom className on resize handle", () => {
+    render(
+      <Table>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head>
+              Name
+              <Table.ResizeHandle className="custom-resize-handle" />
+            </Table.Head>
+          </Table.Row>
+        </Table.Header>
+      </Table>,
+    );
+
+    const handle = screen.getByRole("button", { name: "Resize column" });
+    expect(handle.className).toContain("custom-resize-handle");
+  });
+
   it("renders localized checkbox aria labels", () => {
     registerTranslation(testSpanish);
 
