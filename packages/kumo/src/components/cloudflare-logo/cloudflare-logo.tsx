@@ -334,16 +334,22 @@ export function generateCloudflareLogoSvg(
   const fillOrange = color === "color" ? CLOUDFLARE_ORANGE : color;
   const fillYellow = color === "color" ? CLOUDFLARE_YELLOW : color;
   const fillText = color === "color" ? CLOUDFLARE_TEXT_GRAY : color;
+  const escapedAriaLabel = ariaLabel
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 
   if (isGlyph) {
-    return `<svg viewBox="${CLOUDFLARE_GLYPH_VIEWBOX}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${ariaLabel}">
+    return `<svg viewBox="${CLOUDFLARE_GLYPH_VIEWBOX}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${escapedAriaLabel}">
   <path d="${CLOUDFLARE_GLYPH_ORANGE_PATH}" fill="${fillOrange}"/>
   <path d="${CLOUDFLARE_GLYPH_YELLOW_PATH}" fill="${fillYellow}"/>
 </svg>`;
   }
 
   // Full logo with wordmark
-  return `<svg viewBox="${CLOUDFLARE_FULL_LOGO_VIEWBOX}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${ariaLabel}">
+  return `<svg viewBox="${CLOUDFLARE_FULL_LOGO_VIEWBOX}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${escapedAriaLabel}">
   <path d="${CLOUDFLARE_FULL_LOGO_ORANGE_PATH}" fill="${fillOrange}"/>
   <path d="${CLOUDFLARE_FULL_LOGO_YELLOW_PATH}" fill="${fillYellow}"/>
   <path d="${CLOUDFLARE_WORDMARK_PATH}" fill="${fillText}"/>

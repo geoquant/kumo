@@ -73,6 +73,35 @@ export interface LocalizeResult {
   readonly dir: () => "ltr" | "rtl";
 }
 
+const DEFAULT_LOCALE = "en";
+
+function normalizeResolvedLocale(locale: string): string {
+  const normalizedSeparators = locale.replaceAll("_", "-").trim();
+  if (normalizedSeparators === "") return DEFAULT_LOCALE;
+
+  try {
+    const canonical = Intl.getCanonicalLocales(normalizedSeparators)[0];
+    return canonical ?? DEFAULT_LOCALE;
+  } catch {
+    return DEFAULT_LOCALE;
+  }
+}
+
+function getTermValue(
+  translation: KumoTranslation | undefined,
+  key: string,
+): unknown {
+  if (translation === undefined) return undefined;
+  if (!Object.hasOwn(translation, key)) return undefined;
+  return Reflect.get(translation, key);
+}
+
+function isTermFunction(
+  value: unknown,
+): value is (...args: readonly unknown[]) => string {
+  return typeof value === "function";
+}
+
 // ── Context ────────────────────────────────────────────────────────────
 
 /**
@@ -130,19 +159,30 @@ KumoLocaleProvider.displayName = "KumoLocaleProvider";
 export function useLocalize(): LocalizeResult {
   const override = useContext(LocaleOverrideContext);
   const detected = useLocale();
-  const resolvedLocale = override ?? detected;
+  const resolvedLocale = normalizeResolvedLocale(override ?? detected);
 
   return useMemo(() => {
     const translation = getTranslation(resolvedLocale);
+    const fallbackTranslation = getTranslation(DEFAULT_LOCALE) ?? translation;
 
-    const term: TermFn = ((key: string, ...args: readonly unknown[]) => {
-      if (translation === undefined) return key;
-      const value = translation[key as keyof KumoTranslation];
-      if (typeof value === "function") {
-        return (value as (...a: readonly unknown[]) => string)(...args);
+    function term(key: SimpleKey): string;
+    function term<K extends ParameterizedKey>(
+      key: K,
+      ...args: TermArgs<K>
+    ): string;
+    function term(
+      key: SimpleKey | ParameterizedKey,
+      ...args: readonly unknown[]
+    ): string {
+      const keyName = String(key);
+      const value =
+        getTermValue(translation, keyName) ??
+        getTermValue(fallbackTranslation, keyName);
+      if (isTermFunction(value)) {
+        return value(...args);
       }
-      return typeof value === "string" ? value : key;
-    }) as TermFn;
+      return typeof value === "string" ? value : keyName;
+    }
 
     const date = (
       value: Date | number,

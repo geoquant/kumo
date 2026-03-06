@@ -16,6 +16,8 @@ import {
 } from "./registry.js";
 import { useLocalize, KumoLocaleProvider } from "./index.js";
 import { DirectionProvider, useDirection } from "./direction.js";
+import en from "../translations/en.js";
+import es from "../translations/es.js";
 
 // ── Fixtures ────────────────────────────────────────────────────────────
 
@@ -293,6 +295,71 @@ describe("useLocalize", () => {
       }),
     );
     expect(screen.getByTestId("output").textContent).toBe("rtl");
+  });
+
+  it("falls back to English per key when locale is metadata-only", () => {
+    _resetRegistry();
+    registerTranslation(en, es);
+    document.documentElement.lang = "es";
+
+    render(
+      createElement(LocalizeConsumer, {
+        render: (r) => r.term("close"),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("Close");
+  });
+
+  it("normalizes locale tags with underscore", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "es_PE",
+        children: createElement(LocalizeConsumer, {
+          render: (r) => r.term("close"),
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("Cerrar");
+  });
+
+  it("falls back to English locale for invalid locale tags", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "not a locale",
+        children: createElement(LocalizeConsumer, {
+          render: (r) => r.lang(),
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("en");
+  });
+
+  it("date() does not throw for invalid locale tags", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "???",
+        children: createElement(LocalizeConsumer, {
+          render: (r) =>
+            r.date(new Date(2026, 0, 15), {
+              year: "numeric",
+            }),
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toContain("2026");
   });
 });
 

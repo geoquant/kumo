@@ -50,3 +50,10 @@ coverage/
 
 # Codex
 .codex/environments
+
+# Local agent/planning artifacts
+.opencode/
+.overseer/
+_inspo/
+packages/kumo/.eval-baselines/
+packages/kumo/.eval-outputs/

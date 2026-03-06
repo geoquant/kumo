@@ -12,6 +12,18 @@ const registry = new Map<string, KumoTranslation>();
 /** BCP 47 code of the first translation ever registered (the fallback). */
 let fallbackCode: string | undefined;
 
+function normalizeLookupLocale(locale: string): string {
+  const normalizedSeparators = locale.replaceAll("_", "-").trim();
+  if (normalizedSeparators === "") return "en";
+
+  try {
+    const canonical = Intl.getCanonicalLocales(normalizedSeparators)[0];
+    return canonical ?? normalizedSeparators;
+  } catch {
+    return normalizedSeparators;
+  }
+}
+
 /**
  * Register one or more translation objects.
  *
@@ -52,14 +64,16 @@ export function registerTranslation(
  * Returns `undefined` only when the registry is completely empty.
  */
 export function getTranslation(lang: string): KumoTranslation | undefined {
+  const normalizedLang = normalizeLookupLocale(lang);
+
   // 1. Exact match
-  const exact = registry.get(lang);
+  const exact = registry.get(normalizedLang);
   if (exact) return exact;
 
   // 2. Language prefix — take everything before the first hyphen
-  const hyphenIdx = lang.indexOf("-");
+  const hyphenIdx = normalizedLang.indexOf("-");
   if (hyphenIdx > 0) {
-    const prefix = lang.slice(0, hyphenIdx);
+    const prefix = normalizedLang.slice(0, hyphenIdx);
     const prefixed = registry.get(prefix);
     if (prefixed) return prefixed;
   }
