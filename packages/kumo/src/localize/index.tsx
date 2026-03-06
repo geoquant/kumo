@@ -115,12 +115,18 @@ const DEFAULT_LOCALE = "en";
 const warnedUnknownLocales = new Set<string>();
 const warnedFallbackLocales = new Set<string>();
 
-function validateFallbackLocale(inputFallbackLocale: string): {
+function validateFallbackLocale(
+  inputFallbackLocale: string,
+  localeAliases: Readonly<Record<string, string>>,
+): {
   readonly effectiveFallbackLocale: string;
   readonly shouldWarn: boolean;
   readonly normalizedInputFallbackLocale: string;
 } {
-  const normalized = resolveLocale(inputFallbackLocale, {}).effectiveLocale;
+  const normalized = resolveLocale(
+    inputFallbackLocale,
+    localeAliases,
+  ).effectiveLocale;
   const resolution = resolveTranslation(normalized, {
     fallbackLocale: normalized,
   });
@@ -225,11 +231,21 @@ export function KumoLocaleProvider({
   const parentConfig = useContext(LocaleConfigContext);
   const mergedLocale = locale ?? parentConfig?.locale;
   const mergedDetectLocale = detectLocale ?? parentConfig?.detectLocale ?? true;
+  const mergedLocaleAliases = useMemo<Readonly<Record<string, string>>>(
+    () =>
+      parentConfig === undefined
+        ? (localeAliases ?? {})
+        : {
+            ...parentConfig.localeAliases,
+            ...localeAliases,
+          },
+    [localeAliases, parentConfig],
+  );
   const fallbackInput =
     fallbackLocale ?? parentConfig?.fallbackLocale ?? DEFAULT_LOCALE;
   const fallbackValidation = useMemo(
-    () => validateFallbackLocale(fallbackInput),
-    [fallbackInput],
+    () => validateFallbackLocale(fallbackInput, mergedLocaleAliases),
+    [fallbackInput, mergedLocaleAliases],
   );
   const shouldDetectLocale = mergedLocale === undefined && mergedDetectLocale;
   const detected = useLocale(shouldDetectLocale);
@@ -238,13 +254,7 @@ export function KumoLocaleProvider({
     () => ({
       locale: mergedLocale,
       fallbackLocale: fallbackValidation.effectiveFallbackLocale,
-      localeAliases:
-        parentConfig === undefined
-          ? (localeAliases ?? {})
-          : {
-              ...parentConfig.localeAliases,
-              ...localeAliases,
-            },
+      localeAliases: mergedLocaleAliases,
       detectLocale: mergedDetectLocale,
       warnOnUnknownLocale:
         warnOnUnknownLocale ?? parentConfig?.warnOnUnknownLocale ?? false,
@@ -256,7 +266,7 @@ export function KumoLocaleProvider({
       fallbackValidation.effectiveFallbackLocale,
       direction,
       locale,
-      localeAliases,
+      mergedLocaleAliases,
       mergedDetectLocale,
       mergedLocale,
       onUnknownLocale,

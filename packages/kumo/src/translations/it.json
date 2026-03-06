@@ -48,5 +48,7 @@
   "no-labels-found": "No labels found.",
   "select-row": "Select row",
   "select-all-rows": "Select all rows",
-  "powered-by-cloudflare": "Powered by Cloudflare"
+  "powered-by-cloudflare": "Powered by Cloudflare",
+  "breadcrumb": "breadcrumb",
+  "cloudflare-logo": "Cloudflare logo"
 }

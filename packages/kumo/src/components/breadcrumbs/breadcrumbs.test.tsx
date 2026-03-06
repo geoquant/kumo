@@ -19,5 +19,6 @@ describe("Breadcrumb", () => {
     const copyButtons = screen.getAllByRole("button", { name: "Copy" });
     expect(copyButtons.length).toBeGreaterThan(0);
     expect(copyButtons[0]?.getAttribute("title")).toBe("Click to copy");
+    expect(screen.getByRole("navigation", { name: "breadcrumb" })).toBeTruthy();
   });
 });

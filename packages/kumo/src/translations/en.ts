@@ -62,9 +62,11 @@ const en: KumoTranslation = {
   // ── Breadcrumbs / Empty ───────────────────────────────────────────────
   "click-to-copy": "Click to copy",
   "copy-command": "Copy command",
+  breadcrumb: "breadcrumb",
 
   // ── Cloudflare Logo ───────────────────────────────────────────────────
   logo: "logo",
+  "cloudflare-logo": "Cloudflare logo",
   "powered-by-cloudflare": "Powered by Cloudflare",
 
   // ── Delete Resource Block ─────────────────────────────────────────────

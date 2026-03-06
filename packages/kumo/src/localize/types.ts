@@ -73,9 +73,11 @@ export interface KumoTranslation {
   // ── Breadcrumbs / Empty ───────────────────────────────────────────────
   readonly "click-to-copy": string;
   readonly "copy-command": string;
+  readonly breadcrumb: string;
 
   // ── Cloudflare Logo ───────────────────────────────────────────────────
   readonly logo: string;
+  readonly "cloudflare-logo": string;
   readonly "powered-by-cloudflare": string;
 
   // ── Delete Resource Block ─────────────────────────────────────────────

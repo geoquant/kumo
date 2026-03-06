@@ -214,13 +214,14 @@ export function Breadcrumb({
   size = "base",
   className,
 }: BreadcrumbsProps) {
+  const { term } = useLocalize();
   const childArray = Children.toArray(children);
   const mobileChildren = getMobileBreadcrumbChildren(childArray);
 
   return (
     <nav
       className={cn(breadcrumbsVariants({ size }), className)}
-      aria-label="breadcrumb"
+      aria-label={term("breadcrumb")}
     >
       <div className="contents sm:hidden">{mobileChildren}</div>
       <div className="hidden sm:contents">{childArray}</div>

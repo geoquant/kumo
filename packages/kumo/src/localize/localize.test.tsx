@@ -38,6 +38,7 @@ const fakeEn: KumoTranslation = {
   "copied-to-clipboard": "Copied to clipboard",
   loading: "Loading",
   "no-results-found": "No results found",
+  "no-labels-found": "No labels found.",
   optional: "optional",
   "more-information": "More information",
   cancel: "Cancel",
@@ -65,9 +66,14 @@ const fakeEn: KumoTranslation = {
   "selected-as-end-date": (d) => `${d}, selected as end date`,
   "within-selected-range": (d) => `${d}, within selected range`,
   "resize-column": "Resize column",
+  "select-row": "Select row",
+  "select-all-rows": "Select all rows",
   "click-to-copy": "Click to copy",
   "copy-command": "Copy command",
+  breadcrumb: "breadcrumb",
   logo: "logo",
+  "cloudflare-logo": "Cloudflare logo",
+  "powered-by-cloudflare": "Powered by Cloudflare",
   "delete-resource": (n) => `Delete ${n}`,
   "delete-action-cannot-be-undone": (n, t) =>
     `This action cannot be undone. This will permanently delete the ${n} ${t}.`,
@@ -657,6 +663,30 @@ describe("KumoLocaleProvider", () => {
       String(msg).includes("Unknown fallbackLocale"),
     );
     expect(fallbackWarnings).toHaveLength(1);
+    warnSpy.mockRestore();
+  });
+
+  it("applies localeAliases to fallbackLocale resolution", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    render(
+      createElement(KumoLocaleProvider, {
+        locale: "fr-CA",
+        fallbackLocale: "pt-BR",
+        localeAliases: { "pt-BR": "es" },
+        children: createElement(LocalizeConsumer, {
+          render: (r) => `${r.translationLang()}|${r.term("close")}`,
+        }),
+      }),
+    );
+
+    expect(screen.getByTestId("output").textContent).toBe("es|Cerrar");
+    const fallbackWarnings = warnSpy.mock.calls.filter(([msg]) =>
+      String(msg).includes("Unknown fallbackLocale"),
+    );
+    expect(fallbackWarnings).toHaveLength(0);
     warnSpy.mockRestore();
   });
 

@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { cn } from "../../utils/cn";
 import { useLocalize } from "../../localize/index.js";
+import en from "../../translations/en.js";
 
 // =============================================================================
 // Brand Colors (internal)
@@ -69,7 +70,8 @@ export type CloudflareLogoVariant =
 export type CloudflareLogoColor =
   keyof typeof KUMO_CLOUDFLARE_LOGO_VARIANTS.color;
 
-export interface CloudflareLogoProps extends React.SVGAttributes<SVGSVGElement> {
+export interface CloudflareLogoProps
+  extends React.SVGAttributes<SVGSVGElement> {
   /**
    * Logo variant
    * - `glyph`: Cloud icon only
@@ -138,7 +140,7 @@ export const CloudflareLogo = forwardRef<SVGSVGElement, CloudflareLogoProps>(
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           role="img"
-          aria-label={`Cloudflare ${term("logo")}`}
+          aria-label={term("cloudflare-logo")}
           className={cn(
             color === "white" && "text-white",
             color === "black" && "text-black",
@@ -166,7 +168,7 @@ export const CloudflareLogo = forwardRef<SVGSVGElement, CloudflareLogoProps>(
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label={`Cloudflare ${term("logo")}`}
+        aria-label={term("cloudflare-logo")}
         className={cn(
           // Wordmark text color - respects dark mode
           color === "color" && "text-kumo-default",
@@ -201,7 +203,8 @@ CloudflareLogo.displayName = "CloudflareLogo";
 // PoweredByCloudflare Component
 // =============================================================================
 
-export interface PoweredByCloudflareProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+export interface PoweredByCloudflareProps
+  extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   /**
    * Color scheme for the logo and text
    * @default "color"
@@ -322,7 +325,7 @@ export function generateCloudflareLogoSvg(
   const {
     variant = "full",
     color = "color",
-    ariaLabel = "Cloudflare logo",
+    ariaLabel = en["cloudflare-logo"],
   } = options;
 
   const isGlyph = variant === "glyph";
