@@ -43,7 +43,7 @@
         "Falls back to 'en' when both are unavailable",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "core-4",

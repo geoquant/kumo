@@ -8,6 +8,7 @@ Started: 2026-03-05
 - Parameterized translation keys typed as functions `(arg: type) => string` (no MessageFormat runtime)
 - `$`-prefixed fields for metadata ($code, $name, $dir) to avoid collision with translation keys
 - Pre-existing issues: docs astro typecheck has 1 error (SearchDialog), kumo tests have 70 unhandled rejections in deep-imports.test.ts (Vite worker RPC closing) — both pre-existing
+- `useSyncExternalStore` pattern for DOM attribute reactivity: lazy observer in `subscribe`, snapshot reads from DOM, server snapshot returns static default
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -29,3 +30,13 @@ Started: 2026-03-05
 - `_resetRegistry()` exported for test cleanup
 - Files changed: `packages/kumo/src/localize/registry.ts` (new)
 - **Learnings:** Keep module-level mutable state minimal (one Map + one string); `_resetRegistry` with underscore prefix convention for test-only exports
+
+## Task - core-3
+- Created `packages/kumo/src/localize/use-locale.ts` with `useLocale()` hook
+- Uses `useSyncExternalStore` with three functions: `subscribe`, `getSnapshot`, `getServerSnapshot`
+- `MutationObserver` created lazily on first subscription, disconnected when last subscriber removed
+- Subscriber tracking via `Set<() => void>` — observer only exists while subscribers are active
+- Fallback chain: `document.documentElement.lang` → `navigator.language` → `"en"`
+- Server snapshot always returns `"en"` for SSR
+- Files changed: `packages/kumo/src/localize/use-locale.ts` (new)
+- **Learnings:** `useSyncExternalStore` is the right pattern for DOM attribute reactivity — avoids useEffect/useState dance; lazy observer creation prevents work in module scope (important for SSR)
