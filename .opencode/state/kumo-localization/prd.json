@@ -210,7 +210,7 @@
         "All 4 aria-label occurrences use useLocalize().term('cloudflare-logo')",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "migrate-6",

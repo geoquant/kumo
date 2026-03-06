@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { cn } from "../../utils/cn";
+import { useLocalize } from "../../localize/index.js";
 
 // =============================================================================
 // Brand Colors (internal)
@@ -120,6 +121,7 @@ export const CloudflareLogo = forwardRef<SVGSVGElement, CloudflareLogoProps>(
     },
     ref,
   ) => {
+    const { term } = useLocalize();
     const isGlyph = variant === "glyph";
 
     // Determine fill colors
@@ -137,7 +139,7 @@ export const CloudflareLogo = forwardRef<SVGSVGElement, CloudflareLogoProps>(
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           role="img"
-          aria-label="Cloudflare logo"
+          aria-label={term("cloudflare-logo")}
           className={cn(
             color === "white" && "text-white",
             color === "black" && "text-black",
@@ -165,7 +167,7 @@ export const CloudflareLogo = forwardRef<SVGSVGElement, CloudflareLogoProps>(
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label="Cloudflare logo"
+        aria-label={term("cloudflare-logo")}
         className={cn(
           // Wordmark text color - respects dark mode
           color === "color" && "text-kumo-default",
@@ -294,6 +296,11 @@ export interface GenerateCloudflareLogoSvgOptions {
    * @default "color"
    */
   color?: CloudflareLogoSvgColor;
+  /**
+   * Accessible label for the SVG.
+   * @default "Cloudflare logo"
+   */
+  ariaLabel?: string;
 }
 
 /**
@@ -315,7 +322,11 @@ export interface GenerateCloudflareLogoSvgOptions {
 export function generateCloudflareLogoSvg(
   options: GenerateCloudflareLogoSvgOptions = {},
 ): string {
-  const { variant = "full", color = "color" } = options;
+  const {
+    variant = "full",
+    color = "color",
+    ariaLabel = "Cloudflare logo",
+  } = options;
 
   const isGlyph = variant === "glyph";
 
@@ -325,14 +336,14 @@ export function generateCloudflareLogoSvg(
   const fillText = color === "color" ? CLOUDFLARE_TEXT_GRAY : color;
 
   if (isGlyph) {
-    return `<svg viewBox="${CLOUDFLARE_GLYPH_VIEWBOX}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cloudflare logo">
+    return `<svg viewBox="${CLOUDFLARE_GLYPH_VIEWBOX}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${ariaLabel}">
   <path d="${CLOUDFLARE_GLYPH_ORANGE_PATH}" fill="${fillOrange}"/>
   <path d="${CLOUDFLARE_GLYPH_YELLOW_PATH}" fill="${fillYellow}"/>
 </svg>`;
   }
 
   // Full logo with wordmark
-  return `<svg viewBox="${CLOUDFLARE_FULL_LOGO_VIEWBOX}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cloudflare logo">
+  return `<svg viewBox="${CLOUDFLARE_FULL_LOGO_VIEWBOX}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${ariaLabel}">
   <path d="${CLOUDFLARE_FULL_LOGO_ORANGE_PATH}" fill="${fillOrange}"/>
   <path d="${CLOUDFLARE_FULL_LOGO_YELLOW_PATH}" fill="${fillYellow}"/>
   <path d="${CLOUDFLARE_WORDMARK_PATH}" fill="${fillText}"/>

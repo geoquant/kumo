@@ -181,3 +181,10 @@ Started: 2026-03-05
 - Changed `||` to `??` for deleteButtonText fallback (preserves intentional empty string overrides)
 - Restructured "Type...to confirm" section: instruction text from `term()` as flat string, copy button as sibling element
 - Files changed: `packages/kumo/src/blocks/delete-resource/delete-resource.tsx`
+
+## Task - migrate-5
+- Migrated `packages/kumo/src/components/cloudflare-logo/cloudflare-logo.tsx` to use `useLocalize()`
+- 2 React aria-labels → `term("cloudflare-logo")`
+- 2 SVG string generator labels → parameterized via new `ariaLabel` option on `GenerateCloudflareLogoSvgOptions` (defaults to "Cloudflare logo")
+- Files changed: `packages/kumo/src/components/cloudflare-logo/cloudflare-logo.tsx`
+- **Learnings:** Non-component utility functions can't use hooks; expose label as option param with English default
