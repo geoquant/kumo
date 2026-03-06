@@ -9,6 +9,7 @@ Started: 2026-03-05
 - `$`-prefixed fields for metadata ($code, $name, $dir) to avoid collision with translation keys
 - Pre-existing issues: docs astro typecheck has 1 error (SearchDialog), kumo tests have 70 unhandled rejections in deep-imports.test.ts (Vite worker RPC closing) — both pre-existing
 - `useSyncExternalStore` pattern for DOM attribute reactivity: lazy observer in `subscribe`, snapshot reads from DOM, server snapshot returns static default
+- Files with JSX must use `.tsx` extension (even non-component modules like `index.tsx` in localize/)
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -40,3 +41,16 @@ Started: 2026-03-05
 - Server snapshot always returns `"en"` for SSR
 - Files changed: `packages/kumo/src/localize/use-locale.ts` (new)
 - **Learnings:** `useSyncExternalStore` is the right pattern for DOM attribute reactivity — avoids useEffect/useState dance; lazy observer creation prevents work in module scope (important for SSR)
+
+## Task - core-4
+- Created `packages/kumo/src/localize/index.tsx` with `KumoLocaleProvider` and `useLocalize()`
+- `KumoLocaleProvider` wraps a context provider; optional `locale` prop overrides detection for subtree
+- `useLocalize()` returns `{ term, date, number, lang, dir }` memoized on resolved locale
+- Type-safe `term()` via `TermFn` interface with two overload signatures: `SimpleKey` (string values) and `ParameterizedKey` (function values with inferred args)
+- `SimpleKey`/`ParameterizedKey` computed via mapped conditional types over `KumoTranslation`
+- `date()` and `number()` delegate to `Intl.DateTimeFormat`/`Intl.NumberFormat` with resolved locale
+- Locale resolution: `KumoLocaleProvider` override → `useLocale()` (html lang → navigator → 'en')
+- Re-exports `registerTranslation` and `KumoTranslation` type for single-file public API
+- File is `.tsx` (not `.ts`) because it contains JSX for the context Provider
+- Files changed: `packages/kumo/src/localize/index.tsx` (new)
+- **Learnings:** JSX in localize module requires `.tsx` extension; `useMemo` on resolved locale string gives stable identity for the returned object; `TermFn` overloads give type safety without runtime cost

@@ -61,7 +61,7 @@
         "Locale resolution order: KumoLocaleProvider > <html lang> > navigator.language > 'en'",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "core-5",
