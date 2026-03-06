@@ -10,6 +10,6 @@ Add built-in i18n/localization infrastructure with pre-registered locale bundles
 - `registerTranslation()` for custom locales
 - 12 pre-registered locale bundles: en, ar, de, es, fr, he, it, ja, ko, pt, zh-CN, zh-TW
 - Migrates key user-facing UI strings to localized `term()` calls while preserving documented overrides
-- English remains the per-key fallback for untranslated locale terms
+- English is the default per-key fallback for untranslated locale terms (override via provider `fallbackLocale`)
 - Physical CSS properties converted to logical equivalents for RTL
 - Existing `labels` props preserved as overrides

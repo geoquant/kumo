@@ -52,6 +52,7 @@ export interface KumoTranslation {
   readonly "hide-value": string;
   readonly "reveal-value": string;
   readonly "value-masked": string;
+  readonly "masked-sensitive-value": (label: string) => string;
   readonly "value-hidden": string;
   readonly "click-or-press-enter-to-reveal": string;
 
@@ -65,7 +66,7 @@ export interface KumoTranslation {
   readonly "selected-as-end-date": (date: string) => string;
   readonly "within-selected-range": (date: string) => string;
 
-  // ��─ Table ─────────────────────────────────────────────────────────────
+  // ── Table ─────────────────────────────────────────────────────────────
   readonly "resize-column": string;
   readonly "select-row": string;
   readonly "select-all-rows": string;
@@ -77,6 +78,7 @@ export interface KumoTranslation {
 
   // ── Cloudflare Logo ───────────────────────────────────────────────────
   readonly logo: string;
+  readonly "cloudflare-logo": string;
   readonly "powered-by-cloudflare": string;
 
   // ── Delete Resource Block ─────────────────────────────────────────────

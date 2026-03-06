@@ -445,7 +445,7 @@ export const SensitiveInput = forwardRef<HTMLInputElement, SensitiveInputProps>(
             className={containerClassName}
             onClick={handleContainerClick}
             onKeyDown={handleContainerKeyDown}
-            aria-label={`${ariaLabelFallback}, ${term("value-masked")}.`}
+            aria-label={term("masked-sensitive-value", ariaLabelFallback)}
             aria-describedby={`${maskedInstructionId} ${liveRegionId}`}
             aria-disabled={disabled}
           >

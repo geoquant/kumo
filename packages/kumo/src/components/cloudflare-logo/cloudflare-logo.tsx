@@ -139,7 +139,7 @@ export const CloudflareLogo = forwardRef<SVGSVGElement, CloudflareLogoProps>(
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           role="img"
-          aria-label={`Cloudflare ${term("logo")}`}
+          aria-label={term("cloudflare-logo")}
           className={cn(
             color === "white" && "text-white",
             color === "black" && "text-black",
@@ -167,7 +167,7 @@ export const CloudflareLogo = forwardRef<SVGSVGElement, CloudflareLogoProps>(
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         role="img"
-        aria-label={`Cloudflare ${term("logo")}`}
+        aria-label={term("cloudflare-logo")}
         className={cn(
           // Wordmark text color - respects dark mode
           color === "color" && "text-kumo-default",

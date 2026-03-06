@@ -100,6 +100,13 @@ const STATIC_PAGES: Array<{
     url: "/registry",
     category: "Guides",
   },
+  {
+    name: "Internationalization",
+    description:
+      "Localization APIs, locale resolution, fallback behavior, and RTL guidance.",
+    url: "/i18n",
+    category: "Guides",
+  },
 ];
 
 /** Better descriptions from the Astro doc pages */

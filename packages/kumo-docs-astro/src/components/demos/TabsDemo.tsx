@@ -108,12 +108,20 @@ export function TabsRenderPropDemo() {
         {
           value: "tab2",
           label: "Link Tab",
-          render: (props) => <a {...props} href="#tab2" />,
+          render: (props) => (
+            <a {...props} href="#tab2">
+              Link Tab
+            </a>
+          ),
         },
         {
           value: "tab3",
           label: "Another Link",
-          render: (props) => <a {...props} href="#tab3" />,
+          render: (props) => (
+            <a {...props} href="#tab3">
+              Another Link
+            </a>
+          ),
         },
       ]}
       selectedValue="tab1"

@@ -21,7 +21,7 @@ const en: KumoTranslation = {
   loading: "Loading",
   "no-results-found": "No results found",
   "no-labels-found": "No labels found.",
-  optional: "optional",
+  optional: "(optional)",
   "more-information": "More information",
   cancel: "Cancel",
 
@@ -41,6 +41,7 @@ const en: KumoTranslation = {
   "hide-value": "Hide value",
   "reveal-value": "Reveal value",
   "value-masked": "masked",
+  "masked-sensitive-value": (label) => `${label}, masked value.`,
   "value-hidden": "Value hidden",
   "click-or-press-enter-to-reveal": "Click or press Enter to reveal.",
 
@@ -66,6 +67,7 @@ const en: KumoTranslation = {
 
   // ── Cloudflare Logo ───────────────────────────────────────────────────
   logo: "logo",
+  "cloudflare-logo": "Cloudflare logo",
   "powered-by-cloudflare": "Powered by Cloudflare",
 
   // ── Delete Resource Block ─────────────────────────────────────────────

@@ -31,8 +31,8 @@ import { TailwindColorTokens } from "../components/demos/ColorsDemo";
         <p class="mb-2 text-sm font-medium text-kumo-default">Incorrect</p>
         <CodeBlock
           code={`<!-- Never use raw Tailwind colors -->
-<div className="bg-white dark:bg-gray-900 text-black dark:text-white">
-  <button className="bg-blue-500">Primary</button>
+<div className="bg-[raw-surface] text-[raw-foreground]">
+  <button className="bg-[raw-brand]">Primary</button>
 </div>`}
           lang="tsx"
         />
