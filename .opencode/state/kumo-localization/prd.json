@@ -105,7 +105,7 @@
         "cloudflareLogo value is 'Cloudflare logo'",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "translations-2",

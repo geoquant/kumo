@@ -71,3 +71,12 @@ Started: 2026-03-05
 - No vite config or package.json changes needed — exports go through main barrel file
 - Files changed: `packages/kumo/src/index.ts`
 - **Learnings:** `moduleResolution: "bundler"` resolves `"./localize"` → `./localize/index.tsx` correctly; LSP may lag behind actual tsc behavior
+
+## Task - translations-1
+- Created `packages/kumo/src/translations/en.ts` with all 40 translation keys
+- Default export of `KumoTranslation` object: `$code: "en"`, `$name: "English"`, `$dir: "ltr"`
+- 29 simple string keys extracted from hardcoded values across 13 component files
+- 11 parameterized function keys: `showingRange`, `timezone`, `selectedAsStartDate`, `selectedAsEndDate`, `withinSelectedRange`, `deleteResource`, `deleteActionCannotBeUndone`, `typeToConfirm`, `confirmDeletionAriaLabel`, `copyResourceNameToClipboard`, `deleteResourceType`
+- Key string values matched exactly to source components (e.g. `valueMasked: "masked"` not `"Value masked"`)
+- Files changed: `packages/kumo/src/translations/en.ts` (new)
+- **Learnings:** `deleteActionCannotBeUndone` bundles the whole sentence including resource name + type; `valueMasked` in sensitive-input is just `"masked"` (lowercase, used as suffix in aria-label)
