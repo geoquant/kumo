@@ -108,6 +108,35 @@ export type UnknownLocaleCallback = (
 
 const DEFAULT_LOCALE = "en";
 const warnedUnknownLocales = new Set<string>();
+const warnedFallbackLocales = new Set<string>();
+
+function validateFallbackLocale(inputFallbackLocale: string): {
+  readonly effectiveFallbackLocale: string;
+  readonly shouldWarn: boolean;
+  readonly normalizedInputFallbackLocale: string;
+} {
+  const normalized = resolveLocale(inputFallbackLocale, {}).effectiveLocale;
+  const resolution = resolveTranslation(normalized, {
+    fallbackLocale: normalized,
+  });
+
+  const isSupported =
+    resolution.matchedBy === "exact" || resolution.matchedBy === "prefix";
+
+  if (isSupported) {
+    return {
+      effectiveFallbackLocale: normalized,
+      shouldWarn: false,
+      normalizedInputFallbackLocale: normalized,
+    };
+  }
+
+  return {
+    effectiveFallbackLocale: DEFAULT_LOCALE,
+    shouldWarn: normalized !== DEFAULT_LOCALE,
+    normalizedInputFallbackLocale: normalized,
+  };
+}
 
 function getTermValue(
   translation: KumoTranslation | undefined,
@@ -191,14 +220,19 @@ export function KumoLocaleProvider({
   const parentConfig = useContext(LocaleConfigContext);
   const mergedLocale = locale ?? parentConfig?.locale;
   const mergedDetectLocale = detectLocale ?? parentConfig?.detectLocale ?? true;
+  const fallbackInput =
+    fallbackLocale ?? parentConfig?.fallbackLocale ?? DEFAULT_LOCALE;
+  const fallbackValidation = useMemo(
+    () => validateFallbackLocale(fallbackInput),
+    [fallbackInput],
+  );
   const shouldDetectLocale = mergedLocale === undefined && mergedDetectLocale;
   const detected = useLocale(shouldDetectLocale);
 
   const value = useMemo<LocaleProviderConfig>(
     () => ({
       locale: mergedLocale,
-      fallbackLocale:
-        fallbackLocale ?? parentConfig?.fallbackLocale ?? DEFAULT_LOCALE,
+      fallbackLocale: fallbackValidation.effectiveFallbackLocale,
       localeAliases:
         parentConfig === undefined
           ? (localeAliases ?? {})
@@ -214,6 +248,7 @@ export function KumoLocaleProvider({
     }),
     [
       fallbackLocale,
+      fallbackValidation.effectiveFallbackLocale,
       direction,
       locale,
       localeAliases,
@@ -237,6 +272,23 @@ export function KumoLocaleProvider({
       fallbackLocale: value.fallbackLocale,
     }).translation?.$dir ??
     "ltr";
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    if (!fallbackValidation.shouldWarn) return;
+
+    const warnKey = fallbackValidation.normalizedInputFallbackLocale;
+    if (warnedFallbackLocales.has(warnKey)) return;
+
+    warnedFallbackLocales.add(warnKey);
+    console.warn(
+      `[kumo] Unknown fallbackLocale '${fallbackInput}'; using '${DEFAULT_LOCALE}'.`,
+    );
+  }, [
+    fallbackInput,
+    fallbackValidation.normalizedInputFallbackLocale,
+    fallbackValidation.shouldWarn,
+  ]);
 
   return (
     <LocaleConfigContext.Provider value={value}>
@@ -395,4 +447,5 @@ export function useLocalize(): LocalizeResult {
 // Only intended for test suites.
 export function _resetUnknownLocaleWarnings(): void {
   warnedUnknownLocales.clear();
+  warnedFallbackLocales.clear();
 }

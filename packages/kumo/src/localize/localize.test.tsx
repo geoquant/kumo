@@ -626,6 +626,40 @@ describe("KumoLocaleProvider", () => {
     observeSpy.mockRestore();
   });
 
+  it("fallbackLocale hard-falls back to en and warns once when unsupported", () => {
+    _resetRegistry();
+    registerTranslation(fakeEn, fakeEs);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const renderTree = (): void => {
+      const result = render(
+        createElement(KumoLocaleProvider, {
+          locale: "fr-CA",
+          fallbackLocale: "pt-BR",
+          children: createElement(LocalizeConsumer, {
+            render: (r) => `${r.translationLang()}|${r.term("close")}`,
+          }),
+        }),
+      );
+
+      expect(result.getByTestId("output").textContent).toBe("en|Close");
+      result.unmount();
+    };
+
+    renderTree();
+    renderTree();
+    expect(
+      warnSpy.mock.calls.some(([msg]) =>
+        String(msg).includes("Unknown fallbackLocale 'pt-BR'; using 'en'."),
+      ),
+    ).toBe(true);
+    const fallbackWarnings = warnSpy.mock.calls.filter(([msg]) =>
+      String(msg).includes("Unknown fallbackLocale"),
+    );
+    expect(fallbackWarnings).toHaveLength(1);
+    warnSpy.mockRestore();
+  });
+
   it("locale='es' causes child to resolve Spanish", () => {
     render(
       createElement(KumoLocaleProvider, {
@@ -794,7 +828,10 @@ describe("KumoLocaleProvider", () => {
     renderTree();
     renderTree();
 
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    const unknownLocaleWarnings = warnSpy.mock.calls.filter(([msg]) =>
+      String(msg).includes("Unknown locale"),
+    );
+    expect(unknownLocaleWarnings).toHaveLength(1);
     warnSpy.mockRestore();
   });
 
