@@ -219,3 +219,20 @@ Started: 2026-03-05
 - chart components had no physical directional utilities
 - Updated `no-primitive-colors` lint rule (both `lint/` and `packages/kumo/lint/`) to recognize `s` and `e` as valid non-color border utilities (alongside `t`, `r`, `b`, `l`)
 - **Learnings:** Custom oxlint rules need updating when introducing logical CSS properties; `border-s` was flagged as unknown token
+
+## Task - rtl-2
+- Migrated 48 physical→logical CSS property instances across 11 medium-complexity components
+- dropdown (12): pl→ps, mr→me, ml-auto→ms-auto, left→start
+- toast (7): right→end, left-auto→start-auto, mr→me
+- menubar (5): pl→ps, -ml→-ms, rounded-l→rounded-s, rounded-r→rounded-e
+- input-group (8): first:rounded-l→first:rounded-s, last:rounded-r→last:rounded-e
+- command-palette (2): text-left→text-start
+- table (2): text-left→text-start, right→end
+- code-highlighted (3): right→end, pr→pe, text-right→text-end
+- flow/diagram (4): right→end, left→start, ml→ms
+- flow/parallel (1): ml→ms
+- page-header (2): pl→ps
+- delete-resource (2): ml→ms
+- dialog: no changes needed (centering pattern is direction-neutral)
+- Updated lint rule: added `start`, `end` to `NON_COLOR_UTILITIES` for `text-start`/`text-end`
+- **Learnings:** `text-start`/`text-end` also trigger the no-primitive-colors lint rule since it monitors `text-*` prefix

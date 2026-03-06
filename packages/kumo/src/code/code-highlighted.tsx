@@ -85,7 +85,7 @@ export function CodeHighlighted({
   const copyButton = showCopyButton ? (
     <div
       className={cn(
-        isSingleLine ? "shrink-0 px-2" : "absolute right-2 top-2",
+        isSingleLine ? "shrink-0 px-2" : "absolute end-2 top-2",
         !copied && "opacity-0 transition-opacity group-hover:opacity-100",
       )}
     >
@@ -104,7 +104,7 @@ export function CodeHighlighted({
   const lineNumbers =
     showLineNumbers && !isSingleLine ? (
       <div
-        className="kumo-line-numbers shrink-0 select-none py-4 pr-4 text-right font-mono text-sm opacity-40"
+        className="kumo-line-numbers shrink-0 select-none py-4 pe-4 text-end font-mono text-sm opacity-40"
         aria-hidden="true"
       >
         {Array.from({ length: lineCount }, (_, i) => (

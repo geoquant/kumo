@@ -50,7 +50,7 @@ const BUILTIN_COLORS = new Set(["white", "black"]);
 
 // Non-color utilities that look like color tokens but aren't
 const NON_COLOR_UTILITIES = new Set([
-  // Text utilities (not colors)
+  // Text utilities (not colors) — physical and logical
   "xs",
   "sm",
   "base",
@@ -62,6 +62,8 @@ const NON_COLOR_UTILITIES = new Set([
   "left",
   "center",
   "right",
+  "start",
+  "end",
   "justify",
   "wrap",
   "nowrap",

@@ -304,7 +304,7 @@ export function FlowDiagram({
 
         {/* Vertical scrollbar */}
         {canScrollY && (
-          <div className="absolute right-1 top-1 bottom-1 w-1.5 rounded-full bg-kumo-line/50 opacity-0 group-hover:opacity-100">
+          <div className="absolute end-1 top-1 bottom-1 w-1.5 rounded-full bg-kumo-line/50 opacity-0 group-hover:opacity-100">
             <motion.div
               className="absolute w-full rounded-full bg-kumo-fill"
               style={{
@@ -317,7 +317,7 @@ export function FlowDiagram({
 
         {/* Horizontal scrollbar */}
         {canScrollX && (
-          <div className="absolute bottom-1 left-1 right-1 h-1.5 rounded-full bg-kumo-line/50 opacity-0 group-hover:opacity-100">
+          <div className="absolute bottom-1 start-1 end-1 h-1.5 rounded-full bg-kumo-line/50 opacity-0 group-hover:opacity-100">
             <motion.div
               className="absolute h-full rounded-full bg-kumo-fill"
               style={{
@@ -469,7 +469,7 @@ export function FlowNodeList({ children }: { children: ReactNode }) {
       <div className="relative" ref={containerRef}>
         <ul
           className={cn(
-            "ml-0 list-none",
+            "ms-0 list-none",
             orientation === "vertical"
               ? "grid auto-rows-min gap-16"
               : "flex gap-16",

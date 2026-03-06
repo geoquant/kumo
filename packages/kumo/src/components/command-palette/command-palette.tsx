@@ -336,7 +336,7 @@ function Item<T>({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "group flex w-full items-center gap-3 px-2 py-1.5 text-left text-base transition-colors",
+        "group flex w-full items-center gap-3 px-2 py-1.5 text-start text-base transition-colors",
         "cursor-pointer data-[highlighted]:bg-kumo-overlay",
         "rounded-lg",
         disabled && "cursor-default opacity-50",
@@ -480,7 +480,7 @@ function ResultItem<T>({
       value={value}
       onClick={nonInteractive ? undefined : (e: React.MouseEvent) => onClick(e)}
       className={cn(
-        "group flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors",
+        "group flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-start transition-colors",
         nonInteractive
           ? "cursor-default"
           : "cursor-pointer data-[highlighted]:bg-kumo-overlay",

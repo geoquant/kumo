@@ -361,7 +361,7 @@ export function FlowParallelNode({
           "gap-5 list-none flex",
           align === "start" ? "items-start" : "items-end",
           orientation === "horizontal"
-            ? "flex-col ml-0"
+            ? "flex-col ms-0"
             : "gap-5 w-fit mx-auto",
         )}
         ref={contentRef}

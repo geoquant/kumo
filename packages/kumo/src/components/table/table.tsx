@@ -76,7 +76,7 @@ const TableRoot = forwardRef<
     "[&_td]:p-3", // Cell padding
     "[&_th]:border-b [&_th]:border-kumo-fill [&_th]:p-3 [&_th]:font-semibold", // Header styles
     "[&_th]:bg-kumo-base", // Header background color
-    "text-left text-kumo-default",
+    "text-start text-kumo-default",
     props.className,
   );
 
@@ -157,7 +157,7 @@ const TableResizeHandle = forwardRef<
         "w-[10px]", // Hitting area
         "flex items-center justify-center", // Center the handle
         "cursor-col-resize touch-none select-none", // Prevent selection and touch events
-        "absolute top-0 right-0", // Position the handle
+        "absolute top-0 end-0", // Position the handle
         "m-0 bg-kumo-base p-0", // Override the stratus button styles
       )}
     >

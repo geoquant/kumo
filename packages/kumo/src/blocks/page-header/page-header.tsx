@@ -66,7 +66,7 @@ export function PageHeader({
       <div className="border-b border-kumo-line">{breadcrumbs}</div>
 
       {(title || description) && (
-        <div className="flex flex-col gap-2 py-3 pl-3">
+        <div className="flex flex-col gap-2 py-3 ps-3">
           {title && (
             <h1 className="font-heading text-3xl font-semibold text-kumo-default">
               {title}
@@ -81,7 +81,7 @@ export function PageHeader({
       )}
 
       {tabs && (
-        <div className="flex w-full items-center justify-between border-b border-kumo-line pt-1 pb-3 pl-3">
+        <div className="flex w-full items-center justify-between border-b border-kumo-line pt-1 pb-3 ps-3">
           <Tabs
             tabs={tabs}
             selectedValue={defaultTab}

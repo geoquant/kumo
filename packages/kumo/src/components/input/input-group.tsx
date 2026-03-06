@@ -89,7 +89,7 @@ function Label({ children }: PropsWithChildren<{}>) {
       className={cn(
         "flex h-full items-center p-0 px-2 text-kumo-subtle",
         isIndividualFocus &&
-          "first:rounded-l-[inherit] last:rounded-r-[inherit]",
+          "first:rounded-s-[inherit] last:rounded-e-[inherit]",
       )}
     >
       {children}
@@ -111,7 +111,7 @@ function Input(props: InputProps) {
         "flex h-full items-center rounded-none border-0 bg-kumo-base font-sans",
         "grow px-2",
         isIndividualFocus
-          ? "relative ring ring-kumo-line first:rounded-l-[inherit] last:rounded-r-[inherit] focus:z-1 focus:outline"
+          ? "relative ring ring-kumo-line first:rounded-s-[inherit] last:rounded-e-[inherit] focus:z-1 focus:outline"
           : "focus:border-kumo-fill",
         props.className,
       )}
@@ -129,7 +129,7 @@ function Description({ children }: PropsWithChildren<{}>) {
       className={cn(
         "flex h-full items-center p-0 px-2 text-kumo-subtle",
         isIndividualFocus &&
-          "first:rounded-l-[inherit] last:rounded-r-[inherit]",
+          "first:rounded-s-[inherit] last:rounded-e-[inherit]",
       )}
     >
       {children}
@@ -152,7 +152,7 @@ function Button({
       className={cn(
         "h-full! rounded-none disabled:bg-kumo-overlay disabled:text-kumo-inactive!",
         isIndividualFocus &&
-          "relative ring ring-kumo-line first:rounded-l-[inherit] last:rounded-r-[inherit] focus:z-1 focus:outline",
+          "relative ring ring-kumo-line first:rounded-s-[inherit] last:rounded-e-[inherit] focus:z-1 focus:outline",
         className,
       )}
     >

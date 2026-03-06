@@ -280,7 +280,7 @@
         "pnpm lint passes",
         "pnpm --filter @cloudflare/kumo test passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "rtl-3",

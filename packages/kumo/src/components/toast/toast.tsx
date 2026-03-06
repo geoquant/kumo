@@ -32,7 +32,7 @@ export const KUMO_TOAST_VARIANTS = {
   },
   close: {
     classes:
-      "absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded border-none bg-transparent text-kumo-subtle hover:bg-kumo-fill-hover hover:text-kumo-strong",
+      "absolute top-2 end-2 flex h-5 w-5 items-center justify-center rounded border-none bg-transparent text-kumo-subtle hover:bg-kumo-fill-hover hover:text-kumo-strong",
     description: "Close button with X icon",
   },
   variant: {
@@ -267,7 +267,7 @@ export function Toasty({ children }: ToastyProps) {
     <Toast.Provider>
       {children}
       <Toast.Portal>
-        <Toast.Viewport className="fixed top-auto right-4 bottom-4 z-1 mx-auto flex w-[calc(100%-2rem)] sm:right-8 sm:bottom-8 sm:w-[340px]">
+        <Toast.Viewport className="fixed top-auto end-4 bottom-4 z-1 mx-auto flex w-[calc(100%-2rem)] sm:end-8 sm:bottom-8 sm:w-[340px]">
           <ToastList />
         </Toast.Viewport>
       </Toast.Portal>
@@ -286,7 +286,7 @@ function ToastList() {
       key={toast.id}
       toast={toast}
       className={cn(
-        "absolute right-0 bottom-0 left-auto z-[calc(1000-var(--toast-index))] mr-0 h-[var(--height)] w-full origin-bottom select-none",
+        "absolute end-0 bottom-0 start-auto z-[calc(1000-var(--toast-index))] me-0 h-[var(--height)] w-full origin-bottom select-none",
         toastVariants({ variant: toast.variant }),
         "[--gap:0.75rem] [--height:var(--toast-frontmost-height,var(--toast-height))] [--offset-y:calc(var(--toast-offset-y)*-1+calc(var(--toast-index)*var(--gap)*-1)+var(--toast-swipe-movement-y))] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))]",
         "[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)-(var(--toast-index)*var(--peek))-(var(--shrink)*var(--height))))_scale(var(--scale))] [transition:transform_0.5s_cubic-bezier(0.22,1,0.36,1),opacity_0.5s,height_0.15s]",
@@ -325,7 +325,7 @@ function ToastList() {
           </>
         )}
         <Toast.Close
-          className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded border-none bg-transparent text-current/50 hover:bg-kumo-contrast/10 hover:text-current"
+          className="absolute top-2 end-2 flex h-4 w-4 items-center justify-center rounded border-none bg-transparent text-current/50 hover:bg-kumo-contrast/10 hover:text-current"
           aria-label={term("close")}
         >
           <XIcon className="h-3 w-3" />
