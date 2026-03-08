@@ -76,7 +76,7 @@
         "Verify at least one follow-up chat turn updates both UI structure and app state correctly.",
         "Verify no demo keeps a duplicated hand-rolled stream loop unless it is intentionally app-specific."
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {

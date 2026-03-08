@@ -4,6 +4,7 @@ import ComponentSection from "../components/docs/ComponentSection.astro";
 import CodeBlock from "../components/docs/CodeBlock.astro";
 import Callout from "../components/docs/Callout.astro";
 import { StreamingDemo } from "../components/demos/_StreamingDemo";
+import { AppRuntimeTaskCrudDemo } from "../components/demos/AppRuntimeTaskCrudDemo";
 ---
 
 <DocLayout
@@ -28,6 +29,17 @@ import { StreamingDemo } from "../components/demos/_StreamingDemo";
       real-time as JSONL patches, rendering live Kumo components as tokens arrive.
     </p>
     <StreamingDemo client:load />
+  </ComponentSection>
+
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">App Runtime Example</h2>
+    <p class="mb-4 text-kumo-strong">
+      This scripted chat turn uses <code>useChatUI</code> from
+      <code>@cloudflare/kumo/app-runtime/react</code> to drive a task CRUD app
+      with bound form state, validation, repeat rendering, and watcher-based
+      derived state.
+    </p>
+    <AppRuntimeTaskCrudDemo client:load />
   </ComponentSection>
 
   <!-- Quick Start -->
