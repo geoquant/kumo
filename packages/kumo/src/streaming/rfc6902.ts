@@ -1,109 +1,425 @@
 /**
- * RFC 6902 JSON Patch operations applied to UITree.
+ * RFC 6902 JSON Patch operations.
  *
- * Subset: only add/replace/remove. No move/copy/test.
- * Every applyPatch call returns a new shallow copy — input is never mutated.
- *
- * JSON Pointer paths follow RFC 6901:
- *   /root          → tree.root
- *   /elements/key  → tree.elements[key]
- *   /elements/key/children/- → append to children array
- *
- * Limitation: Array operations are limited to `/-` (append). Indexed array
- * operations (e.g. `/elements/key/children/0`) are NOT supported — the path
- * segment is treated as an object key, not an array index. This is intentional:
- * the streaming protocol only uses object nesting and `/-` for child appends.
+ * Supports add, replace, remove, move, copy, and test.
+ * Applies patches immutably to JSON-like documents such as UITree and AppSpec.
  */
 
-import type { UITree, UIElement } from "./types";
+type AnyRecord = Record<string, unknown>;
 
-// =============================================================================
-// Types
-// =============================================================================
-
-export interface JsonPatchOp {
-  readonly op: "add" | "replace" | "remove";
+type AddPatch = {
+  readonly op: "add" | "replace" | "test";
   readonly path: string;
-  readonly value?: unknown;
-}
+  readonly value: unknown;
+};
 
-// =============================================================================
-// Internal type helpers
-// =============================================================================
+type RemovePatch = {
+  readonly op: "remove";
+  readonly path: string;
+};
 
-/**
- * Loosely-typed record for navigating nested structures.
- * UIElement is an interface without an index signature, so we convert
- * at the boundary and convert back when storing into the elements map.
- */
-type AnyRecord = { [k: string]: unknown };
+type MoveCopyPatch = {
+  readonly op: "move" | "copy";
+  readonly path: string;
+  readonly from: string;
+};
 
-function toRecord(el: UIElement): AnyRecord {
-  // UIElement is structurally a record — safe to widen via unknown bridge.
-  return el as unknown as AnyRecord;
-}
+export type JsonPatchOp = AddPatch | RemovePatch | MoveCopyPatch;
 
-function toElement(rec: AnyRecord): UIElement {
-  // Validate minimal UIElement shape before narrowing.
-  return rec as unknown as UIElement;
-}
+const BLOCKED_SEGMENTS = new Set(["__proto__", "constructor", "prototype"]);
+const MISSING = Symbol("missing");
 
-/** Runtime check: value is a non-null, non-array object. */
 function isRecord(value: unknown): value is AnyRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/**
- * Validate that a value looks like a UIElement (has at minimum `type` and `key`
- * strings). Used at patch boundaries before casting LLM-provided values.
- */
-function isElementLike(value: unknown): value is UIElement {
-  if (!isRecord(value)) return false;
-  return typeof value["type"] === "string" && typeof value["key"] === "string";
+function decodePointerSegment(segment: string): string {
+  return segment.replaceAll("~1", "/").replaceAll("~0", "~");
 }
 
-/**
- * Validate that a value looks like an elements map (object of UIElement-like values).
- */
-function isElementsMapLike(value: unknown): value is UITree["elements"] {
-  if (!isRecord(value)) return false;
-  // Spot-check: every value is either an element-like record or nullish.
-  for (const v of Object.values(value)) {
-    if (v != null && !isElementLike(v)) return false;
+function parsePath(path: string): string[] | null {
+  if (path === "" || path === "/") {
+    return [];
   }
-  return true;
+
+  const segments = (path.startsWith("/") ? path.slice(1) : path)
+    .split("/")
+    .map((segment) => decodePointerSegment(segment));
+
+  for (const segment of segments) {
+    if (BLOCKED_SEGMENTS.has(segment)) {
+      return null;
+    }
+  }
+
+  return segments;
 }
 
-// =============================================================================
-// Public API
-// =============================================================================
+function parseArrayIndex(segment: string): number | null {
+  if (segment === "0" || /^[1-9]\d*$/.test(segment)) {
+    const parsed = Number(segment);
+    return Number.isSafeInteger(parsed) ? parsed : null;
+  }
 
-/**
- * Apply a single RFC 6902 patch operation to a UITree.
- * Returns a new shallow copy — never mutates the input.
- */
-export function applyPatch(spec: UITree, patch: JsonPatchOp): UITree {
-  const segments = parsePath(patch.path);
-  // Blocked path (prototype pollution) — return unchanged tree.
-  if (segments === null) return spec;
+  return null;
+}
+
+function cloneDocument<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return [...value] as T;
+  }
+
+  if (isRecord(value)) {
+    return { ...value } as T;
+  }
+
+  return value;
+}
+
+function deepEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) {
+    return true;
+  }
+
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return (
+      left.length === right.length &&
+      left.every((entry, index) => deepEqual(entry, right[index]))
+    );
+  }
+
+  if (isRecord(left) && isRecord(right)) {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+
+    return (
+      leftKeys.length === rightKeys.length &&
+      leftKeys.every((key) => key in right && deepEqual(left[key], right[key]))
+    );
+  }
+
+  return false;
+}
+
+function clonePatchValue<T>(value: T): T {
+  return structuredClone(value);
+}
+
+function getValueAtSegments(
+  value: unknown,
+  segments: readonly string[],
+): unknown {
+  let current: unknown = value;
+
+  for (const segment of segments) {
+    if (Array.isArray(current)) {
+      const index = parseArrayIndex(segment);
+      if (index === null || index >= current.length) {
+        return MISSING;
+      }
+      current = current[index];
+      continue;
+    }
+
+    if (isRecord(current)) {
+      if (!(segment in current)) {
+        return MISSING;
+      }
+      current = current[segment];
+      continue;
+    }
+
+    return MISSING;
+  }
+
+  return current;
+}
+
+function addAtSegments(
+  value: unknown,
+  segments: readonly string[],
+  nextValue: unknown,
+): { changed: boolean; value: unknown } {
+  if (segments.length === 0) {
+    return { changed: false, value };
+  }
+
+  const [head, ...tail] = segments;
+
+  if (Array.isArray(value)) {
+    if (tail.length === 0 && head === "-") {
+      return { changed: true, value: [...value, nextValue] };
+    }
+
+    const index = parseArrayIndex(head);
+    if (index === null || index > value.length) {
+      return { changed: false, value };
+    }
+
+    if (tail.length === 0) {
+      const nextArray = [...value];
+      nextArray.splice(index, 0, nextValue);
+      return { changed: true, value: nextArray };
+    }
+
+    if (index >= value.length) {
+      return { changed: false, value };
+    }
+
+    const updated = addAtSegments(value[index], tail, nextValue);
+    if (!updated.changed) {
+      return { changed: false, value };
+    }
+
+    const nextArray = [...value];
+    nextArray[index] = updated.value;
+    return { changed: true, value: nextArray };
+  }
+
+  if (!isRecord(value)) {
+    return { changed: false, value };
+  }
+
+  if (tail.length === 0) {
+    return {
+      changed: true,
+      value: {
+        ...value,
+        [head]: nextValue,
+      },
+    };
+  }
+
+  if (tail.length === 1 && tail[0] === "-" && !(head in value)) {
+    return {
+      changed: true,
+      value: {
+        ...value,
+        [head]: [nextValue],
+      },
+    };
+  }
+
+  if (!(head in value)) {
+    return { changed: false, value };
+  }
+
+  const updated = addAtSegments(value[head], tail, nextValue);
+  if (!updated.changed) {
+    return { changed: false, value };
+  }
+
+  return {
+    changed: true,
+    value: {
+      ...value,
+      [head]: updated.value,
+    },
+  };
+}
+
+function replaceAtSegments(
+  value: unknown,
+  segments: readonly string[],
+  nextValue: unknown,
+): { changed: boolean; value: unknown } {
+  if (segments.length === 0) {
+    return { changed: false, value };
+  }
+
+  const [head, ...tail] = segments;
+
+  if (Array.isArray(value)) {
+    const index = parseArrayIndex(head);
+    if (index === null || index >= value.length) {
+      return { changed: false, value };
+    }
+
+    if (tail.length === 0) {
+      const nextArray = [...value];
+      nextArray[index] = nextValue;
+      return { changed: true, value: nextArray };
+    }
+
+    const updated = replaceAtSegments(value[index], tail, nextValue);
+    if (!updated.changed) {
+      return { changed: false, value };
+    }
+
+    const nextArray = [...value];
+    nextArray[index] = updated.value;
+    return { changed: true, value: nextArray };
+  }
+
+  if (!isRecord(value) || !(head in value)) {
+    return { changed: false, value };
+  }
+
+  if (tail.length === 0) {
+    return {
+      changed: true,
+      value: {
+        ...value,
+        [head]: nextValue,
+      },
+    };
+  }
+
+  const updated = replaceAtSegments(value[head], tail, nextValue);
+  if (!updated.changed) {
+    return { changed: false, value };
+  }
+
+  return {
+    changed: true,
+    value: {
+      ...value,
+      [head]: updated.value,
+    },
+  };
+}
+
+function removeAtSegments(
+  value: unknown,
+  segments: readonly string[],
+): { changed: boolean; value: unknown } {
+  if (segments.length === 0) {
+    return { changed: false, value };
+  }
+
+  const [head, ...tail] = segments;
+
+  if (Array.isArray(value)) {
+    const index = parseArrayIndex(head);
+    if (index === null || index >= value.length) {
+      return { changed: false, value };
+    }
+
+    if (tail.length === 0) {
+      const nextArray = [...value];
+      nextArray.splice(index, 1);
+      return { changed: true, value: nextArray };
+    }
+
+    const updated = removeAtSegments(value[index], tail);
+    if (!updated.changed) {
+      return { changed: false, value };
+    }
+
+    const nextArray = [...value];
+    nextArray[index] = updated.value;
+    return { changed: true, value: nextArray };
+  }
+
+  if (!isRecord(value) || !(head in value)) {
+    return { changed: false, value };
+  }
+
+  if (tail.length === 0) {
+    const { [head]: _removed, ...nextRecord } = value;
+    return { changed: true, value: nextRecord };
+  }
+
+  const updated = removeAtSegments(value[head], tail);
+  if (!updated.changed) {
+    return { changed: false, value };
+  }
+
+  return {
+    changed: true,
+    value: {
+      ...value,
+      [head]: updated.value,
+    },
+  };
+}
+
+export function applyPatch<T>(spec: T, patch: JsonPatchOp): T {
+  const pathSegments = parsePath(patch.path);
+  if (pathSegments === null) {
+    return spec;
+  }
 
   switch (patch.op) {
-    case "add":
-      return applyAdd(spec, segments, patch.value);
-    case "replace":
-      return applyReplace(spec, segments, patch.value);
-    case "remove":
-      return applyRemove(spec, segments);
+    case "add": {
+      if (pathSegments.length === 0) {
+        return cloneDocument(spec);
+      }
+
+      const updated = addAtSegments(spec, pathSegments, patch.value);
+      return updated.changed ? (updated.value as T) : spec;
+    }
+    case "replace": {
+      if (pathSegments.length === 0) {
+        return cloneDocument(spec);
+      }
+
+      const updated = replaceAtSegments(spec, pathSegments, patch.value);
+      return updated.changed ? (updated.value as T) : spec;
+    }
+    case "remove": {
+      if (pathSegments.length === 0) {
+        return cloneDocument(spec);
+      }
+
+      const updated = removeAtSegments(spec, pathSegments);
+      return updated.changed ? (updated.value as T) : spec;
+    }
+    case "copy": {
+      const fromSegments = parsePath(patch.from);
+      if (fromSegments === null || pathSegments.length === 0) {
+        return spec;
+      }
+
+      const value = getValueAtSegments(spec, fromSegments);
+      if (value === MISSING) {
+        return spec;
+      }
+
+      const updated = addAtSegments(spec, pathSegments, clonePatchValue(value));
+      return updated.changed ? (updated.value as T) : spec;
+    }
+    case "move": {
+      const fromSegments = parsePath(patch.from);
+      if (fromSegments === null || pathSegments.length === 0) {
+        return spec;
+      }
+
+      const value = getValueAtSegments(spec, fromSegments);
+      if (value === MISSING) {
+        return spec;
+      }
+
+      const removed = removeAtSegments(spec, fromSegments);
+      if (!removed.changed) {
+        return spec;
+      }
+
+      const added = addAtSegments(removed.value, pathSegments, value);
+      return added.changed ? (added.value as T) : spec;
+    }
+    case "test": {
+      const value = getValueAtSegments(spec, pathSegments);
+      if (value === MISSING || !deepEqual(value, patch.value)) {
+        throw new Error(`JSON Patch test failed at ${patch.path}`);
+      }
+      return spec;
+    }
   }
 }
 
-/**
- * Parse a single JSONL line into a JsonPatchOp.
- * Returns null for invalid JSON or missing required fields.
- */
+function hasField(
+  value: AnyRecord,
+  field: string,
+): value is AnyRecord & Record<typeof field, unknown> {
+  return field in value;
+}
+
 export function parsePatchLine(line: string): JsonPatchOp | null {
   const trimmed = line.trim();
-  if (trimmed === "") return null;
+  if (trimmed === "") {
+    return null;
+  }
 
   let parsed: unknown;
   try {
@@ -116,316 +432,29 @@ export function parsePatchLine(line: string): JsonPatchOp | null {
     return null;
   }
 
-  const obj = parsed;
-
-  if (typeof obj.op !== "string" || typeof obj.path !== "string") {
+  if (typeof parsed.op !== "string" || typeof parsed.path !== "string") {
     return null;
   }
 
-  // Disallow empty-path patches (replace entire tree / wipe state).
-  if (obj.path === "" || obj.path === "/") {
+  if (parsed.path === "" || parsed.path === "/") {
     return null;
   }
 
-  const op = obj.op;
-  if (op !== "add" && op !== "replace" && op !== "remove") {
-    return null;
+  switch (parsed.op) {
+    case "add":
+    case "replace":
+    case "test":
+      return hasField(parsed, "value")
+        ? { op: parsed.op, path: parsed.path, value: parsed.value }
+        : null;
+    case "remove":
+      return { op: "remove", path: parsed.path };
+    case "move":
+    case "copy":
+      return typeof parsed.from === "string"
+        ? { op: parsed.op, path: parsed.path, from: parsed.from }
+        : null;
+    default:
+      return null;
   }
-
-  // add and replace require a value field; remove does not
-  if ((op === "add" || op === "replace") && !("value" in obj)) {
-    return null;
-  }
-
-  if (op === "remove") {
-    return { op, path: obj.path };
-  }
-
-  return { op, path: obj.path, value: obj.value };
-}
-
-// =============================================================================
-// Path parsing
-// =============================================================================
-
-/** Segments that must never appear in a JSON Pointer path (prototype pollution). */
-const BLOCKED_SEGMENTS = new Set(["__proto__", "constructor", "prototype"]);
-
-/** Parse a JSON Pointer path into segments. Leading "/" is stripped.
- *  Returns `null` when the path contains a blocked segment (prototype pollution). */
-function parsePath(path: string): string[] | null {
-  if (path === "" || path === "/") return [];
-  const raw = path.startsWith("/") ? path.slice(1) : path;
-  // RFC 6901: ~1 → /, ~0 → ~
-  const segments = raw
-    .split("/")
-    .map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"));
-
-  for (const seg of segments) {
-    if (BLOCKED_SEGMENTS.has(seg)) return null;
-  }
-
-  return segments;
-}
-
-// =============================================================================
-// Operation implementations
-// =============================================================================
-
-function applyAdd(spec: UITree, segments: string[], value: unknown): UITree {
-  if (segments.length === 0) {
-    return { ...spec };
-  }
-
-  const [first, ...rest] = segments;
-
-  if (first === "root") {
-    return typeof value === "string" ? { ...spec, root: value } : spec;
-  }
-
-  if (first === "elements") {
-    return addToElements(spec, rest, value);
-  }
-
-  // Ignore unknown top-level keys.
-  return spec;
-}
-
-function addToElements(
-  spec: UITree,
-  segments: string[],
-  value: unknown,
-): UITree {
-  if (segments.length === 0) {
-    // Replace entire elements map — validate shape.
-    return isElementsMapLike(value) ? { ...spec, elements: value } : spec;
-  }
-
-  const [key, ...rest] = segments;
-
-  if (rest.length === 0) {
-    // Add a single element — validate it looks like a UIElement.
-    if (!isElementLike(value)) return spec;
-    return {
-      ...spec,
-      elements: {
-        ...spec.elements,
-        [key as string]: value,
-      },
-    };
-  }
-
-  // Nested path within an element, e.g. /elements/{key}/children/-
-  const existing = spec.elements[key as string];
-  if (existing === undefined) {
-    return { ...spec };
-  }
-
-  const updated = setNestedValue(toRecord(existing), rest, value);
-  return {
-    ...spec,
-    elements: { ...spec.elements, [key as string]: toElement(updated) },
-  };
-}
-
-/**
- * Immutably set a value at a nested path within a record.
- * Handles the /- array-append convention from RFC 6902.
- */
-function setNestedValue(
-  obj: AnyRecord,
-  segments: string[],
-  value: unknown,
-): AnyRecord {
-  if (segments.length === 0) return obj;
-
-  const [head, ...tail] = segments;
-
-  if (tail.length === 0) {
-    if (head === "-") {
-      // /- at top level of an object — not meaningful
-      return { ...obj };
-    }
-    return { ...obj, [head as string]: value };
-  }
-
-  // /prop/- → append to array at prop
-  if (tail.length === 1 && tail[0] === "-") {
-    const current = obj[head as string];
-    const arr = Array.isArray(current) ? current : [];
-    return { ...obj, [head as string]: [...arr, value] };
-  }
-
-  // Recurse into nested object
-  const current = obj[head as string];
-  if (
-    typeof current === "object" &&
-    current !== null &&
-    !Array.isArray(current)
-  ) {
-    const updated = setNestedValue(current as AnyRecord, tail, value);
-    return { ...obj, [head as string]: updated };
-  }
-
-  return { ...obj };
-}
-
-function applyReplace(
-  spec: UITree,
-  segments: string[],
-  value: unknown,
-): UITree {
-  if (segments.length === 0) {
-    // Replace entire tree — validate minimal shape.
-    if (!isRecord(value)) return spec;
-    const root = typeof value["root"] === "string" ? value["root"] : spec.root;
-    const elements = isElementsMapLike(value["elements"])
-      ? value["elements"]
-      : spec.elements;
-    return { root, elements };
-  }
-
-  const [first, ...rest] = segments;
-
-  if (first === "root") {
-    return typeof value === "string" ? { ...spec, root: value } : spec;
-  }
-
-  if (first === "elements") {
-    return replaceInElements(spec, rest, value);
-  }
-
-  // Ignore unknown top-level keys.
-  return spec;
-}
-
-function replaceInElements(
-  spec: UITree,
-  segments: string[],
-  value: unknown,
-): UITree {
-  if (segments.length === 0) {
-    return isElementsMapLike(value) ? { ...spec, elements: value } : spec;
-  }
-
-  const [key, ...rest] = segments;
-
-  if (rest.length === 0) {
-    // Replace a single element — validate shape.
-    if (!isElementLike(value)) return spec;
-    return {
-      ...spec,
-      elements: {
-        ...spec.elements,
-        [key as string]: value,
-      },
-    };
-  }
-
-  const existing = spec.elements[key as string];
-  if (existing === undefined) return { ...spec };
-
-  const updated = replaceNestedValue(toRecord(existing), rest, value);
-  return {
-    ...spec,
-    elements: { ...spec.elements, [key as string]: toElement(updated) },
-  };
-}
-
-function replaceNestedValue(
-  obj: AnyRecord,
-  segments: string[],
-  value: unknown,
-): AnyRecord {
-  if (segments.length === 0) return isRecord(value) ? value : obj;
-
-  const [head, ...tail] = segments;
-
-  if (tail.length === 0) {
-    return { ...obj, [head as string]: value };
-  }
-
-  const current = obj[head as string];
-  if (
-    typeof current === "object" &&
-    current !== null &&
-    !Array.isArray(current)
-  ) {
-    const updated = replaceNestedValue(current as AnyRecord, tail, value);
-    return { ...obj, [head as string]: updated };
-  }
-
-  return { ...obj };
-}
-
-function applyRemove(spec: UITree, segments: string[]): UITree {
-  if (segments.length === 0) {
-    return { root: "", elements: {} };
-  }
-
-  const [first, ...rest] = segments;
-
-  if (first === "root") {
-    return { ...spec, root: "" };
-  }
-
-  if (first === "elements") {
-    return removeFromElements(spec, rest);
-  }
-
-  if (!((first as string) in spec)) return { ...spec };
-
-  const copy = { ...spec };
-  delete (copy as AnyRecord)[first as string];
-  return copy;
-}
-
-function removeFromElements(spec: UITree, segments: string[]): UITree {
-  if (segments.length === 0) {
-    return { ...spec, elements: {} };
-  }
-
-  const [key, ...rest] = segments;
-
-  if (rest.length === 0) {
-    if (!((key as string) in spec.elements)) return { ...spec };
-
-    const elements = { ...spec.elements };
-    delete elements[key as string];
-    return { ...spec, elements };
-  }
-
-  const existing = spec.elements[key as string];
-  if (existing === undefined) return { ...spec };
-
-  const updated = removeNestedValue(toRecord(existing), rest);
-  return {
-    ...spec,
-    elements: { ...spec.elements, [key as string]: toElement(updated) },
-  };
-}
-
-function removeNestedValue(obj: AnyRecord, segments: string[]): AnyRecord {
-  if (segments.length === 0) return obj;
-
-  const [head, ...tail] = segments;
-
-  if (tail.length === 0) {
-    if (!((head as string) in obj)) return obj;
-    const copy = { ...obj };
-    delete copy[head as string];
-    return copy;
-  }
-
-  const current = obj[head as string];
-  if (
-    typeof current === "object" &&
-    current !== null &&
-    !Array.isArray(current)
-  ) {
-    const updated = removeNestedValue(current as AnyRecord, tail);
-    return { ...obj, [head as string]: updated };
-  }
-
-  return obj;
 }

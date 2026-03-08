@@ -9,6 +9,8 @@ export {
   resolveValueExpr,
   writeBindingValue,
 } from "./expressions";
+export { flattenNestedAppSpec, normalizeAppSpec } from "./normalize";
+export { repairAppSpec } from "./repair";
 export { expandAppSpec } from "./repeat";
 export { createAppStore, isMutableAppStore } from "./store";
 export { validateFieldsForMode } from "./validation";
@@ -57,6 +59,10 @@ export type {
 } from "./actions";
 
 export type { ResolvedPropsResult } from "./expressions";
+
+export type { NestedAppElement, NestedAppSpec } from "./normalize";
+
+export type { RepairIssue, RepairResult } from "./repair";
 
 export type { ExpandedAppSpec } from "./repeat";
 

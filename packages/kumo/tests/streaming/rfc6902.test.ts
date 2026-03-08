@@ -335,16 +335,18 @@ describe("parsePatchLine", () => {
     expect(parsePatchLine('{"op":"add","value":"x"}')).toBeNull();
   });
 
-  it("returns null for unsupported op (move/copy/test)", () => {
+  it("parses move, copy, and test operations", () => {
     expect(
       parsePatchLine('{"op":"move","path":"/root","from":"/old"}'),
-    ).toBeNull();
+    ).toEqual({ op: "move", path: "/root", from: "/old" });
     expect(
       parsePatchLine('{"op":"copy","path":"/root","from":"/old"}'),
-    ).toBeNull();
-    expect(
-      parsePatchLine('{"op":"test","path":"/root","value":"x"}'),
-    ).toBeNull();
+    ).toEqual({ op: "copy", path: "/root", from: "/old" });
+    expect(parsePatchLine('{"op":"test","path":"/root","value":"x"}')).toEqual({
+      op: "test",
+      path: "/root",
+      value: "x",
+    });
   });
 
   it("returns null for add/replace without value", () => {
@@ -450,5 +452,76 @@ describe("applyPatch: prototype pollution prevention", () => {
     });
     expect(result).toBe(base);
     expect(({} as Record<string, unknown>)["type"]).toBeUndefined();
+  });
+});
+
+describe("applyPatch: RFC 6902 extended ops", () => {
+  it("supports indexed array add for AppSpec-like state paths", () => {
+    const spec = {
+      version: "app/v1",
+      root: "screen",
+      state: { tasks: ["a", "c"] },
+      elements: {},
+    };
+
+    const result = applyPatch(spec, {
+      op: "add",
+      path: "/state/tasks/1",
+      value: "b",
+    });
+
+    expect(result.state.tasks).toEqual(["a", "b", "c"]);
+  });
+
+  it("supports copy and move across state paths", () => {
+    const spec = {
+      version: "app/v1",
+      root: "screen",
+      state: {
+        source: { title: "Draft" },
+        target: {},
+        tasks: ["a", "b", "c"],
+      },
+      elements: {},
+    };
+
+    const copied = applyPatch(spec, {
+      op: "copy",
+      from: "/state/source/title",
+      path: "/state/target/title",
+    });
+    const moved = applyPatch(copied, {
+      op: "move",
+      from: "/state/tasks/0",
+      path: "/state/tasks/2",
+    });
+
+    expect(copied.state.target).toEqual({ title: "Draft" });
+    expect(moved.state.tasks).toEqual(["b", "c", "a"]);
+  });
+
+  it("supports test and throws on mismatch", () => {
+    const spec = {
+      version: "app/v1",
+      root: "screen",
+      state: { count: 2 },
+      elements: {},
+    };
+
+    expect(
+      applyPatch(spec, {
+        op: "test",
+        path: "/state/count",
+        value: 2,
+      }),
+    ).toBe(spec);
+
+    expect(() =>
+      applyPatch(spec, {
+        op: "test",
+        path: "/state/count",
+        value: 3,
+      }),
+    ).toThrow("JSON Patch test failed");
   });
 });
