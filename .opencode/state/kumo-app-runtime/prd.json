@@ -24,7 +24,7 @@
         "Verify event maps can execute chained actions sequentially against the latest store snapshot.",
         "Verify built-in state, list, and form actions mutate the app store correctly."
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "runtime-2",

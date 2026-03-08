@@ -5,6 +5,7 @@ Started: 2026-03-07
 ## Codebase Patterns
 - Hard rule: keep every task on `geoquant/streaming-ui`; do not branch this work elsewhere.
 - New public Kumo subpaths need four touchpoints: source barrel, Vite build entry, `package.json` export, and an import test.
+- In `app-runtime/core`, keep path utils, expression resolution, store behavior, and action execution in separate pure modules with focused tests.
 
 ---
 
@@ -12,3 +13,8 @@ Started: 2026-03-07
 - What was implemented: added the experimental app runtime type surface with `AppSpec`, app elements, expressions, actions, repeat, validation, watchers, store contracts, and compatibility aliases for legacy `UITree` consumers.
 - Files changed: `packages/kumo/src/app-runtime/core/types.ts`, `packages/kumo/src/app-runtime/core/index.ts`, `packages/kumo/src/app-runtime/index.ts`, `packages/kumo/src/index.ts`, `packages/kumo/package.json`, `packages/kumo/vite.config.ts`, `packages/kumo/tests/imports/app-runtime.test.ts`, `.changeset/app-runtime-core-types.md`, `.opencode/state/kumo-app-runtime/prd.json`.
 - Learnings: the least risky migration boundary is a compatibility alias first; for Kumo packaging, a new runtime surface is not real until entry files, package exports, and import coverage all land together.
+
+## Task - runtime-1
+- What was implemented: added pure app runtime modules for immutable store updates, JSON Pointer path handling, shared expression resolution, binding writes through the app store, and sequential built-in action execution for state, list, form, and navigation flows.
+- Files changed: `packages/kumo/src/app-runtime/core/path.ts`, `packages/kumo/src/app-runtime/core/store.ts`, `packages/kumo/src/app-runtime/core/expressions.ts`, `packages/kumo/src/app-runtime/core/actions.ts`, `packages/kumo/src/app-runtime/core/index.ts`, `packages/kumo/src/app-runtime/index.ts`, `packages/kumo/src/index.ts`, `packages/kumo/tests/app-runtime/actions.test.ts`, `packages/kumo/tests/app-runtime/expressions.test.ts`, `packages/kumo/tests/app-runtime/store.test.ts`, `.opencode/state/kumo-app-runtime/prd.json`.
+- Learnings: action sequencing should recompute expression context from the store before each step so later steps see fresh state; binding writes are simplest when ref sources resolve to JSON Pointer targets before touching the store.
