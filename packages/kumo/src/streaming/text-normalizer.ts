@@ -72,8 +72,16 @@ export function sanitizeUnknownText(value: unknown): unknown {
 
 /** Strip leading emoji tokens anywhere inside a patch value. */
 export function sanitizePatch(patch: JsonPatchOp): JsonPatchOp {
-  if (patch.op === "remove") return patch;
-
-  const nextValue = sanitizeUnknownText(patch.value);
-  return nextValue === patch.value ? patch : { ...patch, value: nextValue };
+  switch (patch.op) {
+    case "remove":
+    case "move":
+    case "copy":
+      return patch;
+    case "add":
+    case "replace":
+    case "test": {
+      const nextValue = sanitizeUnknownText(patch.value);
+      return nextValue === patch.value ? patch : { ...patch, value: nextValue };
+    }
+  }
 }

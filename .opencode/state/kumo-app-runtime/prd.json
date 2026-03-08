@@ -50,7 +50,7 @@
         "Verify nested authoring input can be flattened into the runtime AppSpec shape.",
         "Verify repair and normalization happen before render instead of only inside the renderer."
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "react-1",
