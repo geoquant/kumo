@@ -209,6 +209,8 @@ export default defineConfig(({ mode }) => {
           registry: resolve(__dirname, "src/registry/index.ts"),
           // Catalog module entry point (runtime validation, JSON UI rendering)
           catalog: resolve(__dirname, "src/catalog/index.ts"),
+          // App runtime entry point (experimental app spec types + runtime core)
+          "app-runtime": resolve(__dirname, "src/app-runtime/index.ts"),
           // Shiki-powered code highlighting (separate entry to avoid bundle bloat)
           code: resolve(__dirname, "src/code/index.ts"),
           "code/server": resolve(__dirname, "src/code/server.tsx"),
