@@ -40,8 +40,10 @@ function cloneRuntimeMeta(meta: Partial<RuntimeMeta> | undefined): RuntimeMeta {
 }
 
 export interface MutableAppStore extends AppStore {
+  replaceState(state: Record<string, unknown>): void;
   setValidationState(path: JsonPointer, state: FieldValidationState): void;
   clearValidationState(paths?: readonly JsonPointer[]): void;
+  setStreamState(status: RuntimeMeta["stream"]["status"], error?: string): void;
 }
 
 export function createAppStore(
@@ -78,6 +80,12 @@ export function createAppStore(
     setValue(path: JsonPointer, value: unknown): void {
       replaceSnapshot({
         state: setValueAtPointer(snapshot.state, path, value),
+        meta: snapshot.meta,
+      });
+    },
+    replaceState(state: Record<string, unknown>): void {
+      replaceSnapshot({
+        state: { ...state },
         meta: snapshot.meta,
       });
     },
@@ -118,6 +126,21 @@ export function createAppStore(
         },
       });
     },
+    setStreamState(
+      status: RuntimeMeta["stream"]["status"],
+      error?: string,
+    ): void {
+      replaceSnapshot({
+        state: snapshot.state,
+        meta: {
+          ...snapshot.meta,
+          stream: {
+            status,
+            ...(error != null ? { lastError: error } : {}),
+          },
+        },
+      });
+    },
     subscribe(listener: () => void): () => void {
       listeners.add(listener);
       return () => {
@@ -129,9 +152,13 @@ export function createAppStore(
 
 export function isMutableAppStore(store: AppStore): store is MutableAppStore {
   return (
+    "replaceState" in store &&
+    typeof store.replaceState === "function" &&
     "setValidationState" in store &&
     typeof store.setValidationState === "function" &&
     "clearValidationState" in store &&
-    typeof store.clearValidationState === "function"
+    typeof store.clearValidationState === "function" &&
+    "setStreamState" in store &&
+    typeof store.setStreamState === "function"
   );
 }

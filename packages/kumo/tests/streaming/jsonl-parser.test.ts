@@ -164,7 +164,7 @@ describe("push: invalid JSON", () => {
     const parser = createJsonlParser();
     const valid = op("add", "/root", "card-1");
     const chunk =
-      '{"op":"move","path":"/root","from":"/root"}\n' + line(valid) + "\n";
+      '{"op":"noop","path":"/root","value":"x"}\n' + line(valid) + "\n";
     const result = parser.push(chunk);
     expect(result).toEqual([valid]);
   });

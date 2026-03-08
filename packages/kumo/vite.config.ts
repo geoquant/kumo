@@ -211,6 +211,11 @@ export default defineConfig(({ mode }) => {
           catalog: resolve(__dirname, "src/catalog/index.ts"),
           // App runtime entry point (experimental app spec types + runtime core)
           "app-runtime": resolve(__dirname, "src/app-runtime/index.ts"),
+          // App runtime React adapters (stream orchestration + session hooks)
+          "app-runtime/react": resolve(
+            __dirname,
+            "src/app-runtime/react/index.ts",
+          ),
           // Shiki-powered code highlighting (separate entry to avoid bundle bloat)
           code: resolve(__dirname, "src/code/index.ts"),
           "code/server": resolve(__dirname, "src/code/server.tsx"),

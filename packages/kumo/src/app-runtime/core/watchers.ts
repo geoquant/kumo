@@ -3,6 +3,7 @@ import { executeActionSequence } from "./actions";
 import { getValueAtPointer } from "./path";
 import type { AppSpec, AppStore } from "./types";
 import type { ExecuteActionSequenceOptions } from "./actions";
+import type { RuntimeEffect } from "./actions";
 
 export interface WatcherInvocation {
   elementKey: string;
@@ -13,6 +14,7 @@ export interface WatcherInvocation {
 export interface WatcherRunResult {
   invocations: WatcherInvocation[];
   iterations: number;
+  effects: RuntimeEffect[];
 }
 
 export interface RunWatchersOptions
@@ -45,6 +47,7 @@ export function runWatchers(
 ): WatcherRunResult {
   const maxDepth = options.maxDepth ?? 10;
   const invocations: WatcherInvocation[] = [];
+  const effects: RuntimeEffect[] = [];
   let previousState = options.previousState;
 
   for (let iteration = 1; iteration <= maxDepth; iteration += 1) {
@@ -73,6 +76,7 @@ export function runWatchers(
           watchIndex,
           actions: result.executed,
         });
+        effects.push(...result.effects);
         triggered = true;
       }
     }
@@ -81,6 +85,7 @@ export function runWatchers(
       return {
         invocations,
         iterations: iteration - 1,
+        effects,
       };
     }
 
@@ -89,6 +94,7 @@ export function runWatchers(
       return {
         invocations,
         iterations: iteration,
+        effects,
       };
     }
 

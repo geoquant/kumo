@@ -49,12 +49,54 @@ describe("app runtime watchers", () => {
       { elementKey: "root", watchIndex: 0, actions: ["state.increment"] },
       { elementKey: "root", watchIndex: 0, actions: ["state.increment"] },
     ]);
+    expect(result.effects).toEqual([]);
     expect(store.getSnapshot().state).toEqual({ count: 3 });
 
     const noChange = runWatchers(spec, store, {
       previousState: { count: 3 },
     });
     expect(noChange.invocations).toEqual([]);
+    expect(noChange.effects).toEqual([]);
+  });
+
+  it("returns external runtime effects from watcher actions", () => {
+    const spec: AppSpec = {
+      version: APP_SPEC_VERSION,
+      root: "root",
+      state: {},
+      elements: {
+        root: {
+          key: "root",
+          type: "Stack",
+          watch: [
+            {
+              path: "/ready",
+              actions: {
+                action: "nav.navigate",
+                params: {
+                  href: "/done",
+                },
+              },
+            },
+          ],
+        },
+      },
+    };
+
+    const store = createAppStore({ state: { ready: true } });
+    const result = runWatchers(spec, store, {
+      previousState: { ready: false },
+    });
+
+    expect(result.effects).toEqual([
+      {
+        type: "nav.navigate",
+        action: "nav.navigate",
+        params: {
+          href: "/done",
+        },
+      },
+    ]);
   });
 
   it("throws when watcher reactions exceed the cycle limit", () => {
