@@ -49,7 +49,6 @@ import {
 import {
   useUITree,
   useRuntimeValueStore,
-  createJsonlParser,
   createHandlerMap,
   dispatchAction,
   processActionResult,
@@ -78,7 +77,7 @@ import type { CustomComponentDefinition } from "@cloudflare/kumo/catalog";
 import { DemoButton } from "./DemoButton";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { readSSEStream } from "~/lib/read-sse-stream";
+import { streamJsonlUI } from "~/lib/stream-jsonl-ui";
 import { HighlightedCode } from "~/components/HighlightedCode";
 import { ThemeToggle } from "~/components/ThemeToggle";
 import type { BundledLanguage } from "shiki";
@@ -91,7 +90,6 @@ import type {
 import {
   updateToolMessageStatus as applyToolStatusUpdate,
   updateToolMessageTree as applyToolTreeUpdate,
-  isRecord,
   streamToolConfirmation,
 } from "~/lib/tool-middleware";
 import { BASELINE_PROMPT } from "~/lib/tool-prompts";
@@ -177,14 +175,6 @@ interface SkillInfo {
 // =============================================================================
 // Helpers
 // =============================================================================
-
-/** Extract `error` string from an unknown JSON error body, or null. */
-function extractErrorMessage(body: unknown): string | null {
-  if (typeof body !== "object" || body === null) return null;
-  if (!("error" in body)) return null;
-  const narrow: { error: unknown } = body;
-  return typeof narrow.error === "string" ? narrow.error : null;
-}
 
 /** Extract `prompt` string from an unknown JSON body, or null. */
 function extractPromptString(body: unknown): string | null {
@@ -757,62 +747,29 @@ function PlaygroundContent() {
         bodyPayload.skillIds = opts.skillIds;
       }
 
-      const noPromptParser = createJsonlParser();
       const noPromptController = new AbortController();
       noPromptAbortRef.current = noPromptController;
 
       const stream = (async () => {
         try {
-          const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "text/event-stream",
-            },
-            body: JSON.stringify(bodyPayload),
+          await streamJsonlUI({
+            body: bodyPayload,
             signal: noPromptController.signal,
+            onToken: (token) => {
+              noPromptRawJsonlRef.current += token;
+            },
+            onPatches: (ops) => {
+              noPromptApplyPatchesRef.current(ops);
+            },
           });
 
-          if (!response.ok) {
-            if (noPromptRunIdRef.current === bRunId) {
-              setNoPromptStatus("error");
-            }
-            return;
-          }
-
-          await readSSEStream(
-            response,
-            (token) => {
-              if (noPromptController.signal.aborted) return;
-              noPromptRawJsonlRef.current += token;
-              const ops = noPromptParser.push(token);
-              if (ops.length > 0) {
-                noPromptApplyPatchesRef.current(ops);
-              }
-            },
-            noPromptController.signal,
-          );
-
           setNoPromptRawJsonl(noPromptRawJsonlRef.current);
-
-          const remaining = noPromptParser.flush();
-          if (remaining.length > 0) {
-            noPromptApplyPatchesRef.current(remaining);
-          }
 
           if (noPromptRunIdRef.current === bRunId) {
             setNoPromptStatus("idle");
           }
         } catch (err: unknown) {
           if (err instanceof DOMException && err.name === "AbortError") return;
-
-          try {
-            const remaining = noPromptParser.flush();
-            if (remaining.length > 0)
-              noPromptApplyPatchesRef.current(remaining);
-          } catch {
-            // Ignore flush errors
-          }
 
           if (noPromptRunIdRef.current === bRunId) {
             setNoPromptStatus("error");
@@ -941,53 +898,24 @@ function PlaygroundContent() {
       };
 
       // --- Stream 1: With system prompt (primary) ---
-      const parser = createJsonlParser();
       const controller = new AbortController();
       abortRef.current = controller;
 
       const primaryStream = (async () => {
         try {
-          const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "text/event-stream",
-            },
-            body: JSON.stringify(baseBody),
+          const fullResponse = await streamJsonlUI({
+            body: baseBody,
             signal: controller.signal,
-          });
-
-          if (!response.ok) {
-            const errBody: unknown = await response.json().catch(() => null);
-            const errMsg =
-              extractErrorMessage(errBody) ??
-              `Request failed (${String(response.status)})`;
-            throw new Error(errMsg);
-          }
-
-          let fullResponse = "";
-
-          await readSSEStream(
-            response,
-            (token) => {
-              fullResponse += token;
+            onToken: (token) => {
               rawJsonlRef.current += token;
-              const ops = parser.push(token);
-              if (ops.length > 0) {
-                applyPatches(ops);
-              }
             },
-            controller.signal,
-          );
+            onPatches: (ops) => {
+              applyPatches(ops);
+            },
+          });
 
           // Flush accumulated JSONL to state once (avoids O(n²) per-token setState)
           setRawJsonl(rawJsonlRef.current);
-
-          // Flush remaining buffer
-          const remaining = parser.flush();
-          if (remaining.length > 0) {
-            applyPatches(remaining);
-          }
 
           if (runIdRef.current === runId) {
             setMessages((prev) => [
@@ -998,14 +926,6 @@ function PlaygroundContent() {
           }
         } catch (err: unknown) {
           if (err instanceof DOMException && err.name === "AbortError") return;
-
-          // Flush partial ops even on error
-          try {
-            const remaining = parser.flush();
-            if (remaining.length > 0) applyPatches(remaining);
-          } catch {
-            // Ignore flush errors
-          }
 
           if (runIdRef.current === runId) {
             // Roll back the user message added at submit — retry will re-add it

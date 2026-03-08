@@ -22,7 +22,6 @@ import { Button, InputArea, Badge, Surface, Loader } from "@cloudflare/kumo";
 import {
   useUITree,
   useRuntimeValueStore,
-  createJsonlParser,
   BUILTIN_HANDLERS,
   dispatchAction,
   processActionResult,
@@ -38,7 +37,7 @@ import {
   defineCustomComponent,
 } from "@cloudflare/kumo/generative";
 import type { CustomComponentDefinition } from "@cloudflare/kumo/catalog";
-import { readSSEStream } from "~/lib/read-sse-stream";
+import { streamJsonlUI } from "~/lib/stream-jsonl-ui";
 import { DemoButton } from "./DemoButton";
 
 // =============================================================================
@@ -393,65 +392,24 @@ export function StreamingDemo() {
       setStatus("streaming");
       setInputValue("");
 
-      // Create fresh parser for this stream
-      const parser = createJsonlParser();
       const controller = new AbortController();
       abortRef.current = controller;
 
       (async () => {
         try {
-          const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "text/event-stream",
-            },
-            body: JSON.stringify({ message: msg }),
+          await streamJsonlUI({
+            body: { message: msg },
             signal: controller.signal,
-          });
-
-          if (!response.ok) {
-            const errBody = await response.json().catch(() => null);
-            const errMsg =
-              typeof errBody === "object" &&
-              errBody !== null &&
-              "error" in errBody &&
-              typeof (errBody as Record<string, unknown>).error === "string"
-                ? ((errBody as Record<string, unknown>).error as string)
-                : `Request failed (${String(response.status)})`;
-            throw new Error(errMsg);
-          }
-
-          await readSSEStream(
-            response,
-            (token) => {
-              const ops = parser.push(token);
-              if (ops.length > 0) {
-                applyPatches(ops);
-              }
+            onPatches: (ops) => {
+              applyPatches(ops);
             },
-            controller.signal,
-          );
-
-          // Flush remaining buffer
-          const remaining = parser.flush();
-          if (remaining.length > 0) {
-            applyPatches(remaining);
-          }
+          });
 
           if (runIdRef.current === runId) {
             setStatus("idle");
           }
         } catch (err: unknown) {
           if (err instanceof DOMException && err.name === "AbortError") return;
-
-          // Flush partial ops even on error
-          try {
-            const remaining = parser.flush();
-            if (remaining.length > 0) applyPatches(remaining);
-          } catch {
-            // Ignore flush errors
-          }
 
           const errMessage =
             err instanceof Error ? err.message : "Something went wrong";
