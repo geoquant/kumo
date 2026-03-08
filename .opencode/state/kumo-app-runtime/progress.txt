@@ -6,6 +6,7 @@ Started: 2026-03-07
 - Hard rule: keep every task on `geoquant/streaming-ui`; do not branch this work elsewhere.
 - New public Kumo subpaths need four touchpoints: source barrel, Vite build entry, `package.json` export, and an import test.
 - In `app-runtime/core`, keep path utils, expression resolution, store behavior, and action execution in separate pure modules with focused tests.
+- For new runtime semantics, prefer pure snapshot builders (`expandAppSpec`), pure evaluators (`validateFieldsForMode`), and explicit reaction loops (`runWatchers`) over renderer-coupled logic.
 
 ---
 
@@ -18,3 +19,8 @@ Started: 2026-03-07
 - What was implemented: added pure app runtime modules for immutable store updates, JSON Pointer path handling, shared expression resolution, binding writes through the app store, and sequential built-in action execution for state, list, form, and navigation flows.
 - Files changed: `packages/kumo/src/app-runtime/core/path.ts`, `packages/kumo/src/app-runtime/core/store.ts`, `packages/kumo/src/app-runtime/core/expressions.ts`, `packages/kumo/src/app-runtime/core/actions.ts`, `packages/kumo/src/app-runtime/core/index.ts`, `packages/kumo/src/app-runtime/index.ts`, `packages/kumo/src/index.ts`, `packages/kumo/tests/app-runtime/actions.test.ts`, `packages/kumo/tests/app-runtime/expressions.test.ts`, `packages/kumo/tests/app-runtime/store.test.ts`, `.opencode/state/kumo-app-runtime/prd.json`.
 - Learnings: action sequencing should recompute expression context from the store before each step so later steps see fresh state; binding writes are simplest when ref sources resolve to JSON Pointer targets before touching the store.
+
+## Task - runtime-2
+- What was implemented: added pure repeat expansion, validation-by-mode, and watcher reaction modules so repeated rows derive from array state, field rules run on change/blur/submit, and state-change watchers execute actions with cycle protection.
+- Files changed: `packages/kumo/src/app-runtime/core/repeat.ts`, `packages/kumo/src/app-runtime/core/validation.ts`, `packages/kumo/src/app-runtime/core/watchers.ts`, `packages/kumo/src/app-runtime/core/index.ts`, `packages/kumo/src/app-runtime/index.ts`, `packages/kumo/src/index.ts`, `packages/kumo/tests/app-runtime/repeat.test.ts`, `packages/kumo/tests/app-runtime/validation.test.ts`, `packages/kumo/tests/app-runtime/watchers.test.ts`, `.opencode/state/kumo-app-runtime/prd.json`.
+- Learnings: repeat should produce a derived render snapshot plus scope map instead of mutating the authored spec; watchers are easiest to reason about when they run from an explicit previous-state baseline and hard-stop on bounded reaction depth.

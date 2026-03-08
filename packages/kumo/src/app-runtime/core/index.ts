@@ -9,7 +9,10 @@ export {
   resolveValueExpr,
   writeBindingValue,
 } from "./expressions";
+export { expandAppSpec } from "./repeat";
 export { createAppStore, isMutableAppStore } from "./store";
+export { validateFieldsForMode } from "./validation";
+export { runWatchers } from "./watchers";
 
 export type {
   ActionSequence,
@@ -47,6 +50,7 @@ export type {
 
 export type {
   ActionExecutionResult,
+  ExecuteActionSequenceOptions,
   ResolvedActionStep,
   ResolvedConfirmSpec,
   RuntimeEffect,
@@ -54,4 +58,19 @@ export type {
 
 export type { ResolvedPropsResult } from "./expressions";
 
+export type { ExpandedAppSpec } from "./repeat";
+
 export type { MutableAppStore } from "./store";
+
+export type {
+  ValidationFailure,
+  ValidationMode,
+  ValidationOptions,
+  ValidationRunResult,
+} from "./validation";
+
+export type {
+  RunWatchersOptions,
+  WatcherInvocation,
+  WatcherRunResult,
+} from "./watchers";
