@@ -1,6 +1,20 @@
 export { APP_SPEC_VERSION } from "./core";
+export {
+  createAppStore,
+  createExpressionContext,
+  evaluateBoolExpr,
+  executeActionSequence,
+  isMutableAppStore,
+  resolveActionStep,
+  resolveBindingTarget,
+  resolvePropsExpressions,
+  resolveRefSource,
+  resolveValueExpr,
+  writeBindingValue,
+} from "./core";
 
 export type {
+  ActionExecutionResult,
   ActionSequence,
   ActionStep,
   AppElement,
@@ -23,10 +37,15 @@ export type {
   JsonPrimitive,
   JsonValue,
   KumoEventName,
+  MutableAppStore,
   ReadExpr,
   RefSource,
   RepeatScope,
   RepeatSpec,
+  ResolvedActionStep,
+  ResolvedConfirmSpec,
+  ResolvedPropsResult,
+  RuntimeEffect,
   RuntimeMeta,
   SwitchExpr,
   ValidationRule,

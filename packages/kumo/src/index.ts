@@ -253,7 +253,21 @@ export type {
 
 // Experimental app runtime types
 export { APP_SPEC_VERSION } from "./app-runtime";
+export {
+  createAppStore,
+  createExpressionContext,
+  evaluateBoolExpr,
+  executeActionSequence,
+  isMutableAppStore,
+  resolveActionStep,
+  resolveBindingTarget,
+  resolvePropsExpressions,
+  resolveRefSource,
+  resolveValueExpr,
+  writeBindingValue,
+} from "./app-runtime";
 export type {
+  ActionExecutionResult,
   ActionSequence,
   ActionStep,
   AppElement,
@@ -276,10 +290,15 @@ export type {
   JsonPrimitive,
   JsonValue,
   KumoEventName,
+  MutableAppStore,
   ReadExpr,
   RefSource,
   RepeatScope,
   RepeatSpec,
+  ResolvedActionStep,
+  ResolvedConfirmSpec,
+  ResolvedPropsResult,
+  RuntimeEffect,
   RuntimeMeta,
   SwitchExpr,
   ValidationRule,
