@@ -367,6 +367,10 @@
       "types": "./dist/src/catalog/index.d.ts",
       "import": "./dist/catalog.js"
     },
+    "./app-runtime": {
+      "types": "./dist/src/app-runtime/index.d.ts",
+      "import": "./dist/app-runtime.js"
+    },
     "./code": {
       "types": "./dist/src/code/index.d.ts",
       "import": "./dist/code.js"
