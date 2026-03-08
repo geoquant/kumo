@@ -37,7 +37,7 @@
         "Verify field validation runs on declared change, blur, and submit modes.",
         "Verify watcher-triggered actions run only after real state changes and stop on cycle protection."
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "streaming-1",
