@@ -62,7 +62,7 @@ describe("UMD tree access API", () => {
 
     api.applyPatch(
       {
-        op: "replace",
+        op: "add",
         path: "/elements/root/props/children",
         value: "hello",
       },
@@ -108,12 +108,12 @@ describe("UMD tree access API", () => {
     api.applyPatches(
       [
         {
-          op: "replace",
+          op: "add",
           path: "/elements/root/props/title",
           value: "a",
         },
         {
-          op: "replace",
+          op: "add",
           path: "/elements/root/props/subtitle",
           value: "b",
         },

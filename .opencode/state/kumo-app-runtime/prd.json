@@ -63,7 +63,7 @@
         "Verify apps can intercept runtime effects without forking hook internals.",
         "Verify useUIStream handles patch-based and full-spec replacement flows."
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-1",

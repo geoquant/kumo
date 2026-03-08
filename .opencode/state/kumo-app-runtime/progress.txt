@@ -8,6 +8,7 @@ Started: 2026-03-07
 - In `app-runtime/core`, keep path utils, expression resolution, store behavior, and action execution in separate pure modules with focused tests.
 - For new runtime semantics, prefer pure snapshot builders (`expandAppSpec`), pure evaluators (`validateFieldsForMode`), and explicit reaction loops (`runWatchers`) over renderer-coupled logic.
 - Keep the patch engine spec-agnostic: one RFC 6902 implementation should handle both legacy `UITree` docs and new `AppSpec` docs, with normalization and repair in pure helpers above render.
+- RFC 6902 `replace` should not be used to create missing keys in follow-on tests or adapters; use `add` when populating new props or state paths.
 
 ---
 
@@ -30,3 +31,8 @@ Started: 2026-03-07
 - What was implemented: upgraded the RFC 6902 patch engine to support add, replace, remove, move, copy, and test across generic JSON documents, then added pure app-runtime normalization and repair helpers so nested authoring input flattens into `AppSpec` before render.
 - Files changed: `packages/kumo/src/streaming/rfc6902.ts`, `packages/kumo/src/streaming/text-normalizer.ts`, `packages/kumo/src/app-runtime/core/normalize.ts`, `packages/kumo/src/app-runtime/core/repair.ts`, `packages/kumo/src/app-runtime/core/index.ts`, `packages/kumo/src/app-runtime/index.ts`, `packages/kumo/src/index.ts`, `packages/kumo/tests/streaming/rfc6902.test.ts`, `packages/kumo/tests/app-runtime/normalize.test.ts`, `.opencode/state/kumo-app-runtime/prd.json`.
 - Learnings: full RFC 6902 support is easier to maintain when path traversal is generic and immutable instead of hard-coded to tree shape; flatten + repair belongs in reusable pre-render helpers so renderer code can stay focused on presentation.
+
+## Task - react-1
+- What was implemented: packaged React-facing app runtime hooks under `@cloudflare/kumo/app-runtime/react`, including `useUIStream` for patch/full-spec sessions, `useChatUI` for mixed text plus UI turns, and core store/watcher updates so apps can observe runtime effects and keep hook-driven sessions in sync.
+- Files changed: `packages/kumo/src/app-runtime/react/index.ts`, `packages/kumo/src/app-runtime/react/types.ts`, `packages/kumo/src/app-runtime/react/use-ui-stream.ts`, `packages/kumo/src/app-runtime/react/use-chat-ui.ts`, `packages/kumo/src/app-runtime/core/actions.ts`, `packages/kumo/src/app-runtime/core/store.ts`, `packages/kumo/src/app-runtime/core/watchers.ts`, `packages/kumo/package.json`, `packages/kumo/vite.config.ts`, `packages/kumo/tests/app-runtime/use-ui-stream.test.tsx`, `packages/kumo/tests/app-runtime/use-chat-ui.test.tsx`, `packages/kumo/tests/imports/app-runtime-react.test.ts`, `packages/kumo/tests/app-runtime/store.test.ts`, `packages/kumo/tests/app-runtime/watchers.test.ts`, `packages/kumo/tests/loadable/loadable-tree-access.test.ts`, `packages/kumo/tests/loadable/loadable-batched-render.test.ts`, `packages/kumo/tests/streaming/jsonl-parser.test.ts`, `.opencode/state/kumo-app-runtime/prd.json`.
+- Learnings: hook-managed app sessions need stable refs for in-flight assistant turns or repeated streaming callbacks will create duplicate placeholders; when app runtime hooks consume store snapshots, subscribe-driven state is safer than `useSyncExternalStore` against clone-on-read stores.

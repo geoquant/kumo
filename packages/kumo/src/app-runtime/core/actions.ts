@@ -191,18 +191,23 @@ function clearFormPaths(store: AppStore, paths: readonly JsonPointer[]): void {
   }
 }
 
+interface BuiltInExecution {
+  handled: boolean;
+  effect: RuntimeEffect | null;
+}
+
 function executeBuiltIn(
   resolved: ResolvedActionStep,
   store: AppStore,
-): RuntimeEffect | null {
+): BuiltInExecution {
   switch (resolved.action) {
     case "state.set": {
       const path = resolvePathValue(resolved.params.path);
       if (path == null) {
-        return null;
+        return { handled: true, effect: null };
       }
       store.setValue(path, resolved.params.value);
-      return null;
+      return { handled: true, effect: null };
     }
     case "state.merge": {
       const path = resolvePathValue(resolved.params.path);
@@ -214,7 +219,7 @@ function executeBuiltIn(
         value === null ||
         Array.isArray(value)
       ) {
-        return null;
+        return { handled: true, effect: null };
       }
       const nextValue =
         typeof current === "object" &&
@@ -223,21 +228,21 @@ function executeBuiltIn(
           ? { ...current, ...value }
           : { ...value };
       store.setValue(path, nextValue);
-      return null;
+      return { handled: true, effect: null };
     }
     case "state.toggle": {
       const path = resolvePathValue(resolved.params.path);
       if (path == null) {
-        return null;
+        return { handled: true, effect: null };
       }
       store.setValue(path, !store.getValue(path));
-      return null;
+      return { handled: true, effect: null };
     }
     case "state.increment":
     case "state.decrement": {
       const path = resolvePathValue(resolved.params.path);
       if (path == null) {
-        return null;
+        return { handled: true, effect: null };
       }
       const current = store.getValue(path);
       const base = typeof current === "number" ? current : 0;
@@ -246,15 +251,15 @@ function executeBuiltIn(
         path,
         resolved.action === "state.increment" ? base + by : base - by,
       );
-      return null;
+      return { handled: true, effect: null };
     }
     case "state.reset": {
       const path = resolvePathValue(resolved.params.path);
       if (path == null) {
-        return null;
+        return { handled: true, effect: null };
       }
       store.setValue(path, resolved.params.value ?? null);
-      return null;
+      return { handled: true, effect: null };
     }
     case "list.append":
     case "list.insert":
@@ -263,7 +268,7 @@ function executeBuiltIn(
     case "list.move": {
       const path = resolvePathValue(resolved.params.path);
       if (path == null) {
-        return null;
+        return { handled: true, effect: null };
       }
       const currentValue = store.getValue(path);
       const list = Array.isArray(currentValue) ? [...currentValue] : [];
@@ -280,7 +285,7 @@ function executeBuiltIn(
       if (resolved.action === "list.remove") {
         const index = readIndex(resolved.params.index);
         if (index == null || index >= list.length) {
-          return null;
+          return { handled: true, effect: null };
         }
         list.splice(index, 1);
       }
@@ -288,7 +293,7 @@ function executeBuiltIn(
       if (resolved.action === "list.replace") {
         const index = readIndex(resolved.params.index);
         if (index == null || index >= list.length) {
-          return null;
+          return { handled: true, effect: null };
         }
         list[index] = resolved.params.value;
       }
@@ -302,14 +307,14 @@ function executeBuiltIn(
           from >= list.length ||
           to >= list.length
         ) {
-          return null;
+          return { handled: true, effect: null };
         }
         const [item] = list.splice(from, 1);
         list.splice(to, 0, item);
       }
 
       store.setValue(path, list);
-      return null;
+      return { handled: true, effect: null };
     }
     case "form.clear": {
       const singlePath = resolvePathValue(resolved.params.path);
@@ -318,10 +323,10 @@ function executeBuiltIn(
           ? readStringList(resolved.params.paths)
           : [singlePath];
       if (paths.length === 0) {
-        return null;
+        return { handled: true, effect: null };
       }
       clearFormPaths(store, paths);
-      return null;
+      return { handled: true, effect: null };
     }
     case "form.validate": {
       const singlePath = resolvePathValue(resolved.params.path);
@@ -330,35 +335,41 @@ function executeBuiltIn(
           ? readStringList(resolved.params.paths)
           : [singlePath];
       if (paths.length === 0) {
-        return null;
+        return { handled: true, effect: null };
       }
       setValidationForPaths(store, paths);
-      return null;
+      return { handled: true, effect: null };
     }
     case "form.submit":
       return {
-        type: "form.submit",
-        action: resolved.action,
-        params: resolved.params,
-        ...(resolved.confirm != null ? { confirm: resolved.confirm } : {}),
+        handled: true,
+        effect: {
+          type: "form.submit",
+          action: resolved.action,
+          params: resolved.params,
+          ...(resolved.confirm != null ? { confirm: resolved.confirm } : {}),
+        },
       };
     case "nav.navigate": {
       const href = readString(resolved.params.href ?? resolved.params.url);
       if (href == null) {
-        return null;
+        return { handled: true, effect: null };
       }
       return {
-        type: "nav.navigate",
-        action: resolved.action,
-        params: {
-          ...resolved.params,
-          href,
+        handled: true,
+        effect: {
+          type: "nav.navigate",
+          action: resolved.action,
+          params: {
+            ...resolved.params,
+            href,
+          },
+          ...(resolved.confirm != null ? { confirm: resolved.confirm } : {}),
         },
-        ...(resolved.confirm != null ? { confirm: resolved.confirm } : {}),
       };
     }
     default:
-      return null;
+      return { handled: false, effect: null };
   }
 }
 
@@ -377,11 +388,13 @@ function executeStep(
   }
 
   const resolved = resolveActionStep(step, options);
-  const builtInEffect = executeBuiltIn(resolved, options.store);
+  const builtIn = executeBuiltIn(resolved, options.store);
   result.executed.push(resolved.action);
 
-  if (builtInEffect != null) {
-    result.effects.push(builtInEffect);
+  if (builtIn.handled) {
+    if (builtIn.effect != null) {
+      result.effects.push(builtIn.effect);
+    }
     if (step.onSuccess != null) {
       executeActionSequence(step.onSuccess, options, result);
     }

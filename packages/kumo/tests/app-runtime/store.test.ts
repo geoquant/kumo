@@ -51,4 +51,38 @@ describe("app runtime store", () => {
     store.clearValidationState(["/form/title"]);
     expect(store.getSnapshot().meta.validation).toEqual({});
   });
+
+  it("replaces state and stream status without recreating the store", () => {
+    const store = createAppStore({
+      state: { count: 1 },
+    });
+
+    store.setValidationState("/count", {
+      valid: true,
+      touched: true,
+      dirty: true,
+      errors: [],
+    });
+    store.replaceState({ count: 3 });
+    store.setStreamState("streaming");
+    store.setStreamState("error", "boom");
+
+    expect(store.getSnapshot()).toEqual({
+      state: { count: 3 },
+      meta: {
+        validation: {
+          "/count": {
+            valid: true,
+            touched: true,
+            dirty: true,
+            errors: [],
+          },
+        },
+        stream: {
+          status: "error",
+          lastError: "boom",
+        },
+      },
+    });
+  });
 });

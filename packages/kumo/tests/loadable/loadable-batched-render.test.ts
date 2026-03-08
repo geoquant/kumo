@@ -43,12 +43,12 @@ describe("UMD batched patch application", () => {
     api.applyPatchesBatched(
       [
         {
-          op: "replace",
+          op: "add",
           path: "/elements/root/props/title",
           value: "a",
         },
         {
-          op: "replace",
+          op: "add",
           path: "/elements/root/props/subtitle",
           value: "b",
         },

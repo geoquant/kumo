@@ -371,6 +371,10 @@
       "types": "./dist/src/app-runtime/index.d.ts",
       "import": "./dist/app-runtime.js"
     },
+    "./app-runtime/react": {
+      "types": "./dist/src/app-runtime/react/index.d.ts",
+      "import": "./dist/app-runtime/react.js"
+    },
     "./code": {
       "types": "./dist/src/code/index.d.ts",
       "import": "./dist/code.js"
