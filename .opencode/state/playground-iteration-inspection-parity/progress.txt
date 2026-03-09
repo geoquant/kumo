@@ -11,6 +11,7 @@ Started: 2026-03-08
 - Keep catalog reference data UI-agnostic: normalize registry components and action definitions in `src/lib/playground/catalog-data.ts`, then let later UI layers consume sorted arrays instead of raw registry maps.
 - For shared explorers, anchor open/close state in the top-level layout reducer and render one responsive overlay that becomes a desktop sheet and a mobile full-screen view instead of duplicating separate desktop/mobile components.
 - For TSX export, keep the internal panel tab value stable (`code`) but change the visible label and pass explicit export component names from the panel boundary so generated modules stay panel-specific.
+- For persisted splitter layouts, use `react-resizable-panels` `Group` + `Panel` + `Separator` with stable group/panel ids and `useDefaultLayout()` so localStorage restore works without custom storage plumbing.
 
 ---
 
@@ -58,3 +59,11 @@ Started: 2026-03-08
 - Added a warning when generated TSX references `DemoButton`, since it is playground-only and not shipped by `@cloudflare/kumo`.
 - Files changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`, `.opencode/state/playground-iteration-inspection-parity/prd.json`, `.opencode/state/playground-iteration-inspection-parity/progress.txt`
 - **Learnings:** `uiTreeToJsx` already emits a complete module, so export work should wrap that output with panel-specific naming and delivery affordances rather than inventing a second codegen path.
+
+## Task - layout-1
+- Added `react-resizable-panels` to `packages/kumo-docs-astro/package.json` and workspace lockfile for desktop split-pane layout support.
+- Replaced the fixed root desktop layout in `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` with a resizable `chat <-> workspace` group and a nested `A <-> B` group inside the workspace.
+- Added reusable playground resize handles and wired splitter persistence through `useDefaultLayout()` plus existing layout reducer updates.
+- Kept chat minimize behavior working inside the resizable shell by collapsing/expanding the chat panel via the panel imperative ref.
+- Files changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`, `packages/kumo-docs-astro/package.json`, `pnpm-lock.yaml`, `.opencode/state/playground-iteration-inspection-parity/prd.json`, `.opencode/state/playground-iteration-inspection-parity/progress.txt`
+- **Learnings:** the docs package can persist splitter state without custom localStorage code when group and panel ids stay stable across renders.

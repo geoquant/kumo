@@ -94,7 +94,7 @@
         "Existing panel content (preview, jsonl, grading, prompt, actions, skills) still renders correctly inside the resizable layout",
         "No route changes are introduced; `/playground` remains the main page and `/playground/report` still works"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "layout-2",

@@ -24,8 +24,6 @@ import {
   CloudflareLogo,
   Cluster,
   cn,
-  Grid,
-  GridItem,
   InputArea,
   Loader,
   Popover,
@@ -79,6 +77,13 @@ import type { GradeReport } from "@cloudflare/kumo/generative/graders";
 import type { CustomComponentDefinition } from "@cloudflare/kumo/catalog";
 import { DemoButton } from "./DemoButton";
 import Markdown from "react-markdown";
+import {
+  Group,
+  Panel,
+  Separator,
+  type PanelImperativeHandle,
+  useDefaultLayout,
+} from "react-resizable-panels";
 import remarkGfm from "remark-gfm";
 import { streamJsonlUI } from "~/lib/stream-jsonl-ui";
 import { HighlightedCode } from "~/components/HighlightedCode";
@@ -343,6 +348,11 @@ function PlaygroundContent() {
     undefined,
     createInitialPlaygroundLayoutState,
   );
+  const chatPanelRef = useRef<PanelImperativeHandle | null>(null);
+  const rootLayoutPersistence = useDefaultLayout({
+    id: "playground-root-layout",
+    panelIds: ["chat", "workspace"],
+  });
 
   // --- Input state ---
   const [inputValue, setInputValue] = useState("");
@@ -1328,135 +1338,191 @@ function PlaygroundContent() {
     });
   }, [pendingSkillIds, selectedModel, streamPanelB]);
 
+  useEffect(() => {
+    const panel = chatPanelRef.current;
+    if (panel === null) {
+      return;
+    }
+
+    if (chatMinimized) {
+      panel.collapse();
+      return;
+    }
+
+    panel.expand();
+  }, [chatMinimized]);
+
   return (
     <div className="flex flex-1 overflow-hidden">
-      {/* Left: chat sidebar */}
-      <PlaygroundChatSidebar
-        inputValue={inputValue}
-        onInputChange={setInputValue}
-        selectedModel={selectedModel}
-        onModelChange={setSelectedModel}
-        isStreaming={isAnyStreaming}
-        status={status}
-        messages={messages}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        messagesEndRef={messagesEndRef}
-        presets={PRESET_PROMPTS}
-        minimized={chatMinimized}
-        onToggleMinimize={toggleChat}
-        onToolAction={handleToolAction}
-      />
-
-      {/* Right: side-by-side panels */}
-      <div className="flex flex-1 min-w-0 flex-col">
-        {/* Top bar: logo, nav */}
-        <div className="flex h-[61px] shrink-0 items-center justify-between border-b border-kumo-line px-4">
-          <CloudflareLogo variant="glyph" className="h-5 w-auto shrink-0" />
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCatalogOpen(true)}
-            >
-              Catalog
-            </Button>
-            <a
-              href="/"
-              className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
-            >
-              <ArrowLeftIcon className="size-4" />
-              Docs
-            </a>
-            <ThemeToggle />
-          </div>
-        </div>
-
-        {/* Error banner */}
-        {status === "error" && errorMessage && (
-          <ErrorBanner
-            message={errorMessage}
-            onDismiss={handleDismissError}
-            onRetry={() => {
-              const retryMsg = lastSubmittedRef.current;
-              if (retryMsg) {
-                handleDismissError();
-                handleSubmit(undefined, retryMsg);
-              }
-            }}
-            canRetry={lastSubmittedRef.current !== null}
+      <Group
+        orientation="horizontal"
+        className="flex h-full w-full"
+        id="playground-root-layout"
+        defaultLayout={
+          rootLayoutPersistence.defaultLayout ?? {
+            chat: layoutState.desktopRootSizes[0],
+            workspace: layoutState.desktopRootSizes[1],
+          }
+        }
+        onLayoutChanged={(layout) => {
+          rootLayoutPersistence.onLayoutChanged(layout);
+          const chat = layout.chat;
+          const workspace = layout.workspace;
+          if (chat == null || workspace == null) {
+            return;
+          }
+          dispatchLayoutState({
+            type: "set-desktop-root-sizes",
+            value: [chat, workspace],
+          });
+        }}
+      >
+        <Panel
+          id="chat"
+          panelRef={chatPanelRef}
+          defaultSize={layoutState.desktopRootSizes[0]}
+          minSize="16rem"
+          collapsible
+          collapsedSize="4rem"
+          className="min-w-0"
+        >
+          <PlaygroundChatSidebar
+            inputValue={inputValue}
+            onInputChange={setInputValue}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            isStreaming={isAnyStreaming}
+            status={status}
+            messages={messages}
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+            messagesEndRef={messagesEndRef}
+            presets={PRESET_PROMPTS}
+            minimized={chatMinimized}
+            onToggleMinimize={toggleChat}
+            onToolAction={handleToolAction}
           />
-        )}
+        </Panel>
 
-        {/* Side-by-side panels */}
-        <div className="relative flex flex-1 overflow-hidden">
-          <CatalogExplorerSheet
-            open={catalogOpen}
-            onOpenChange={setCatalogOpen}
-          />
-          {/* Streaming progress indicator */}
-          {(isStreaming || isNoPromptStreaming) && (
-            <div
-              className="absolute top-0 left-0 right-0 z-10 h-0.5 bg-kumo-brand/30"
-              aria-label="Streaming in progress"
-            >
-              <div
-                className="h-full w-1/3 bg-kumo-brand"
-                style={{
-                  animation: "shimmer 1.5s ease-in-out infinite",
+        <PlaygroundResizeHandle orientation="vertical" />
+
+        <Panel
+          id="workspace"
+          defaultSize={layoutState.desktopRootSizes[1]}
+          minSize="28rem"
+          className="min-w-0"
+        >
+          <div className="flex h-full min-w-0 flex-col">
+            <div className="flex h-[61px] shrink-0 items-center justify-between border-b border-kumo-line px-4">
+              <CloudflareLogo variant="glyph" className="h-5 w-auto shrink-0" />
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCatalogOpen(true)}
+                >
+                  Catalog
+                </Button>
+                <a
+                  href="/"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
+                >
+                  <ArrowLeftIcon className="size-4" />
+                  Docs
+                </a>
+                <ThemeToggle />
+              </div>
+            </div>
+
+            {status === "error" && errorMessage && (
+              <ErrorBanner
+                message={errorMessage}
+                onDismiss={handleDismissError}
+                onRetry={() => {
+                  const retryMsg = lastSubmittedRef.current;
+                  if (retryMsg) {
+                    handleDismissError();
+                    handleSubmit(undefined, retryMsg);
+                  }
+                }}
+                canRetry={lastSubmittedRef.current !== null}
+              />
+            )}
+
+            <div className="relative flex flex-1 overflow-hidden">
+              <CatalogExplorerSheet
+                open={catalogOpen}
+                onOpenChange={setCatalogOpen}
+              />
+              {(isStreaming || isNoPromptStreaming) && (
+                <div
+                  className="absolute top-0 left-0 right-0 z-10 h-0.5 bg-kumo-brand/30"
+                  aria-label="Streaming in progress"
+                >
+                  <div
+                    className="h-full w-1/3 bg-kumo-brand"
+                    style={{ animation: "shimmer 1.5s ease-in-out infinite" }}
+                  />
+                </div>
+              )}
+              <ComparisonPanels
+                tree={leftEffectiveTree}
+                streamedTree={tree}
+                showTree={showTree}
+                runtimeValueStore={runtimeValueStore}
+                isStreaming={isStreaming}
+                rawJsonl={rawJsonl}
+                onAction={handleAction}
+                systemPromptText={systemPromptText}
+                leftTab={leftTab}
+                onLeftTabChange={setLeftTab}
+                leftEditorText={leftEditor.text}
+                leftEditorStatus={leftEditor.status}
+                leftEditorIssues={leftEditor.validationIssues}
+                onLeftEditorTextChange={setLeftEditorText}
+                onLeftEditorValidate={setLeftEditorValidation}
+                onLeftEditorReset={resetLeftEditor}
+                onLeftEditorApplyTree={setLeftLocalTreeOverride}
+                onLeftEditorApplied={markLeftEditorApplied}
+                leftActionLog={leftActionLog}
+                onClearLeftActionLog={clearLeftActionLog}
+                noPromptTree={rightEffectiveTree}
+                noPromptStreamedTree={noPromptTree}
+                noPromptRuntimeValueStore={noPromptRuntimeValueStore}
+                showNoPromptTree={showNoPromptTree}
+                isNoPromptStreaming={isNoPromptStreaming}
+                noPromptStatus={noPromptStatus}
+                noPromptRawJsonl={noPromptRawJsonl}
+                rightTab={rightTab}
+                onRightTabChange={setRightTab}
+                rightEditorText={rightEditor.text}
+                rightEditorStatus={rightEditor.status}
+                rightEditorIssues={rightEditor.validationIssues}
+                onRightEditorTextChange={setRightEditorText}
+                onRightEditorValidate={setRightEditorValidation}
+                onRightEditorReset={resetRightEditor}
+                onRightEditorApplyTree={setRightLocalTreeOverride}
+                onRightEditorApplied={markRightEditorApplied}
+                onNoPromptAction={handleNoPromptAction}
+                rightActionLog={rightActionLog}
+                onClearRightActionLog={clearRightActionLog}
+                skills={skills}
+                pendingSkillIds={pendingSkillIds}
+                onToggleSkill={handleToggleSkill}
+                onApplySkills={handleApplySkills}
+                isSkillApplyDisabled={isNoPromptStreaming || !hasSubmitted}
+                workspaceSizes={layoutState.workspaceSizes}
+                onWorkspaceResize={(sizes: readonly [number, number]) => {
+                  dispatchLayoutState({
+                    type: "set-workspace-sizes",
+                    value: sizes,
+                  });
                 }}
               />
             </div>
-          )}
-          <ComparisonPanels
-            tree={leftEffectiveTree}
-            streamedTree={tree}
-            showTree={showTree}
-            runtimeValueStore={runtimeValueStore}
-            isStreaming={isStreaming}
-            rawJsonl={rawJsonl}
-            onAction={handleAction}
-            systemPromptText={systemPromptText}
-            leftTab={leftTab}
-            onLeftTabChange={setLeftTab}
-            leftEditorText={leftEditor.text}
-            leftEditorStatus={leftEditor.status}
-            leftEditorIssues={leftEditor.validationIssues}
-            onLeftEditorTextChange={setLeftEditorText}
-            onLeftEditorValidate={setLeftEditorValidation}
-            onLeftEditorReset={resetLeftEditor}
-            onLeftEditorApplyTree={setLeftLocalTreeOverride}
-            onLeftEditorApplied={markLeftEditorApplied}
-            leftActionLog={leftActionLog}
-            onClearLeftActionLog={clearLeftActionLog}
-            noPromptTree={rightEffectiveTree}
-            noPromptStreamedTree={noPromptTree}
-            noPromptRuntimeValueStore={noPromptRuntimeValueStore}
-            showNoPromptTree={showNoPromptTree}
-            isNoPromptStreaming={isNoPromptStreaming}
-            noPromptStatus={noPromptStatus}
-            noPromptRawJsonl={noPromptRawJsonl}
-            rightTab={rightTab}
-            onRightTabChange={setRightTab}
-            rightEditorText={rightEditor.text}
-            rightEditorStatus={rightEditor.status}
-            rightEditorIssues={rightEditor.validationIssues}
-            onRightEditorTextChange={setRightEditorText}
-            onRightEditorValidate={setRightEditorValidation}
-            onRightEditorReset={resetRightEditor}
-            onRightEditorApplyTree={setRightLocalTreeOverride}
-            onRightEditorApplied={markRightEditorApplied}
-            onNoPromptAction={handleNoPromptAction}
-            rightActionLog={rightActionLog}
-            onClearRightActionLog={clearRightActionLog}
-            skills={skills}
-            pendingSkillIds={pendingSkillIds}
-            onToggleSkill={handleToggleSkill}
-            onApplySkills={handleApplySkills}
-            isSkillApplyDisabled={isNoPromptStreaming || !hasSubmitted}
-          />
-        </div>
-      </div>
+          </div>
+        </Panel>
+      </Group>
     </div>
   );
 }
@@ -1538,6 +1604,8 @@ interface ComparisonPanelsProps {
   readonly onToggleSkill: (id: string, checked: boolean) => void;
   readonly onApplySkills: () => void;
   readonly isSkillApplyDisabled: boolean;
+  readonly workspaceSizes: readonly [number, number];
+  readonly onWorkspaceResize: (sizes: readonly [number, number]) => void;
 }
 
 /** Renders two side-by-side panels, each with its own tab bar and content. */
@@ -1587,11 +1655,36 @@ function ComparisonPanels({
   onToggleSkill,
   onApplySkills,
   isSkillApplyDisabled,
+  workspaceSizes,
+  onWorkspaceResize,
 }: ComparisonPanelsProps) {
+  const workspaceLayoutPersistence = useDefaultLayout({
+    id: "playground-workspace-layout",
+    panelIds: ["a", "b"],
+  });
+
   return (
-    <Grid variant="side-by-side" gap="none" className="h-full w-full">
-      {/* Left panel: Hardcoded Prompts */}
-      <GridItem className="flex min-w-0 flex-col border-r border-kumo-line overflow-hidden">
+    <Group
+      orientation="horizontal"
+      className="flex h-full w-full"
+      id="playground-workspace-layout"
+      defaultLayout={
+        workspaceLayoutPersistence.defaultLayout ?? {
+          a: workspaceSizes[0],
+          b: workspaceSizes[1],
+        }
+      }
+      onLayoutChanged={(layout) => {
+        workspaceLayoutPersistence.onLayoutChanged(layout);
+        const a = layout.a;
+        const b = layout.b;
+        if (a == null || b == null) {
+          return;
+        }
+        onWorkspaceResize([a, b]);
+      }}
+    >
+      <Panel id="a" minSize="20rem" defaultSize="50%" className="min-w-0">
         <PanelHeader
           label="A"
           tabs={PANEL_TABS}
@@ -1624,10 +1717,11 @@ function ComparisonPanels({
             exportComponentName="GeneratedPanelA"
           />
         </div>
-      </GridItem>
+      </Panel>
 
-      {/* Right panel: Experiment */}
-      <GridItem className="flex min-w-0 flex-col overflow-hidden">
+      <PlaygroundResizeHandle orientation="vertical" />
+
+      <Panel id="b" minSize="20rem" defaultSize="50%" className="min-w-0">
         <PanelHeader
           label="B"
           actions={
@@ -1670,8 +1764,32 @@ function ComparisonPanels({
             exportComponentName="GeneratedPanelB"
           />
         </div>
-      </GridItem>
-    </Grid>
+      </Panel>
+    </Group>
+  );
+}
+
+function PlaygroundResizeHandle({
+  orientation,
+}: {
+  readonly orientation: "horizontal" | "vertical";
+}) {
+  return (
+    <Separator
+      className={cn(
+        "group relative shrink-0 bg-kumo-line/60 transition-colors hover:bg-kumo-brand/60 focus:bg-kumo-brand/60",
+        orientation === "vertical" ? "w-1" : "h-1",
+      )}
+    >
+      <div
+        className={cn(
+          "absolute rounded-full bg-kumo-line transition-colors group-hover:bg-kumo-brand group-focus:bg-kumo-brand",
+          orientation === "vertical"
+            ? "left-1/2 top-1/2 h-14 w-0.5 -translate-x-1/2 -translate-y-1/2"
+            : "left-1/2 top-1/2 h-0.5 w-14 -translate-x-1/2 -translate-y-1/2",
+        )}
+      />
+    </Separator>
   );
 }
 
@@ -3361,7 +3479,7 @@ function PlaygroundChatSidebar({
   if (minimized) {
     return (
       <aside
-        className="hidden md:flex h-full w-12 shrink-0 flex-col items-center border-r border-kumo-line bg-kumo-overlay py-3 gap-3"
+        className="hidden h-full w-full min-w-0 flex-col items-center gap-3 border-r border-kumo-line bg-kumo-overlay py-3 md:flex"
         aria-label="Chat sidebar (minimized)"
       >
         <button
@@ -3383,7 +3501,7 @@ function PlaygroundChatSidebar({
 
   return (
     <aside
-      className="hidden md:flex h-full w-[380px] shrink-0 flex-col border-r border-kumo-line bg-kumo-overlay"
+      className="hidden h-full w-full min-w-0 flex-col border-r border-kumo-line bg-kumo-overlay md:flex"
       aria-label="Chat sidebar"
     >
       {/* Header: model selector + minimize toggle — h-[61px] matches left panel tab bar */}
