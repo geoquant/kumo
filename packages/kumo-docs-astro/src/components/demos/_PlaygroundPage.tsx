@@ -13,6 +13,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
   type FormEvent,
@@ -99,6 +100,17 @@ import {
   TOOL_REGISTRY,
   type ToolDefinition,
 } from "~/lib/tool-registry";
+import {
+  createInitialPlaygroundLayoutState,
+  createInitialPlaygroundPanelsState,
+  playgroundLayoutReducer,
+  playgroundPanelsReducer,
+} from "~/lib/playground/state";
+import type {
+  ActionLogEntry,
+  PanelTab,
+  StreamStatus,
+} from "~/lib/playground/types";
 
 // =============================================================================
 // Custom components — must match the metadata in lib/playground.ts so the
@@ -133,12 +145,6 @@ const CUSTOM_COMPONENT_TYPES: ReadonlySet<string> = new Set(
 // Types
 // =============================================================================
 
-/** Streaming lifecycle state. */
-type StreamStatus = "idle" | "streaming" | "error";
-
-/** Per-panel tab identifiers (each side-by-side panel has its own tabs). */
-type PanelTab = "preview" | "code" | "jsonl" | "actions" | "grading" | "prompt";
-
 /** Shared className override to shrink tab text for tight panel headers. */
 const PANEL_TAB_CLASS = "text-xs";
 
@@ -151,12 +157,6 @@ const PANEL_TABS: TabsItem[] = [
   { value: "grading", label: "Grade", className: PANEL_TAB_CLASS },
   { value: "prompt", label: "Prompt", className: PANEL_TAB_CLASS },
 ];
-
-/** Logged action event with timestamp. */
-interface ActionLogEntry {
-  readonly timestamp: string;
-  readonly event: ActionEvent;
-}
 
 const PANEL_TAB_VALUES = new Set<string>(PANEL_TABS.map((t) => t.value));
 
@@ -320,38 +320,121 @@ export function PlaygroundPage() {
 
 /** Main playground UI. Side-by-side layout: content left, chat right. */
 function PlaygroundContent() {
+  const [panelState, dispatchPanelState] = useReducer(
+    playgroundPanelsReducer,
+    undefined,
+    createInitialPlaygroundPanelsState,
+  );
+  const [layoutState, dispatchLayoutState] = useReducer(
+    playgroundLayoutReducer,
+    undefined,
+    createInitialPlaygroundLayoutState,
+  );
+
   // --- Input state ---
   const [inputValue, setInputValue] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
 
-  // --- Per-panel tab state (persists across generations) ---
-  const [leftTab, setLeftTab] = useState<PanelTab>("preview");
-  const [rightTab, setRightTab] = useState<PanelTab>("preview");
-
-  // --- Chat sidebar collapse state ---
-  const [chatMinimized, setChatMinimized] = useState(false);
-  const toggleChat = useCallback(() => setChatMinimized((v) => !v), []);
-
   // --- Streaming state ---
-  const [status, setStatus] = useState<StreamStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [rawJsonl, setRawJsonl] = useState("");
   const rawJsonlRef = useRef("");
   const lastSubmittedRef = useRef<string | null>(null);
   /** True once at least one prompt has been submitted (gates skill Apply). */
   const [hasSubmitted, setHasSubmitted] = useState(false);
-
-  // --- Action logs (independent per panel) ---
-  const [leftActionLog, setLeftActionLog] = useState<ActionLogEntry[]>([]);
-  const clearLeftActionLog = useCallback(() => setLeftActionLog([]), []);
-  const [rightActionLog, setRightActionLog] = useState<ActionLogEntry[]>([]);
-  const clearRightActionLog = useCallback(() => setRightActionLog([]), []);
-
-  // --- "No prompt" panel state ---
-  const [noPromptRawJsonl, setNoPromptRawJsonl] = useState("");
   const noPromptRawJsonlRef = useRef("");
-  const [noPromptStatus, setNoPromptStatus] = useState<StreamStatus>("idle");
+
+  const leftTab = panelState.a.activeTab;
+  const rightTab = panelState.b.activeTab;
+  const status = panelState.a.status;
+  const rawJsonl = panelState.a.rawJsonl;
+  const leftActionLog = panelState.a.actionLog;
+  const noPromptStatus = panelState.b.status;
+  const noPromptRawJsonl = panelState.b.rawJsonl;
+  const rightActionLog = panelState.b.actionLog;
+  const chatMinimized = layoutState.chatMinimized;
+
+  const setLeftTab = useCallback(
+    (tab: PanelTab) => {
+      dispatchPanelState({ type: "set-tab", panelId: "a", tab });
+    },
+    [dispatchPanelState],
+  );
+  const setRightTab = useCallback(
+    (tab: PanelTab) => {
+      dispatchPanelState({ type: "set-tab", panelId: "b", tab });
+    },
+    [dispatchPanelState],
+  );
+  const toggleChat = useCallback(() => {
+    dispatchLayoutState({ type: "toggle-chat-minimized" });
+  }, [dispatchLayoutState]);
+  const setStatus = useCallback(
+    (nextStatus: StreamStatus) => {
+      dispatchPanelState({
+        type: "set-status",
+        panelId: "a",
+        status: nextStatus,
+      });
+    },
+    [dispatchPanelState],
+  );
+  const setNoPromptStatus = useCallback(
+    (nextStatus: StreamStatus) => {
+      dispatchPanelState({
+        type: "set-status",
+        panelId: "b",
+        status: nextStatus,
+      });
+    },
+    [dispatchPanelState],
+  );
+  const setRawJsonl = useCallback(
+    (nextRawJsonl: string) => {
+      dispatchPanelState({
+        type: "set-raw-jsonl",
+        panelId: "a",
+        rawJsonl: nextRawJsonl,
+      });
+    },
+    [dispatchPanelState],
+  );
+  const setNoPromptRawJsonl = useCallback(
+    (nextRawJsonl: string) => {
+      dispatchPanelState({
+        type: "set-raw-jsonl",
+        panelId: "b",
+        rawJsonl: nextRawJsonl,
+      });
+    },
+    [dispatchPanelState],
+  );
+  const appendLeftActionLog = useCallback(
+    (entry: ActionLogEntry) => {
+      dispatchPanelState({
+        type: "append-action-log",
+        panelId: "a",
+        entry,
+      });
+    },
+    [dispatchPanelState],
+  );
+  const appendRightActionLog = useCallback(
+    (entry: ActionLogEntry) => {
+      dispatchPanelState({
+        type: "append-action-log",
+        panelId: "b",
+        entry,
+      });
+    },
+    [dispatchPanelState],
+  );
+  const clearLeftActionLog = useCallback(() => {
+    dispatchPanelState({ type: "clear-action-log", panelId: "a" });
+  }, [dispatchPanelState]);
+  const clearRightActionLog = useCallback(() => {
+    dispatchPanelState({ type: "clear-action-log", panelId: "b" });
+  }, [dispatchPanelState]);
 
   // --- System prompt text (fetched once for the prompt-view toggle) ---
   const [systemPromptText, setSystemPromptText] = useState<string | null>(null);
@@ -453,40 +536,44 @@ function PlaygroundContent() {
   >(() => {});
 
   // --- Action handler (left panel) ---
-  const handleAction = useCallback((event: ActionEvent) => {
-    setLeftActionLog((prev) => [
-      ...prev,
-      { timestamp: new Date().toISOString(), event },
-    ]);
+  const handleAction = useCallback(
+    (event: ActionEvent) => {
+      appendLeftActionLog({ timestamp: new Date().toISOString(), event });
 
-    // Don't actually submit forms in the playground — just log + preview
-    if (event.actionName === "submit_form") return;
+      // Don't actually submit forms in the playground — just log + preview
+      if (event.actionName === "submit_form") return;
 
-    const result = dispatchAction(PLAYGROUND_HANDLERS, event, treeRef.current);
-    if (result === null) return;
-    processActionResult(result, {
-      applyPatches: (patches: readonly JsonPatchOp[]) => {
-        applyPatchesRef.current(patches);
-      },
-      sendMessage: (content: string) => {
-        handleSubmitRef.current(undefined, content);
-      },
-      openExternal: (url: string, target: string) => {
-        // Defense-in-depth: validate URL scheme even though dispatchAction
-        // already sanitizes via the action registry.
-        try {
-          const parsed = new URL(url, window.location.href);
-          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      const result = dispatchAction(
+        PLAYGROUND_HANDLERS,
+        event,
+        treeRef.current,
+      );
+      if (result === null) return;
+      processActionResult(result, {
+        applyPatches: (patches: readonly JsonPatchOp[]) => {
+          applyPatchesRef.current(patches);
+        },
+        sendMessage: (content: string) => {
+          handleSubmitRef.current(undefined, content);
+        },
+        openExternal: (url: string, target: string) => {
+          // Defense-in-depth: validate URL scheme even though dispatchAction
+          // already sanitizes via the action registry.
+          try {
+            const parsed = new URL(url, window.location.href);
+            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+              return;
+            }
+          } catch {
             return;
           }
-        } catch {
-          return;
-        }
-        const safeTarget = target === "_self" ? "_self" : "_blank";
-        window.open(url, safeTarget, "noopener,noreferrer");
-      },
-    });
-  }, []);
+          const safeTarget = target === "_self" ? "_self" : "_blank";
+          window.open(url, safeTarget, "noopener,noreferrer");
+        },
+      });
+    },
+    [appendLeftActionLog],
+  );
 
   // --- UITree hooks ---
   const runtimeValueStore = useRuntimeValueStore();
@@ -496,41 +583,41 @@ function PlaygroundContent() {
   });
 
   // --- Action handler (right panel) ---
-  const handleNoPromptAction = useCallback((event: ActionEvent) => {
-    setRightActionLog((prev) => [
-      ...prev,
-      { timestamp: new Date().toISOString(), event },
-    ]);
+  const handleNoPromptAction = useCallback(
+    (event: ActionEvent) => {
+      appendRightActionLog({ timestamp: new Date().toISOString(), event });
 
-    if (event.actionName === "submit_form") return;
+      if (event.actionName === "submit_form") return;
 
-    const result = dispatchAction(
-      PLAYGROUND_HANDLERS,
-      event,
-      noPromptTreeRef.current,
-    );
-    if (result === null) return;
-    processActionResult(result, {
-      applyPatches: (patches: readonly JsonPatchOp[]) => {
-        noPromptApplyPatchesRef.current(patches);
-      },
-      sendMessage: (content: string) => {
-        handleSubmitRef.current(undefined, content);
-      },
-      openExternal: (url: string, target: string) => {
-        try {
-          const parsed = new URL(url, window.location.href);
-          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      const result = dispatchAction(
+        PLAYGROUND_HANDLERS,
+        event,
+        noPromptTreeRef.current,
+      );
+      if (result === null) return;
+      processActionResult(result, {
+        applyPatches: (patches: readonly JsonPatchOp[]) => {
+          noPromptApplyPatchesRef.current(patches);
+        },
+        sendMessage: (content: string) => {
+          handleSubmitRef.current(undefined, content);
+        },
+        openExternal: (url: string, target: string) => {
+          try {
+            const parsed = new URL(url, window.location.href);
+            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+              return;
+            }
+          } catch {
             return;
           }
-        } catch {
-          return;
-        }
-        const safeTarget = target === "_self" ? "_self" : "_blank";
-        window.open(url, safeTarget, "noopener,noreferrer");
-      },
-    });
-  }, []);
+          const safeTarget = target === "_self" ? "_self" : "_blank";
+          window.open(url, safeTarget, "noopener,noreferrer");
+        },
+      });
+    },
+    [appendRightActionLog],
+  );
 
   // --- Action handler (chat sidebar tool cards) ---
   const messagesRef = useRef(messages);
@@ -729,7 +816,7 @@ function PlaygroundContent() {
       setNoPromptStatus("streaming");
       setNoPromptRawJsonl("");
       noPromptRawJsonlRef.current = "";
-      setRightActionLog([]);
+      clearRightActionLog();
 
       const bodyPayload: Record<string, unknown> = {
         message: opts.message,
@@ -875,7 +962,7 @@ function PlaygroundContent() {
       setInputValue("");
       setRawJsonl("");
       rawJsonlRef.current = "";
-      setLeftActionLog([]);
+      clearLeftActionLog();
       lastSubmittedRef.current = msg;
       setHasSubmitted(true);
 

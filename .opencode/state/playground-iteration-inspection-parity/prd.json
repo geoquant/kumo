@@ -1,0 +1,157 @@
+{
+  "prdName": "playground-iteration-inspection-parity",
+  "tasks": [
+    {
+      "id": "architecture-1",
+      "category": "architecture",
+      "description": "Extract playground-local state and panel models out of `_PlaygroundPage.tsx` into reusable, testable state modules while preserving existing A/B streaming, skills, prompt, grading, and tool flows.",
+      "steps": [
+        "`packages/kumo-docs-astro/src/lib/playground/types.ts` exists with shared panel/layout/editor state types used by the playground UI",
+        "`packages/kumo-docs-astro/src/lib/playground/state.ts` exists with pure reducer/helpers for panel updates, editor updates, and layout updates",
+        "`packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` no longer stores mirrored `foo` / `noPromptFoo` state inline for core panel artifacts",
+        "Existing A/B generation still works for both panels with current abort semantics unchanged",
+        "Existing features still work after extraction: skill apply on panel B, tool confirmation cards, prompt tab, grading tab, and action log"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "Add a `Tree` tab that renders a human-readable nested representation of the active panel `UITree` and keeps it live during streaming.",
+      "steps": [
+        "Panel tabs include `Tree` for both panel A and panel B",
+        "`Tree` view shows stable element key, type, props, action metadata, and recursively nested children",
+        "`Tree` view updates while a stream is in progress for the active panel",
+        "`Tree` view supports copy-to-clipboard of the rendered nested representation",
+        "Empty state is shown when the active panel has no renderable tree"
+      ],
+      "passes": false
+    },
+    {
+      "id": "validation-1",
+      "category": "validation",
+      "description": "Add a safe editable JSON `Editor` tab for local panel tree edits with formatting, validation, apply, and reset flows.",
+      "steps": [
+        "Panel tabs include `Editor` for both panel A and panel B",
+        "`packages/kumo-docs-astro/src/lib/playground/validate-tree.ts` exists and validates edited JSON text before any apply",
+        "Invalid JSON and invalid `UITree` shape produce structured validation issues and never replace the last valid rendered tree",
+        "`Editor` exposes `Format`, `Validate`, `Apply`, and `Reset to latest streamed tree` controls",
+        "Applying valid JSON updates only the active panel's local tree and derived views (preview, TSX, grading, tree) without mutating chat history or triggering a new API request",
+        "Reset restores the latest streamed tree for the active panel"
+      ],
+      "passes": false
+    },
+    {
+      "id": "data-1",
+      "category": "data",
+      "description": "Create shared catalog explorer data for playground components and actions using registry metadata and explicit action definitions.",
+      "steps": [
+        "`packages/kumo-docs-astro/src/lib/playground/catalog-data.ts` exists and exports normalized component and action entries for the playground",
+        "Component metadata is sourced from `virtual:kumo-registry` rather than duplicated manually",
+        "Action metadata includes built-in actions `increment`, `decrement`, `reset`, `set`, `toggle`, `submit_form`, and `navigate`",
+        "Action metadata also includes playground-specific actions `tool_approve` and `tool_cancel`",
+        "Catalog data exposes names, descriptions, and parameter metadata needed by the UI explorer"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "Add a shared catalog explorer that is accessible from desktop and mobile without duplicating catalog tabs inside both A/B panels.",
+      "steps": [
+        "Desktop playground exposes a shared catalog drawer or sheet from the workspace header",
+        "Mobile playground exposes `Catalog` as a first-class top-level view",
+        "Catalog explorer supports search by component/action name",
+        "Catalog explorer supports component category filtering",
+        "Component entries show description, import path or docs hint, and prop names/types/requiredness",
+        "Action entries show description and parameter names/types",
+        "Catalog explorer is usable without leaving `/playground`"
+      ],
+      "passes": false
+    },
+    {
+      "id": "export-1",
+      "category": "export",
+      "description": "Upgrade the existing code view into an explicit TSX export surface with copy and download actions.",
+      "steps": [
+        "Panel tab label is `TSX` instead of `Code`",
+        "TSX tab still uses `uiTreeToJsx()` output from the active panel tree",
+        "TSX tab provides a copy action for the full generated `.tsx` module",
+        "TSX tab provides a download action that saves a `.tsx` file locally",
+        "Downloaded/exported component names default to `GeneratedPanelA` and `GeneratedPanelB` for the respective panels",
+        "If export output includes playground-only components such as `DemoButton`, the UI shows an explicit warning"
+      ],
+      "passes": false
+    },
+    {
+      "id": "layout-1",
+      "category": "layout",
+      "description": "Replace the fixed desktop shell with a resizable workspace that supports both chat resizing and A/B panel resizing.",
+      "steps": [
+        "Desktop layout uses resizable panels for `chat <-> workspace` and nested `panel A <-> panel B`",
+        "Chat minimize behavior still works inside the resizable shell",
+        "Resizable sizes persist across refresh in the same browser via local storage or equivalent client persistence",
+        "Existing panel content (preview, jsonl, grading, prompt, actions, skills) still renders correctly inside the resizable layout",
+        "No route changes are introduced; `/playground` remains the main page and `/playground/report` still works"
+      ],
+      "passes": false
+    },
+    {
+      "id": "layout-2",
+      "category": "layout",
+      "description": "Add a mobile-first single-column shell that can switch between chat, panel A, panel B, and catalog views without losing state.",
+      "steps": [
+        "At mobile widths, the playground renders a single-column shell instead of side-by-side A/B columns",
+        "Mobile shell exposes top-level view switching for `Chat`, `A`, `B`, and `Catalog`",
+        "Each panel retains its own active tab and local state when switching mobile views",
+        "Chat state and messages are preserved while switching between mobile views",
+        "Catalog remains reachable on mobile without leaving `/playground`"
+      ],
+      "passes": false
+    },
+    {
+      "id": "testing-1",
+      "category": "testing",
+      "description": "Add regression coverage for extracted state, tree inspection, editor apply/reset flows, catalog explorer data, and layout persistence.",
+      "steps": [
+        "Unit tests cover playground state transitions for tab changes, editor dirty/apply/reset flows, and layout persistence payloads",
+        "Unit tests cover nested tree transformation for representative `UITree` fixtures",
+        "Unit tests cover tree validation for valid JSON, malformed JSON, and invalid `UITree` shapes",
+        "Integration tests cover stream -> edit JSON -> apply -> preview/TSX/grading update for a panel",
+        "Regression coverage verifies existing playground flows still work: A/B streaming, panel B skill apply, tool confirmation cards, prompt view, and action log"
+      ],
+      "passes": false
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Branch rule: before starting any implementation task, verify the current branch is `geoquant/streaming-ui`; do not start new work on any other branch.",
+      "Keep route structure stable: `/playground` stays the main route and `/playground/report` stays intact.",
+      "Preserve the existing A/B comparison architecture instead of collapsing the playground into a single-output workflow.",
+      "Use `streamJsonlUI` + `useUITree` + `UITreeRenderer` as the streaming/rendering pipeline; do not invent a second tree runtime.",
+      "Use `uiTreeToJsx()` for generated TSX rather than bespoke codegen.",
+      "Validate edited trees at the boundary using Kumo catalog validation; do not use unchecked casts to treat arbitrary JSON as `UITree`.",
+      "Prefer extracting reusable playground helpers under `src/lib/playground/` over growing `_PlaygroundPage.tsx` further.",
+      "Catalog explorer should reuse registry metadata patterns from `RegistryDemo.tsx` rather than duplicating registry knowledge manually."
+    ],
+    "keyFiles": [
+      "packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx",
+      "packages/kumo-docs-astro/src/lib/stream-jsonl-ui.ts",
+      "packages/kumo-docs-astro/src/lib/playground.ts",
+      "packages/kumo-docs-astro/src/components/demos/RegistryDemo.tsx",
+      "packages/kumo-docs-astro/src/components/demos/_StreamingDemo.tsx",
+      "packages/kumo/src/generative/ui-tree-to-jsx.ts",
+      "packages/kumo/src/catalog/catalog.ts",
+      "packages/kumo/src/catalog/types.ts",
+      "packages/kumo/src/streaming/action-registry.ts",
+      "packages/kumo/src/generative/ui-tree-renderer.tsx"
+    ],
+    "nonGoals": [
+      "Version history or iterative snapshots in v1",
+      "Server-side persistence, saved sessions, or share URLs",
+      "Automatically feeding manual JSON edits back into chat history or the next model request",
+      "Replacing the current tool confirmation flow, skills flow, grading flow, or eval report flow",
+      "Introducing a node-graph editor or third-party visual JSON editor as part of this spec"
+    ]
+  }
+}
