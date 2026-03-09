@@ -120,7 +120,7 @@
         "Integration tests cover stream -> edit JSON -> apply -> preview/TSX/grading update for a panel",
         "Regression coverage verifies existing playground flows still work: A/B streaming, panel B skill apply, tool confirmation cards, prompt view, and action log"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
