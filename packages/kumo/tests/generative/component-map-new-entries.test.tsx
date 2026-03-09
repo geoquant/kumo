@@ -64,6 +64,10 @@ describe("KNOWN_TYPES", () => {
     expect(KNOWN_TYPES.has("Flow")).toBe(true);
   });
 
+  it("includes TimeseriesChart", () => {
+    expect(KNOWN_TYPES.has("TimeseriesChart")).toBe(true);
+  });
+
   it("includes FlowNode", () => {
     expect(KNOWN_TYPES.has("FlowNode")).toBe(true);
   });
@@ -110,6 +114,10 @@ describe("COMPONENT_MAP entries", () => {
 
   it("Flow maps to a defined component", () => {
     expect(COMPONENT_MAP.Flow).toBeDefined();
+  });
+
+  it("TimeseriesChart maps to a defined component", () => {
+    expect(COMPONENT_MAP.TimeseriesChart).toBeDefined();
   });
 
   it("FlowNode maps to a defined component (Flow.Node)", () => {
@@ -188,6 +196,22 @@ describe("UITreeRenderer: Flow + FlowNode + FlowParallel", () => {
     const { container } = render(<UITreeRenderer tree={tree} />);
 
     // Should NOT have "Unknown component" warning — all types are recognized
+    const unknownWarning = container.querySelector(".text-kumo-warning");
+    expect(unknownWarning).toBeNull();
+  });
+});
+
+describe("UITreeRenderer: TimeseriesChart", () => {
+  it("repairs loose chart data instead of tripping the error boundary", () => {
+    const tree = mkTree("chart", {
+      chart: el("chart", "TimeseriesChart", {
+        data: { values: [10, 18, 14, 22] },
+      }),
+    });
+
+    const { container } = render(<UITreeRenderer tree={tree} />);
+
+    expect(container.textContent).not.toContain("Failed to render");
     const unknownWarning = container.querySelector(".text-kumo-warning");
     expect(unknownWarning).toBeNull();
   });

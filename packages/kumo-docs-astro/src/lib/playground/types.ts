@@ -3,6 +3,10 @@ import type {
   UIElement,
   UITree,
 } from "@cloudflare/kumo/streaming";
+import type {
+  RegressionWarning,
+  ScenarioRunPair,
+} from "~/lib/playground/eval-types";
 
 export type PanelId = "a" | "b";
 
@@ -62,4 +66,10 @@ export interface PlaygroundLayoutState {
   readonly mobileView: "chat" | "a" | "b" | "catalog";
   readonly desktopRootSizes: readonly [number, number];
   readonly workspaceSizes: readonly [number, number];
+}
+
+export interface PlaygroundFeedbackState {
+  readonly activeRunId: string | null;
+  readonly runs: readonly ScenarioRunPair[];
+  readonly panelBWarnings: readonly RegressionWarning[];
 }

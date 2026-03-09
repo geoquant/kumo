@@ -1,8 +1,17 @@
+import {
+  getScenarioRunWarnings,
+  updateScenarioRunStage,
+} from "~/lib/playground/feedback-run";
+import type {
+  ScenarioRunPair,
+  ScenarioStageArtifact,
+} from "~/lib/playground/eval-types";
 import type {
   ActionLogEntry,
   EditorDraft,
   PanelArtifact,
   PanelId,
+  PlaygroundFeedbackState,
   PanelTab,
   PlaygroundLayoutState,
   StreamStatus,
@@ -12,6 +21,7 @@ import type {
 export interface PlaygroundPanelsState {
   readonly a: PanelArtifact;
   readonly b: PanelArtifact;
+  readonly feedback: PlaygroundFeedbackState;
 }
 
 type PlaygroundPanelsAction =
@@ -70,6 +80,21 @@ type PlaygroundPanelsAction =
       readonly type: "reset-editor";
       readonly panelId: PanelId;
       readonly text: string;
+    }
+  | {
+      readonly type: "start-feedback-run";
+      readonly run: ScenarioRunPair;
+    }
+  | {
+      readonly type: "hydrate-feedback-runs";
+      readonly runs: readonly ScenarioRunPair[];
+    }
+  | {
+      readonly type: "capture-feedback-artifact";
+      readonly runId: string;
+      readonly stage: ScenarioStageArtifact["stage"];
+      readonly panelId: PanelId;
+      readonly artifact: ScenarioStageArtifact;
     };
 
 type PlaygroundLayoutAction =
@@ -111,10 +136,19 @@ function createPanelArtifact(): PanelArtifact {
   };
 }
 
+function createFeedbackState(): PlaygroundFeedbackState {
+  return {
+    activeRunId: null,
+    runs: [],
+    panelBWarnings: [],
+  };
+}
+
 export function createInitialPlaygroundPanelsState(): PlaygroundPanelsState {
   return {
     a: createPanelArtifact(),
     b: createPanelArtifact(),
+    feedback: createFeedbackState(),
   };
 }
 
@@ -219,6 +253,49 @@ export function playgroundPanelsReducer(
         },
         localTreeOverride: null,
       }));
+    case "start-feedback-run":
+      return {
+        ...state,
+        feedback: {
+          activeRunId: action.run.id,
+          runs: [...state.feedback.runs, action.run],
+          panelBWarnings: [],
+        },
+      };
+    case "hydrate-feedback-runs": {
+      const activeRun = action.runs.at(-1) ?? null;
+
+      return {
+        ...state,
+        feedback: {
+          activeRunId: activeRun?.id ?? null,
+          runs: action.runs,
+          panelBWarnings: getScenarioRunWarnings(activeRun),
+        },
+      };
+    }
+    case "capture-feedback-artifact": {
+      const runs = state.feedback.runs.map((run) =>
+        run.id === action.runId
+          ? updateScenarioRunStage(run, {
+              stage: action.stage,
+              panelId: action.panelId,
+              artifact: action.artifact,
+            })
+          : run,
+      );
+      const activeRun =
+        runs.find((run) => run.id === state.feedback.activeRunId) ?? null;
+
+      return {
+        ...state,
+        feedback: {
+          ...state.feedback,
+          runs,
+          panelBWarnings: getScenarioRunWarnings(activeRun),
+        },
+      };
+    }
   }
 }
 

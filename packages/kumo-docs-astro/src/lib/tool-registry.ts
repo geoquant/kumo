@@ -15,6 +15,7 @@
  */
 
 import { TOOL_CONFIRMATION_PROMPT } from "~/lib/tool-prompts";
+import type { ScenarioDefinition } from "~/lib/playground/eval-types";
 
 // =============================================================================
 // Types
@@ -144,6 +145,23 @@ const FILLER_WORDS = new Set([
 /** Detects a "create worker" intent. Name extraction is done separately. */
 const CREATE_WORKER_PATTERN = /\bcreate\b.*\bworker\b/i;
 
+const DEFAULT_CREATE_WORKER_NAME = "hello-world";
+
+const CREATE_WORKER_TOOL_NAME = "execute_create_worker";
+
+const CREATE_WORKER_INITIAL_PROMPT = "create a new hello world worker";
+
+export const CREATE_WORKER_SCENARIO: ScenarioDefinition = {
+  id: "create-worker",
+  initialPrompt: CREATE_WORKER_INITIAL_PROMPT,
+  toolName: CREATE_WORKER_TOOL_NAME,
+  stageThresholds: {
+    confirmation: 0.7,
+    followup: 0.72,
+    combined: 0.75,
+  },
+};
+
 /**
  * Extract a worker name from a "create worker" message.
  *
@@ -176,7 +194,7 @@ function extractWorkerName(message: string): string {
     if (raw !== "" && !FILLER_WORDS.has(raw.toLowerCase())) return slugify(raw);
   }
 
-  return "hello-world";
+  return DEFAULT_CREATE_WORKER_NAME;
 }
 
 /**
@@ -191,28 +209,29 @@ export const TOOL_REGISTRY: ReadonlyMap<string, ToolDefinition> = new Map<
   ToolDefinition
 >([
   [
-    "execute_create_worker",
+    CREATE_WORKER_TOOL_NAME,
     {
       match: (message) =>
         CREATE_WORKER_PATTERN.test(message)
           ? { workerName: extractWorkerName(message) }
           : null,
 
-      mcpExecuteToolName: "execute_create_worker",
+      mcpExecuteToolName: CREATE_WORKER_TOOL_NAME,
 
       validateExecuteResult: (sc) => sc["success"] === true,
 
       buildFollowUpPrompt: (params) => {
-        const name = params["workerName"] ?? "hello-world";
+        const name = params["workerName"] ?? DEFAULT_CREATE_WORKER_NAME;
         return (
           `Generate a deployment dashboard for the "${name}" Workers script. ` +
           `Include CloudflareLogo at the top, a heading with the script name, ` +
-          `status Badge, and a Table of recent deployments.`
+          `a TimeseriesChart line chart showing recent requests, a status Badge, ` +
+          `and a Table of recent deployments.`
         );
       },
 
       deriveToolId: (params) => {
-        const name = params["workerName"] ?? "hello-world";
+        const name = params["workerName"] ?? DEFAULT_CREATE_WORKER_NAME;
         return `create-worker-${name}`;
       },
 
@@ -222,7 +241,7 @@ export const TOOL_REGISTRY: ReadonlyMap<string, ToolDefinition> = new Map<
       },
 
       buildConfirmationMessage: (params) => {
-        const name = params["workerName"] ?? "hello-world";
+        const name = params["workerName"] ?? DEFAULT_CREATE_WORKER_NAME;
         return `Create a new Cloudflare Worker named "${name}". Ask me to confirm.`;
       },
 
@@ -231,7 +250,7 @@ export const TOOL_REGISTRY: ReadonlyMap<string, ToolDefinition> = new Map<
 
       pill: {
         label: "Create worker",
-        prompt: "create a new hello world worker",
+        prompt: CREATE_WORKER_INITIAL_PROMPT,
       },
     },
   ],

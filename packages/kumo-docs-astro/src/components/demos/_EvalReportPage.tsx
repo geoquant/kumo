@@ -34,6 +34,13 @@ import {
 } from "@cloudflare/kumo/generative/graders";
 import type { GradeReport } from "@cloudflare/kumo/generative/graders";
 import { readSSEStream } from "~/lib/read-sse-stream";
+import { parsePlaygroundFeedbackExport } from "~/lib/playground/feedback-export";
+import type {
+  PlaygroundFeedbackExport,
+  RegressionWarning,
+  ScenarioRunPair,
+  ScenarioStageArtifact,
+} from "~/lib/playground/eval-types";
 import { ThemeToggle } from "~/components/ThemeToggle";
 
 // =============================================================================
@@ -65,6 +72,11 @@ interface Baseline {
 interface NamedBaseline {
   readonly name: string;
   readonly baseline: Baseline;
+}
+
+interface NamedPlaygroundFeedbackExport {
+  readonly name: string;
+  readonly feedbackExport: PlaygroundFeedbackExport;
 }
 
 /** Live eval progress for a single prompt. */
@@ -818,8 +830,10 @@ function TrendChart({
 
 function FileDropZone({
   onBaselineLoaded,
+  onFeedbackLoaded,
 }: {
   readonly onBaselineLoaded: (named: NamedBaseline) => void;
+  readonly onFeedbackLoaded: (named: NamedPlaygroundFeedbackExport) => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -832,16 +846,25 @@ function FileDropZone({
       reader.onload = () => {
         try {
           const parsed: unknown = JSON.parse(reader.result as string);
+          const parsedFeedback = parsePlaygroundFeedbackExport(parsed);
+          const name = file.name.replace(/\.json$/i, "");
+
+          if (parsedFeedback !== null) {
+            onFeedbackLoaded({ name, feedbackExport: parsedFeedback });
+            return;
+          }
+
           if (
             typeof parsed !== "object" ||
             parsed === null ||
             !("prompts" in parsed) ||
             !("overall" in parsed)
           ) {
-            setError("Invalid baseline JSON — missing 'prompts' or 'overall'");
+            setError(
+              "Invalid report JSON - expected baseline or playground feedback export",
+            );
             return;
           }
-          const name = file.name.replace(/\.json$/i, "");
           onBaselineLoaded({ name, baseline: parsed as Baseline });
         } catch {
           setError("Failed to parse JSON");
@@ -886,7 +909,7 @@ function FileDropZone({
     >
       <UploadSimpleIcon size={32} className="mb-2 text-kumo-subtle" />
       <p className="mb-2 text-sm text-kumo-subtle">
-        Drop a baseline JSON file here
+        Drop a baseline or feedback JSON file here
       </p>
       <Button
         variant="secondary"
@@ -903,6 +926,231 @@ function FileDropZone({
         onChange={handleInputChange}
       />
       {error && <p className="mt-2 text-xs text-kumo-danger">{error}</p>}
+    </div>
+  );
+}
+
+function formatPercent(value: number): string {
+  return `${String(Math.round(value * 100))}%`;
+}
+
+function formatDelta(a: number, b: number): string {
+  const delta = Math.round((b - a) * 100);
+  return `${delta > 0 ? "+" : ""}${String(delta)} pts`;
+}
+
+function getWarningCounts(
+  warnings: readonly RegressionWarning[],
+): Readonly<Record<RegressionWarning["kind"], number>> {
+  return warnings.reduce(
+    (counts, warning) => ({
+      ...counts,
+      [warning.kind]: counts[warning.kind] + 1,
+    }),
+    {
+      regression: 0,
+      threshold: 0,
+      "missing-stage": 0,
+    },
+  );
+}
+
+function renderChecks(
+  label: string,
+  artifact: ScenarioStageArtifact | null,
+): React.ReactNode {
+  if (artifact === null) {
+    return <p className="text-xs text-kumo-subtle">{label}: missing</p>;
+  }
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-kumo-default">{label}</p>
+      {artifact.checks.map((check) => (
+        <p key={`${label}-${check.id}`} className="text-xs text-kumo-subtle">
+          {check.pass ? "PASS" : "FAIL"}: {check.label} - {check.message}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function isChatOnlyConfirmationRun(run: ScenarioRunPair): boolean {
+  return (
+    run.stages.confirmation.a === null && run.stages.confirmation.b === null
+  );
+}
+
+function PlaygroundRunCard({ run }: { readonly run: ScenarioRunPair }) {
+  const comparison = run.comparison;
+  const warnings = comparison?.warnings ?? [];
+  const warningCounts = getWarningCounts(warnings);
+  const chatOnlyConfirmation = isChatOnlyConfirmationRun(run);
+
+  return (
+    <div className="rounded-lg border border-kumo-line p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-kumo-default">{run.id}</p>
+          <p className="text-xs text-kumo-subtle">
+            {run.scenarioId} - {run.model} -{" "}
+            {new Date(run.timestamp).toLocaleString()}
+          </p>
+        </div>
+        <div className="text-right text-xs text-kumo-subtle">
+          {comparison === null ? (
+            <p>Awaiting complete run</p>
+          ) : (
+            <>
+              <p>
+                Combined A {formatPercent(comparison.stageScores.combined.a)} /
+                B {formatPercent(comparison.stageScores.combined.b)}
+              </p>
+              <p>Winner: {comparison.winner}</p>
+            </>
+          )}
+        </div>
+      </div>
+
+      <p className="mt-3 text-xs text-kumo-subtle">
+        Warning counts - regression: {String(warningCounts.regression)},
+        threshold: {String(warningCounts.threshold)}, missing-stage:{" "}
+        {String(warningCounts["missing-stage"])}
+      </p>
+
+      {comparison !== null ? (
+        <div className="mt-3 grid gap-2 md:grid-cols-3">
+          {!chatOnlyConfirmation ? (
+            <div className="rounded-md bg-kumo-elevated p-3 text-xs text-kumo-subtle">
+              <p className="font-medium text-kumo-default">Confirmation</p>
+              <p>
+                A {formatPercent(comparison.stageScores.confirmation.a)} / B{" "}
+                {formatPercent(comparison.stageScores.confirmation.b)}
+              </p>
+              <p>
+                Delta{" "}
+                {formatDelta(
+                  comparison.stageScores.confirmation.a,
+                  comparison.stageScores.confirmation.b,
+                )}
+              </p>
+            </div>
+          ) : null}
+          <div className="rounded-md bg-kumo-elevated p-3 text-xs text-kumo-subtle">
+            <p className="font-medium text-kumo-default">Follow-up</p>
+            <p>
+              A {formatPercent(comparison.stageScores.followup.a)} / B{" "}
+              {formatPercent(comparison.stageScores.followup.b)}
+            </p>
+            <p>
+              Delta{" "}
+              {formatDelta(
+                comparison.stageScores.followup.a,
+                comparison.stageScores.followup.b,
+              )}
+            </p>
+          </div>
+          <div className="rounded-md bg-kumo-elevated p-3 text-xs text-kumo-subtle">
+            <p className="font-medium text-kumo-default">Combined</p>
+            <p>
+              A {formatPercent(comparison.stageScores.combined.a)} / B{" "}
+              {formatPercent(comparison.stageScores.combined.b)}
+            </p>
+            <p>
+              Delta{" "}
+              {formatDelta(
+                comparison.stageScores.combined.a,
+                comparison.stageScores.combined.b,
+              )}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {warnings.length > 0 ? (
+        <div className="mt-3 space-y-1">
+          {warnings.map((warning) => (
+            <p
+              key={`${warning.stage}-${warning.rule}-${warning.message}`}
+              className="text-xs text-kumo-danger"
+            >
+              {warning.stage}: {warning.message}
+            </p>
+          ))}
+        </div>
+      ) : null}
+
+      <details className="mt-3 rounded-md bg-kumo-elevated p-3">
+        <summary className="cursor-pointer text-sm font-medium text-kumo-default">
+          Raw check results
+        </summary>
+        {chatOnlyConfirmation ? (
+          <p className="mt-2 text-xs text-kumo-subtle">
+            Confirmation stays in chat; exported workspace runs only score
+            follow-up UI.
+          </p>
+        ) : null}
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          {!chatOnlyConfirmation ? (
+            <div className="space-y-2">
+              {renderChecks("Confirmation A", run.stages.confirmation.a)}
+              {renderChecks("Confirmation B", run.stages.confirmation.b)}
+            </div>
+          ) : null}
+          <div className="space-y-2">
+            {renderChecks("Follow-up A", run.stages.followup.a)}
+            {renderChecks("Follow-up B", run.stages.followup.b)}
+          </div>
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function PlaygroundFeedbackList({
+  reports,
+  onRemove,
+}: {
+  readonly reports: readonly NamedPlaygroundFeedbackExport[];
+  readonly onRemove: (index: number) => void;
+}) {
+  if (reports.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4 rounded-lg border border-kumo-line p-4">
+      <h2 className="text-sm font-semibold text-kumo-default">
+        Playground Session Files
+      </h2>
+      {reports.map((report, index) => (
+        <div
+          key={`${report.name}-${report.feedbackExport.exportedAt}`}
+          className="rounded-lg border border-kumo-line p-4"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-kumo-default">
+                {report.name}
+              </p>
+              <p className="text-xs text-kumo-subtle">
+                {report.feedbackExport.branch} -{" "}
+                {report.feedbackExport.runs.length} run
+                {report.feedbackExport.runs.length === 1 ? "" : "s"} - exported{" "}
+                {new Date(report.feedbackExport.exportedAt).toLocaleString()}
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => onRemove(index)}>
+              Remove
+            </Button>
+          </div>
+          <div className="mt-4 space-y-3">
+            {report.feedbackExport.runs.map((run) => (
+              <PlaygroundRunCard key={run.id} run={run} />
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1190,6 +1438,9 @@ export function EvalReportPage() {
 
 function EvalReportContent() {
   const [baselines, setBaselines] = useState<NamedBaseline[]>([]);
+  const [feedbackExports, setFeedbackExports] = useState<
+    NamedPlaygroundFeedbackExport[]
+  >([]);
   const [selectedIndices, setSelectedIndices] = useState<ReadonlySet<number>>(
     new Set(),
   );
@@ -1235,6 +1486,17 @@ function EvalReportContent() {
     });
   }, []);
 
+  const handleFeedbackLoaded = useCallback(
+    (named: NamedPlaygroundFeedbackExport) => {
+      setFeedbackExports((prev) => [...prev, named]);
+    },
+    [],
+  );
+
+  const handleRemoveFeedback = useCallback((index: number) => {
+    setFeedbackExports((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
   const selectedBaselines = [...selectedIndices]
     .sort((a, b) => a - b)
     .map((i) => baselines[i])
@@ -1258,7 +1520,10 @@ function EvalReportContent() {
       </div>
 
       {/* Upload section */}
-      <FileDropZone onBaselineLoaded={handleBaselineLoaded} />
+      <FileDropZone
+        onBaselineLoaded={handleBaselineLoaded}
+        onFeedbackLoaded={handleFeedbackLoaded}
+      />
 
       <BaselineList
         baselines={baselines}
@@ -1267,9 +1532,15 @@ function EvalReportContent() {
         onRemove={handleRemove}
       />
 
+      <PlaygroundFeedbackList
+        reports={feedbackExports}
+        onRemove={handleRemoveFeedback}
+      />
+
       <ReportBody
         baselines={baselines}
         selectedBaselines={selectedBaselines}
+        feedbackExports={feedbackExports}
         violations={liveViolations}
       />
     </div>
@@ -1283,44 +1554,47 @@ function EvalReportContent() {
 function ReportBody({
   baselines,
   selectedBaselines,
+  feedbackExports,
   violations,
 }: {
   readonly baselines: readonly NamedBaseline[];
   readonly selectedBaselines: readonly NamedBaseline[];
+  readonly feedbackExports: readonly NamedPlaygroundFeedbackExport[];
   readonly violations?: ViolationMap | undefined;
 }) {
-  if (baselines.length === 0) {
+  if (baselines.length === 0 && feedbackExports.length === 0) {
     return (
       <div className="flex items-center justify-center py-16">
         <Empty
           icon={<UploadSimpleIcon size={32} />}
-          title="No baselines loaded"
-          description="Run an eval or upload baseline JSON files to see results."
+          title="No reports loaded"
+          description="Run an eval or upload baseline or playground feedback JSON files to see results."
         />
       </div>
     );
   }
 
-  // Show matrix for the first selected baseline (or the most recent)
   const primaryBaseline =
-    selectedBaselines.length > 0
-      ? selectedBaselines[0]
-      : baselines[baselines.length - 1];
+    baselines.length === 0
+      ? null
+      : selectedBaselines.length > 0
+        ? selectedBaselines[0]
+        : baselines[baselines.length - 1];
 
   return (
     <div className="space-y-6">
-      {/* Pass/Fail Matrix */}
-      <div className="rounded-lg border border-kumo-line p-4">
-        <h2 className="mb-3 text-sm font-semibold text-kumo-default">
-          Pass/Fail Matrix &mdash; {primaryBaseline.name}
-        </h2>
-        <PassFailMatrix
-          baseline={primaryBaseline.baseline}
-          violations={violations}
-        />
-      </div>
+      {primaryBaseline !== null && (
+        <div className="rounded-lg border border-kumo-line p-4">
+          <h2 className="mb-3 text-sm font-semibold text-kumo-default">
+            Pass/Fail Matrix &mdash; {primaryBaseline.name}
+          </h2>
+          <PassFailMatrix
+            baseline={primaryBaseline.baseline}
+            violations={violations}
+          />
+        </div>
+      )}
 
-      {/* A/B Comparison */}
       {selectedBaselines.length === 2 && (
         <div className="rounded-lg border border-kumo-line p-4">
           <h2 className="mb-3 text-sm font-semibold text-kumo-default">
@@ -1333,9 +1607,20 @@ function ReportBody({
         </div>
       )}
 
-      {/* Trend Chart */}
       {selectedBaselines.length >= 3 && (
         <TrendChart baselines={selectedBaselines} />
+      )}
+
+      {feedbackExports.length > 0 && (
+        <div className="rounded-lg border border-kumo-line p-4">
+          <h2 className="mb-3 text-sm font-semibold text-kumo-default">
+            Playground Sessions
+          </h2>
+          <p className="text-xs text-kumo-subtle">
+            Uploaded `playground-feedback-v1` exports are shown here separately
+            from eval baselines.
+          </p>
+        </div>
       )}
     </div>
   );

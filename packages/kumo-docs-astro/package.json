@@ -11,6 +11,7 @@
     "build": "pnpm run codegen:demos && pnpm run codegen:skills && astro build",
     "codegen:demos": "tsx scripts/extract-demo-examples.ts",
     "codegen:skills": "tsx scripts/extract-skills.ts",
+    "playground:eval:create-worker": "tsx scripts/eval-playground-scenario.ts",
     "preview": "astro preview",
     "astro": "astro",
     "typecheck": "astro check",
