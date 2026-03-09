@@ -52,6 +52,7 @@ import {
   createHandlerMap,
   dispatchAction,
   applyPatch,
+  createRuntimeValueStore,
   processActionResult,
   type ActionEvent,
   type ActionHandler,
@@ -102,11 +103,21 @@ import {
 } from "~/lib/tool-middleware";
 import { BASELINE_PROMPT } from "~/lib/tool-prompts";
 import {
+  CREATE_WORKER_SCENARIO,
   matchToolForMessage,
   getToolPills,
   TOOL_REGISTRY,
   type ToolDefinition,
 } from "~/lib/tool-registry";
+import { buildStageArtifact } from "~/lib/playground/eval-analysis";
+import {
+  createPlaygroundFeedbackExport,
+  parsePlaygroundFeedbackExportText,
+} from "~/lib/playground/feedback-export";
+import {
+  createScenarioRunPair,
+  isScenarioRunComplete,
+} from "~/lib/playground/feedback-run";
 import {
   createInitialPlaygroundLayoutState,
   createInitialPlaygroundPanelsState,
@@ -124,9 +135,14 @@ import { buildNestedTree } from "~/lib/playground/nested-tree";
 import { validateEditableTree } from "~/lib/playground/validate-tree";
 import type {
   ActionLogEntry,
+  PanelId,
   PanelTab,
   StreamStatus,
 } from "~/lib/playground/types";
+import type {
+  EvalArtifactStageId,
+  ScenarioRunPair,
+} from "~/lib/playground/eval-types";
 
 // =============================================================================
 // Custom components — must match the metadata in lib/playground.ts so the
@@ -168,7 +184,6 @@ const PANEL_TAB_CLASS = "text-xs";
 const PANEL_TABS: TabsItem[] = [
   { value: "preview", label: "UI", className: PANEL_TAB_CLASS },
   { value: "code", label: "TSX", className: PANEL_TAB_CLASS },
-  { value: "editor", label: "Editor", className: PANEL_TAB_CLASS },
   { value: "tree", label: "Tree", className: PANEL_TAB_CLASS },
   { value: "jsonl", label: "JSONL", className: PANEL_TAB_CLASS },
   { value: "actions", label: "Actions", className: PANEL_TAB_CLASS },
@@ -183,11 +198,55 @@ function isPanelTab(value: string): value is PanelTab {
   return PANEL_TAB_VALUES.has(value);
 }
 
+function getVisiblePanelTab(tab: PanelTab): Exclude<PanelTab, "editor"> {
+  return tab === "editor" ? "preview" : tab;
+}
+
 /** Skill metadata fetched from /api/chat/skills (client-side mirror of SkillMeta). */
 interface SkillInfo {
   readonly id: string;
   readonly name: string;
   readonly description: string;
+}
+
+interface PendingEvalCapture {
+  readonly runId: string;
+  readonly stage: EvalArtifactStageId;
+  readonly promptText: string;
+  readonly pendingPanels: Set<PanelId>;
+}
+
+interface PendingFollowupCapture {
+  readonly runId: string;
+  readonly promptText: string;
+}
+
+interface FeedbackTransferMessage {
+  readonly kind: "success" | "error";
+  readonly text: string;
+}
+
+interface OutputHistoryPanelSnapshot {
+  readonly tree: UITree;
+  readonly rawJsonl: string;
+  readonly promptText: string | null;
+  readonly runtimeValues: Readonly<Record<string, unknown>>;
+}
+
+interface OutputHistorySnapshot {
+  readonly id: string;
+  readonly prompt: string;
+  readonly createdAt: string;
+  readonly messages: readonly ChatMessage[];
+  readonly panelA: OutputHistoryPanelSnapshot;
+  readonly panelB: OutputHistoryPanelSnapshot;
+}
+
+interface PendingOutputHistoryCapture {
+  readonly id: string;
+  readonly prompt: string;
+  readonly createdAt: string;
+  readonly pendingPanels: Set<PanelId>;
 }
 
 // =============================================================================
@@ -200,6 +259,145 @@ function extractPromptString(body: unknown): string | null {
   if (!("prompt" in body)) return null;
   const narrow: { prompt: unknown } = body;
   return typeof narrow.prompt === "string" ? narrow.prompt : null;
+}
+
+function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Failed to read file"));
+    };
+
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsText(file);
+  });
+}
+
+function getLatestFeedbackRun(
+  runs: readonly ScenarioRunPair[],
+): ScenarioRunPair | null {
+  return runs.at(-1) ?? null;
+}
+
+function cloneOutputHistorySnapshot(
+  snapshot: OutputHistorySnapshot,
+): OutputHistorySnapshot {
+  return structuredClone(snapshot);
+}
+
+function buildOutputHistoryPanelSnapshot(input: {
+  readonly tree: UITree;
+  readonly rawJsonl: string;
+  readonly promptText: string | null;
+  readonly runtimeValues: Readonly<Record<string, unknown>>;
+}): OutputHistoryPanelSnapshot {
+  return {
+    tree: structuredClone(input.tree),
+    rawJsonl: input.rawJsonl,
+    promptText: input.promptText,
+    runtimeValues: structuredClone(input.runtimeValues),
+  };
+}
+
+function createOutputHistorySnapshot(input: {
+  readonly id: string;
+  readonly prompt: string;
+  readonly createdAt: string;
+  readonly messages: readonly ChatMessage[];
+  readonly leftTree: UITree;
+  readonly leftRawJsonl: string;
+  readonly leftPromptText: string | null;
+  readonly leftRuntimeValues: Readonly<Record<string, unknown>>;
+  readonly rightTree: UITree;
+  readonly rightRawJsonl: string;
+  readonly rightPromptText: string | null;
+  readonly rightRuntimeValues: Readonly<Record<string, unknown>>;
+}): OutputHistorySnapshot {
+  return {
+    id: input.id,
+    prompt: input.prompt,
+    createdAt: input.createdAt,
+    messages: structuredClone(input.messages),
+    panelA: buildOutputHistoryPanelSnapshot({
+      tree: input.leftTree,
+      rawJsonl: input.leftRawJsonl,
+      promptText: input.leftPromptText,
+      runtimeValues: input.leftRuntimeValues,
+    }),
+    panelB: buildOutputHistoryPanelSnapshot({
+      tree: input.rightTree,
+      rawJsonl: input.rightRawJsonl,
+      promptText: input.rightPromptText,
+      runtimeValues: input.rightRuntimeValues,
+    }),
+  };
+}
+
+function getOutputHistoryLabel(prompt: string): string {
+  const normalized = prompt.trim().replace(/\s+/g, " ");
+  if (normalized.length === 0) {
+    return "Untitled output";
+  }
+  if (normalized.length <= 48) {
+    return normalized;
+  }
+  return `${normalized.slice(0, 45)}...`;
+}
+
+function createSnapshotRuntimeStore(
+  values: Readonly<Record<string, unknown>>,
+): RuntimeValueStore {
+  const store = createRuntimeValueStore();
+  for (const [elementKey, value] of Object.entries(values)) {
+    store.setValue(elementKey, value, { touched: false });
+  }
+  return store;
+}
+
+function createInitialHistorySnapshot(
+  systemPromptText: string | null,
+): OutputHistorySnapshot {
+  return {
+    id: "output-history-initial",
+    prompt: "",
+    createdAt: "",
+    messages: [],
+    panelA: {
+      tree: { root: "", elements: {} },
+      rawJsonl: "",
+      promptText: systemPromptText,
+      runtimeValues: {},
+    },
+    panelB: {
+      tree: { root: "", elements: {} },
+      rawJsonl: "",
+      promptText: BASELINE_PROMPT,
+      runtimeValues: {},
+    },
+  };
+}
+
+function getPreferredRunArtifacts(run: ScenarioRunPair): {
+  readonly a: ScenarioRunPair["stages"]["confirmation"]["a"];
+  readonly b: ScenarioRunPair["stages"]["confirmation"]["b"];
+} | null {
+  const followup = run.stages.followup;
+  if (followup.a !== null || followup.b !== null) {
+    return followup;
+  }
+
+  const confirmation = run.stages.confirmation;
+  if (confirmation.a !== null || confirmation.b !== null) {
+    return confirmation;
+  }
+
+  return null;
 }
 
 // =============================================================================
@@ -363,6 +561,19 @@ function PlaygroundContent() {
   // --- Input state ---
   const [inputValue, setInputValue] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
+  const [feedbackTransferMessage, setFeedbackTransferMessage] =
+    useState<FeedbackTransferMessage | null>(null);
+  const [outputHistory, setOutputHistory] = useState<
+    readonly OutputHistorySnapshot[]
+  >([]);
+  const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(0);
+  const feedbackImportInputRef = useRef<HTMLInputElement | null>(null);
+  const pendingEvalCaptureRef = useRef<PendingEvalCapture | null>(null);
+  const pendingFollowupCaptureRef = useRef<PendingFollowupCapture | null>(null);
+  const pendingOutputHistoryRef = useRef<PendingOutputHistoryCapture | null>(
+    null,
+  );
+  const outputHistoryIdRef = useRef(0);
 
   // --- Streaming state ---
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -385,12 +596,21 @@ function PlaygroundContent() {
   const rightLocalTreeOverride = panelState.b.localTreeOverride;
   const noPromptRawJsonl = panelState.b.rawJsonl;
   const rightActionLog = panelState.b.actionLog;
+  const feedbackState = panelState.feedback;
   const chatMinimized = layoutState.chatMinimized;
   const catalogOpen = layoutState.catalogOpen;
   const mobileView = layoutState.mobileView;
   const [isMobileViewport, setIsMobileViewport] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
   );
+
+  useEffect(() => {
+    if (outputHistory.length === 0) {
+      return;
+    }
+
+    setSelectedHistoryIndex(outputHistory.length);
+  }, [outputHistory.length]);
 
   const setLeftTab = useCallback(
     (tab: PanelTab) => {
@@ -404,9 +624,58 @@ function PlaygroundContent() {
     },
     [dispatchPanelState],
   );
+  const inspectFeedbackTab = useCallback(
+    (tab: PanelTab) => {
+      setLeftTab(tab);
+      setRightTab(tab);
+    },
+    [setLeftTab, setRightTab],
+  );
+  const startFeedbackRun = useCallback(
+    (run: ScenarioRunPair) => {
+      dispatchPanelState({ type: "start-feedback-run", run });
+    },
+    [dispatchPanelState],
+  );
+  const captureFeedbackArtifact = useCallback(
+    (input: {
+      readonly runId: string;
+      readonly stage: EvalArtifactStageId;
+      readonly panelId: PanelId;
+      readonly artifact: ReturnType<typeof buildStageArtifact>;
+    }) => {
+      dispatchPanelState({ type: "capture-feedback-artifact", ...input });
+    },
+    [dispatchPanelState],
+  );
   const toggleChat = useCallback(() => {
     dispatchLayoutState({ type: "toggle-chat-minimized" });
   }, [dispatchLayoutState]);
+  const appendOutputHistory = useCallback((snapshot: OutputHistorySnapshot) => {
+    setOutputHistory((prev) => {
+      const next = [...prev, cloneOutputHistorySnapshot(snapshot)];
+      setSelectedHistoryIndex(next.length);
+      return next;
+    });
+  }, []);
+  const startOutputHistoryCapture = useCallback(
+    (input: {
+      readonly prompt: string;
+      readonly panels: readonly PanelId[];
+    }) => {
+      outputHistoryIdRef.current += 1;
+      pendingOutputHistoryRef.current = {
+        id: `output-history-${String(outputHistoryIdRef.current)}`,
+        prompt: input.prompt,
+        createdAt: new Date().toISOString(),
+        pendingPanels: new Set(input.panels),
+      };
+    },
+    [],
+  );
+  const cancelOutputHistoryCapture = useCallback(() => {
+    pendingOutputHistoryRef.current = null;
+  }, []);
   const setCatalogOpen = useCallback(
     (value: boolean) => {
       dispatchLayoutState({ type: "set-catalog-open", value });
@@ -619,6 +888,118 @@ function PlaygroundContent() {
     },
     [dispatchPanelState],
   );
+  const hydrateImportedFeedbackRuns = useCallback(
+    (runs: readonly ScenarioRunPair[]) => {
+      dispatchPanelState({ type: "hydrate-feedback-runs", runs });
+
+      const latestRun = getLatestFeedbackRun(runs);
+      if (latestRun === null) {
+        return;
+      }
+
+      const artifacts = getPreferredRunArtifacts(latestRun);
+      if (artifacts?.a !== null && artifacts?.a !== undefined) {
+        dispatchPanelState({
+          type: "set-tree",
+          panelId: "a",
+          tree: artifacts.a.tree,
+        });
+        setRawJsonl(artifacts.a.rawJsonl);
+        setStatus("idle");
+        resetLeftEditor(JSON.stringify(artifacts.a.tree, null, 2));
+        setLeftLocalTreeOverride(artifacts.a.tree);
+      }
+
+      if (artifacts?.b !== null && artifacts?.b !== undefined) {
+        dispatchPanelState({
+          type: "set-tree",
+          panelId: "b",
+          tree: artifacts.b.tree,
+        });
+        setNoPromptRawJsonl(artifacts.b.rawJsonl);
+        setNoPromptStatus("idle");
+        resetRightEditor(JSON.stringify(artifacts.b.tree, null, 2));
+        setRightLocalTreeOverride(artifacts.b.tree);
+      }
+    },
+    [
+      dispatchPanelState,
+      resetLeftEditor,
+      resetRightEditor,
+      setLeftLocalTreeOverride,
+      setNoPromptRawJsonl,
+      setNoPromptStatus,
+      setRawJsonl,
+      setRightLocalTreeOverride,
+      setStatus,
+    ],
+  );
+  const handleExportFeedback = useCallback(() => {
+    if (feedbackState.runs.length === 0) {
+      return;
+    }
+
+    const exportedAt = new Date().toISOString();
+    const payload = createPlaygroundFeedbackExport({
+      branch: __BUILD_BRANCH__,
+      exportedAt,
+      runs: feedbackState.runs,
+    });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `playground-feedback-${exportedAt.replace(/[:.]/g, "-")}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+
+    setFeedbackTransferMessage({
+      kind: "success",
+      text: `Exported ${String(feedbackState.runs.length)} run${feedbackState.runs.length === 1 ? "" : "s"}.`,
+    });
+  }, [feedbackState.runs]);
+  const handleImportFeedbackClick = useCallback(() => {
+    feedbackImportInputRef.current?.click();
+  }, []);
+  const handleImportFeedbackChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) {
+        return;
+      }
+
+      try {
+        const text = await readFileAsText(file);
+        const parsed = parsePlaygroundFeedbackExportText(text);
+        if (parsed === null) {
+          setFeedbackTransferMessage({
+            kind: "error",
+            text: "Invalid feedback export.",
+          });
+          return;
+        }
+
+        pendingEvalCaptureRef.current = null;
+        pendingFollowupCaptureRef.current = null;
+        hydrateImportedFeedbackRuns(parsed.runs);
+        setFeedbackTransferMessage({
+          kind: "success",
+          text: `Imported ${String(parsed.runs.length)} run${parsed.runs.length === 1 ? "" : "s"} from ${parsed.branch}.`,
+        });
+      } catch {
+        setFeedbackTransferMessage({
+          kind: "error",
+          text: "Failed to import feedback export.",
+        });
+      }
+    },
+    [hydrateImportedFeedbackRuns],
+  );
 
   // --- System prompt text (fetched once for the prompt-view toggle) ---
   const [systemPromptText, setSystemPromptText] = useState<string | null>(null);
@@ -705,10 +1086,16 @@ function PlaygroundContent() {
   /** Independent staleness guard for Panel B (comparison) stream. */
   const noPromptRunIdRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const previousStatusRef = useRef<StreamStatus>(status);
+  const previousNoPromptStatusRef = useRef<StreamStatus>(noPromptStatus);
 
   // Stable refs for action handler closures (avoids stale captures)
   const treeRef = useRef<UITree>({ root: "", elements: {} });
   const noPromptTreeRef = useRef<UITree>({ root: "", elements: {} });
+  const runtimeValuesRef = useRef<Readonly<Record<string, unknown>>>({});
+  const noPromptRuntimeValuesRef = useRef<Readonly<Record<string, unknown>>>(
+    {},
+  );
   const applyPatchesRef = useRef<(patches: readonly JsonPatchOp[]) => void>(
     () => {},
   );
@@ -837,13 +1224,74 @@ function PlaygroundContent() {
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
 
+  const captureOutputHistorySnapshot = useCallback(
+    (input: {
+      readonly id: string;
+      readonly prompt: string;
+      readonly createdAt: string;
+      readonly messages: readonly ChatMessage[];
+    }) => {
+      appendOutputHistory(
+        createOutputHistorySnapshot({
+          id: input.id,
+          prompt: input.prompt,
+          createdAt: input.createdAt,
+          messages: input.messages,
+          leftTree: treeRef.current,
+          leftRawJsonl: rawJsonlRef.current,
+          leftPromptText: systemPromptText,
+          leftRuntimeValues: runtimeValuesRef.current,
+          rightTree: noPromptTreeRef.current,
+          rightRawJsonl: noPromptRawJsonlRef.current,
+          rightPromptText: BASELINE_PROMPT,
+          rightRuntimeValues: noPromptRuntimeValuesRef.current,
+        }),
+      );
+    },
+    [appendOutputHistory, systemPromptText],
+  );
+
+  const settleOutputHistoryCapture = useCallback(
+    (panelId: PanelId, nextStatus: StreamStatus) => {
+      const capture = pendingOutputHistoryRef.current;
+      if (capture === null || !capture.pendingPanels.has(panelId)) {
+        return;
+      }
+
+      if (nextStatus !== "idle") {
+        pendingOutputHistoryRef.current = null;
+        return;
+      }
+
+      capture.pendingPanels.delete(panelId);
+      if (capture.pendingPanels.size > 0) {
+        return;
+      }
+
+      pendingOutputHistoryRef.current = null;
+      captureOutputHistorySnapshot({
+        id: capture.id,
+        prompt: capture.prompt,
+        createdAt: capture.createdAt,
+        messages: messagesRef.current,
+      });
+    },
+    [captureOutputHistorySnapshot],
+  );
+
   /**
    * Immutably update the status of a tool message identified by `toolId`.
    * Delegates to the pure `applyToolStatusUpdate` from tool-middleware.
    */
   const updateToolMessageStatus = useCallback(
     (toolId: string, newStatus: ToolMessageStatus) => {
-      setMessages((prev) => applyToolStatusUpdate(prev, toolId, newStatus));
+      const updated = applyToolStatusUpdate(
+        messagesRef.current,
+        toolId,
+        newStatus,
+      );
+      messagesRef.current = updated;
+      setMessages(updated);
     },
     [],
   );
@@ -939,10 +1387,18 @@ function PlaygroundContent() {
 
           updateToolMessageStatus(toolId, "completed");
 
-          handleSubmitRef.current(
-            undefined,
-            matchedDef.buildFollowUpPrompt(matchedParams),
-          );
+          const followUpPrompt = matchedDef.buildFollowUpPrompt(matchedParams);
+          if (
+            matchedDef.mcpExecuteToolName === CREATE_WORKER_SCENARIO.toolName &&
+            feedbackState.activeRunId !== null
+          ) {
+            pendingFollowupCaptureRef.current = {
+              runId: feedbackState.activeRunId,
+              promptText: followUpPrompt,
+            };
+          }
+
+          handleSubmitRef.current(undefined, followUpPrompt);
         } catch (err) {
           console.error(
             `[tool-action] ${matchedDef.mcpExecuteToolName} error:`,
@@ -952,7 +1408,7 @@ function PlaygroundContent() {
         }
       })();
     },
-    [updateToolMessageStatus],
+    [feedbackState.activeRunId, updateToolMessageStatus],
   );
 
   // "No prompt" tree — separate instance with its own action handler
@@ -965,6 +1421,58 @@ function PlaygroundContent() {
 
   const leftEffectiveTree = leftLocalTreeOverride ?? tree;
   const rightEffectiveTree = rightLocalTreeOverride ?? noPromptTree;
+  runtimeValuesRef.current = runtimeValueStore.snapshotAll();
+  noPromptRuntimeValuesRef.current = noPromptRuntimeValueStore.snapshotAll();
+  const activeFeedbackRun = useMemo(() => {
+    if (feedbackState.activeRunId === null) {
+      return feedbackState.runs.at(-1) ?? null;
+    }
+
+    return (
+      feedbackState.runs.find((run) => run.id === feedbackState.activeRunId) ??
+      feedbackState.runs.at(-1) ??
+      null
+    );
+  }, [feedbackState]);
+  const activeFeedbackWarnings =
+    activeFeedbackRun !== null && isScenarioRunComplete(activeFeedbackRun)
+      ? feedbackState.panelBWarnings
+      : [];
+
+  const settlePendingEvalCapture = useCallback(
+    (
+      panelId: PanelId,
+      nextStatus: StreamStatus,
+      treeToCapture: UITree,
+      rawJsonlToCapture: string,
+    ) => {
+      const capture = pendingEvalCaptureRef.current;
+      if (capture === null || !capture.pendingPanels.has(panelId)) {
+        return;
+      }
+
+      if (nextStatus === "idle") {
+        captureFeedbackArtifact({
+          runId: capture.runId,
+          stage: capture.stage,
+          panelId,
+          artifact: buildStageArtifact({
+            stage: capture.stage,
+            panelId,
+            promptText: capture.promptText,
+            rawJsonl: rawJsonlToCapture,
+            tree: treeToCapture,
+          }),
+        });
+      }
+
+      capture.pendingPanels.delete(panelId);
+      if (capture.pendingPanels.size === 0) {
+        pendingEvalCaptureRef.current = null;
+      }
+    },
+    [captureFeedbackArtifact],
+  );
 
   // Keep stable refs in sync
   treeRef.current = leftEffectiveTree;
@@ -1010,6 +1518,47 @@ function PlaygroundContent() {
     syncRightEditorFromStream,
   ]);
 
+  useEffect(() => {
+    const previousStatus = previousStatusRef.current;
+    previousStatusRef.current = status;
+
+    if (previousStatus !== "streaming" || status === "streaming") {
+      return;
+    }
+
+    settlePendingEvalCapture("a", status, leftEffectiveTree, rawJsonl);
+    settleOutputHistoryCapture("a", status);
+  }, [
+    leftEffectiveTree,
+    rawJsonl,
+    settleOutputHistoryCapture,
+    settlePendingEvalCapture,
+    status,
+  ]);
+
+  useEffect(() => {
+    const previousStatus = previousNoPromptStatusRef.current;
+    previousNoPromptStatusRef.current = noPromptStatus;
+
+    if (previousStatus !== "streaming" || noPromptStatus === "streaming") {
+      return;
+    }
+
+    settlePendingEvalCapture(
+      "b",
+      noPromptStatus,
+      rightEffectiveTree,
+      noPromptRawJsonl,
+    );
+    settleOutputHistoryCapture("b", noPromptStatus);
+  }, [
+    noPromptRawJsonl,
+    noPromptStatus,
+    rightEffectiveTree,
+    settleOutputHistoryCapture,
+    settlePendingEvalCapture,
+  ]);
+
   // --- Cleanup on unmount ---
   useEffect(() => {
     return () => {
@@ -1031,15 +1580,17 @@ function PlaygroundContent() {
     abortRef.current = null;
     noPromptAbortRef.current?.abort();
     noPromptAbortRef.current = null;
+    cancelOutputHistoryCapture();
     setStatus("idle");
     setNoPromptStatus("idle");
-  }, []);
+  }, [cancelOutputHistoryCapture]);
 
   // --- Dismiss error banner ---
   const handleDismissError = useCallback(() => {
     setErrorMessage(null);
+    cancelOutputHistoryCapture();
     setStatus("idle");
-  }, []);
+  }, [cancelOutputHistoryCapture]);
 
   // --- Reusable Panel B stream launcher ---
   /**
@@ -1115,6 +1666,7 @@ function PlaygroundContent() {
           if (err instanceof DOMException && err.name === "AbortError") return;
 
           if (noPromptRunIdRef.current === bRunId) {
+            cancelOutputHistoryCapture();
             setNoPromptStatus("error");
           }
         } finally {
@@ -1126,7 +1678,114 @@ function PlaygroundContent() {
 
       void stream;
     },
-    [noPromptRuntimeValueStore, noPromptReset],
+    [cancelOutputHistoryCapture, noPromptRuntimeValueStore, noPromptReset],
+  );
+
+  const startWorkspaceComparison = useCallback(
+    (opts: {
+      readonly message: string;
+      readonly model: string;
+      readonly history?: readonly TextChatMessage[];
+      readonly currentUITree?: string;
+      readonly appendAssistantMessage?: boolean;
+      readonly rollbackUserMessageOnError?: boolean;
+    }) => {
+      abortRef.current?.abort();
+
+      const runId = runIdRef.current + 1;
+      runIdRef.current = runId;
+
+      runtimeValueStore.clear();
+      reset();
+      resetLeftEditor("");
+      setErrorMessage(null);
+      setStatus("streaming");
+      setRawJsonl("");
+      rawJsonlRef.current = "";
+      clearLeftActionLog();
+
+      const baseBody = {
+        message: opts.message,
+        model: opts.model,
+        ...(opts.history ? { history: opts.history } : {}),
+        ...(opts.currentUITree ? { currentUITree: opts.currentUITree } : {}),
+      };
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const primaryStream = (async () => {
+        try {
+          const fullResponse = await streamJsonlUI({
+            body: baseBody,
+            signal: controller.signal,
+            onToken: (token) => {
+              rawJsonlRef.current += token;
+            },
+            onPatches: (ops) => {
+              applyPatches(ops);
+            },
+          });
+
+          setRawJsonl(rawJsonlRef.current);
+
+          if (runIdRef.current === runId) {
+            if (opts.appendAssistantMessage ?? true) {
+              setMessages((prev) => [
+                ...prev,
+                { role: "assistant", content: fullResponse },
+              ]);
+            }
+            setStatus("idle");
+          }
+        } catch (err: unknown) {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+
+          if (runIdRef.current === runId) {
+            cancelOutputHistoryCapture();
+            if (opts.rollbackUserMessageOnError === true) {
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last && last.role === "user") return prev.slice(0, -1);
+                return prev;
+              });
+            }
+            setErrorMessage(
+              err instanceof Error ? err.message : "Something went wrong",
+            );
+            setStatus("error");
+          }
+        } finally {
+          if (abortRef.current === controller) {
+            abortRef.current = null;
+          }
+        }
+      })();
+
+      startOutputHistoryCapture({
+        prompt: opts.message,
+        panels: ["a", "b"],
+      });
+
+      streamPanelB({
+        message: opts.message,
+        model: opts.model,
+        history: opts.history ? [...opts.history] : undefined,
+        currentUITree: opts.currentUITree,
+      });
+
+      void primaryStream;
+    },
+    [
+      applyPatches,
+      cancelOutputHistoryCapture,
+      clearLeftActionLog,
+      reset,
+      resetLeftEditor,
+      runtimeValueStore,
+      startOutputHistoryCapture,
+      streamPanelB,
+    ],
   );
 
   // --- Submit handler ---
@@ -1146,9 +1805,11 @@ function PlaygroundContent() {
 
         // Show the user message immediately.
         const userMsg: TextChatMessage = { role: "user", content: msg };
-        setMessages((prev) => [...prev, userMsg]);
 
         const toolId = toolDef.deriveToolId(matchedParams);
+        outputHistoryIdRef.current += 1;
+        const toolHistoryId = `output-history-${String(outputHistoryIdRef.current)}`;
+        const toolHistoryCreatedAt = new Date().toISOString();
         const emptyTree: UITree = { root: "", elements: {} };
 
         // Add the tool message with an empty tree (will be populated via streaming).
@@ -1158,7 +1819,9 @@ function PlaygroundContent() {
           tree: emptyTree,
           status: "streaming",
         };
-        setMessages((prev) => [...prev, toolMsg]);
+        const nextMessages = [...messagesRef.current, userMsg, toolMsg];
+        messagesRef.current = nextMessages;
+        setMessages(nextMessages);
 
         // Stream the confirmation card inline using the currently selected model.
         void streamToolConfirmation(
@@ -1169,12 +1832,27 @@ function PlaygroundContent() {
           },
           {
             onTreeUpdate: (tree) => {
-              setMessages((prev) => applyToolTreeUpdate(prev, toolId, tree));
+              const updated = applyToolTreeUpdate(
+                messagesRef.current,
+                toolId,
+                tree,
+              );
+              messagesRef.current = updated;
+              setMessages(updated);
             },
             onComplete: (tree) => {
-              setMessages((prev) => {
-                const updated = applyToolTreeUpdate(prev, toolId, tree);
-                return applyToolStatusUpdate(updated, toolId, "pending");
+              const updated = applyToolStatusUpdate(
+                applyToolTreeUpdate(messagesRef.current, toolId, tree),
+                toolId,
+                "pending",
+              );
+              messagesRef.current = updated;
+              setMessages(updated);
+              captureOutputHistorySnapshot({
+                id: toolHistoryId,
+                prompt: msg,
+                createdAt: toolHistoryCreatedAt,
+                messages: updated,
               });
             },
             onError: (error) => {
@@ -1182,21 +1860,32 @@ function PlaygroundContent() {
                 `[tool-middleware] ${toolDef.mcpExecuteToolName} stream error:`,
                 error,
               );
-              setMessages((prev) =>
-                applyToolStatusUpdate(prev, toolId, "error"),
+              const updated = applyToolStatusUpdate(
+                messagesRef.current,
+                toolId,
+                "error",
               );
+              messagesRef.current = updated;
+              setMessages(updated);
             },
           },
         );
 
+        if (toolDef.mcpExecuteToolName === CREATE_WORKER_SCENARIO.toolName) {
+          const feedbackRun = createScenarioRunPair({
+            id: `feedback-${String(Date.now())}-${String(runIdRef.current + 1)}`,
+            scenarioId: CREATE_WORKER_SCENARIO.id,
+            timestamp: new Date().toISOString(),
+            model: selectedModel,
+            initialPrompt: msg,
+          });
+
+          startFeedbackRun(feedbackRun);
+          pendingFollowupCaptureRef.current = null;
+        }
+
         return;
       }
-
-      // Abort any in-flight primary stream
-      abortRef.current?.abort();
-
-      const runId = runIdRef.current + 1;
-      runIdRef.current = runId;
 
       // For follow-up messages, capture the current tree state so the LLM
       // knows what UI exists and can incorporate the user's requested changes.
@@ -1217,9 +1906,6 @@ function PlaygroundContent() {
       setErrorMessage(null);
       setStatus("streaming");
       setInputValue("");
-      setRawJsonl("");
-      rawJsonlRef.current = "";
-      clearLeftActionLog();
       lastSubmittedRef.current = msg;
       setHasSubmitted(true);
 
@@ -1233,84 +1919,33 @@ function PlaygroundContent() {
       );
       const history = textMessages.length > 0 ? textMessages : undefined;
 
-      // --- Shared request body (without skipSystemPrompt) ---
-      const baseBody = {
-        message: msg,
-        model: selectedModel,
-        ...(history ? { history } : {}),
-        ...(currentUITreeJson ? { currentUITree: currentUITreeJson } : {}),
-      };
+      const pendingFollowupCapture = pendingFollowupCaptureRef.current;
+      if (pendingFollowupCapture?.promptText === msg) {
+        pendingEvalCaptureRef.current = {
+          runId: pendingFollowupCapture.runId,
+          stage: "followup",
+          promptText: pendingFollowupCapture.promptText,
+          pendingPanels: new Set<PanelId>(["a", "b"]),
+        };
+        pendingFollowupCaptureRef.current = null;
+      }
 
-      // --- Stream 1: With system prompt (primary) ---
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      const primaryStream = (async () => {
-        try {
-          const fullResponse = await streamJsonlUI({
-            body: baseBody,
-            signal: controller.signal,
-            onToken: (token) => {
-              rawJsonlRef.current += token;
-            },
-            onPatches: (ops) => {
-              applyPatches(ops);
-            },
-          });
-
-          // Flush accumulated JSONL to state once (avoids O(n²) per-token setState)
-          setRawJsonl(rawJsonlRef.current);
-
-          if (runIdRef.current === runId) {
-            setMessages((prev) => [
-              ...prev,
-              { role: "assistant", content: fullResponse },
-            ]);
-            setStatus("idle");
-          }
-        } catch (err: unknown) {
-          if (err instanceof DOMException && err.name === "AbortError") return;
-
-          if (runIdRef.current === runId) {
-            // Roll back the user message added at submit — retry will re-add it
-            setMessages((prev) => {
-              const last = prev[prev.length - 1];
-              if (last && last.role === "user") return prev.slice(0, -1);
-              return prev;
-            });
-            setErrorMessage(
-              err instanceof Error ? err.message : "Something went wrong",
-            );
-            setStatus("error");
-          }
-        } finally {
-          // Identity-based cleanup: only null the ref if it still points to our controller.
-          // Avoids orphaning the ref when a newer submit already replaced it.
-          if (abortRef.current === controller) {
-            abortRef.current = null;
-          }
-        }
-      })();
-
-      // --- Stream 2: Panel B (comparison) via extracted helper ---
-      streamPanelB({
+      startWorkspaceComparison({
         message: msg,
         model: selectedModel,
         history: history ? [...history] : undefined,
         currentUITree: currentUITreeJson,
+        appendAssistantMessage: true,
+        rollbackUserMessageOnError: true,
       });
-
-      // Primary stream is already executing — suppress floating-promise lint.
-      void primaryStream;
     },
     [
+      captureOutputHistorySnapshot,
       inputValue,
       selectedModel,
       messages,
-      runtimeValueStore,
-      reset,
-      applyPatches,
-      streamPanelB,
+      startFeedbackRun,
+      startWorkspaceComparison,
     ],
   );
 
@@ -1346,13 +1981,122 @@ function PlaygroundContent() {
     if (lastMsg === null) return;
 
     setAppliedSkillIds(new Set(pendingSkillIds));
+    startOutputHistoryCapture({ prompt: lastMsg, panels: ["b"] });
 
     streamPanelB({
       message: lastMsg,
       model: selectedModel,
       skillIds: Array.from(pendingSkillIds),
     });
-  }, [pendingSkillIds, selectedModel, streamPanelB]);
+  }, [pendingSkillIds, selectedModel, startOutputHistoryCapture, streamPanelB]);
+
+  const initialHistorySnapshot = useMemo(
+    () => createInitialHistorySnapshot(systemPromptText),
+    [systemPromptText],
+  );
+  const historyPreview = useMemo(() => {
+    if (outputHistory.length === 0 || isAnyStreaming) {
+      return null;
+    }
+
+    const maxIndex = outputHistory.length;
+    const safeIndex = Math.min(selectedHistoryIndex, maxIndex);
+    if (safeIndex >= maxIndex) {
+      return null;
+    }
+
+    if (safeIndex === 0) {
+      return initialHistorySnapshot;
+    }
+
+    return outputHistory[safeIndex - 1] ?? null;
+  }, [
+    initialHistorySnapshot,
+    isAnyStreaming,
+    outputHistory,
+    selectedHistoryIndex,
+  ]);
+
+  const displayedMessages = historyPreview?.messages ?? messages;
+  const displayedLeftTree = historyPreview?.panelA.tree ?? leftEffectiveTree;
+  const displayedRightTree = historyPreview?.panelB.tree ?? rightEffectiveTree;
+  const displayedLeftRuntimeValueStore = useMemo(
+    () =>
+      historyPreview
+        ? createSnapshotRuntimeStore(historyPreview.panelA.runtimeValues)
+        : runtimeValueStore,
+    [historyPreview, runtimeValueStore],
+  );
+  const displayedRightRuntimeValueStore = useMemo(
+    () =>
+      historyPreview
+        ? createSnapshotRuntimeStore(historyPreview.panelB.runtimeValues)
+        : noPromptRuntimeValueStore,
+    [historyPreview, noPromptRuntimeValueStore],
+  );
+  const displayedLeftShowTree = isRenderableTree(displayedLeftTree);
+  const displayedRightShowTree = isRenderableTree(displayedRightTree);
+  const displayedLeftRawJsonl = historyPreview?.panelA.rawJsonl ?? rawJsonl;
+  const displayedRightRawJsonl =
+    historyPreview?.panelB.rawJsonl ?? noPromptRawJsonl;
+  const displayedLeftPromptText =
+    historyPreview?.panelA.promptText ?? systemPromptText;
+  const displayedRightPromptText =
+    historyPreview?.panelB.promptText ?? BASELINE_PROMPT;
+  const displayedLeftEditorText = historyPreview
+    ? JSON.stringify(historyPreview.panelA.tree, null, 2)
+    : leftEditor.text;
+  const displayedRightEditorText = historyPreview
+    ? JSON.stringify(historyPreview.panelB.tree, null, 2)
+    : rightEditor.text;
+  const displayedLeftEditorStatus = historyPreview
+    ? "clean"
+    : leftEditor.status;
+  const displayedRightEditorStatus = historyPreview
+    ? "clean"
+    : rightEditor.status;
+  const displayedLeftEditorIssues = historyPreview
+    ? []
+    : leftEditor.validationIssues;
+  const displayedRightEditorIssues = historyPreview
+    ? []
+    : rightEditor.validationIssues;
+  const displayedLeftActionLog = historyPreview ? [] : leftActionLog;
+  const displayedRightActionLog = historyPreview ? [] : rightActionLog;
+  const displayedStatus = historyPreview ? "idle" : status;
+  const displayedRightStatus = historyPreview ? "idle" : noPromptStatus;
+  const isHistoryPlayback = historyPreview !== null;
+  const latestHistoryIndex = outputHistory.length;
+  const activeHistoryEntry =
+    outputHistory.length === 0 || selectedHistoryIndex === 0
+      ? null
+      : (outputHistory[
+          Math.min(
+            Math.max(selectedHistoryIndex - 1, 0),
+            outputHistory.length - 1,
+          )
+        ] ??
+        outputHistory[outputHistory.length - 1] ??
+        null);
+  const returnToLatestHistory = useCallback(() => {
+    if (outputHistory.length === 0) {
+      return;
+    }
+
+    setSelectedHistoryIndex(outputHistory.length);
+  }, [outputHistory.length]);
+  const handleHistoryIndexChange = useCallback(
+    (value: number) => {
+      if (outputHistory.length === 0) {
+        return;
+      }
+
+      const maxIndex = outputHistory.length;
+      const nextIndex = Math.min(Math.max(value, 0), maxIndex);
+      setSelectedHistoryIndex(nextIndex);
+    },
+    [outputHistory.length],
+  );
 
   useEffect(() => {
     const panel = chatPanelRef.current;
@@ -1380,68 +2124,90 @@ function PlaygroundContent() {
 
   if (isMobileViewport) {
     return (
-      <MobilePlaygroundShell
-        mobileView={mobileView}
-        onMobileViewChange={setMobileView}
-        inputValue={inputValue}
-        onInputChange={setInputValue}
-        selectedModel={selectedModel}
-        onModelChange={setSelectedModel}
-        isAnyStreaming={isAnyStreaming}
-        status={status}
-        messages={messages}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        messagesEndRef={messagesEndRef}
-        presets={PRESET_PROMPTS}
-        onToolAction={handleToolAction}
-        leftTab={leftTab}
-        onLeftTabChange={setLeftTab}
-        leftTree={leftEffectiveTree}
-        leftStreamedTree={tree}
-        leftShowTree={showTree}
-        leftRuntimeValueStore={runtimeValueStore}
-        isLeftStreaming={isStreaming}
-        leftRawJsonl={rawJsonl}
-        onLeftAction={handleAction}
-        leftPromptText={systemPromptText}
-        leftEditorText={leftEditor.text}
-        leftEditorStatus={leftEditor.status}
-        leftEditorIssues={leftEditor.validationIssues}
-        onLeftEditorTextChange={setLeftEditorText}
-        onLeftEditorValidate={setLeftEditorValidation}
-        onLeftEditorReset={resetLeftEditor}
-        onLeftEditorApplyTree={setLeftLocalTreeOverride}
-        onLeftEditorApplied={markLeftEditorApplied}
-        leftActionLog={leftActionLog}
-        onClearLeftActionLog={clearLeftActionLog}
-        rightTab={rightTab}
-        onRightTabChange={setRightTab}
-        rightTree={rightEffectiveTree}
-        rightStreamedTree={noPromptTree}
-        rightShowTree={showNoPromptTree}
-        rightRuntimeValueStore={noPromptRuntimeValueStore}
-        isRightStreaming={isNoPromptStreaming}
-        rightRawJsonl={noPromptRawJsonl}
-        onRightAction={handleNoPromptAction}
-        rightPromptText={BASELINE_PROMPT}
-        rightEditorText={rightEditor.text}
-        rightEditorStatus={rightEditor.status}
-        rightEditorIssues={rightEditor.validationIssues}
-        onRightEditorTextChange={setRightEditorText}
-        onRightEditorValidate={setRightEditorValidation}
-        onRightEditorReset={resetRightEditor}
-        onRightEditorApplyTree={setRightLocalTreeOverride}
-        onRightEditorApplied={markRightEditorApplied}
-        rightStatus={noPromptStatus}
-        rightActionLog={rightActionLog}
-        onClearRightActionLog={clearRightActionLog}
-        skills={skills}
-        pendingSkillIds={pendingSkillIds}
-        onToggleSkill={handleToggleSkill}
-        onApplySkills={handleApplySkills}
-        isSkillApplyDisabled={isNoPromptStreaming || !hasSubmitted}
-      />
+      <>
+        <input
+          ref={feedbackImportInputRef}
+          type="file"
+          accept=".json"
+          className="hidden"
+          onChange={handleImportFeedbackChange}
+        />
+        <MobilePlaygroundShell
+          mobileView={mobileView}
+          onMobileViewChange={setMobileView}
+          outputHistory={outputHistory}
+          selectedHistoryIndex={selectedHistoryIndex}
+          onHistoryIndexChange={handleHistoryIndexChange}
+          onReturnToLatestHistory={returnToLatestHistory}
+          isHistoryStreamingLocked={isAnyStreaming}
+          inputValue={inputValue}
+          onInputChange={setInputValue}
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
+          isAnyStreaming={isAnyStreaming}
+          status={displayedStatus}
+          messages={displayedMessages}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          messagesEndRef={messagesEndRef}
+          presets={PRESET_PROMPTS}
+          onToolAction={handleToolAction}
+          leftTab={leftTab}
+          onLeftTabChange={setLeftTab}
+          leftTree={displayedLeftTree}
+          leftStreamedTree={historyPreview?.panelA.tree ?? tree}
+          leftShowTree={displayedLeftShowTree}
+          leftRuntimeValueStore={displayedLeftRuntimeValueStore}
+          isLeftStreaming={isHistoryPlayback ? false : isStreaming}
+          leftRawJsonl={displayedLeftRawJsonl}
+          onLeftAction={isHistoryPlayback ? undefined : handleAction}
+          leftPromptText={displayedLeftPromptText}
+          leftEditorText={displayedLeftEditorText}
+          leftEditorStatus={displayedLeftEditorStatus}
+          leftEditorIssues={displayedLeftEditorIssues}
+          onLeftEditorTextChange={setLeftEditorText}
+          onLeftEditorValidate={setLeftEditorValidation}
+          onLeftEditorReset={resetLeftEditor}
+          onLeftEditorApplyTree={setLeftLocalTreeOverride}
+          onLeftEditorApplied={markLeftEditorApplied}
+          leftActionLog={displayedLeftActionLog}
+          onClearLeftActionLog={clearLeftActionLog}
+          rightTab={rightTab}
+          onRightTabChange={setRightTab}
+          rightTree={displayedRightTree}
+          rightStreamedTree={historyPreview?.panelB.tree ?? noPromptTree}
+          rightShowTree={displayedRightShowTree}
+          rightRuntimeValueStore={displayedRightRuntimeValueStore}
+          isRightStreaming={isHistoryPlayback ? false : isNoPromptStreaming}
+          rightRawJsonl={displayedRightRawJsonl}
+          onRightAction={isHistoryPlayback ? undefined : handleNoPromptAction}
+          rightPromptText={displayedRightPromptText}
+          rightEditorText={displayedRightEditorText}
+          rightEditorStatus={displayedRightEditorStatus}
+          rightEditorIssues={displayedRightEditorIssues}
+          onRightEditorTextChange={setRightEditorText}
+          onRightEditorValidate={setRightEditorValidation}
+          onRightEditorReset={resetRightEditor}
+          onRightEditorApplyTree={setRightLocalTreeOverride}
+          onRightEditorApplied={markRightEditorApplied}
+          rightStatus={displayedRightStatus}
+          rightActionLog={displayedRightActionLog}
+          onClearRightActionLog={clearRightActionLog}
+          skills={skills}
+          pendingSkillIds={pendingSkillIds}
+          onToggleSkill={handleToggleSkill}
+          onApplySkills={handleApplySkills}
+          isSkillApplyDisabled={
+            isAnyStreaming || !hasSubmitted || isHistoryPlayback
+          }
+          onImportFeedback={handleImportFeedbackClick}
+          onExportFeedback={handleExportFeedback}
+          isFeedbackTransferDisabled={isAnyStreaming}
+          canExportFeedback={feedbackState.runs.length > 0}
+          feedbackTransferMessage={feedbackTransferMessage}
+          isHistoryPlayback={isHistoryPlayback}
+        />
+      </>
     );
   }
 
@@ -1485,8 +2251,8 @@ function PlaygroundContent() {
             selectedModel={selectedModel}
             onModelChange={setSelectedModel}
             isStreaming={isAnyStreaming}
-            status={status}
-            messages={messages}
+            status={displayedStatus}
+            messages={displayedMessages}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
             messagesEndRef={messagesEndRef}
@@ -1494,6 +2260,9 @@ function PlaygroundContent() {
             minimized={chatMinimized}
             onToggleMinimize={toggleChat}
             onToolAction={handleToolAction}
+            historyEntry={activeHistoryEntry}
+            isHistoryPlayback={isHistoryPlayback}
+            onReturnToLatest={returnToLatestHistory}
           />
         </Panel>
 
@@ -1508,7 +2277,15 @@ function PlaygroundContent() {
           <div className="flex h-full min-w-0 flex-col">
             <div className="flex h-[61px] shrink-0 items-center justify-between border-b border-kumo-line px-4">
               <CloudflareLogo variant="glyph" className="h-5 w-auto shrink-0" />
-              <div className="flex items-center gap-1">
+              <PlaygroundHistoryScrubber
+                entries={outputHistory}
+                selectedIndex={selectedHistoryIndex}
+                onChange={handleHistoryIndexChange}
+                onReturnToLatest={returnToLatestHistory}
+                disabled={isAnyStreaming}
+                className="mx-4 hidden min-w-0 flex-1 lg:flex"
+              />
+              <div className="flex shrink-0 items-center gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1516,6 +2293,13 @@ function PlaygroundContent() {
                 >
                   Catalog
                 </Button>
+                <FeedbackTransferToolbar
+                  onImport={handleImportFeedbackClick}
+                  onExport={handleExportFeedback}
+                  transferDisabled={isAnyStreaming}
+                  exportDisabled={feedbackState.runs.length === 0}
+                  message={feedbackTransferMessage}
+                />
                 <a
                   href="/"
                   className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
@@ -1559,51 +2343,63 @@ function PlaygroundContent() {
                 </div>
               )}
               <ComparisonPanels
-                tree={leftEffectiveTree}
-                streamedTree={tree}
-                showTree={showTree}
-                runtimeValueStore={runtimeValueStore}
-                isStreaming={isStreaming}
-                rawJsonl={rawJsonl}
-                onAction={handleAction}
-                systemPromptText={systemPromptText}
+                tree={displayedLeftTree}
+                streamedTree={historyPreview?.panelA.tree ?? tree}
+                showTree={displayedLeftShowTree}
+                runtimeValueStore={displayedLeftRuntimeValueStore}
+                isStreaming={isHistoryPlayback ? false : isStreaming}
+                rawJsonl={displayedLeftRawJsonl}
+                onAction={isHistoryPlayback ? undefined : handleAction}
+                systemPromptText={displayedLeftPromptText}
                 leftTab={leftTab}
                 onLeftTabChange={setLeftTab}
-                leftEditorText={leftEditor.text}
-                leftEditorStatus={leftEditor.status}
-                leftEditorIssues={leftEditor.validationIssues}
+                leftEditorText={displayedLeftEditorText}
+                leftEditorStatus={displayedLeftEditorStatus}
+                leftEditorIssues={displayedLeftEditorIssues}
                 onLeftEditorTextChange={setLeftEditorText}
                 onLeftEditorValidate={setLeftEditorValidation}
                 onLeftEditorReset={resetLeftEditor}
                 onLeftEditorApplyTree={setLeftLocalTreeOverride}
                 onLeftEditorApplied={markLeftEditorApplied}
-                leftActionLog={leftActionLog}
+                leftActionLog={displayedLeftActionLog}
                 onClearLeftActionLog={clearLeftActionLog}
-                noPromptTree={rightEffectiveTree}
-                noPromptStreamedTree={noPromptTree}
-                noPromptRuntimeValueStore={noPromptRuntimeValueStore}
-                showNoPromptTree={showNoPromptTree}
-                isNoPromptStreaming={isNoPromptStreaming}
-                noPromptStatus={noPromptStatus}
-                noPromptRawJsonl={noPromptRawJsonl}
+                noPromptTree={displayedRightTree}
+                noPromptStreamedTree={
+                  historyPreview?.panelB.tree ?? noPromptTree
+                }
+                noPromptRuntimeValueStore={displayedRightRuntimeValueStore}
+                showNoPromptTree={displayedRightShowTree}
+                isNoPromptStreaming={
+                  isHistoryPlayback ? false : isNoPromptStreaming
+                }
+                noPromptStatus={displayedRightStatus}
+                noPromptRawJsonl={displayedRightRawJsonl}
                 rightTab={rightTab}
                 onRightTabChange={setRightTab}
-                rightEditorText={rightEditor.text}
-                rightEditorStatus={rightEditor.status}
-                rightEditorIssues={rightEditor.validationIssues}
+                rightEditorText={displayedRightEditorText}
+                rightEditorStatus={displayedRightEditorStatus}
+                rightEditorIssues={displayedRightEditorIssues}
                 onRightEditorTextChange={setRightEditorText}
                 onRightEditorValidate={setRightEditorValidation}
                 onRightEditorReset={resetRightEditor}
                 onRightEditorApplyTree={setRightLocalTreeOverride}
                 onRightEditorApplied={markRightEditorApplied}
-                onNoPromptAction={handleNoPromptAction}
-                rightActionLog={rightActionLog}
+                onNoPromptAction={
+                  isHistoryPlayback ? undefined : handleNoPromptAction
+                }
+                rightActionLog={displayedRightActionLog}
                 onClearRightActionLog={clearRightActionLog}
                 skills={skills}
                 pendingSkillIds={pendingSkillIds}
                 onToggleSkill={handleToggleSkill}
                 onApplySkills={handleApplySkills}
-                isSkillApplyDisabled={isNoPromptStreaming || !hasSubmitted}
+                isSkillApplyDisabled={
+                  isAnyStreaming || !hasSubmitted || isHistoryPlayback
+                }
+                feedbackRun={activeFeedbackRun}
+                feedbackWarnings={activeFeedbackWarnings}
+                isHistoryPlayback={isHistoryPlayback}
+                onInspectFeedbackTab={inspectFeedbackTab}
                 workspaceSizes={layoutState.workspaceSizes}
                 onWorkspaceResize={(sizes: readonly [number, number]) => {
                   dispatchLayoutState({
@@ -1616,6 +2412,13 @@ function PlaygroundContent() {
           </div>
         </Panel>
       </Group>
+      <input
+        ref={feedbackImportInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={handleImportFeedbackChange}
+      />
     </div>
   );
 }
@@ -1697,8 +2500,79 @@ interface ComparisonPanelsProps {
   readonly onToggleSkill: (id: string, checked: boolean) => void;
   readonly onApplySkills: () => void;
   readonly isSkillApplyDisabled: boolean;
+  readonly feedbackRun: ScenarioRunPair | null;
+  readonly feedbackWarnings: readonly {
+    readonly kind: "regression" | "threshold" | "missing-stage";
+    readonly stage: "confirmation" | "followup" | "combined";
+    readonly rule: string;
+    readonly message: string;
+    readonly delta: number | null;
+  }[];
+  readonly isHistoryPlayback: boolean;
+  readonly onInspectFeedbackTab: (tab: PanelTab) => void;
   readonly workspaceSizes: readonly [number, number];
   readonly onWorkspaceResize: (sizes: readonly [number, number]) => void;
+}
+
+function PlaygroundHistoryScrubber({
+  entries,
+  selectedIndex,
+  onChange,
+  onReturnToLatest,
+  disabled,
+  className,
+}: {
+  readonly entries: readonly OutputHistorySnapshot[];
+  readonly selectedIndex: number;
+  readonly onChange: (value: number) => void;
+  readonly onReturnToLatest: () => void;
+  readonly disabled: boolean;
+  readonly className?: string;
+}) {
+  const hasEntries = entries.length > 0;
+  const maxIndex = hasEntries ? entries.length : 0;
+  const safeIndex = hasEntries ? Math.min(selectedIndex, maxIndex) : 0;
+  const isLatest = !hasEntries || safeIndex >= maxIndex;
+
+  return (
+    <div className={cn("flex min-w-0 items-center gap-3", className)}>
+      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-kumo-subtle">
+        History
+      </span>
+      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-kumo-line bg-kumo-elevated px-3 py-1.5">
+        <span className="shrink-0 text-[11px] tabular-nums text-kumo-subtle">
+          {`${String(safeIndex)}/${String(maxIndex)}`}
+        </span>
+        <input
+          type="range"
+          min={0}
+          max={maxIndex}
+          step={1}
+          value={safeIndex}
+          onChange={(event) => {
+            const nextValue = Number.parseInt(event.target.value, 10);
+            if (Number.isNaN(nextValue)) {
+              return;
+            }
+
+            onChange(nextValue);
+          }}
+          disabled={disabled || !hasEntries}
+          aria-label="Output history"
+          className="min-w-0 flex-1 accent-kumo-brand disabled:cursor-not-allowed disabled:opacity-50"
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onReturnToLatest}
+          disabled={isLatest}
+          className="shrink-0"
+        >
+          Latest
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 /** Renders two side-by-side panels, each with its own tab bar and content. */
@@ -1748,6 +2622,10 @@ function ComparisonPanels({
   onToggleSkill,
   onApplySkills,
   isSkillApplyDisabled,
+  feedbackRun,
+  feedbackWarnings,
+  isHistoryPlayback,
+  onInspectFeedbackTab,
   workspaceSizes,
   onWorkspaceResize,
 }: ComparisonPanelsProps) {
@@ -1756,110 +2634,130 @@ function ComparisonPanels({
     panelIds: ["a", "b"],
     storage: typeof window === "undefined" ? NOOP_LAYOUT_STORAGE : localStorage,
   });
+  const visibleLeftTab = getVisiblePanelTab(leftTab);
+  const visibleRightTab = getVisiblePanelTab(rightTab);
 
   return (
-    <Group
-      orientation="horizontal"
-      className="flex h-full w-full"
-      id="playground-workspace-layout"
-      defaultLayout={
-        workspaceLayoutPersistence.defaultLayout ?? {
-          a: workspaceSizes[0],
-          b: workspaceSizes[1],
-        }
-      }
-      onLayoutChanged={(layout) => {
-        workspaceLayoutPersistence.onLayoutChanged(layout);
-        const a = layout.a;
-        const b = layout.b;
-        if (a == null || b == null) {
-          return;
-        }
-        onWorkspaceResize([a, b]);
-      }}
-    >
-      <Panel id="a" minSize="20rem" defaultSize="50%" className="min-w-0">
-        <PanelHeader
-          label="A"
-          tabs={PANEL_TABS}
-          activeTab={leftTab}
-          onTabChange={(v) => {
-            if (isPanelTab(v)) onLeftTabChange(v);
-          }}
+    <div className="flex h-full w-full flex-col overflow-hidden">
+      {feedbackRun !== null ? (
+        <FeedbackSummaryCard
+          run={feedbackRun}
+          warnings={feedbackWarnings}
+          onInspectTab={onInspectFeedbackTab}
         />
-        <div className="flex-1 overflow-auto">
-          <PanelContent
-            tab={leftTab}
-            tree={tree}
-            showTree={showTree}
-            runtimeValueStore={runtimeValueStore}
-            isStreaming={isStreaming}
-            rawJsonl={rawJsonl}
-            streamedTree={streamedTree}
-            promptText={systemPromptText}
-            editorText={leftEditorText}
-            editorStatus={leftEditorStatus}
-            editorIssues={leftEditorIssues}
-            onEditorTextChange={onLeftEditorTextChange}
-            onEditorValidate={onLeftEditorValidate}
-            onEditorReset={onLeftEditorReset}
-            onEditorApplyTree={onLeftEditorApplyTree}
-            onEditorApplied={onLeftEditorApplied}
-            onAction={onAction}
-            actionLog={leftActionLog}
-            onClearActionLog={onClearLeftActionLog}
-            exportComponentName="GeneratedPanelA"
-          />
-        </div>
-      </Panel>
-
-      <PlaygroundResizeHandle orientation="vertical" />
-
-      <Panel id="b" minSize="20rem" defaultSize="50%" className="min-w-0">
-        <PanelHeader
-          label="B"
-          actions={
-            <SkillPickerPopover
-              skills={skills}
-              pendingSkillIds={pendingSkillIds}
-              onToggleSkill={onToggleSkill}
-              onApply={onApplySkills}
-              disabled={isSkillApplyDisabled}
-            />
+      ) : null}
+      <Group
+        orientation="horizontal"
+        className="flex h-full w-full"
+        id="playground-workspace-layout"
+        defaultLayout={
+          workspaceLayoutPersistence.defaultLayout ?? {
+            a: workspaceSizes[0],
+            b: workspaceSizes[1],
           }
-          tabs={PANEL_TABS}
-          activeTab={rightTab}
-          onTabChange={(v) => {
-            if (isPanelTab(v)) onRightTabChange(v);
-          }}
-        />
-        <div className="flex-1 overflow-auto">
-          <PanelContent
-            tab={rightTab}
-            tree={noPromptTree}
-            showTree={showNoPromptTree}
-            runtimeValueStore={noPromptRuntimeValueStore}
-            isStreaming={isNoPromptStreaming}
-            rawJsonl={noPromptRawJsonl}
-            streamedTree={noPromptStreamedTree}
-            promptText={BASELINE_PROMPT}
-            editorText={rightEditorText}
-            editorStatus={rightEditorStatus}
-            editorIssues={rightEditorIssues}
-            onEditorTextChange={onRightEditorTextChange}
-            onEditorValidate={onRightEditorValidate}
-            onEditorReset={onRightEditorReset}
-            onEditorApplyTree={onRightEditorApplyTree}
-            onEditorApplied={onRightEditorApplied}
-            streamStatus={noPromptStatus}
-            onAction={onNoPromptAction}
-            actionLog={rightActionLog}
-            onClearActionLog={onClearRightActionLog}
-            exportComponentName="GeneratedPanelB"
+        }
+        onLayoutChanged={(layout) => {
+          workspaceLayoutPersistence.onLayoutChanged(layout);
+          const a = layout.a;
+          const b = layout.b;
+          if (a == null || b == null) {
+            return;
+          }
+          onWorkspaceResize([a, b]);
+        }}
+      >
+        <Panel id="a" minSize="20rem" defaultSize="50%" className="min-w-0">
+          <PanelHeader
+            label="A"
+            tabs={PANEL_TABS}
+            activeTab={visibleLeftTab}
+            onTabChange={(v) => {
+              if (isPanelTab(v)) onLeftTabChange(v);
+            }}
           />
-        </div>
-      </Panel>
-    </Group>
+          <div className="flex-1 overflow-auto">
+            <PanelContent
+              tab={visibleLeftTab}
+              tree={tree}
+              showTree={showTree}
+              runtimeValueStore={runtimeValueStore}
+              isStreaming={isStreaming}
+              rawJsonl={rawJsonl}
+              streamedTree={streamedTree}
+              promptText={systemPromptText}
+              editorText={leftEditorText}
+              editorStatus={leftEditorStatus}
+              editorIssues={leftEditorIssues}
+              editorReadOnly={isHistoryPlayback}
+              onEditorTextChange={onLeftEditorTextChange}
+              onEditorValidate={onLeftEditorValidate}
+              onEditorReset={onLeftEditorReset}
+              onEditorApplyTree={onLeftEditorApplyTree}
+              onEditorApplied={onLeftEditorApplied}
+              onAction={onAction}
+              actionLog={leftActionLog}
+              onClearActionLog={onClearLeftActionLog}
+              exportComponentName="GeneratedPanelA"
+            />
+          </div>
+        </Panel>
+
+        <PlaygroundResizeHandle orientation="vertical" />
+
+        <Panel id="b" minSize="20rem" defaultSize="50%" className="min-w-0">
+          <PanelHeader
+            label="B"
+            actions={
+              <div className="flex items-center gap-1">
+                <FeedbackStatusPopover
+                  run={feedbackRun}
+                  warnings={feedbackWarnings}
+                  onInspectTab={onInspectFeedbackTab}
+                />
+                <SkillPickerPopover
+                  skills={skills}
+                  pendingSkillIds={pendingSkillIds}
+                  onToggleSkill={onToggleSkill}
+                  onApply={onApplySkills}
+                  disabled={isSkillApplyDisabled}
+                />
+              </div>
+            }
+            tabs={PANEL_TABS}
+            activeTab={visibleRightTab}
+            onTabChange={(v) => {
+              if (isPanelTab(v)) onRightTabChange(v);
+            }}
+          />
+          <div className="flex-1 overflow-auto">
+            <PanelContent
+              tab={visibleRightTab}
+              tree={noPromptTree}
+              showTree={showNoPromptTree}
+              runtimeValueStore={noPromptRuntimeValueStore}
+              isStreaming={isNoPromptStreaming}
+              rawJsonl={noPromptRawJsonl}
+              streamedTree={noPromptStreamedTree}
+              promptText={BASELINE_PROMPT}
+              editorText={rightEditorText}
+              editorStatus={rightEditorStatus}
+              editorIssues={rightEditorIssues}
+              editorReadOnly={isHistoryPlayback}
+              onEditorTextChange={onRightEditorTextChange}
+              onEditorValidate={onRightEditorValidate}
+              onEditorReset={onRightEditorReset}
+              onEditorApplyTree={onRightEditorApplyTree}
+              onEditorApplied={onRightEditorApplied}
+              streamStatus={noPromptStatus}
+              onAction={onNoPromptAction}
+              actionLog={rightActionLog}
+              onClearActionLog={onClearRightActionLog}
+              exportComponentName="GeneratedPanelB"
+            />
+          </div>
+        </Panel>
+      </Group>
+    </div>
   );
 }
 
@@ -2178,6 +3076,11 @@ function CatalogActionList({
 function MobilePlaygroundShell({
   mobileView,
   onMobileViewChange,
+  outputHistory,
+  selectedHistoryIndex,
+  onHistoryIndexChange,
+  onReturnToLatestHistory,
+  isHistoryStreamingLocked,
   inputValue,
   onInputChange,
   selectedModel,
@@ -2236,9 +3139,20 @@ function MobilePlaygroundShell({
   onToggleSkill,
   onApplySkills,
   isSkillApplyDisabled,
+  onImportFeedback,
+  onExportFeedback,
+  isFeedbackTransferDisabled,
+  canExportFeedback,
+  feedbackTransferMessage,
+  isHistoryPlayback,
 }: {
   readonly mobileView: "chat" | "a" | "b" | "catalog";
   readonly onMobileViewChange: (value: "chat" | "a" | "b" | "catalog") => void;
+  readonly outputHistory: readonly OutputHistorySnapshot[];
+  readonly selectedHistoryIndex: number;
+  readonly onHistoryIndexChange: (value: number) => void;
+  readonly onReturnToLatestHistory: () => void;
+  readonly isHistoryStreamingLocked: boolean;
   readonly inputValue: string;
   readonly onInputChange: (value: string) => void;
   readonly selectedModel: string;
@@ -2319,6 +3233,12 @@ function MobilePlaygroundShell({
   readonly onToggleSkill: (id: string, checked: boolean) => void;
   readonly onApplySkills: () => void;
   readonly isSkillApplyDisabled: boolean;
+  readonly onImportFeedback: () => void;
+  readonly onExportFeedback: () => void;
+  readonly isFeedbackTransferDisabled: boolean;
+  readonly canExportFeedback: boolean;
+  readonly feedbackTransferMessage: FeedbackTransferMessage | null;
+  readonly isHistoryPlayback: boolean;
 }) {
   const shellTabs = [
     { value: "chat", label: "Chat" },
@@ -2326,20 +3246,40 @@ function MobilePlaygroundShell({
     { value: "b", label: "B" },
     { value: "catalog", label: "Catalog" },
   ] as const;
+  const visibleLeftTab = getVisiblePanelTab(leftTab);
+  const visibleRightTab = getVisiblePanelTab(rightTab);
 
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden md:hidden">
-      <div className="flex h-[61px] shrink-0 items-center justify-between border-b border-kumo-line px-4">
-        <CloudflareLogo variant="glyph" className="h-5 w-auto shrink-0" />
-        <div className="flex items-center gap-1">
-          <a
-            href="/"
-            className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
-          >
-            <ArrowLeftIcon className="size-4" />
-            Docs
-          </a>
-          <ThemeToggle />
+      <div className="shrink-0 border-b border-kumo-line">
+        <div className="flex h-[61px] items-center justify-between px-4">
+          <CloudflareLogo variant="glyph" className="h-5 w-auto shrink-0" />
+          <div className="flex items-center gap-1">
+            <FeedbackTransferToolbar
+              onImport={onImportFeedback}
+              onExport={onExportFeedback}
+              transferDisabled={isFeedbackTransferDisabled}
+              exportDisabled={!canExportFeedback}
+              message={feedbackTransferMessage}
+            />
+            <a
+              href="/"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
+            >
+              <ArrowLeftIcon className="size-4" />
+              Docs
+            </a>
+            <ThemeToggle />
+          </div>
+        </div>
+        <div className="px-4 pb-3">
+          <PlaygroundHistoryScrubber
+            entries={outputHistory}
+            selectedIndex={selectedHistoryIndex}
+            onChange={onHistoryIndexChange}
+            onReturnToLatest={onReturnToLatestHistory}
+            disabled={isHistoryStreamingLocked}
+          />
         </div>
       </div>
 
@@ -2378,6 +3318,8 @@ function MobilePlaygroundShell({
             messagesEndRef={messagesEndRef}
             presets={presets}
             onToolAction={onToolAction}
+            isHistoryPlayback={isHistoryPlayback}
+            onReturnToLatest={onReturnToLatestHistory}
           />
         ) : null}
 
@@ -2386,14 +3328,14 @@ function MobilePlaygroundShell({
             <PanelHeader
               label="A"
               tabs={PANEL_TABS}
-              activeTab={leftTab}
+              activeTab={visibleLeftTab}
               onTabChange={(v) => {
                 if (isPanelTab(v)) onLeftTabChange(v);
               }}
             />
             <div className="flex-1 overflow-auto">
               <PanelContent
-                tab={leftTab}
+                tab={visibleLeftTab}
                 tree={leftTree}
                 showTree={leftShowTree}
                 runtimeValueStore={leftRuntimeValueStore}
@@ -2404,6 +3346,7 @@ function MobilePlaygroundShell({
                 editorText={leftEditorText}
                 editorStatus={leftEditorStatus}
                 editorIssues={leftEditorIssues}
+                editorReadOnly={isHistoryPlayback}
                 onEditorTextChange={onLeftEditorTextChange}
                 onEditorValidate={onLeftEditorValidate}
                 onEditorReset={onLeftEditorReset}
@@ -2432,14 +3375,14 @@ function MobilePlaygroundShell({
                 />
               }
               tabs={PANEL_TABS}
-              activeTab={rightTab}
+              activeTab={visibleRightTab}
               onTabChange={(v) => {
                 if (isPanelTab(v)) onRightTabChange(v);
               }}
             />
             <div className="flex-1 overflow-auto">
               <PanelContent
-                tab={rightTab}
+                tab={visibleRightTab}
                 tree={rightTree}
                 showTree={rightShowTree}
                 runtimeValueStore={rightRuntimeValueStore}
@@ -2450,6 +3393,7 @@ function MobilePlaygroundShell({
                 editorText={rightEditorText}
                 editorStatus={rightEditorStatus}
                 editorIssues={rightEditorIssues}
+                editorReadOnly={isHistoryPlayback}
                 onEditorTextChange={onRightEditorTextChange}
                 onEditorValidate={onRightEditorValidate}
                 onEditorReset={onRightEditorReset}
@@ -2494,6 +3438,8 @@ function MobileChatView({
   messagesEndRef,
   presets,
   onToolAction,
+  isHistoryPlayback,
+  onReturnToLatest,
 }: {
   readonly inputValue: string;
   readonly onInputChange: (value: string) => void;
@@ -2507,6 +3453,8 @@ function MobileChatView({
   readonly messagesEndRef: React.RefObject<HTMLDivElement | null>;
   readonly presets: typeof PRESET_PROMPTS;
   readonly onToolAction: (event: ActionEvent) => void;
+  readonly isHistoryPlayback: boolean;
+  readonly onReturnToLatest: () => void;
 }) {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -2569,7 +3517,7 @@ function MobileChatView({
               key={msg.toolId}
               tree={msg.tree}
               status={msg.status}
-              onAction={onToolAction}
+              onAction={isHistoryPlayback ? undefined : onToolAction}
             />
           ) : (
             <div
@@ -2609,55 +3557,68 @@ function MobileChatView({
       </div>
 
       <div className="shrink-0 border-t border-kumo-line px-4 py-3 space-y-2">
-        <Cluster gap="xs">
-          {presets.map((preset) => (
-            <button
-              key={preset.label}
-              type="button"
-              disabled={isStreaming}
-              onClick={() => onSubmit(undefined, preset.prompt)}
-              className="rounded-full border border-kumo-line bg-kumo-base px-2.5 py-1 text-xs text-kumo-subtle transition-colors hover:border-kumo-brand hover:text-kumo-brand disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {preset.label}
-            </button>
-          ))}
-        </Cluster>
-        <form onSubmit={(e) => onSubmit(e)} className="flex flex-col gap-2">
-          <InputArea
-            value={inputValue}
-            onValueChange={onInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              hasMessages ? "Follow up..." : "Describe the UI you want..."
-            }
-            disabled={isStreaming}
-            aria-label="Prompt"
-            rows={3}
-          />
-          <div className="flex justify-end">
-            {isStreaming ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onCancel}
-                icon={<StopCircleIcon />}
-              >
-                Cancel
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                disabled={!inputValue.trim()}
-                icon={<PaperPlaneRightIcon />}
-              >
-                Send
-              </Button>
-            )}
+        {isHistoryPlayback ? (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-kumo-line bg-kumo-elevated px-3 py-2">
+            <p className="text-xs text-kumo-subtle">
+              Viewing history. Return to latest to keep editing.
+            </p>
+            <Button variant="outline" size="sm" onClick={onReturnToLatest}>
+              Latest
+            </Button>
           </div>
-        </form>
+        ) : (
+          <>
+            <Cluster gap="xs">
+              {presets.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  disabled={isStreaming}
+                  onClick={() => onSubmit(undefined, preset.prompt)}
+                  className="rounded-full border border-kumo-line bg-kumo-base px-2.5 py-1 text-xs text-kumo-subtle transition-colors hover:border-kumo-brand hover:text-kumo-brand disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </Cluster>
+            <form onSubmit={(e) => onSubmit(e)} className="flex flex-col gap-2">
+              <InputArea
+                value={inputValue}
+                onValueChange={onInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  hasMessages ? "Follow up..." : "Describe the UI you want..."
+                }
+                disabled={isStreaming}
+                aria-label="Prompt"
+                rows={3}
+              />
+              <div className="flex justify-end">
+                {isStreaming ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={onCancel}
+                    icon={<StopCircleIcon />}
+                  >
+                    Cancel
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    disabled={!inputValue.trim()}
+                    icon={<PaperPlaneRightIcon />}
+                  >
+                    Send
+                  </Button>
+                )}
+              </div>
+            </form>
+          </>
+        )}
       </div>
     </section>
   );
@@ -2695,6 +3656,266 @@ function PanelHeader({
         />
       </div>
     </div>
+  );
+}
+
+function FeedbackTransferToolbar({
+  onImport,
+  onExport,
+  transferDisabled,
+  exportDisabled,
+  message,
+}: {
+  readonly onImport: () => void;
+  readonly onExport: () => void;
+  readonly transferDisabled: boolean;
+  readonly exportDisabled: boolean;
+  readonly message: FeedbackTransferMessage | null;
+}) {
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onImport}
+        disabled={transferDisabled}
+      >
+        Import
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onExport}
+        disabled={transferDisabled || exportDisabled}
+      >
+        Export
+      </Button>
+      <a
+        href="/playground/report"
+        className="inline-flex h-8 items-center rounded-md px-2 text-sm text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
+      >
+        Report
+      </a>
+      {message !== null ? (
+        <span
+          className={cn(
+            "hidden max-w-56 truncate text-xs md:inline",
+            message.kind === "error" ? "text-kumo-danger" : "text-kumo-subtle",
+          )}
+          title={message.text}
+        >
+          {message.text}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+function formatFeedbackScore(score: number): string {
+  return `${String(Math.round(score * 100))}%`;
+}
+
+function getFailedCheckLabels(run: ScenarioRunPair): readonly string[] {
+  return (["confirmation", "followup"] as const).flatMap((stage) => {
+    const artifact = run.stages[stage].b;
+    if (artifact === null) {
+      return [];
+    }
+
+    return artifact.checks
+      .filter((check) => !check.pass)
+      .map((check) => `${stage}: ${check.label}`);
+  });
+}
+
+function isChatOnlyConfirmationRun(run: ScenarioRunPair): boolean {
+  return (
+    run.stages.confirmation.a === null && run.stages.confirmation.b === null
+  );
+}
+
+function FeedbackInspectButtons({
+  onInspectTab,
+}: {
+  readonly onInspectTab: (tab: PanelTab) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button variant="ghost" size="sm" onClick={() => onInspectTab("preview")}>
+        UI
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => onInspectTab("tree")}>
+        Tree
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => onInspectTab("jsonl")}>
+        JSONL
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => onInspectTab("grading")}>
+        Grade
+      </Button>
+    </div>
+  );
+}
+
+function FeedbackSummaryCard({
+  run,
+  warnings,
+  onInspectTab,
+}: {
+  readonly run: ScenarioRunPair;
+  readonly warnings: readonly {
+    readonly message: string;
+  }[];
+  readonly onInspectTab: (tab: PanelTab) => void;
+}) {
+  const failedChecks = getFailedCheckLabels(run);
+
+  if (!isScenarioRunComplete(run)) {
+    return (
+      <div className="border-b border-kumo-line bg-kumo-warning/10 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <SpinnerIcon size={14} className="animate-spin text-kumo-warning" />
+          <p className="text-sm font-medium text-kumo-default">
+            Create worker feedback
+          </p>
+        </div>
+        <p className="mt-1 text-xs text-kumo-subtle">
+          Awaiting follow-up stage.
+        </p>
+      </div>
+    );
+  }
+
+  const summary = run.comparison;
+  if (summary === null) {
+    return null;
+  }
+
+  const chatOnlyConfirmation = isChatOnlyConfirmationRun(run);
+
+  return (
+    <div className="border-b border-kumo-line bg-kumo-elevated/40 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-sm font-medium text-kumo-default">
+          Create worker feedback
+        </p>
+        <span className="text-xs text-kumo-subtle">
+          Combined A {formatFeedbackScore(summary.stageScores.combined.a)} / B{" "}
+          {formatFeedbackScore(summary.stageScores.combined.b)}
+        </span>
+        {!chatOnlyConfirmation ? (
+          <span className="text-xs text-kumo-subtle">
+            Confirmation A{" "}
+            {formatFeedbackScore(summary.stageScores.confirmation.a)} / B{" "}
+            {formatFeedbackScore(summary.stageScores.confirmation.b)}
+          </span>
+        ) : null}
+        <span className="text-xs text-kumo-subtle">
+          Follow-up A {formatFeedbackScore(summary.stageScores.followup.a)} / B{" "}
+          {formatFeedbackScore(summary.stageScores.followup.b)}
+        </span>
+      </div>
+      <p className="mt-2 text-xs text-kumo-subtle">
+        {warnings.length === 0
+          ? "No regressions detected for Panel B."
+          : `Panel B warnings: ${String(warnings.length)}`}
+      </p>
+      {failedChecks.length > 0 ? (
+        <div className="mt-2 space-y-1">
+          {failedChecks.map((label) => (
+            <p key={label} className="text-xs text-kumo-subtle">
+              Failed check: {label}
+            </p>
+          ))}
+        </div>
+      ) : null}
+      {warnings.length > 0 ? (
+        <div className="mt-2 space-y-1">
+          {warnings.map((warning) => (
+            <p key={warning.message} className="text-xs text-kumo-danger">
+              {warning.message}
+            </p>
+          ))}
+        </div>
+      ) : null}
+      <div className="mt-3">
+        <FeedbackInspectButtons onInspectTab={onInspectTab} />
+      </div>
+    </div>
+  );
+}
+
+function FeedbackStatusPopover({
+  run,
+  warnings,
+  onInspectTab,
+}: {
+  readonly run: ScenarioRunPair | null;
+  readonly warnings: readonly {
+    readonly message: string;
+  }[];
+  readonly onInspectTab: (tab: PanelTab) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  if (run === null) {
+    return null;
+  }
+
+  const complete = isScenarioRunComplete(run);
+  const chatOnlyConfirmation = isChatOnlyConfirmationRun(run);
+  const label = !complete
+    ? "Awaiting"
+    : warnings.length === 0
+      ? "No regressions"
+      : `${String(warnings.length)} warnings`;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-kumo-subtle transition-colors hover:bg-kumo-elevated hover:text-kumo-default"
+          aria-label="Feedback status"
+        >
+          {!complete ? (
+            <SpinnerIcon size={12} className="animate-spin text-kumo-warning" />
+          ) : warnings.length === 0 ? (
+            <CheckIcon size={12} className="text-kumo-success" />
+          ) : (
+            <WarningCircleIcon size={12} className="text-kumo-danger" />
+          )}
+          {label}
+        </button>
+      </Popover.Trigger>
+      <Popover.Content side="bottom" align="start" sideOffset={4}>
+        <div className="flex min-w-64 flex-col gap-2 p-3">
+          <Popover.Title>Panel B feedback</Popover.Title>
+          <Popover.Description>
+            {!complete
+              ? "Awaiting follow-up stage before scoring the scenario."
+              : warnings.length === 0
+                ? "No regressions detected for Panel B."
+                : "Soft warnings only; inspect details before changing the prompt."}
+          </Popover.Description>
+          {chatOnlyConfirmation && complete ? (
+            <p className="text-xs text-kumo-subtle">
+              Confirmation stays in chat; workspace scoring uses follow-up UI.
+            </p>
+          ) : null}
+          {warnings.length > 0 ? (
+            <div className="space-y-1">
+              {warnings.map((warning) => (
+                <p key={warning.message} className="text-xs text-kumo-danger">
+                  {warning.message}
+                </p>
+              ))}
+            </div>
+          ) : null}
+          <FeedbackInspectButtons onInspectTab={onInspectTab} />
+        </div>
+      </Popover.Content>
+    </Popover>
   );
 }
 
@@ -2799,6 +4020,7 @@ function PanelContent({
   editorText,
   editorStatus,
   editorIssues,
+  editorReadOnly,
   onEditorTextChange,
   onEditorValidate,
   onEditorReset,
@@ -2824,6 +4046,7 @@ function PanelContent({
     readonly message: string;
     readonly path: readonly (string | number)[];
   }[];
+  readonly editorReadOnly?: boolean;
   readonly onEditorTextChange: (
     text: string,
     source: "stream" | "manual",
@@ -2871,6 +4094,7 @@ function PanelContent({
           text={editorText}
           status={editorStatus}
           issues={editorIssues}
+          readOnly={editorReadOnly}
           isStreaming={isStreaming}
           onTextChange={onEditorTextChange}
           onValidate={onEditorValidate}
@@ -2988,6 +4212,7 @@ function EditorTabContent({
   text,
   status,
   issues,
+  readOnly,
   isStreaming,
   onTextChange,
   onValidate,
@@ -3003,6 +4228,7 @@ function EditorTabContent({
     readonly message: string;
     readonly path: readonly (string | number)[];
   }[];
+  readonly readOnly?: boolean;
   readonly isStreaming: boolean;
   readonly onTextChange: (text: string, source: "stream" | "manual") => void;
   readonly onValidate: (
@@ -3078,7 +4304,7 @@ function EditorTabContent({
           variant="ghost"
           size="sm"
           onClick={handleFormat}
-          disabled={isStreaming || isWorking}
+          disabled={readOnly || isStreaming || isWorking}
         >
           Format
         </Button>
@@ -3086,7 +4312,7 @@ function EditorTabContent({
           variant="ghost"
           size="sm"
           onClick={() => void runValidation()}
-          disabled={isStreaming || isWorking}
+          disabled={readOnly || isStreaming || isWorking}
         >
           Validate
         </Button>
@@ -3094,7 +4320,7 @@ function EditorTabContent({
           variant="primary"
           size="sm"
           onClick={() => void handleApply()}
-          disabled={isStreaming || isWorking}
+          disabled={readOnly || isStreaming || isWorking}
         >
           Apply
         </Button>
@@ -3102,7 +4328,7 @@ function EditorTabContent({
           variant="outline"
           size="sm"
           onClick={handleReset}
-          disabled={isStreaming || isWorking}
+          disabled={readOnly || isStreaming || isWorking}
         >
           Reset to latest streamed tree
         </Button>
@@ -3116,7 +4342,7 @@ function EditorTabContent({
           value={text}
           onChange={(event) => onTextChange(event.target.value, "manual")}
           spellCheck={false}
-          disabled={isStreaming || isWorking}
+          disabled={readOnly || isStreaming || isWorking}
           aria-label="Editable UI tree JSON"
           className="min-h-[320px] w-full resize-none bg-transparent px-4 py-3 font-mono text-xs leading-5 text-kumo-default outline-none"
         />
@@ -3142,8 +4368,9 @@ function EditorTabContent({
         </div>
       ) : (
         <p className="text-xs text-kumo-subtle">
-          Editing is local to this panel. Apply updates preview, TSX, grading,
-          and tree views without sending a new request.
+          {readOnly
+            ? "History snapshots are read-only. Return to latest to edit."
+            : "Editing is local to this panel. Apply updates preview, TSX, grading, and tree views without sending a new request."}
         </p>
       )}
 
@@ -3944,7 +5171,7 @@ const STATUS_CONFIG: Record<
 interface InlineToolCardProps {
   readonly tree: UITree;
   readonly status: ToolMessageStatus;
-  readonly onAction: (event: ActionEvent) => void;
+  readonly onAction?: (event: ActionEvent) => void;
 }
 
 /**
@@ -4027,6 +5254,9 @@ interface PlaygroundChatSidebarProps {
   readonly onToggleMinimize: () => void;
   /** Action handler for inline tool confirmation card actions (tool_approve / tool_cancel). */
   readonly onToolAction: (event: ActionEvent) => void;
+  readonly historyEntry: OutputHistorySnapshot | null;
+  readonly isHistoryPlayback: boolean;
+  readonly onReturnToLatest: () => void;
 }
 
 /** Right-hand chat panel: model selector, messages, input. */
@@ -4045,6 +5275,9 @@ function PlaygroundChatSidebar({
   minimized,
   onToggleMinimize,
   onToolAction,
+  historyEntry,
+  isHistoryPlayback,
+  onReturnToLatest,
 }: PlaygroundChatSidebarProps) {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -4113,6 +5346,11 @@ function PlaygroundChatSidebar({
             {Math.ceil(turnCount / 2) === 1 ? "turn" : "turns"}
           </span>
         )}
+        {historyEntry !== null && !isStreaming ? (
+          <span className="max-w-40 truncate text-[11px] text-kumo-subtle">
+            {getOutputHistoryLabel(historyEntry.prompt)}
+          </span>
+        ) : null}
         <button
           type="button"
           onClick={onToggleMinimize}
@@ -4139,7 +5377,7 @@ function PlaygroundChatSidebar({
               key={msg.toolId}
               tree={msg.tree}
               status={msg.status}
-              onAction={onToolAction}
+              onAction={isHistoryPlayback ? undefined : onToolAction}
             />
           ) : (
             <div
@@ -4181,55 +5419,68 @@ function PlaygroundChatSidebar({
 
       {/* Preset pills + input area at bottom */}
       <div className="shrink-0 border-t border-kumo-line px-4 py-3 space-y-2">
-        <Cluster gap="xs">
-          {presets.map((preset) => (
-            <button
-              key={preset.label}
-              type="button"
-              disabled={isStreaming}
-              onClick={() => onSubmit(undefined, preset.prompt)}
-              className="rounded-full border border-kumo-line bg-kumo-base px-2.5 py-1 text-xs text-kumo-subtle transition-colors hover:border-kumo-brand hover:text-kumo-brand disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {preset.label}
-            </button>
-          ))}
-        </Cluster>
-        <form onSubmit={(e) => onSubmit(e)} className="flex flex-col gap-2">
-          <InputArea
-            value={inputValue}
-            onValueChange={onInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              hasMessages ? "Follow up…" : "Describe the UI you want..."
-            }
-            disabled={isStreaming}
-            aria-label="Prompt"
-            rows={2}
-          />
-          <div className="flex justify-end">
-            {isStreaming ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onCancel}
-                icon={<StopCircleIcon />}
-              >
-                Cancel
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                disabled={!inputValue.trim()}
-                icon={<PaperPlaneRightIcon />}
-              >
-                Send
-              </Button>
-            )}
+        {isHistoryPlayback ? (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-kumo-line bg-kumo-elevated px-3 py-2">
+            <p className="text-xs text-kumo-subtle">
+              Viewing history. Return to latest to keep editing.
+            </p>
+            <Button variant="outline" size="sm" onClick={onReturnToLatest}>
+              Latest
+            </Button>
           </div>
-        </form>
+        ) : (
+          <>
+            <Cluster gap="xs">
+              {presets.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  disabled={isStreaming}
+                  onClick={() => onSubmit(undefined, preset.prompt)}
+                  className="rounded-full border border-kumo-line bg-kumo-base px-2.5 py-1 text-xs text-kumo-subtle transition-colors hover:border-kumo-brand hover:text-kumo-brand disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </Cluster>
+            <form onSubmit={(e) => onSubmit(e)} className="flex flex-col gap-2">
+              <InputArea
+                value={inputValue}
+                onValueChange={onInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  hasMessages ? "Follow up..." : "Describe the UI you want..."
+                }
+                disabled={isStreaming}
+                aria-label="Prompt"
+                rows={2}
+              />
+              <div className="flex justify-end">
+                {isStreaming ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={onCancel}
+                    icon={<StopCircleIcon />}
+                  >
+                    Cancel
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    disabled={!inputValue.trim()}
+                    icon={<PaperPlaneRightIcon />}
+                  >
+                    Send
+                  </Button>
+                )}
+              </div>
+            </form>
+          </>
+        )}
       </div>
     </aside>
   );
