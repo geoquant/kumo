@@ -1,3 +1,4 @@
+import { waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 import api from "@/loadable/index";
@@ -125,6 +126,39 @@ describe("UMD tree access API", () => {
     expect(cb.mock.calls[0]?.[0].elements.root?.props).toMatchObject({
       title: "a",
       subtitle: "b",
+    });
+
+    api.reset(containerId);
+  });
+
+  it("supports AppSpec state patches while keeping UITree snapshots host-first", async () => {
+    const containerId = makeContainerId();
+    const el = mountContainer(containerId);
+
+    const tree: UITree = {
+      root: "root",
+      elements: {
+        root: {
+          key: "root",
+          type: "Text",
+          props: { children: { path: "/label" } },
+        },
+      },
+    };
+
+    api.renderTree(tree, containerId);
+    api.applyPatch(
+      {
+        op: "add",
+        path: "/state/label",
+        value: "Runtime label",
+      },
+      containerId,
+    );
+
+    expect(api.getTree(containerId)).toEqual(tree);
+    await waitFor(() => {
+      expect(el.textContent).toContain("Runtime label");
     });
 
     api.reset(containerId);

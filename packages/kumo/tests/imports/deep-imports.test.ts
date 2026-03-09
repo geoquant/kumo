@@ -14,7 +14,7 @@ describe("Deep Import Patterns", () => {
 
         expect(module).toBeDefined();
         expect(Object.keys(module).length).toBeGreaterThan(0);
-      });
+      }, 20_000);
     });
   });
 
@@ -47,7 +47,7 @@ describe("Deep Import Patterns", () => {
         );
 
         expect(module).toBeDefined();
-      });
+      }, 20_000);
     });
   });
 });

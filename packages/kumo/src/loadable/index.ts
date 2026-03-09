@@ -34,6 +34,12 @@ import {
 import { createJsonlParser, type JsonlParser } from "../streaming/jsonl-parser";
 import { UITreeRenderer } from "../generative/ui-tree-renderer";
 import { EMPTY_TREE, type UITree } from "../streaming/types";
+import {
+  normalizeAppSpec,
+  repairAppSpec,
+  type AppSpec,
+  type CompatibleUITreeInput,
+} from "../app-runtime/core";
 import type { ActionDispatch, ActionEvent } from "../streaming/action-types";
 import {
   createRuntimeValueStore,
@@ -84,6 +90,9 @@ type ContainerMount =
 /** Per-container UITree state. */
 const _trees = new Map<string, UITree>();
 
+/** Per-container canonical AppSpec state. */
+const _specs = new Map<string, AppSpec>();
+
 /** Per-container React root — reused across renders (never destroyed/recreated). */
 const _roots = new Map<string, Root>();
 
@@ -108,6 +117,90 @@ const _renderScheduled = new Map<string, number>();
 
 const SHADOW_STYLESHEET_ATTR = "data-kumo-shadow-stylesheet";
 const SHADOW_MOUNT_ATTR = "data-kumo-shadow-mount";
+
+function hasOwnKeys(value: Record<string, unknown> | undefined): boolean {
+  return value != null && Object.keys(value).length > 0;
+}
+
+function prepareSpecFromTree(tree: UITree, previousSpec?: AppSpec): AppSpec {
+  const input: CompatibleUITreeInput = {
+    tree,
+    ...(hasOwnKeys(previousSpec?.state) ? { data: previousSpec?.state } : {}),
+    ...(previousSpec?.meta != null ? { meta: previousSpec.meta } : {}),
+  };
+
+  return repairAppSpec(normalizeAppSpec(input)).spec;
+}
+
+function isAppSpecPatch(path: string): boolean {
+  return (
+    path === "/state" ||
+    path.startsWith("/state/") ||
+    path === "/meta" ||
+    path.startsWith("/meta/") ||
+    path === "/watch" ||
+    path.startsWith("/watch/") ||
+    path === "/version"
+  );
+}
+
+function getOrCreateSpec(containerId: string): AppSpec {
+  const existing = _specs.get(containerId);
+  if (existing != null) {
+    return existing;
+  }
+
+  const tree = _trees.get(containerId) ?? EMPTY_TREE;
+  const spec = prepareSpecFromTree(tree);
+  _specs.set(containerId, spec);
+  return spec;
+}
+
+function updateContainerState(
+  containerId: string,
+  tree: UITree,
+  spec: AppSpec,
+): void {
+  _trees.set(containerId, tree);
+  _specs.set(containerId, spec);
+}
+
+function applyLoadablePatch(containerId: string, op: JsonPatchOp): UITree {
+  const currentTree = _trees.get(containerId) ?? EMPTY_TREE;
+  const currentSpec = getOrCreateSpec(containerId);
+
+  if (isAppSpecPatch(op.path)) {
+    const nextSpec = repairAppSpec(applyRfc6902Patch(currentSpec, op)).spec;
+    updateContainerState(containerId, currentTree, nextSpec);
+    return currentTree;
+  }
+
+  const nextTree = applyRfc6902Patch(currentTree, op);
+  const nextSpec = prepareSpecFromTree(nextTree, currentSpec);
+  updateContainerState(containerId, nextTree, nextSpec);
+  return nextTree;
+}
+
+function applyLoadablePatches(
+  containerId: string,
+  ops: readonly JsonPatchOp[],
+): UITree {
+  let nextTree = _trees.get(containerId) ?? EMPTY_TREE;
+  let nextSpec = getOrCreateSpec(containerId);
+
+  for (const op of ops) {
+    if (isAppSpecPatch(op.path)) {
+      nextSpec = repairAppSpec(applyRfc6902Patch(nextSpec, op)).spec;
+      continue;
+    }
+
+    nextTree = applyRfc6902Patch(nextTree, op);
+    nextSpec = prepareSpecFromTree(nextTree, nextSpec);
+  }
+
+  updateContainerState(containerId, nextTree, nextSpec);
+  return nextTree;
+}
 
 function readMountModeFromAttributes(el: HTMLElement): MountMode {
   const attr = el.getAttribute("data-kumo-mount");
@@ -233,6 +326,7 @@ function renderContainer(containerId: string): void {
   if (!root) return;
 
   const tree = _trees.get(containerId) ?? EMPTY_TREE;
+  const spec = getOrCreateSpec(containerId);
   const runtimeValueStore = getOrCreateValueStore(containerId);
 
   flushSync(() => {
@@ -242,6 +336,7 @@ function renderContainer(containerId: string): void {
         null,
         React.createElement(UITreeRenderer, {
           tree,
+          data: spec.state,
           streaming: true,
           onAction: dispatchAction,
           runtimeValueStore,
@@ -353,17 +448,13 @@ const api: CloudflareKumoAPI = {
   },
 
   applyPatch(op: JsonPatchOp, containerId: string): void {
-    const current = _trees.get(containerId) ?? EMPTY_TREE;
-    const next = applyRfc6902Patch(current, op);
-    _trees.set(containerId, next);
+    const next = applyLoadablePatch(containerId, op);
     notifyTree(containerId, next);
     renderContainer(containerId);
   },
 
   applyPatchBatched(op: JsonPatchOp, containerId: string): void {
-    const current = _trees.get(containerId) ?? EMPTY_TREE;
-    const next = applyRfc6902Patch(current, op);
-    _trees.set(containerId, next);
+    const next = applyLoadablePatch(containerId, op);
     notifyTree(containerId, next);
 
     const scheduled = _renderScheduled.get(containerId);
@@ -379,23 +470,15 @@ const api: CloudflareKumoAPI = {
 
   applyPatches(ops: readonly JsonPatchOp[], containerId: string): void {
     if (ops.length === 0) return;
-    let current = _trees.get(containerId) ?? EMPTY_TREE;
-    for (const op of ops) {
-      current = applyRfc6902Patch(current, op);
-    }
-    _trees.set(containerId, current);
-    notifyTree(containerId, current);
+    const next = applyLoadablePatches(containerId, ops);
+    notifyTree(containerId, next);
     renderContainer(containerId);
   },
 
   applyPatchesBatched(ops: readonly JsonPatchOp[], containerId: string): void {
     if (ops.length === 0) return;
-    let current = _trees.get(containerId) ?? EMPTY_TREE;
-    for (const op of ops) {
-      current = applyRfc6902Patch(current, op);
-    }
-    _trees.set(containerId, current);
-    notifyTree(containerId, current);
+    const next = applyLoadablePatches(containerId, ops);
+    notifyTree(containerId, next);
 
     const scheduled = _renderScheduled.get(containerId);
     if (scheduled) return;
@@ -409,7 +492,7 @@ const api: CloudflareKumoAPI = {
   },
 
   renderTree(tree: UITree, containerId: string): void {
-    _trees.set(containerId, tree);
+    updateContainerState(containerId, tree, prepareSpecFromTree(tree));
     notifyTree(containerId, tree);
     // Non-streaming render — pass streaming=false for error rendering on missing keys
     const root = getOrCreateRoot(containerId);
@@ -424,6 +507,7 @@ const api: CloudflareKumoAPI = {
           null,
           React.createElement(UITreeRenderer, {
             tree,
+            data: getOrCreateSpec(containerId).state,
             streaming: false,
             onAction: dispatchAction,
             runtimeValueStore,
@@ -484,6 +568,7 @@ const api: CloudflareKumoAPI = {
 
   reset(containerId: string): void {
     _trees.set(containerId, EMPTY_TREE);
+    _specs.delete(containerId);
     notifyTree(containerId, EMPTY_TREE);
 
     const store = _valueStores.get(containerId);
