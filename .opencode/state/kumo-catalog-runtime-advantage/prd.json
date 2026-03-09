@@ -77,7 +77,7 @@
         "The narrative explicitly differentiates Kumo from handwritten schema competitors without depending on or adopting `json-render`.",
         "Documentation work remains on branch `geoquant/streaming-ui`."
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
