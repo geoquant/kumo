@@ -25,7 +25,7 @@
         "Compatibility tests cover shared cases for actions, visibility, children, and minimal stateless trees.",
         "The adapter rollout keeps implementation constrained to `geoquant/streaming-ui`."
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "runtime-2",

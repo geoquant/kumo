@@ -21,6 +21,7 @@ import {
   writeBindingValue,
   type AppSpec,
   type AppStoreSnapshot,
+  type CompatibleUITreeInput,
   type NestedAppSpec,
 } from "../core";
 import type { RuntimeEffect } from "../core";
@@ -51,7 +52,9 @@ function cloneEffects(effects: readonly RuntimeEffect[]): RuntimeEffect[] {
   }));
 }
 
-function prepareAppSpec(input?: AppSpec | NestedAppSpec): AppSpec {
+function prepareAppSpec(
+  input?: AppSpec | NestedAppSpec | CompatibleUITreeInput,
+): AppSpec {
   return repairAppSpec(normalizeAppSpec(input ?? EMPTY_APP_SPEC)).spec;
 }
 
@@ -259,7 +262,7 @@ export function useUIStream(
   );
 
   const setPreparedSpec = useCallback(
-    (nextSpec: AppSpec | NestedAppSpec): void => {
+    (nextSpec: AppSpec | NestedAppSpec | CompatibleUITreeInput): void => {
       commitSpec(prepareAppSpec(nextSpec));
     },
     [commitSpec],

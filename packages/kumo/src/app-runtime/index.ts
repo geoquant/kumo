@@ -1,5 +1,8 @@
 export { APP_SPEC_VERSION } from "./core";
 export {
+  adaptCompatibleUITree,
+  COMPAT_AUTH_SIGNED_IN_PATH,
+  COMPAT_AUTH_USER_PATH,
   createAppStore,
   createExpressionContext,
   evaluateBoolExpr,
@@ -33,6 +36,7 @@ export type {
   BoolExpr,
   BuiltInActionName,
   CompatibleUIElement,
+  CompatibleUITreeInput,
   CompatibleUITree,
   ComputeExpr,
   ConfirmSpec,

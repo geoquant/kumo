@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { AppSpec, NestedAppSpec } from "../core";
+import type { AppSpec, CompatibleUITreeInput, NestedAppSpec } from "../core";
 import { useUIStream } from "./use-ui-stream";
 import type {
   ChatUIMessage,
@@ -244,7 +244,7 @@ export function useChatUI(options: UseChatUIOptions = {}): UseChatUIReturn {
   );
 
   const setSpec = useCallback(
-    (spec: AppSpec | NestedAppSpec): void => {
+    (spec: AppSpec | NestedAppSpec | CompatibleUITreeInput): void => {
       const messageId = ensureAssistantTurn();
       ui.setSpec(spec);
       syncSessionMessage(messageId, "streaming");

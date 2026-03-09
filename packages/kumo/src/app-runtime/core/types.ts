@@ -1,4 +1,6 @@
 import type {
+  AuthState,
+  DataModel,
   UIElement as LegacyUIElement,
   UITree as LegacyUITree,
 } from "../../catalog/types";
@@ -96,6 +98,7 @@ export type RefSource =
 export type BoolExpr =
   | boolean
   | { $not: BoolExpr }
+  | { $truthy: ValueExpr }
   | {
       $compare: {
         left: ValueExpr;
@@ -118,6 +121,7 @@ export interface ActionStep {
 export interface ConfirmSpec {
   title: ValueExpr;
   description?: ValueExpr;
+  variant?: "default" | "danger";
   confirmLabel?: ValueExpr;
   cancelLabel?: ValueExpr;
 }
@@ -206,3 +210,10 @@ export interface AppStore {
 
 export type CompatibleUITree = LegacyUITree;
 export type CompatibleUIElement = LegacyUIElement;
+
+export interface CompatibleUITreeInput {
+  tree: CompatibleUITree;
+  data?: DataModel;
+  auth?: AuthState;
+  meta?: AppSpecMeta;
+}
