@@ -7,13 +7,31 @@
  * individual component failures from crashing the entire tree.
  */
 
-import React, { Component, memo, useMemo } from "react";
+import React, {
+  Component,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import type { ReactNode, ElementType } from "react";
 import type { ZodType } from "zod";
 import type { UITree, UIElement } from "../streaming/types";
-import type { CustomComponentDefinition } from "../catalog/types.js";
+import type {
+  Action,
+  AuthState,
+  CustomComponentDefinition,
+  DataModel,
+} from "../catalog/types.js";
 import { GridItem } from "../index.js";
 import { COMPONENT_MAP, KNOWN_TYPES } from "./component-map.js";
+import {
+  CHECKABLE_TYPES,
+  FORM_CONTROL_TYPES,
+  ONCLICK_ACTION_TYPES,
+  RUNTIME_VALUE_CAPTURE_TYPES,
+} from "./component-behavior-sets.js";
 import {
   createActionHandler,
   createClickHandler,
@@ -26,12 +44,24 @@ import {
   logValidationRepair,
   repairElement,
 } from "./element-validator.js";
-import type { RuntimeValueStore } from "../streaming/runtime-value-store";
+import {
+  type ActionSequence,
+  type ActionStep,
+  type AppElement,
+  type CompatibleUITreeInput,
+  type KumoEventName,
+} from "../app-runtime";
+import { isJsonPointer } from "../app-runtime/core/path";
+import { useUIStream } from "../app-runtime/react";
 import {
   RuntimeValueStoreProvider,
   useRuntimeValueStoreContext,
 } from "../streaming/runtime-value-store-context";
 import { sanitizeUrl } from "../streaming/url-policy";
+import {
+  createRuntimeValueStore,
+  type RuntimeValueStore,
+} from "../streaming/runtime-value-store";
 
 /** Maximum recursion depth to prevent infinite loops from circular refs. */
 const MAX_DEPTH = 50;
@@ -47,31 +77,11 @@ const BLOCKED_PROPS = new Set([
   "action",
 ]);
 
-/**
- * Component types that use onClick for action dispatch instead of onAction.
- * These are native-event components (Button, Link) that don't implement the
- * onAction callback pattern used by stateful wrappers.
- */
-const ONCLICK_ACTION_TYPES = new Set(["Button", "Link"]);
-
-const RUNTIME_VALUE_CAPTURE_TYPES = new Set(["Input", "InputArea", "Textarea"]);
-
 const SUBMIT_FORM_RUNTIME_VALUES_KEY = "runtimeValues";
 
 const TWO_COL_GRID_VARIANTS = new Set(["2up", "side-by-side", "2-1", "1-2"]);
 
 const FORM_ROW_CONTROL_TYPES = new Set(["Input", "Select", "Textarea"]);
-
-const FORM_CONTROL_TYPES = new Set([
-  "Input",
-  "InputArea",
-  "Textarea",
-  "Select",
-  "Checkbox",
-  "Switch",
-  "Radio",
-  "RadioGroup",
-]);
 
 const FIELD_CONTROL_TYPES = new Set([
   "Input",
@@ -80,12 +90,31 @@ const FIELD_CONTROL_TYPES = new Set([
   "Select",
 ]);
 
-const CHECKABLE_TYPES = new Set(["Checkbox", "Switch", "Radio", "RadioGroup"]);
-
 type ElementValidation = ReturnType<typeof validateElement>;
 
 const validationCache = new WeakMap<UIElement, ElementValidation>();
-const loggedInvalidElements = new WeakSet<UIElement>();
+
+function validationLogKey(
+  elementKey: string,
+  elementType: string,
+  kind: "repair" | "error",
+): string {
+  return `${kind}:${elementType}:${elementKey}`;
+}
+
+const pendingValidationLogKeys = new Set<string>();
+
+function claimValidationLogKey(key: string): boolean {
+  if (pendingValidationLogKeys.has(key)) {
+    return false;
+  }
+
+  pendingValidationLogKeys.add(key);
+  queueMicrotask(() => {
+    pendingValidationLogKeys.delete(key);
+  });
+  return true;
+}
 
 function getElementValidation(
   element: UIElement,
@@ -1062,6 +1091,10 @@ function gridItemClassNameForChild(child: UIElement | undefined): string {
 interface UITreeRendererProps {
   /** The UITree to render. */
   readonly tree: UITree;
+  /** Optional data model for resolving legacy DynamicValue paths. */
+  readonly data?: DataModel;
+  /** Optional auth state for resolving legacy auth visibility conditions. */
+  readonly auth?: AuthState;
   /**
    * When true, children referencing nonexistent element keys render as null
    * (invisible) instead of error divs. Set to true during streaming, when
@@ -1258,6 +1291,7 @@ function RenderElement({
   onAction,
   componentMap,
   customSchemas,
+  loggedValidationKeys,
 }: {
   readonly elementKey: string;
   readonly elements: Record<string, UIElement>;
@@ -1266,6 +1300,7 @@ function RenderElement({
   readonly onAction?: ActionDispatch;
   readonly componentMap: ResolvedComponentMap;
   readonly customSchemas?: Readonly<Record<string, ZodType>> | null;
+  readonly loggedValidationKeys: Set<string>;
 }): React.JSX.Element | null {
   const runtimeValueStore = useRuntimeValueStoreContext();
 
@@ -1302,8 +1337,9 @@ function RenderElement({
     const repaired = repairElement(element, validation);
     if (repaired != null) {
       // Log the repair once per element instance
-      if (!loggedInvalidElements.has(element)) {
-        loggedInvalidElements.add(element);
+      const logKey = validationLogKey(elementKey, element.type, "repair");
+      if (!loggedValidationKeys.has(logKey) && claimValidationLogKey(logKey)) {
+        loggedValidationKeys.add(logKey);
         const originalProps = element.props as Record<string, unknown>;
         const repairedProps = repaired.props as Record<string, unknown>;
         const stripped = Object.keys(originalProps).filter(
@@ -1324,13 +1360,15 @@ function RenderElement({
           onAction={onAction}
           componentMap={componentMap}
           customSchemas={customSchemas}
+          loggedValidationKeys={loggedValidationKeys}
         />
       );
     }
 
     // Repair failed (issues at root level or deeply nested) — show error.
-    if (!loggedInvalidElements.has(element)) {
-      loggedInvalidElements.add(element);
+    const logKey = validationLogKey(elementKey, element.type, "error");
+    if (!loggedValidationKeys.has(logKey) && claimValidationLogKey(logKey)) {
+      loggedValidationKeys.add(logKey);
       logValidationError(validation);
     }
     return (
@@ -1377,6 +1415,7 @@ function RenderElement({
               onAction={onAction}
               componentMap={componentMap}
               customSchemas={customSchemas}
+              loggedValidationKeys={loggedValidationKeys}
             />
           ))}
         </div>
@@ -1506,6 +1545,7 @@ function RenderElement({
           onAction={onAction}
           componentMap={componentMap}
           customSchemas={customSchemas}
+          loggedValidationKeys={loggedValidationKeys}
         />
       );
 
@@ -1546,6 +1586,279 @@ function filterDivProps(
     }
   }
   return safe;
+}
+
+function selectRuntimeEvent(element: AppElement): KumoEventName | null {
+  const events = element.events;
+  if (events == null) {
+    return null;
+  }
+
+  const priority: readonly KumoEventName[] = [
+    "press",
+    "change",
+    "submit",
+    "blur",
+    "focus",
+    "mount",
+  ];
+
+  for (const eventName of priority) {
+    if (events[eventName] != null) {
+      return eventName;
+    }
+  }
+
+  return null;
+}
+
+function firstActionStep(
+  sequence: ActionSequence | undefined,
+): ActionStep | null {
+  if (sequence == null) {
+    return null;
+  }
+
+  return Array.isArray(sequence) ? (sequence[0] ?? null) : sequence;
+}
+
+function valueExprToLegacyValue(value: unknown): unknown {
+  if (
+    value == null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => valueExprToLegacyValue(entry));
+  }
+
+  if (!isRecord(value)) {
+    return value;
+  }
+
+  if (
+    "$read" in value &&
+    isRecord(value.$read) &&
+    value.$read.source === "state" &&
+    typeof value.$read.path === "string"
+  ) {
+    return { path: value.$read.path };
+  }
+
+  if (
+    "$bind" in value &&
+    isRecord(value.$bind) &&
+    value.$bind.source === "state" &&
+    typeof value.$bind.path === "string"
+  ) {
+    return { path: value.$bind.path };
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [
+      key,
+      valueExprToLegacyValue(entry),
+    ]),
+  );
+}
+
+function legacyTextValue(value: unknown): string | undefined {
+  const resolved = valueExprToLegacyValue(value);
+
+  if (typeof resolved === "string") {
+    return resolved;
+  }
+  if (typeof resolved === "number" || typeof resolved === "boolean") {
+    return `${resolved}`;
+  }
+
+  return undefined;
+}
+
+function legacySetFromSequence(
+  sequence: ActionSequence | undefined,
+): Record<string, unknown> | undefined {
+  const step = firstActionStep(sequence);
+  if (
+    step == null ||
+    step.action !== "state.merge" ||
+    !isRecord(step.params) ||
+    step.params.path !== "/" ||
+    !isRecord(step.params.value)
+  ) {
+    return undefined;
+  }
+
+  const legacyValue = valueExprToLegacyValue(step.params.value);
+  return isRecord(legacyValue) ? legacyValue : undefined;
+}
+
+function actionStepToLegacyAction(
+  element: AppElement,
+  preferredEvent?: KumoEventName,
+): Action | undefined {
+  const selectedEvent = preferredEvent ?? selectRuntimeEvent(element);
+  if (selectedEvent == null) {
+    return undefined;
+  }
+
+  const step = firstActionStep(element.events?.[selectedEvent]);
+  if (step == null) {
+    return undefined;
+  }
+
+  const params =
+    step.params == null
+      ? undefined
+      : Object.fromEntries(
+          Object.entries(step.params).map(([key, value]) => [
+            key,
+            valueExprToLegacyValue(value),
+          ]),
+        );
+  const onSuccess = legacySetFromSequence(step.onSuccess);
+  const onError = legacySetFromSequence(step.onError);
+
+  return {
+    name: step.action,
+    ...(params != null ? { params } : {}),
+    ...(step.confirm != null
+      ? {
+          confirm: {
+            title: legacyTextValue(step.confirm.title) ?? "",
+            message: legacyTextValue(step.confirm.description) ?? "",
+            ...(step.confirm.variant != null
+              ? { variant: step.confirm.variant }
+              : {}),
+            ...(legacyTextValue(step.confirm.confirmLabel) != null
+              ? {
+                  confirmLabel: legacyTextValue(step.confirm.confirmLabel),
+                }
+              : {}),
+            ...(legacyTextValue(step.confirm.cancelLabel) != null
+              ? {
+                  cancelLabel: legacyTextValue(step.confirm.cancelLabel),
+                }
+              : {}),
+          },
+        }
+      : {}),
+    ...(onSuccess != null ? { onSuccess: { set: onSuccess } } : {}),
+    ...(onError != null ? { onError: { set: onError } } : {}),
+  };
+}
+
+function normalizeInputTree(tree: UITree): UITree | null {
+  if (Object.keys(tree.elements).length === 0) return null;
+
+  const rootKey =
+    (tree.root && tree.elements[tree.root] ? tree.root : null) ??
+    inferRootKey(tree.elements, tree.root || undefined);
+  if (!rootKey) return null;
+
+  const treeForNormalize =
+    tree.root === rootKey ? tree : { ...tree, root: rootKey };
+  return normalizeTree(treeForNormalize);
+}
+
+interface RuntimeRenderState {
+  readonly tree: UITree;
+  readonly bindingsByKey: Readonly<Record<string, readonly string[]>>;
+  readonly eventByKey: Readonly<Record<string, KumoEventName>>;
+}
+
+function toBindingPath(path: string): `/${string}` | "/" | null {
+  return isJsonPointer(path) ? path : null;
+}
+
+function buildRuntimeRenderState(
+  sourceTree: UITree,
+  specElements: Readonly<Record<string, AppElement>>,
+  resolveElement: (elementKey: string) => {
+    props: Record<string, unknown>;
+    bindings: Record<string, unknown>;
+    visible: boolean;
+  } | null,
+): RuntimeRenderState {
+  const visible = new Set<string>();
+  const resolvedProps = new Map<string, Record<string, unknown>>();
+  const bindingsByKey: Record<string, readonly string[]> = {};
+  const eventByKey: Record<string, KumoEventName> = {};
+
+  for (const key of Object.keys(sourceTree.elements)) {
+    const resolved = resolveElement(key);
+    if (resolved == null) {
+      continue;
+    }
+
+    if (resolved.visible) {
+      visible.add(key);
+    }
+
+    resolvedProps.set(key, resolved.props);
+    const bindingKeys = Object.keys(resolved.bindings);
+    if (bindingKeys.length > 0) {
+      bindingsByKey[key] = bindingKeys;
+    }
+
+    const runtimeEvent = specElements[key]
+      ? selectRuntimeEvent(specElements[key])
+      : null;
+    if (runtimeEvent != null) {
+      eventByKey[key] = runtimeEvent;
+    }
+  }
+
+  if (!visible.has(sourceTree.root)) {
+    return {
+      tree: { root: "", elements: {} },
+      bindingsByKey,
+      eventByKey,
+    };
+  }
+
+  const elements: Record<string, UIElement> = {};
+  for (const [key, element] of Object.entries(sourceTree.elements)) {
+    if (!visible.has(key)) {
+      continue;
+    }
+
+    const legacyAction =
+      element.action ??
+      (specElements[key]
+        ? actionStepToLegacyAction(specElements[key], eventByKey[key])
+        : undefined);
+
+    elements[key] = {
+      key,
+      type: element.type,
+      props: resolvedProps.get(key) ?? element.props,
+      ...(element.children != null
+        ? {
+            children: element.children.filter((childKey) =>
+              visible.has(childKey),
+            ),
+          }
+        : {}),
+      ...(typeof element.parentKey === "string"
+        ? { parentKey: element.parentKey }
+        : {}),
+      ...(legacyAction != null ? { action: legacyAction } : {}),
+    };
+  }
+
+  return {
+    tree: {
+      root: sourceTree.root,
+      elements,
+    },
+    bindingsByKey,
+    eventByKey,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1599,13 +1912,25 @@ function inferRootKey(
   return candidates[0] ?? null;
 }
 
-function UITreeRendererImpl({
+interface UITreeRendererBaseProps {
+  readonly tree: UITree;
+  readonly streaming?: boolean;
+  readonly onAction?: ActionDispatch;
+  readonly runtimeValueStore?: RuntimeValueStore;
+  readonly loggedValidationKeys?: Set<string>;
+  readonly customComponents?: Readonly<
+    Record<string, CustomComponentDefinition>
+  >;
+}
+
+function UITreeRendererBaseImpl({
   tree,
   streaming = false,
   onAction,
   runtimeValueStore,
+  loggedValidationKeys,
   customComponents,
-}: UITreeRendererProps): React.JSX.Element | null {
+}: UITreeRendererBaseProps): React.JSX.Element | null {
   if (Object.keys(tree.elements).length === 0) return null;
 
   // During streaming, the model can set /root before it defines the root
@@ -1636,6 +1961,10 @@ function UITreeRendererImpl({
     () => extractCustomSchemas(customComponents),
     [customComponents],
   );
+  const localLoggedValidationKeys = useMemo(
+    () => new Set<string>(),
+    [normalizedTree],
+  );
 
   return (
     <RuntimeValueStoreProvider value={runtimeValueStore ?? null}>
@@ -1646,8 +1975,156 @@ function UITreeRendererImpl({
         onAction={onAction}
         componentMap={resolvedMap}
         customSchemas={resolvedSchemas}
+        loggedValidationKeys={loggedValidationKeys ?? localLoggedValidationKeys}
       />
     </RuntimeValueStoreProvider>
+  );
+}
+
+const UITreeRendererBase = memo(UITreeRendererBaseImpl);
+
+function UITreeRendererImpl({
+  tree,
+  data,
+  auth,
+  streaming = false,
+  onAction,
+  runtimeValueStore,
+  customComponents,
+}: UITreeRendererProps): React.JSX.Element | null {
+  const initialSpec: CompatibleUITreeInput = useMemo(
+    () => ({
+      tree,
+      ...(data != null ? { data } : {}),
+      ...(auth != null ? { auth } : {}),
+    }),
+    [tree, data, auth],
+  );
+  const { spec, setSpec, resolveElement, writeBinding, dispatchEvent } =
+    useUIStream({ initialSpec });
+  const didMountRef = useRef(false);
+  const loggedValidationKeysRef = useRef(new Set<string>());
+  const localRuntimeValueStore = useMemo(() => createRuntimeValueStore(), []);
+  const activeRuntimeValueStore = runtimeValueStore ?? localRuntimeValueStore;
+
+  useEffect(() => {
+    loggedValidationKeysRef.current.clear();
+  }, [tree]);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    setSpec(initialSpec);
+  }, [initialSpec, setSpec]);
+
+  const normalizedTree = useMemo(() => normalizeInputTree(tree), [tree]);
+
+  const runtimeState = useMemo(() => {
+    if (normalizedTree == null) {
+      return {
+        tree: { root: "", elements: {} },
+        bindingsByKey: {},
+        eventByKey: {},
+      } satisfies RuntimeRenderState;
+    }
+
+    return buildRuntimeRenderState(
+      normalizedTree,
+      spec.elements,
+      resolveElement,
+    );
+  }, [normalizedTree, spec.elements, resolveElement]);
+
+  const previousRuntimeValuesRef = useRef<Readonly<Record<string, unknown>>>(
+    {},
+  );
+
+  useEffect(() => {
+    previousRuntimeValuesRef.current = activeRuntimeValueStore.snapshotAll();
+
+    return activeRuntimeValueStore.subscribe(() => {
+      const previous = previousRuntimeValuesRef.current;
+      const next = activeRuntimeValueStore.snapshotAll();
+      previousRuntimeValuesRef.current = next;
+
+      for (const [elementKey, value] of Object.entries(next)) {
+        if (previous[elementKey] === value) {
+          continue;
+        }
+
+        for (const propPath of runtimeState.bindingsByKey[elementKey] ?? []) {
+          const bindingPath = toBindingPath(propPath);
+          if (bindingPath == null) {
+            continue;
+          }
+
+          writeBinding({
+            elementKey,
+            propPath: bindingPath,
+            value,
+          });
+        }
+      }
+    });
+  }, [activeRuntimeValueStore, runtimeState.bindingsByKey, writeBinding]);
+
+  const handleAction = useCallback<ActionDispatch>(
+    (event) => {
+      onAction?.(event);
+
+      if (event.context != null) {
+        for (const [key, value] of Object.entries(event.context)) {
+          const propPath = toBindingPath(`/${key}`);
+          if (propPath == null) {
+            continue;
+          }
+
+          if (
+            (runtimeState.bindingsByKey[event.sourceKey] ?? []).includes(
+              propPath,
+            )
+          ) {
+            writeBinding({
+              elementKey: event.sourceKey,
+              propPath,
+              value,
+            });
+          }
+        }
+      }
+
+      const runtimeEvent = runtimeState.eventByKey[event.sourceKey];
+      if (runtimeEvent != null) {
+        dispatchEvent({
+          elementKey: event.sourceKey,
+          event: runtimeEvent,
+        });
+      }
+    },
+    [
+      dispatchEvent,
+      onAction,
+      runtimeState.bindingsByKey,
+      runtimeState.eventByKey,
+      writeBinding,
+    ],
+  );
+
+  const effectiveOnAction =
+    onAction != null || data != null || auth != null ? handleAction : undefined;
+
+  return (
+    <UITreeRendererBase
+      tree={runtimeState.tree}
+      streaming={streaming}
+      onAction={effectiveOnAction}
+      runtimeValueStore={activeRuntimeValueStore}
+      loggedValidationKeys={loggedValidationKeysRef.current}
+      customComponents={customComponents}
+    />
   );
 }
 

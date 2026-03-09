@@ -38,7 +38,7 @@
         "Focused playground compatibility tests still pass for existing prompt/tool flows after the renderer convergence work.",
         "The convergence work remains on branch `geoquant/streaming-ui`."
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "catalog-2",
