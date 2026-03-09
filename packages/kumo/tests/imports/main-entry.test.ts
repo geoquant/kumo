@@ -9,9 +9,9 @@ describe("Main Entry Point Imports", () => {
   }, 30000);
 
   it("should import the main module without errors", async () => {
-    expect(async () => {
-      await import("@cloudflare/kumo");
-    }).not.toThrow();
+    const module = await import("@cloudflare/kumo");
+
+    expect(module).toBeDefined();
   });
 
   describe("Component exports", () => {

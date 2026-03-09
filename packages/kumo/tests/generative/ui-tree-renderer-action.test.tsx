@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import React from "react";
-import { render, cleanup } from "@testing-library/react";
+import { act, render, cleanup } from "@testing-library/react";
 import { UITreeRenderer } from "@/generative/ui-tree-renderer";
 import { COMPONENT_MAP } from "@/generative/component-map";
 import type { UITree, UIElement } from "@/streaming/types";
@@ -177,6 +177,64 @@ describe("UITreeRenderer action injection", () => {
     expect(event.sourceKey).toBe("root");
     expect(event.params).toEqual({ mode: "dark" });
     expect(event.context).toEqual({ checked: true });
+  });
+
+  it("routes legacy actions through runtime bindings and visibility", () => {
+    const dispatch = vi.fn();
+    const originalCheckbox = (COMPONENT_MAP as Record<string, unknown>)
+      .Checkbox;
+    const originalText = (COMPONENT_MAP as Record<string, unknown>).Text;
+    (COMPONENT_MAP as Record<string, unknown>).Checkbox = SpyComponent;
+    (COMPONENT_MAP as Record<string, unknown>).Text = SpyComponent;
+
+    try {
+      const t = mkTree("root", {
+        root: el("root", "Div", {}, { children: ["toggle", "copy"] }),
+        toggle: el(
+          "toggle",
+          "Checkbox",
+          {
+            "data-spy-key": "toggle",
+            checked: { path: "/prefs/enabled" },
+          },
+          {
+            action: { name: "toggle_pref" },
+          },
+        ),
+        copy: {
+          key: "copy",
+          type: "Text",
+          props: {
+            "data-spy-key": "copy",
+            children: "Enabled",
+          },
+          visible: { path: "/prefs/enabled" },
+        },
+      });
+
+      const { container } = render(
+        <UITreeRenderer
+          tree={t}
+          data={{ prefs: { enabled: true } }}
+          onAction={dispatch}
+        />,
+      );
+
+      expect(container.textContent).toContain("Enabled");
+
+      const handler = propsFor("toggle").onAction as (
+        ctx?: Record<string, unknown>,
+      ) => void;
+      act(() => {
+        handler({ checked: false });
+      });
+
+      expect(dispatch).toHaveBeenCalledOnce();
+      expect(container.textContent).not.toContain("Enabled");
+    } finally {
+      (COMPONENT_MAP as Record<string, unknown>).Checkbox = originalCheckbox;
+      (COMPONENT_MAP as Record<string, unknown>).Text = originalText;
+    }
   });
 
   // =========================================================================
