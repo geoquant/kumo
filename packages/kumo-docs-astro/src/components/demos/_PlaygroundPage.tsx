@@ -3202,11 +3202,7 @@ function PreviewContent({
       </div>
     );
   }
-  return (
-    <div className="flex h-full items-center justify-center">
-      <p className="text-kumo-subtle text-sm">Enter a prompt to generate UI</p>
-    </div>
-  );
+  return <div className="h-full" />;
 }
 
 /** Approximate token count using chars/4 heuristic. */
