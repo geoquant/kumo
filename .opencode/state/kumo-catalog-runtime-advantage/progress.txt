@@ -10,6 +10,7 @@ Started: 2026-03-09
 - Legacy UITree compatibility should normalize `parentKey -> children` before adapting, then use generated behavior metadata to decide which dynamic props become `$bind` values and which legacy `action` handlers map to `change` vs `press` events.
 - Async import tests must await the import promise directly; wrapping `await import(...)` inside `expect(async () => {}).not.toThrow()` can leave Vite module fetches pending and make Vitest fail with unhandled worker RPC shutdown errors.
 - Freshness checks should validate both layers of the pipeline: demo-source -> `dist/demo-metadata.json`, then metadata + component source -> all checked-in registry artifacts.
+- Loadable can stay host-first externally while using AppSpec internally by mirroring each container's legacy UITree into a canonical spec and treating `/state`/`/meta` patches as spec-native updates.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -33,3 +34,8 @@ Started: 2026-03-09
 - Added end-to-end freshness drift coverage: demo metadata is now generated through an importable helper in `packages/kumo-docs-astro/scripts/extract-demo-examples.ts`, registry generation is import-safe from `packages/kumo/scripts/component-registry/index.ts`, and `packages/kumo/scripts/component-registry/freshness.test.ts` verifies current demo/component sources still match committed `component-registry.json`, `component-registry.md`, `schemas.ts`, `component-behavior.json`, and `component-manifest.ts`.
 - Files changed: `packages/kumo-docs-astro/scripts/extract-demo-examples.ts`, `packages/kumo/scripts/component-registry/index.ts`, `packages/kumo/scripts/component-registry/freshness.test.ts`, `packages/kumo/tests/imports/deep-imports.test.ts`, `packages/kumo/tests/imports/main-entry.test.ts`.
 - **Learnings:** codegen CLIs need import guards before they can be reused in drift tests; once the generator is import-safe, one artifact-level test is enough to catch silently stale prompt/runtime/catalog outputs from either component or demo changes.
+
+## Task - [streaming-1]
+- Updated `packages/kumo/src/loadable/index.ts` so the UMD/loadable API keeps a canonical AppSpec mirror per container while preserving the existing UITree host API. Legacy `/root` and `/elements` RFC6902 patches still flow through the UITree path, while `/state`/`/meta`/`/watch` patches now update the internal runtime directly and render through the same AppSpec-backed renderer path used elsewhere.
+- Files changed: `packages/kumo/src/loadable/index.ts`, `packages/kumo/tests/loadable/loadable-tree-access.test.ts`, `packages/kumo/tests/imports/deep-imports.test.ts`.
+- **Learnings:** once deep-import tests await real module imports, some component entrypoints need longer per-test timeouts; otherwise the runtime migration looks flaky even when the underlying loadable/render path is correct.

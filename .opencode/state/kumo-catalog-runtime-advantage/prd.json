@@ -64,7 +64,7 @@
         "A clearer single-runtime internal story is documented in code interfaces or module boundaries for streaming/loadable paths.",
         "The streaming convergence work remains on `geoquant/streaming-ui`."
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-1",
