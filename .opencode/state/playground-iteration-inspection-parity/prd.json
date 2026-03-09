@@ -25,7 +25,7 @@
         "`Tree` view supports copy-to-clipboard of the rendered nested representation",
         "Empty state is shown when the active panel has no renderable tree"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "validation-1",

@@ -106,6 +106,7 @@ import {
   playgroundLayoutReducer,
   playgroundPanelsReducer,
 } from "~/lib/playground/state";
+import { buildNestedTree } from "~/lib/playground/nested-tree";
 import type {
   ActionLogEntry,
   PanelTab,
@@ -152,6 +153,7 @@ const PANEL_TAB_CLASS = "text-xs";
 const PANEL_TABS: TabsItem[] = [
   { value: "preview", label: "UI", className: PANEL_TAB_CLASS },
   { value: "code", label: "Code", className: PANEL_TAB_CLASS },
+  { value: "tree", label: "Tree", className: PANEL_TAB_CLASS },
   { value: "jsonl", label: "JSONL", className: PANEL_TAB_CLASS },
   { value: "actions", label: "Actions", className: PANEL_TAB_CLASS },
   { value: "grading", label: "Grade", className: PANEL_TAB_CLASS },
@@ -1500,6 +1502,8 @@ function PanelContent({
       );
     case "code":
       return <CodeTabContent tree={tree} showTree={showTree} />;
+    case "tree":
+      return <TreeTabContent tree={tree} isStreaming={isStreaming} />;
     case "jsonl":
       return <JsonTabContent rawJsonl={rawJsonl} />;
     case "actions":
@@ -1526,6 +1530,78 @@ function PanelContent({
         </div>
       );
   }
+}
+
+/** Renders a nested JSON view of the active UITree. */
+function TreeTabContent({
+  tree,
+  isStreaming,
+}: {
+  readonly tree: UITree;
+  readonly isStreaming: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const nestedTreeJson = useMemo(() => {
+    if (!tree.root || Object.keys(tree.elements).length === 0) {
+      return "";
+    }
+
+    const nestedTree = buildNestedTree(tree);
+    if (nestedTree === null) {
+      return "";
+    }
+
+    return JSON.stringify(nestedTree, null, 2);
+  }, [tree]);
+
+  const handleCopy = useCallback(() => {
+    void navigator.clipboard.writeText(nestedTreeJson).then(() => {
+      setCopied(true);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    });
+  }, [nestedTreeJson]);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
+  if (!nestedTreeJson) {
+    if (isStreaming) {
+      return (
+        <div className="flex h-full items-center justify-center">
+          <Loader size="sm" />
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-kumo-subtle">Generate UI to see tree output</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-full">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleCopy}
+        icon={copied ? <CheckIcon /> : <CopyIcon />}
+        className="absolute right-4 top-4 z-10"
+      >
+        {copied ? "Copied" : "Copy"}
+      </Button>
+      <div className="h-full overflow-auto">
+        <HighlightedCode code={nestedTreeJson} lang="json" />
+      </div>
+    </div>
+  );
 }
 
 /** Renders the UI preview for a single panel. */

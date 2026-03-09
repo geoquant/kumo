@@ -1,4 +1,8 @@
-import type { ActionEvent, UITree } from "@cloudflare/kumo/streaming";
+import type {
+  ActionEvent,
+  UIElement,
+  UITree,
+} from "@cloudflare/kumo/streaming";
 
 export type PanelId = "a" | "b";
 
@@ -7,6 +11,7 @@ export type StreamStatus = "idle" | "streaming" | "error";
 export type PanelTab =
   | "preview"
   | "code"
+  | "tree"
   | "jsonl"
   | "actions"
   | "grading"
@@ -39,6 +44,14 @@ export interface PanelArtifact {
   readonly activeTab: PanelTab;
   readonly actionLog: readonly ActionLogEntry[];
   readonly editor: EditorDraft;
+}
+
+export interface NestedTreeNode {
+  readonly key: string;
+  readonly type: string;
+  readonly props: Readonly<Record<string, unknown>>;
+  readonly action: NonNullable<UIElement["action"]> | null;
+  readonly children: readonly NestedTreeNode[];
 }
 
 export interface PlaygroundLayoutState {
