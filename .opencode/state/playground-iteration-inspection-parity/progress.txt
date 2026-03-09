@@ -8,6 +8,7 @@ Started: 2026-03-08
 - Migrate mirrored panel UI state first (tabs, status, raw JSONL, action logs, layout flags) and leave stream/runtime hooks intact until later tasks need deeper consolidation.
 - For inspection tabs, derive a memoized JSON-friendly view model in `src/lib/playground/` and render it through `HighlightedCode` with the same copy-button pattern used by JSONL and TSX tabs.
 - When an editor can override streamed output, keep the streamed tree and local override separate; render `override ?? streamTree` and only patch the override locally when interactive actions fire.
+- Keep catalog reference data UI-agnostic: normalize registry components and action definitions in `src/lib/playground/catalog-data.ts`, then let later UI layers consume sorted arrays instead of raw registry maps.
 
 ---
 
@@ -32,3 +33,10 @@ Started: 2026-03-08
 - Routed interactive action patches against local overrides when present so edited previews remain internally consistent.
 - Files changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`, `packages/kumo-docs-astro/src/lib/playground/state.ts`, `packages/kumo-docs-astro/src/lib/playground/types.ts`, `packages/kumo-docs-astro/src/lib/playground/validate-tree.ts`, `.opencode/state/playground-iteration-inspection-parity/prd.json`, `.opencode/state/playground-iteration-inspection-parity/progress.txt`
 - **Learnings:** validation helpers should cache an initialized catalog instance, and editor reset should clear local overrides before the next streamed generation starts.
+
+## Task - data-1
+- Added `packages/kumo-docs-astro/src/lib/playground/catalog-data.ts` to normalize component metadata from `virtual:kumo-registry` into sorted catalog entries with prop metadata.
+- Added explicit normalized action entries for built-in actions (`increment`, `decrement`, `reset`, `set`, `toggle`, `submit_form`, `navigate`) plus playground-specific actions (`tool_approve`, `tool_cancel`).
+- Exported sorted component categories alongside normalized component/action arrays so the later catalog UI can stay focused on rendering and filtering.
+- Files changed: `packages/kumo-docs-astro/src/lib/playground/catalog-data.ts`, `.opencode/state/playground-iteration-inspection-parity/prd.json`, `.opencode/state/playground-iteration-inspection-parity/progress.txt`
+- **Learnings:** registry normalization should follow existing docs requiredness logic (`required === true || optional === false`) so later UIs stay consistent with `PropsTable` and CLI docs.

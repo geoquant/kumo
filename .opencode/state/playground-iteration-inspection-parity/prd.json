@@ -52,7 +52,7 @@
         "Action metadata also includes playground-specific actions `tool_approve` and `tool_cancel`",
         "Catalog data exposes names, descriptions, and parameter metadata needed by the UI explorer"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-2",
