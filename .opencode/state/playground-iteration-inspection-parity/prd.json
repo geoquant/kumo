@@ -81,7 +81,7 @@
         "Downloaded/exported component names default to `GeneratedPanelA` and `GeneratedPanelB` for the respective panels",
         "If export output includes playground-only components such as `DemoButton`, the UI shows an explicit warning"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "layout-1",
