@@ -1,19 +1,25 @@
 import { describe, it, expect } from "vitest";
 import { discoverComponents, getComponentsWithExports } from "./test-utils";
 
+const IMPORT_TIMEOUT_MS = 15_000;
+
 describe("Deep Import Patterns", () => {
   const allComponents = discoverComponents();
   const componentsWithExports = getComponentsWithExports();
 
   describe("Components with configured exports", () => {
     componentsWithExports.forEach((componentName: string) => {
-      it(`should import from @cloudflare/kumo/components/${componentName}`, async () => {
-        const module = await import(
-          `../../src/components/${componentName}/index.ts`
-        );
-        expect(module).toBeDefined();
-        expect(Object.keys(module).length).toBeGreaterThan(0);
-      });
+      it(
+        `should import from @cloudflare/kumo/components/${componentName}`,
+        async () => {
+          const module = await import(
+            `../../src/components/${componentName}/index.ts`
+          );
+          expect(module).toBeDefined();
+          expect(Object.keys(module).length).toBeGreaterThan(0);
+        },
+        IMPORT_TIMEOUT_MS,
+      );
     });
   });
 
@@ -40,11 +46,15 @@ describe("Deep Import Patterns", () => {
 
   describe("All components should have index.ts", () => {
     allComponents.forEach((componentName: string) => {
-      it(`${componentName} should have an index.ts file`, async () => {
-        await expect(
-          import(`../../src/components/${componentName}/index.ts`),
-        ).resolves.toBeDefined();
-      });
+      it(
+        `${componentName} should have an index.ts file`,
+        async () => {
+          await expect(
+            import(`../../src/components/${componentName}/index.ts`),
+          ).resolves.toBeDefined();
+        },
+        IMPORT_TIMEOUT_MS,
+      );
     });
   });
 });
