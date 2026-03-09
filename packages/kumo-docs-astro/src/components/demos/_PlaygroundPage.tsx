@@ -23,6 +23,7 @@ import {
   Checkbox,
   CloudflareLogo,
   Cluster,
+  cn,
   Grid,
   GridItem,
   InputArea,
@@ -107,6 +108,13 @@ import {
   playgroundLayoutReducer,
   playgroundPanelsReducer,
 } from "~/lib/playground/state";
+import {
+  playgroundCatalogActions,
+  playgroundCatalogCategories,
+  playgroundCatalogComponents,
+  type CatalogActionEntry,
+  type CatalogComponentEntry,
+} from "~/lib/playground/catalog-data";
 import { buildNestedTree } from "~/lib/playground/nested-tree";
 import { validateEditableTree } from "~/lib/playground/validate-tree";
 import type {
@@ -362,6 +370,7 @@ function PlaygroundContent() {
   const noPromptRawJsonl = panelState.b.rawJsonl;
   const rightActionLog = panelState.b.actionLog;
   const chatMinimized = layoutState.chatMinimized;
+  const catalogOpen = layoutState.catalogOpen;
 
   const setLeftTab = useCallback(
     (tab: PanelTab) => {
@@ -378,6 +387,12 @@ function PlaygroundContent() {
   const toggleChat = useCallback(() => {
     dispatchLayoutState({ type: "toggle-chat-minimized" });
   }, [dispatchLayoutState]);
+  const setCatalogOpen = useCallback(
+    (value: boolean) => {
+      dispatchLayoutState({ type: "set-catalog-open", value });
+    },
+    [dispatchLayoutState],
+  );
   const setStatus = useCallback(
     (nextStatus: StreamStatus) => {
       dispatchPanelState({
@@ -1339,6 +1354,13 @@ function PlaygroundContent() {
         <div className="flex h-[61px] shrink-0 items-center justify-between border-b border-kumo-line px-4">
           <CloudflareLogo variant="glyph" className="h-5 w-auto shrink-0" />
           <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCatalogOpen(true)}
+            >
+              Catalog
+            </Button>
             <a
               href="/"
               className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
@@ -1368,6 +1390,10 @@ function PlaygroundContent() {
 
         {/* Side-by-side panels */}
         <div className="relative flex flex-1 overflow-hidden">
+          <CatalogExplorerSheet
+            open={catalogOpen}
+            onOpenChange={setCatalogOpen}
+          />
           {/* Streaming progress indicator */}
           {(isStreaming || isNoPromptStreaming) && (
             <div
@@ -1644,6 +1670,287 @@ function ComparisonPanels({
         </div>
       </GridItem>
     </Grid>
+  );
+}
+
+type CatalogView = "components" | "actions";
+
+function CatalogExplorerSheet({
+  open,
+  onOpenChange,
+}: {
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+}) {
+  const [activeView, setActiveView] = useState<CatalogView>("components");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onOpenChange(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onOpenChange, open]);
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  const filteredComponents = useMemo(() => {
+    return playgroundCatalogComponents.filter((component) => {
+      if (
+        selectedCategory !== "all" &&
+        component.category !== selectedCategory
+      ) {
+        return false;
+      }
+
+      if (normalizedQuery.length === 0) {
+        return true;
+      }
+
+      return component.name.toLowerCase().includes(normalizedQuery);
+    });
+  }, [normalizedQuery, selectedCategory]);
+
+  const filteredActions = useMemo(() => {
+    return playgroundCatalogActions.filter((action) => {
+      if (normalizedQuery.length === 0) {
+        return true;
+      }
+
+      return action.name.toLowerCase().includes(normalizedQuery);
+    });
+  }, [normalizedQuery]);
+
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-40">
+      <button
+        type="button"
+        aria-label="Close catalog explorer"
+        className="absolute inset-0 bg-kumo-overlay/60"
+        onClick={() => onOpenChange(false)}
+      />
+
+      <div className="absolute inset-0 bg-kumo-base md:inset-y-4 md:right-4 md:left-auto md:w-[28rem] md:rounded-xl md:border md:border-kumo-line md:shadow-xl">
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between border-b border-kumo-line px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-kumo-default">Catalog</p>
+              <p className="text-xs text-kumo-subtle">
+                Components and actions available in the playground
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              icon={<XCircleIcon />}
+            >
+              Close
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 border-b border-kumo-line px-4 py-3">
+            <button
+              type="button"
+              onClick={() => setActiveView("components")}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                activeView === "components"
+                  ? "bg-kumo-brand text-white"
+                  : "bg-kumo-elevated text-kumo-default hover:bg-kumo-recessed",
+              )}
+            >
+              Components ({playgroundCatalogComponents.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveView("actions")}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                activeView === "actions"
+                  ? "bg-kumo-brand text-white"
+                  : "bg-kumo-elevated text-kumo-default hover:bg-kumo-recessed",
+              )}
+            >
+              Actions ({playgroundCatalogActions.length})
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-3 border-b border-kumo-line px-4 py-3">
+            <label className="flex flex-col gap-1 text-xs text-kumo-subtle">
+              Search by name
+              <input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={
+                  activeView === "components"
+                    ? "Search components"
+                    : "Search actions"
+                }
+                className="rounded-md border border-kumo-line bg-kumo-base px-3 py-2 text-sm text-kumo-default outline-none focus:border-kumo-brand"
+              />
+            </label>
+
+            {activeView === "components" ? (
+              <label className="flex flex-col gap-1 text-xs text-kumo-subtle">
+                Filter by category
+                <select
+                  value={selectedCategory}
+                  onChange={(event) => setSelectedCategory(event.target.value)}
+                  className="rounded-md border border-kumo-line bg-kumo-base px-3 py-2 text-sm text-kumo-default outline-none focus:border-kumo-brand"
+                >
+                  <option value="all">All categories</option>
+                  {playgroundCatalogCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+          </div>
+
+          <div className="flex-1 overflow-auto px-4 py-4">
+            {activeView === "components" ? (
+              <CatalogComponentList components={filteredComponents} />
+            ) : (
+              <CatalogActionList actions={filteredActions} />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CatalogComponentList({
+  components,
+}: {
+  readonly components: readonly CatalogComponentEntry[];
+}) {
+  if (components.length === 0) {
+    return <p className="text-sm text-kumo-subtle">No matching components.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {components.map((component) => (
+        <div
+          key={component.name}
+          className="rounded-lg border border-kumo-line bg-kumo-base p-3"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-medium text-kumo-default">{component.name}</p>
+              <p className="text-xs text-kumo-subtle">{component.category}</p>
+            </div>
+            <code className="rounded bg-kumo-elevated px-2 py-1 text-[11px] text-kumo-subtle">
+              {component.importPath}
+            </code>
+          </div>
+          <p className="mt-2 text-sm text-kumo-subtle">
+            {component.description}
+          </p>
+          <div className="mt-3 space-y-2">
+            {component.props.length > 0 ? (
+              component.props.slice(0, 8).map((prop) => (
+                <div
+                  key={prop.name}
+                  className="rounded-md bg-kumo-elevated/60 px-3 py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs text-kumo-default">
+                      {prop.name}
+                    </span>
+                    <span className="text-xs text-kumo-subtle">
+                      {prop.type}
+                    </span>
+                    <span className="text-xs text-kumo-subtle">
+                      {prop.required ? "required" : "optional"}
+                    </span>
+                  </div>
+                  {prop.description ? (
+                    <p className="mt-1 text-xs text-kumo-subtle">
+                      {prop.description}
+                    </p>
+                  ) : null}
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-kumo-subtle">No documented props.</p>
+            )}
+            {component.props.length > 8 ? (
+              <p className="text-xs text-kumo-subtle">
+                +{component.props.length - 8} more props in registry metadata
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CatalogActionList({
+  actions,
+}: {
+  readonly actions: readonly CatalogActionEntry[];
+}) {
+  if (actions.length === 0) {
+    return <p className="text-sm text-kumo-subtle">No matching actions.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {actions.map((action) => (
+        <div
+          key={action.name}
+          className="rounded-lg border border-kumo-line bg-kumo-base p-3"
+        >
+          <p className="font-medium text-kumo-default">{action.name}</p>
+          <p className="mt-1 text-sm text-kumo-subtle">{action.description}</p>
+          <div className="mt-3 space-y-2">
+            {action.params.length > 0 ? (
+              action.params.map((param) => (
+                <div
+                  key={param.name}
+                  className="rounded-md bg-kumo-elevated/60 px-3 py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs text-kumo-default">
+                      {param.name}
+                    </span>
+                    <span className="text-xs text-kumo-subtle">
+                      {param.type}
+                    </span>
+                  </div>
+                  {param.description ? (
+                    <p className="mt-1 text-xs text-kumo-subtle">
+                      {param.description}
+                    </p>
+                  ) : null}
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-kumo-subtle">No params required.</p>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
