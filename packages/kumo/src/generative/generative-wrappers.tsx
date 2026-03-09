@@ -12,6 +12,18 @@
  */
 
 import React, { forwardRef } from "react";
+import * as echarts from "echarts/core";
+import { BarChart, LineChart } from "echarts/charts";
+import {
+  AriaComponent,
+  AxisPointerComponent,
+  BrushComponent,
+  GridComponent,
+  ToolboxComponent,
+  TooltipComponent,
+} from "echarts/components";
+import { LabelLayout, UniversalTransition } from "echarts/features";
+import { CanvasRenderer } from "echarts/renderers";
 import {
   CloudflareLogo,
   Grid,
@@ -20,9 +32,24 @@ import {
   Stack,
   Surface,
   Text,
+  TimeseriesChart,
 } from "../index.js";
 import { cn } from "../utils/index.js";
 import { StatefulSelect } from "./stateful-wrappers.js";
+
+echarts.use([
+  LineChart,
+  BarChart,
+  AxisPointerComponent,
+  BrushComponent,
+  GridComponent,
+  ToolboxComponent,
+  TooltipComponent,
+  AriaComponent,
+  LabelLayout,
+  UniversalTransition,
+  CanvasRenderer,
+]);
 
 // =============================================================================
 // Helpers
@@ -38,6 +65,216 @@ function stripClassName(
 ): Record<string, unknown> {
   const { className: _, ...rest } = props;
   return rest;
+}
+
+type TimeseriesPoint = [number, number];
+
+type TimeseriesSeries = {
+  readonly name: string;
+  readonly data: TimeseriesPoint[];
+  readonly color: string;
+};
+
+const DEFAULT_CHART_COLORS = ["#f38020", "#0ea5e9", "#8b5cf6", "#10b981"];
+
+function readStringProp(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? value : undefined;
+}
+
+function readNumberProp(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseTimestamp(value: unknown, fallbackIndex: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) {
+      return numeric;
+    }
+
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return Date.now() + fallbackIndex * 60_000;
+}
+
+function parseValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) {
+      return numeric;
+    }
+  }
+
+  return null;
+}
+
+function normalizePoint(value: unknown, index: number): TimeseriesPoint | null {
+  if (Array.isArray(value) && value.length >= 2) {
+    const y = parseValue(value[1]);
+    if (y === null) {
+      return null;
+    }
+    return [parseTimestamp(value[0], index), y];
+  }
+
+  if (typeof value === "number" || typeof value === "string") {
+    const y = parseValue(value);
+    if (y === null) {
+      return null;
+    }
+    return [parseTimestamp(undefined, index), y];
+  }
+
+  if (isRecord(value)) {
+    const x =
+      value["x"] ?? value["timestamp"] ?? value["time"] ?? value["date"];
+    const y = parseValue(value["y"] ?? value["value"] ?? value["count"]);
+    if (y === null) {
+      return null;
+    }
+    return [parseTimestamp(x, index), y];
+  }
+
+  return null;
+}
+
+function normalizeSeriesData(value: unknown): TimeseriesPoint[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((point, index) => normalizePoint(point, index))
+    .filter((point): point is TimeseriesPoint => point !== null);
+}
+
+function buildFallbackSeries(name: string, color: string): TimeseriesSeries {
+  const base = Date.now() - 4 * 60_000;
+  return {
+    name,
+    color,
+    data: [0, 1, 2, 3, 4].map(
+      (offset) => [base + offset * 60_000, 12 + offset * 4] as const,
+    ),
+  };
+}
+
+function normalizeSeries(
+  value: unknown,
+  index: number,
+): TimeseriesSeries | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const name = readStringProp(value["name"]) ?? `Series ${index + 1}`;
+  const color =
+    readStringProp(value["color"]) ??
+    DEFAULT_CHART_COLORS[index % DEFAULT_CHART_COLORS.length] ??
+    "#f38020";
+  const data = normalizeSeriesData(
+    value["data"] ?? value["points"] ?? value["values"],
+  );
+
+  return {
+    name,
+    color,
+    data: data.length > 0 ? data : buildFallbackSeries(name, color).data,
+  };
+}
+
+function normalizeTimeseriesData(value: unknown): TimeseriesSeries[] {
+  if (Array.isArray(value)) {
+    const first = value[0];
+
+    if (
+      isRecord(first) &&
+      ("data" in first || "points" in first || "values" in first)
+    ) {
+      const series = value
+        .map((entry, index) => normalizeSeries(entry, index))
+        .filter((entry): entry is TimeseriesSeries => entry !== null);
+
+      return series.length > 0
+        ? series
+        : [
+            buildFallbackSeries(
+              "Requests",
+              DEFAULT_CHART_COLORS[0] ?? "#f38020",
+            ),
+          ];
+    }
+
+    const points = normalizeSeriesData(value);
+    return [
+      {
+        name: "Requests",
+        color: DEFAULT_CHART_COLORS[0] ?? "#f38020",
+        data:
+          points.length > 0
+            ? points
+            : buildFallbackSeries(
+                "Requests",
+                DEFAULT_CHART_COLORS[0] ?? "#f38020",
+              ).data,
+      },
+    ];
+  }
+
+  if (isRecord(value)) {
+    if (Array.isArray(value["series"])) {
+      return normalizeTimeseriesData(value["series"]);
+    }
+
+    if (
+      Array.isArray(value["data"]) ||
+      Array.isArray(value["points"]) ||
+      Array.isArray(value["values"])
+    ) {
+      return [
+        {
+          name: readStringProp(value["name"]) ?? "Requests",
+          color:
+            readStringProp(value["color"]) ??
+            DEFAULT_CHART_COLORS[0] ??
+            "#f38020",
+          data:
+            normalizeSeriesData(
+              value["data"] ?? value["points"] ?? value["values"],
+            ).length > 0
+              ? normalizeSeriesData(
+                  value["data"] ?? value["points"] ?? value["values"],
+                )
+              : buildFallbackSeries(
+                  "Requests",
+                  DEFAULT_CHART_COLORS[0] ?? "#f38020",
+                ).data,
+        },
+      ];
+    }
+  }
+
+  return [
+    buildFallbackSeries("Requests", DEFAULT_CHART_COLORS[0] ?? "#f38020"),
+  ];
 }
 
 // =============================================================================
@@ -232,6 +469,24 @@ export const GenerativeText = forwardRef<
   );
 });
 GenerativeText.displayName = "GenerativeText";
+
+export function GenerativeTimeseriesChart(
+  props: Record<string, unknown>,
+): React.JSX.Element {
+  const data = normalizeTimeseriesData(props["data"] ?? props["series"]);
+  const chartType = props["type"] === "bar" ? "bar" : "line";
+
+  return React.createElement(TimeseriesChart, {
+    echarts,
+    data,
+    type: chartType,
+    xAxisName: readStringProp(props["xAxisName"]) ?? "Time",
+    yAxisName: readStringProp(props["yAxisName"]) ?? "Value",
+    height: readNumberProp(props["height"]) ?? 280,
+    gradient: props["gradient"] === true ? true : chartType === "line",
+    isDarkMode: props["isDarkMode"] === true,
+  });
+}
 
 // =============================================================================
 // GenerativeSelect
