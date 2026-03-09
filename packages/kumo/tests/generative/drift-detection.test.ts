@@ -41,10 +41,14 @@ import {
 
 import {
   GenerativeSurface,
+  GenerativeGrid,
   GenerativeInput,
   GenerativeInputArea,
   GenerativeCloudflareLogo,
   GenerativeSelect,
+  GenerativeStack,
+  GenerativeText,
+  GenerativeTimeseriesChart,
 } from "@/generative/generative-wrappers";
 
 // Registry JSON — source of truth
@@ -223,10 +227,14 @@ describe("Stateful wrappers", () => {
 describe("Generative wrappers", () => {
   const wrapperMap: Record<string, unknown> = {
     Surface: GenerativeSurface,
+    Grid: GenerativeGrid,
     Input: GenerativeInput,
     InputArea: GenerativeInputArea,
     CloudflareLogo: GenerativeCloudflareLogo,
     Select: GenerativeSelect,
+    Stack: GenerativeStack,
+    Text: GenerativeText,
+    TimeseriesChart: GenerativeTimeseriesChart,
   };
 
   for (const target of GENERATIVE_WRAPPER_TARGETS) {

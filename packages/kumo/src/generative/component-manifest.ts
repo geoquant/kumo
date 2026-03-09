@@ -23,16 +23,12 @@ export const DIRECT_COMPONENTS = [
   "Empty",
   "Field",
   "Flow",
-  "Grid",
   "Label",
   "Link",
   "Loader",
   "Meter",
   "Radio",
-  "Stack",
-  "Table",
-  "Text",
-  "TimeseriesChart"
+  "Table"
 ] as const;
 
 // =============================================================================
@@ -186,10 +182,14 @@ export const STATEFUL_WRAPPER_TARGETS = [
 
 export const GENERATIVE_WRAPPER_TARGETS = [
   "CloudflareLogo",
+  "Grid",
   "Input",
   "InputArea",
   "Select",
-  "Surface"
+  "Stack",
+  "Surface",
+  "Text",
+  "TimeseriesChart"
 ] as const;
 
 // =============================================================================

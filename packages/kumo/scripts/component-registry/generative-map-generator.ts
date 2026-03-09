@@ -12,7 +12,7 @@
  * Output: src/generative/component-manifest.ts
  */
 
-import type { ComponentRegistry } from "./types.js";
+import type { ComponentRegistry, WrapperKind } from "./types.js";
 
 // =============================================================================
 // Configuration — manually maintained lists of special-cased components
@@ -24,7 +24,7 @@ import type { ComponentRegistry } from "./types.js";
  *
  * Each entry MUST have a documented reason.
  */
-const EXCLUDED_COMPONENTS: Record<string, string> = {
+export const EXCLUDED_COMPONENTS: Record<string, string> = {
   CommandPalette:
     "Complex overlay with 14 sub-components; requires host keyboard handling",
   Combobox:
@@ -50,7 +50,7 @@ const EXCLUDED_COMPONENTS: Record<string, string> = {
  * Components that are controlled-only in Kumo (no defaultValue/defaultChecked)
  * and need stateful wrappers for LLM-generated UIs to be interactive.
  */
-const STATEFUL_WRAPPER_TARGETS = [
+export const STATEFUL_WRAPPER_TARGETS = [
   "Checkbox",
   "Collapsible",
   "Select",
@@ -63,19 +63,23 @@ const STATEFUL_WRAPPER_TARGETS = [
  * adjustments in LLM-generated UI. Each entry maps to a wrapper component
  * in `generative-wrappers.tsx`.
  */
-const GENERATIVE_WRAPPER_TARGETS = [
+export const GENERATIVE_WRAPPER_TARGETS = [
   "CloudflareLogo",
+  "Grid",
   "Input",
   "InputArea",
   "Select",
+  "Stack",
   "Surface",
+  "Text",
+  "TimeseriesChart",
 ] as const;
 
 /**
  * Type aliases: LLM output name → Kumo export name.
  * Allows models to use shorter/clearer names.
  */
-const TYPE_ALIASES: Record<string, string> = {
+export const TYPE_ALIASES: Record<string, string> = {
   Textarea: "InputArea",
 };
 
@@ -87,31 +91,51 @@ const TYPE_ALIASES: Record<string, string> = {
  * Derived from registry sub-components, filtered to only those that make
  * sense in flat generative UI.
  */
-const SUB_COMPONENT_OVERRIDES: Record<string, { parent: string; sub: string }> =
-  {
-    BreadcrumbsCurrent: { parent: "Breadcrumbs", sub: "Current" },
-    BreadcrumbsLink: { parent: "Breadcrumbs", sub: "Link" },
-    BreadcrumbsSeparator: { parent: "Breadcrumbs", sub: "Separator" },
-    FlowNode: { parent: "Flow", sub: "Node" },
-    FlowParallel: { parent: "Flow", sub: "Parallel" },
-    RadioGroup: { parent: "Radio", sub: "Group" },
-    RadioItem: { parent: "Radio", sub: "Item" },
-    SelectOption: { parent: "Select", sub: "Option" },
-    TableBody: { parent: "Table", sub: "Body" },
-    TableCell: { parent: "Table", sub: "Cell" },
-    TableFooter: { parent: "Table", sub: "Footer" },
-    TableHead: { parent: "Table", sub: "Head" },
-    TableHeader: { parent: "Table", sub: "Header" },
-    TableRow: { parent: "Table", sub: "Row" },
-  };
+export const SUB_COMPONENT_OVERRIDES: Record<
+  string,
+  { parent: string; sub: string }
+> = {
+  BreadcrumbsCurrent: { parent: "Breadcrumbs", sub: "Current" },
+  BreadcrumbsLink: { parent: "Breadcrumbs", sub: "Link" },
+  BreadcrumbsSeparator: { parent: "Breadcrumbs", sub: "Separator" },
+  FlowNode: { parent: "Flow", sub: "Node" },
+  FlowParallel: { parent: "Flow", sub: "Parallel" },
+  RadioGroup: { parent: "Radio", sub: "Group" },
+  RadioItem: { parent: "Radio", sub: "Item" },
+  SelectOption: { parent: "Select", sub: "Option" },
+  TableBody: { parent: "Table", sub: "Body" },
+  TableCell: { parent: "Table", sub: "Cell" },
+  TableFooter: { parent: "Table", sub: "Footer" },
+  TableHead: { parent: "Table", sub: "Head" },
+  TableHeader: { parent: "Table", sub: "Header" },
+  TableRow: { parent: "Table", sub: "Row" },
+};
 
 /**
  * Synthetic types: component names that don't correspond to a registry
  * component or sub-component, but are useful aliases for LLM output.
  */
-const SYNTHETIC_TYPES: Record<string, string> = {
+export const SYNTHETIC_TYPES: Record<string, string> = {
   Div: "Generic container element rendered as a <div>",
 };
+
+export function getWrapperKind(componentName: string): WrapperKind {
+  const statefulTargets = new Set<string>(STATEFUL_WRAPPER_TARGETS);
+  const generativeTargets = new Set<string>(GENERATIVE_WRAPPER_TARGETS);
+  const hasStateful = statefulTargets.has(componentName);
+  const hasGenerative = generativeTargets.has(componentName);
+
+  if (hasStateful && hasGenerative) {
+    return "stateful+generative";
+  }
+  if (hasStateful) {
+    return "stateful";
+  }
+  if (hasGenerative) {
+    return "generative";
+  }
+  return "none";
+}
 
 // =============================================================================
 // Generator

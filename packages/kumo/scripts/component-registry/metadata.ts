@@ -8,7 +8,12 @@
  * - Styling metadata for Figma plugin
  */
 
-import type { PropSchema, PassthroughDoc, ComponentStyling } from "./types.js";
+import type {
+  ComponentBehaviorOverlay,
+  PropSchema,
+  PassthroughDoc,
+  ComponentStyling,
+} from "./types.js";
 
 // =============================================================================
 // Pass-through Component Documentation
@@ -318,7 +323,12 @@ export const COMPONENT_STYLING_METADATA: Record<string, ComponentStyling> = {
     ],
   },
   ClipboardText: {
-    baseTokens: ["bg-kumo-base", "text-kumo-default", "ring-kumo-line", "border-kumo-fill"],
+    baseTokens: [
+      "bg-kumo-base",
+      "text-kumo-default",
+      "ring-kumo-line",
+      "border-kumo-fill",
+    ],
     states: {
       input: ["bg-kumo-control", "text-kumo-default", "ring-kumo-line"],
       text: ["bg-kumo-base", "font-mono"],
@@ -403,7 +413,12 @@ export const COMPONENT_STYLING_METADATA: Record<string, ComponentStyling> = {
     },
   },
   Input: {
-    baseTokens: ["bg-kumo-control", "text-kumo-default", "text-kumo-subtle", "ring-kumo-line"],
+    baseTokens: [
+      "bg-kumo-control",
+      "text-kumo-default",
+      "text-kumo-subtle",
+      "ring-kumo-line",
+    ],
     sizeVariants: {
       xs: {
         height: 20,
@@ -473,7 +488,12 @@ export const COMPONENT_STYLING_METADATA: Record<string, ComponentStyling> = {
     },
   },
   Dialog: {
-    baseTokens: ["bg-kumo-base", "text-kumo-default", "border-kumo-line", "shadow-m"],
+    baseTokens: [
+      "bg-kumo-base",
+      "text-kumo-default",
+      "border-kumo-line",
+      "shadow-m",
+    ],
     sizeVariants: {
       sm: {
         height: 0, // Dialog height is auto (content-driven)
@@ -639,5 +659,104 @@ export const COMPONENT_STYLING_METADATA: Record<string, ComponentStyling> = {
       fontSize: 16, // text-base
       fontWeight: 400,
     },
+  },
+};
+
+// =============================================================================
+// Behavior Metadata Overlay
+// =============================================================================
+
+export const COMPONENT_BEHAVIOR_OVERLAY: Record<
+  string,
+  ComponentBehaviorOverlay
+> = {
+  Checkbox: {
+    bindableProps: ["checked"],
+    emittedEvents: [
+      {
+        prop: "onCheckedChange",
+        event: "checked-change",
+        payload: "checked",
+      },
+    ],
+  },
+  Collapsible: {
+    bindableProps: ["open"],
+    emittedEvents: [
+      {
+        prop: "onOpenChange",
+        event: "open-change",
+        payload: "open",
+      },
+    ],
+  },
+  Combobox: {
+    bindableProps: ["value"],
+    emittedEvents: [
+      {
+        prop: "onValueChange",
+        event: "value-change",
+        payload: "value",
+      },
+    ],
+  },
+  Input: {
+    bindableProps: ["value"],
+    emittedEvents: [
+      {
+        prop: "onChange",
+        event: "change",
+        payload: "event.target.value",
+      },
+    ],
+  },
+  InputArea: {
+    bindableProps: ["value"],
+    emittedEvents: [
+      {
+        prop: "onChange",
+        event: "change",
+        payload: "event.target.value",
+      },
+    ],
+  },
+  Select: {
+    bindableProps: ["value"],
+    emittedEvents: [
+      {
+        prop: "onValueChange",
+        event: "value-change",
+        payload: "value",
+      },
+    ],
+  },
+  Switch: {
+    bindableProps: ["checked"],
+    emittedEvents: [
+      {
+        prop: "onCheckedChange",
+        event: "checked-change",
+        payload: "checked",
+      },
+    ],
+  },
+  Tabs: {
+    bindableProps: ["value"],
+    emittedEvents: [
+      {
+        prop: "onValueChange",
+        event: "value-change",
+        payload: "value",
+      },
+    ],
+  },
+  TimeseriesChart: {
+    emittedEvents: [
+      {
+        prop: "onTimeRangeChange",
+        event: "time-range-change",
+        payload: "from,to",
+      },
+    ],
   },
 };
