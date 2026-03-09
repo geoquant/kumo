@@ -107,7 +107,7 @@
         "Chat state and messages are preserved while switching between mobile views",
         "Catalog remains reachable on mobile without leaving `/playground`"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "testing-1",

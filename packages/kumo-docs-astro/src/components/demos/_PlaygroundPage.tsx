@@ -381,6 +381,10 @@ function PlaygroundContent() {
   const rightActionLog = panelState.b.actionLog;
   const chatMinimized = layoutState.chatMinimized;
   const catalogOpen = layoutState.catalogOpen;
+  const mobileView = layoutState.mobileView;
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false,
+  );
 
   const setLeftTab = useCallback(
     (tab: PanelTab) => {
@@ -400,6 +404,12 @@ function PlaygroundContent() {
   const setCatalogOpen = useCallback(
     (value: boolean) => {
       dispatchLayoutState({ type: "set-catalog-open", value });
+    },
+    [dispatchLayoutState],
+  );
+  const setMobileView = useCallback(
+    (value: "chat" | "a" | "b" | "catalog") => {
+      dispatchLayoutState({ type: "set-mobile-view", value });
     },
     [dispatchLayoutState],
   );
@@ -1352,6 +1362,83 @@ function PlaygroundContent() {
     panel.expand();
   }, [chatMinimized]);
 
+  useEffect(() => {
+    function syncViewport() {
+      setIsMobileViewport(window.innerWidth < 768);
+    }
+
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+    return () => window.removeEventListener("resize", syncViewport);
+  }, []);
+
+  if (isMobileViewport) {
+    return (
+      <MobilePlaygroundShell
+        mobileView={mobileView}
+        onMobileViewChange={setMobileView}
+        inputValue={inputValue}
+        onInputChange={setInputValue}
+        selectedModel={selectedModel}
+        onModelChange={setSelectedModel}
+        isAnyStreaming={isAnyStreaming}
+        status={status}
+        messages={messages}
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        messagesEndRef={messagesEndRef}
+        presets={PRESET_PROMPTS}
+        onToolAction={handleToolAction}
+        leftTab={leftTab}
+        onLeftTabChange={setLeftTab}
+        leftTree={leftEffectiveTree}
+        leftStreamedTree={tree}
+        leftShowTree={showTree}
+        leftRuntimeValueStore={runtimeValueStore}
+        isLeftStreaming={isStreaming}
+        leftRawJsonl={rawJsonl}
+        onLeftAction={handleAction}
+        leftPromptText={systemPromptText}
+        leftEditorText={leftEditor.text}
+        leftEditorStatus={leftEditor.status}
+        leftEditorIssues={leftEditor.validationIssues}
+        onLeftEditorTextChange={setLeftEditorText}
+        onLeftEditorValidate={setLeftEditorValidation}
+        onLeftEditorReset={resetLeftEditor}
+        onLeftEditorApplyTree={setLeftLocalTreeOverride}
+        onLeftEditorApplied={markLeftEditorApplied}
+        leftActionLog={leftActionLog}
+        onClearLeftActionLog={clearLeftActionLog}
+        rightTab={rightTab}
+        onRightTabChange={setRightTab}
+        rightTree={rightEffectiveTree}
+        rightStreamedTree={noPromptTree}
+        rightShowTree={showNoPromptTree}
+        rightRuntimeValueStore={noPromptRuntimeValueStore}
+        isRightStreaming={isNoPromptStreaming}
+        rightRawJsonl={noPromptRawJsonl}
+        onRightAction={handleNoPromptAction}
+        rightPromptText={BASELINE_PROMPT}
+        rightEditorText={rightEditor.text}
+        rightEditorStatus={rightEditor.status}
+        rightEditorIssues={rightEditor.validationIssues}
+        onRightEditorTextChange={setRightEditorText}
+        onRightEditorValidate={setRightEditorValidation}
+        onRightEditorReset={resetRightEditor}
+        onRightEditorApplyTree={setRightLocalTreeOverride}
+        onRightEditorApplied={markRightEditorApplied}
+        rightStatus={noPromptStatus}
+        rightActionLog={rightActionLog}
+        onClearRightActionLog={clearRightActionLog}
+        skills={skills}
+        pendingSkillIds={pendingSkillIds}
+        onToggleSkill={handleToggleSkill}
+        onApplySkills={handleApplySkills}
+        isSkillApplyDisabled={isNoPromptStreaming || !hasSubmitted}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-1 overflow-hidden">
       <Group
@@ -1795,31 +1882,10 @@ function PlaygroundResizeHandle({
 
 type CatalogView = "components" | "actions";
 
-function CatalogExplorerSheet({
-  open,
-  onOpenChange,
-}: {
-  readonly open: boolean;
-  readonly onOpenChange: (open: boolean) => void;
-}) {
+function CatalogExplorerContent() {
   const [activeView, setActiveView] = useState<CatalogView>("components");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onOpenChange(false);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onOpenChange, open]);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
@@ -1849,6 +1915,102 @@ function CatalogExplorerSheet({
       return action.name.toLowerCase().includes(normalizedQuery);
     });
   }, [normalizedQuery]);
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-2 border-b border-kumo-line px-4 py-3">
+        <button
+          type="button"
+          onClick={() => setActiveView("components")}
+          className={cn(
+            "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+            activeView === "components"
+              ? "bg-kumo-brand text-white"
+              : "bg-kumo-elevated text-kumo-default hover:bg-kumo-recessed",
+          )}
+        >
+          Components ({playgroundCatalogComponents.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveView("actions")}
+          className={cn(
+            "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+            activeView === "actions"
+              ? "bg-kumo-brand text-white"
+              : "bg-kumo-elevated text-kumo-default hover:bg-kumo-recessed",
+          )}
+        >
+          Actions ({playgroundCatalogActions.length})
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-3 border-b border-kumo-line px-4 py-3">
+        <label className="flex flex-col gap-1 text-xs text-kumo-subtle">
+          Search by name
+          <input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={
+              activeView === "components"
+                ? "Search components"
+                : "Search actions"
+            }
+            className="rounded-md border border-kumo-line bg-kumo-base px-3 py-2 text-sm text-kumo-default outline-none focus:border-kumo-brand"
+          />
+        </label>
+
+        {activeView === "components" ? (
+          <label className="flex flex-col gap-1 text-xs text-kumo-subtle">
+            Filter by category
+            <select
+              value={selectedCategory}
+              onChange={(event) => setSelectedCategory(event.target.value)}
+              className="rounded-md border border-kumo-line bg-kumo-base px-3 py-2 text-sm text-kumo-default outline-none focus:border-kumo-brand"
+            >
+              <option value="all">All categories</option>
+              {playgroundCatalogCategories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+      </div>
+
+      <div className="flex-1 overflow-auto px-4 py-4">
+        {activeView === "components" ? (
+          <CatalogComponentList components={filteredComponents} />
+        ) : (
+          <CatalogActionList actions={filteredActions} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CatalogExplorerSheet({
+  open,
+  onOpenChange,
+}: {
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+}) {
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onOpenChange(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onOpenChange, open]);
 
   if (!open) {
     return null;
@@ -1881,75 +2043,7 @@ function CatalogExplorerSheet({
               Close
             </Button>
           </div>
-
-          <div className="flex items-center gap-2 border-b border-kumo-line px-4 py-3">
-            <button
-              type="button"
-              onClick={() => setActiveView("components")}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                activeView === "components"
-                  ? "bg-kumo-brand text-white"
-                  : "bg-kumo-elevated text-kumo-default hover:bg-kumo-recessed",
-              )}
-            >
-              Components ({playgroundCatalogComponents.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveView("actions")}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                activeView === "actions"
-                  ? "bg-kumo-brand text-white"
-                  : "bg-kumo-elevated text-kumo-default hover:bg-kumo-recessed",
-              )}
-            >
-              Actions ({playgroundCatalogActions.length})
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-3 border-b border-kumo-line px-4 py-3">
-            <label className="flex flex-col gap-1 text-xs text-kumo-subtle">
-              Search by name
-              <input
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder={
-                  activeView === "components"
-                    ? "Search components"
-                    : "Search actions"
-                }
-                className="rounded-md border border-kumo-line bg-kumo-base px-3 py-2 text-sm text-kumo-default outline-none focus:border-kumo-brand"
-              />
-            </label>
-
-            {activeView === "components" ? (
-              <label className="flex flex-col gap-1 text-xs text-kumo-subtle">
-                Filter by category
-                <select
-                  value={selectedCategory}
-                  onChange={(event) => setSelectedCategory(event.target.value)}
-                  className="rounded-md border border-kumo-line bg-kumo-base px-3 py-2 text-sm text-kumo-default outline-none focus:border-kumo-brand"
-                >
-                  <option value="all">All categories</option>
-                  {playgroundCatalogCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-          </div>
-
-          <div className="flex-1 overflow-auto px-4 py-4">
-            {activeView === "components" ? (
-              <CatalogComponentList components={filteredComponents} />
-            ) : (
-              <CatalogActionList actions={filteredActions} />
-            )}
-          </div>
+          <CatalogExplorerContent />
         </div>
       </div>
     </div>
@@ -2071,6 +2165,494 @@ function CatalogActionList({
         </div>
       ))}
     </div>
+  );
+}
+
+function MobilePlaygroundShell({
+  mobileView,
+  onMobileViewChange,
+  inputValue,
+  onInputChange,
+  selectedModel,
+  onModelChange,
+  isAnyStreaming,
+  status,
+  messages,
+  onSubmit,
+  onCancel,
+  messagesEndRef,
+  presets,
+  onToolAction,
+  leftTab,
+  onLeftTabChange,
+  leftTree,
+  leftStreamedTree,
+  leftShowTree,
+  leftRuntimeValueStore,
+  isLeftStreaming,
+  leftRawJsonl,
+  onLeftAction,
+  leftPromptText,
+  leftEditorText,
+  leftEditorStatus,
+  leftEditorIssues,
+  onLeftEditorTextChange,
+  onLeftEditorValidate,
+  onLeftEditorReset,
+  onLeftEditorApplyTree,
+  onLeftEditorApplied,
+  leftActionLog,
+  onClearLeftActionLog,
+  rightTab,
+  onRightTabChange,
+  rightTree,
+  rightStreamedTree,
+  rightShowTree,
+  rightRuntimeValueStore,
+  isRightStreaming,
+  rightRawJsonl,
+  onRightAction,
+  rightPromptText,
+  rightEditorText,
+  rightEditorStatus,
+  rightEditorIssues,
+  onRightEditorTextChange,
+  onRightEditorValidate,
+  onRightEditorReset,
+  onRightEditorApplyTree,
+  onRightEditorApplied,
+  rightStatus,
+  rightActionLog,
+  onClearRightActionLog,
+  skills,
+  pendingSkillIds,
+  onToggleSkill,
+  onApplySkills,
+  isSkillApplyDisabled,
+}: {
+  readonly mobileView: "chat" | "a" | "b" | "catalog";
+  readonly onMobileViewChange: (value: "chat" | "a" | "b" | "catalog") => void;
+  readonly inputValue: string;
+  readonly onInputChange: (value: string) => void;
+  readonly selectedModel: string;
+  readonly onModelChange: (value: string) => void;
+  readonly isAnyStreaming: boolean;
+  readonly status: StreamStatus;
+  readonly messages: readonly ChatMessage[];
+  readonly onSubmit: (event?: FormEvent, overrideMessage?: string) => void;
+  readonly onCancel: () => void;
+  readonly messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  readonly presets: typeof PRESET_PROMPTS;
+  readonly onToolAction: (event: ActionEvent) => void;
+  readonly leftTab: PanelTab;
+  readonly onLeftTabChange: (tab: PanelTab) => void;
+  readonly leftTree: UITree;
+  readonly leftStreamedTree: UITree;
+  readonly leftShowTree: boolean;
+  readonly leftRuntimeValueStore: RuntimeValueStore;
+  readonly isLeftStreaming: boolean;
+  readonly leftRawJsonl: string;
+  readonly onLeftAction?: (event: ActionEvent) => void;
+  readonly leftPromptText: string | null;
+  readonly leftEditorText: string;
+  readonly leftEditorStatus: "clean" | "dirty" | "invalid" | "applied";
+  readonly leftEditorIssues: readonly {
+    readonly message: string;
+    readonly path: readonly (string | number)[];
+  }[];
+  readonly onLeftEditorTextChange: (
+    text: string,
+    source: "stream" | "manual",
+  ) => void;
+  readonly onLeftEditorValidate: (
+    issues: readonly {
+      readonly message: string;
+      readonly path: readonly (string | number)[];
+    }[],
+  ) => void;
+  readonly onLeftEditorReset: (text: string) => void;
+  readonly onLeftEditorApplyTree: (tree: UITree | null) => void;
+  readonly onLeftEditorApplied: () => void;
+  readonly leftActionLog: readonly ActionLogEntry[];
+  readonly onClearLeftActionLog: () => void;
+  readonly rightTab: PanelTab;
+  readonly onRightTabChange: (tab: PanelTab) => void;
+  readonly rightTree: UITree;
+  readonly rightStreamedTree: UITree;
+  readonly rightShowTree: boolean;
+  readonly rightRuntimeValueStore: RuntimeValueStore;
+  readonly isRightStreaming: boolean;
+  readonly rightRawJsonl: string;
+  readonly onRightAction?: (event: ActionEvent) => void;
+  readonly rightPromptText: string | null;
+  readonly rightEditorText: string;
+  readonly rightEditorStatus: "clean" | "dirty" | "invalid" | "applied";
+  readonly rightEditorIssues: readonly {
+    readonly message: string;
+    readonly path: readonly (string | number)[];
+  }[];
+  readonly onRightEditorTextChange: (
+    text: string,
+    source: "stream" | "manual",
+  ) => void;
+  readonly onRightEditorValidate: (
+    issues: readonly {
+      readonly message: string;
+      readonly path: readonly (string | number)[];
+    }[],
+  ) => void;
+  readonly onRightEditorReset: (text: string) => void;
+  readonly onRightEditorApplyTree: (tree: UITree | null) => void;
+  readonly onRightEditorApplied: () => void;
+  readonly rightStatus: StreamStatus;
+  readonly rightActionLog: readonly ActionLogEntry[];
+  readonly onClearRightActionLog: () => void;
+  readonly skills: readonly SkillInfo[];
+  readonly pendingSkillIds: ReadonlySet<string>;
+  readonly onToggleSkill: (id: string, checked: boolean) => void;
+  readonly onApplySkills: () => void;
+  readonly isSkillApplyDisabled: boolean;
+}) {
+  const shellTabs = [
+    { value: "chat", label: "Chat" },
+    { value: "a", label: "A" },
+    { value: "b", label: "B" },
+    { value: "catalog", label: "Catalog" },
+  ] as const;
+
+  return (
+    <div className="flex h-full flex-1 flex-col overflow-hidden md:hidden">
+      <div className="flex h-[61px] shrink-0 items-center justify-between border-b border-kumo-line px-4">
+        <CloudflareLogo variant="glyph" className="h-5 w-auto shrink-0" />
+        <div className="flex items-center gap-1">
+          <a
+            href="/"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
+          >
+            <ArrowLeftIcon className="size-4" />
+            Docs
+          </a>
+          <ThemeToggle />
+        </div>
+      </div>
+
+      <div className="border-b border-kumo-line px-3 py-2">
+        <div className="flex gap-2 overflow-x-auto">
+          {shellTabs.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => onMobileViewChange(tab.value)}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                mobileView === tab.value
+                  ? "bg-kumo-brand text-white"
+                  : "bg-kumo-elevated text-kumo-default hover:bg-kumo-recessed",
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-hidden">
+        {mobileView === "chat" ? (
+          <MobileChatView
+            inputValue={inputValue}
+            onInputChange={onInputChange}
+            selectedModel={selectedModel}
+            onModelChange={onModelChange}
+            isStreaming={isAnyStreaming}
+            status={status}
+            messages={messages}
+            onSubmit={onSubmit}
+            onCancel={onCancel}
+            messagesEndRef={messagesEndRef}
+            presets={presets}
+            onToolAction={onToolAction}
+          />
+        ) : null}
+
+        {mobileView === "a" ? (
+          <div className="flex h-full flex-col overflow-hidden">
+            <PanelHeader
+              label="A"
+              tabs={PANEL_TABS}
+              activeTab={leftTab}
+              onTabChange={(v) => {
+                if (isPanelTab(v)) onLeftTabChange(v);
+              }}
+            />
+            <div className="flex-1 overflow-auto">
+              <PanelContent
+                tab={leftTab}
+                tree={leftTree}
+                showTree={leftShowTree}
+                runtimeValueStore={leftRuntimeValueStore}
+                isStreaming={isLeftStreaming}
+                rawJsonl={leftRawJsonl}
+                streamedTree={leftStreamedTree}
+                promptText={leftPromptText}
+                editorText={leftEditorText}
+                editorStatus={leftEditorStatus}
+                editorIssues={leftEditorIssues}
+                onEditorTextChange={onLeftEditorTextChange}
+                onEditorValidate={onLeftEditorValidate}
+                onEditorReset={onLeftEditorReset}
+                onEditorApplyTree={onLeftEditorApplyTree}
+                onEditorApplied={onLeftEditorApplied}
+                onAction={onLeftAction}
+                actionLog={leftActionLog}
+                onClearActionLog={onClearLeftActionLog}
+                exportComponentName="GeneratedPanelA"
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {mobileView === "b" ? (
+          <div className="flex h-full flex-col overflow-hidden">
+            <PanelHeader
+              label="B"
+              actions={
+                <SkillPickerPopover
+                  skills={skills}
+                  pendingSkillIds={pendingSkillIds}
+                  onToggleSkill={onToggleSkill}
+                  onApply={onApplySkills}
+                  disabled={isSkillApplyDisabled}
+                />
+              }
+              tabs={PANEL_TABS}
+              activeTab={rightTab}
+              onTabChange={(v) => {
+                if (isPanelTab(v)) onRightTabChange(v);
+              }}
+            />
+            <div className="flex-1 overflow-auto">
+              <PanelContent
+                tab={rightTab}
+                tree={rightTree}
+                showTree={rightShowTree}
+                runtimeValueStore={rightRuntimeValueStore}
+                isStreaming={isRightStreaming}
+                rawJsonl={rightRawJsonl}
+                streamedTree={rightStreamedTree}
+                promptText={rightPromptText}
+                editorText={rightEditorText}
+                editorStatus={rightEditorStatus}
+                editorIssues={rightEditorIssues}
+                onEditorTextChange={onRightEditorTextChange}
+                onEditorValidate={onRightEditorValidate}
+                onEditorReset={onRightEditorReset}
+                onEditorApplyTree={onRightEditorApplyTree}
+                onEditorApplied={onRightEditorApplied}
+                onAction={onRightAction}
+                streamStatus={rightStatus}
+                actionLog={rightActionLog}
+                onClearActionLog={onClearRightActionLog}
+                exportComponentName="GeneratedPanelB"
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {mobileView === "catalog" ? (
+          <div className="flex h-full flex-col overflow-hidden">
+            <div className="border-b border-kumo-line px-4 py-3">
+              <p className="text-sm font-semibold text-kumo-default">Catalog</p>
+              <p className="text-xs text-kumo-subtle">
+                Components and actions available in the playground
+              </p>
+            </div>
+            <CatalogExplorerContent />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function MobileChatView({
+  inputValue,
+  onInputChange,
+  selectedModel,
+  onModelChange,
+  isStreaming,
+  status,
+  messages,
+  onSubmit,
+  onCancel,
+  messagesEndRef,
+  presets,
+  onToolAction,
+}: {
+  readonly inputValue: string;
+  readonly onInputChange: (value: string) => void;
+  readonly selectedModel: string;
+  readonly onModelChange: (value: string) => void;
+  readonly isStreaming: boolean;
+  readonly status: StreamStatus;
+  readonly messages: readonly ChatMessage[];
+  readonly onSubmit: (event?: FormEvent, overrideMessage?: string) => void;
+  readonly onCancel: () => void;
+  readonly messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  readonly presets: typeof PRESET_PROMPTS;
+  readonly onToolAction: (event: ActionEvent) => void;
+}) {
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        onSubmit();
+      }
+    },
+    [onSubmit],
+  );
+
+  const turnCount = messages.length;
+  const hasMessages = messages.length > 0;
+  const statusInfo = STATUS_CONFIG[status];
+
+  return (
+    <section className="flex h-full flex-col bg-kumo-overlay" aria-label="Chat">
+      <div className="flex shrink-0 items-center gap-2 border-b border-kumo-line px-4 py-3">
+        <div className="flex-1">
+          <Select
+            value={selectedModel}
+            onValueChange={(v) => {
+              if (typeof v === "string") onModelChange(v);
+            }}
+            disabled={isStreaming}
+            aria-label="Model"
+          >
+            {MODELS.map((m) => (
+              <Select.Option key={m.value} value={m.value}>
+                {m.label}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+        {turnCount > 0 ? (
+          <span className="text-xs text-kumo-subtle">
+            {Math.ceil(turnCount / 2)}{" "}
+            {Math.ceil(turnCount / 2) === 1 ? "turn" : "turns"}
+          </span>
+        ) : null}
+        {status !== "idle" ? (
+          <span className={cn("flex items-center", statusInfo.className)}>
+            {statusInfo.icon}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="flex-1 overflow-auto px-4 py-3 space-y-3">
+        {!hasMessages ? (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-sm text-kumo-subtle">
+              Describe the UI you want to generate
+            </p>
+          </div>
+        ) : null}
+
+        {messages.map((msg, i) =>
+          msg.role === "tool" ? (
+            <InlineToolCard
+              key={msg.toolId}
+              tree={msg.tree}
+              status={msg.status}
+              onAction={onToolAction}
+            />
+          ) : (
+            <div
+              key={i}
+              className={
+                msg.role === "user" ? "flex justify-end" : "flex justify-start"
+              }
+            >
+              <div
+                className={
+                  msg.role === "user"
+                    ? "max-w-[85%] rounded-lg bg-kumo-brand px-3 py-2 text-sm text-white"
+                    : "max-w-[85%] rounded-lg border border-kumo-line bg-kumo-elevated px-3 py-2 text-sm text-kumo-default"
+                }
+              >
+                {msg.role === "assistant" ? (
+                  <AssistantMessageSummary content={msg.content} />
+                ) : (
+                  <p className="whitespace-pre-wrap break-words">
+                    {msg.content}
+                  </p>
+                )}
+              </div>
+            </div>
+          ),
+        )}
+
+        {isStreaming ? (
+          <div className="flex justify-start">
+            <div className="rounded-lg border border-kumo-line bg-kumo-elevated px-3 py-2">
+              <SpinnerIcon size={14} className="animate-spin text-kumo-brand" />
+            </div>
+          </div>
+        ) : null}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="shrink-0 border-t border-kumo-line px-4 py-3 space-y-2">
+        <Cluster gap="xs">
+          {presets.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              disabled={isStreaming}
+              onClick={() => onSubmit(undefined, preset.prompt)}
+              className="rounded-full border border-kumo-line bg-kumo-base px-2.5 py-1 text-xs text-kumo-subtle transition-colors hover:border-kumo-brand hover:text-kumo-brand disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </Cluster>
+        <form onSubmit={(e) => onSubmit(e)} className="flex flex-col gap-2">
+          <InputArea
+            value={inputValue}
+            onValueChange={onInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              hasMessages ? "Follow up..." : "Describe the UI you want..."
+            }
+            disabled={isStreaming}
+            aria-label="Prompt"
+            rows={3}
+          />
+          <div className="flex justify-end">
+            {isStreaming ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onCancel}
+                icon={<StopCircleIcon />}
+              >
+                Cancel
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                disabled={!inputValue.trim()}
+                icon={<PaperPlaneRightIcon />}
+              >
+                Send
+              </Button>
+            )}
+          </div>
+        </form>
+      </div>
+    </section>
   );
 }
 

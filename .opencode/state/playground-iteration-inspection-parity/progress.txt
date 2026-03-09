@@ -12,6 +12,7 @@ Started: 2026-03-08
 - For shared explorers, anchor open/close state in the top-level layout reducer and render one responsive overlay that becomes a desktop sheet and a mobile full-screen view instead of duplicating separate desktop/mobile components.
 - For TSX export, keep the internal panel tab value stable (`code`) but change the visible label and pass explicit export component names from the panel boundary so generated modules stay panel-specific.
 - For persisted splitter layouts, use `react-resizable-panels` `Group` + `Panel` + `Separator` with stable group/panel ids and `useDefaultLayout()` so localStorage restore works without custom storage plumbing.
+- For breakpoint-specific shells, mount only one shell at a time using a viewport flag; reuse shared `PanelContent`, `PanelHeader`, and catalog content instead of rendering hidden desktop/mobile copies in parallel.
 
 ---
 
@@ -67,3 +68,11 @@ Started: 2026-03-08
 - Kept chat minimize behavior working inside the resizable shell by collapsing/expanding the chat panel via the panel imperative ref.
 - Files changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`, `packages/kumo-docs-astro/package.json`, `pnpm-lock.yaml`, `.opencode/state/playground-iteration-inspection-parity/prd.json`, `.opencode/state/playground-iteration-inspection-parity/progress.txt`
 - **Learnings:** the docs package can persist splitter state without custom localStorage code when group and panel ids stay stable across renders.
+
+## Task - layout-2
+- Added a viewport-aware mobile shell in `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` that renders only on narrow screens and switches between `Chat`, `A`, `B`, and `Catalog` top-level views.
+- Reused shared panel rendering (`PanelHeader`, `PanelContent`) and extracted reusable catalog content so mobile keeps the same tab state, editor state, and panel data as desktop.
+- Added a dedicated `MobileChatView` that preserves messages, presets, model selection, tool cards, and streaming controls without relying on the desktop sidebar layout.
+- Kept catalog reachable as a top-level mobile view instead of a sheet, matching the PRD requirement while preserving all current in-memory state.
+- Files changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`, `.opencode/state/playground-iteration-inspection-parity/prd.json`, `.opencode/state/playground-iteration-inspection-parity/progress.txt`
+- **Learnings:** mounting one shell per breakpoint avoids ref conflicts like shared message-end refs and keeps mobile/desktop behavior aligned without duplicated state machines.
