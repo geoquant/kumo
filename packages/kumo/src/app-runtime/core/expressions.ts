@@ -68,6 +68,16 @@ function stringifyResolvedValue(value: unknown): string {
   return json ?? "";
 }
 
+function isTruthy(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  if (typeof value === "string") return value.length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
+  return Boolean(value);
+}
+
 function compareValues(left: unknown, right: unknown, op: string): boolean {
   switch (op) {
     case "eq":
@@ -182,6 +192,10 @@ export function evaluateBoolExpr(
 
   if ("$not" in expression) {
     return !evaluateBoolExpr(expression.$not, context);
+  }
+
+  if ("$truthy" in expression) {
+    return isTruthy(resolveValueExpr(expression.$truthy, context));
   }
 
   if ("$and" in expression) {

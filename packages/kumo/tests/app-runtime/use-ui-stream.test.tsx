@@ -231,4 +231,120 @@ describe("useUIStream", () => {
     expect(result.current.status).toBe("error");
     expect(result.current.error).toBe("Watcher cycle limit exceeded");
   });
+
+  it("accepts legacy UITree input through the compatibility adapter", () => {
+    const { result } = renderHook(() =>
+      useUIStream({
+        initialSpec: {
+          tree: {
+            root: "root",
+            elements: {
+              root: {
+                key: "root",
+                type: "Stack",
+                props: {},
+                children: ["toggle", "panel", "cta"],
+              },
+              toggle: {
+                key: "toggle",
+                type: "Checkbox",
+                props: {
+                  checked: { path: "/prefs/enabled" },
+                },
+                action: {
+                  name: "toggle-pref",
+                  params: {
+                    enabled: { path: "/prefs/enabled" },
+                  },
+                  onSuccess: {
+                    set: {
+                      prefs: {
+                        enabled: false,
+                      },
+                    },
+                  },
+                },
+              },
+              panel: {
+                key: "panel",
+                type: "Text",
+                props: {
+                  children: "Enabled",
+                },
+                visible: { path: "/prefs/enabled" },
+              },
+              cta: {
+                key: "cta",
+                type: "Button",
+                props: {
+                  children: "Next",
+                },
+                action: {
+                  name: "nav.navigate",
+                  params: {
+                    href: { path: "/links/next" },
+                  },
+                },
+              },
+            },
+          },
+          data: {
+            prefs: {
+              enabled: true,
+            },
+            links: {
+              next: "/next",
+            },
+          },
+        },
+      }),
+    );
+
+    expect(result.current.resolveElement("toggle")?.props.checked).toBe(true);
+    expect(result.current.resolveElement("panel")?.visible).toBe(true);
+
+    let changeResult: DispatchAppEventResult = {
+      effects: [],
+      executed: [],
+    };
+    act(() => {
+      changeResult = result.current.dispatchEvent({
+        elementKey: "toggle",
+        event: "change",
+      });
+    });
+
+    expect(changeResult.effects).toEqual([
+      {
+        type: "custom",
+        action: "toggle-pref",
+        params: {
+          enabled: true,
+        },
+      },
+    ]);
+    expect(result.current.snapshot.state.prefs).toEqual({ enabled: false });
+    expect(result.current.resolveElement("panel")?.visible).toBe(false);
+
+    let pressResult: DispatchAppEventResult = {
+      effects: [],
+      executed: [],
+    };
+    act(() => {
+      pressResult = result.current.dispatchEvent({
+        elementKey: "cta",
+        event: "press",
+      });
+    });
+
+    expect(pressResult.effects).toEqual([
+      {
+        type: "nav.navigate",
+        action: "nav.navigate",
+        params: {
+          href: "/next",
+        },
+      },
+    ]);
+  });
 });

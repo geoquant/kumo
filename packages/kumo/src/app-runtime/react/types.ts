@@ -3,6 +3,7 @@ import type {
   AppElement,
   AppSpec,
   AppStoreSnapshot,
+  CompatibleUITreeInput,
   ExpandedAppSpec,
   JsonPointer,
   KumoEventName,
@@ -64,7 +65,7 @@ export interface RuntimeEffectContext {
 }
 
 export interface UseUIStreamOptions {
-  readonly initialSpec?: AppSpec | NestedAppSpec;
+  readonly initialSpec?: AppSpec | NestedAppSpec | CompatibleUITreeInput;
   readonly functions?: Record<string, (...args: readonly unknown[]) => unknown>;
   readonly handlers?: Record<string, CustomActionHandler>;
   readonly validators?: ValidationOptions["validators"];
@@ -77,7 +78,9 @@ export interface UseUIStreamReturn {
   readonly expanded: ExpandedAppSpec;
   readonly status: StreamStatus;
   readonly error: string | null;
-  readonly setSpec: (spec: AppSpec | NestedAppSpec) => void;
+  readonly setSpec: (
+    spec: AppSpec | NestedAppSpec | CompatibleUITreeInput,
+  ) => void;
   readonly applyPatch: (patch: JsonPatchOp) => void;
   readonly applyPatches: (patches: readonly JsonPatchOp[]) => void;
   readonly startStream: () => void;
@@ -101,7 +104,7 @@ export interface ChatUIMessage {
 
 export interface StartAssistantTurnOptions {
   readonly resetUI?: boolean;
-  readonly spec?: AppSpec | NestedAppSpec;
+  readonly spec?: AppSpec | NestedAppSpec | CompatibleUITreeInput;
 }
 
 export interface UseChatUIOptions extends UseUIStreamOptions {

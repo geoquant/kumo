@@ -18,6 +18,7 @@ import type {
 export interface ResolvedConfirmSpec {
   title: string;
   description?: string;
+  variant?: "default" | "danger";
   confirmLabel?: string;
   cancelLabel?: string;
 }
@@ -136,6 +137,9 @@ export function resolveActionStep(
                     options,
                   ),
                 }
+              : {}),
+            ...(step.confirm.variant != null
+              ? { variant: step.confirm.variant }
               : {}),
             ...(resolveConfirmText(step.confirm.confirmLabel, options) != null
               ? {

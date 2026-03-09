@@ -1,4 +1,9 @@
 export { APP_SPEC_VERSION } from "./types";
+export {
+  adaptCompatibleUITree,
+  COMPAT_AUTH_SIGNED_IN_PATH,
+  COMPAT_AUTH_USER_PATH,
+} from "./adapt-uitree";
 export { executeActionSequence, resolveActionStep } from "./actions";
 export {
   createExpressionContext,
@@ -29,6 +34,7 @@ export type {
   BoolExpr,
   BuiltInActionName,
   CompatibleUIElement,
+  CompatibleUITreeInput,
   CompatibleUITree,
   ComputeExpr,
   ConfirmSpec,

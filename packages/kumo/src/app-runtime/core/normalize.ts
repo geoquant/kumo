@@ -1,5 +1,12 @@
+import { adaptCompatibleUITree } from "./adapt-uitree";
 import { APP_SPEC_VERSION } from "./types";
-import type { AppElement, AppSpec, AppSpecMeta, ValueExpr } from "./types";
+import type {
+  AppElement,
+  AppSpec,
+  AppSpecMeta,
+  CompatibleUITreeInput,
+  ValueExpr,
+} from "./types";
 
 export interface NestedAppElement {
   key?: string;
@@ -29,6 +36,17 @@ function isNestedRoot(value: unknown): value is NestedAppSpec {
     isRecord(value) &&
     isRecord(value.root) &&
     typeof value.root.type === "string"
+  );
+}
+
+function isCompatibleUITreeInput(
+  value: unknown,
+): value is CompatibleUITreeInput {
+  return (
+    isRecord(value) &&
+    isRecord(value.tree) &&
+    typeof value.tree.root === "string" &&
+    isRecord(value.tree.elements)
   );
 }
 
@@ -71,9 +89,15 @@ export function flattenNestedAppSpec(input: NestedAppSpec): AppSpec {
   };
 }
 
-export function normalizeAppSpec(input: AppSpec | NestedAppSpec): AppSpec {
+export function normalizeAppSpec(
+  input: AppSpec | NestedAppSpec | CompatibleUITreeInput,
+): AppSpec {
   if (isNestedRoot(input)) {
     return flattenNestedAppSpec(input);
+  }
+
+  if (isCompatibleUITreeInput(input)) {
+    return adaptCompatibleUITree(input);
   }
 
   return {
