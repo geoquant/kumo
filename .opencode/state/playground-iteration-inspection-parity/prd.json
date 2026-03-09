@@ -39,7 +39,7 @@
         "Applying valid JSON updates only the active panel's local tree and derived views (preview, TSX, grading, tree) without mutating chat history or triggering a new API request",
         "Reset restores the latest streamed tree for the active panel"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "data-1",

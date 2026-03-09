@@ -21,6 +21,16 @@ type PlaygroundPanelsAction =
       readonly tab: PanelTab;
     }
   | {
+      readonly type: "set-tree";
+      readonly panelId: PanelId;
+      readonly tree: PanelArtifact["tree"];
+    }
+  | {
+      readonly type: "set-local-tree-override";
+      readonly panelId: PanelId;
+      readonly tree: PanelArtifact["tree"] | null;
+    }
+  | {
       readonly type: "set-status";
       readonly panelId: PanelId;
       readonly status: StreamStatus;
@@ -44,6 +54,7 @@ type PlaygroundPanelsAction =
       readonly panelId: PanelId;
       readonly text: string;
       readonly source: EditorDraft["source"];
+      readonly status?: EditorDraft["status"];
     }
   | {
       readonly type: "set-editor-validation";
@@ -91,6 +102,7 @@ function createEditorDraft(): EditorDraft {
 function createPanelArtifact(): PanelArtifact {
   return {
     tree: { root: "", elements: {} },
+    localTreeOverride: null,
     rawJsonl: "",
     status: "idle",
     activeTab: "preview",
@@ -132,6 +144,16 @@ export function playgroundPanelsReducer(
   action: PlaygroundPanelsAction,
 ): PlaygroundPanelsState {
   switch (action.type) {
+    case "set-tree":
+      return updatePanel(state, action.panelId, (panel) => ({
+        ...panel,
+        tree: action.tree,
+      }));
+    case "set-local-tree-override":
+      return updatePanel(state, action.panelId, (panel) => ({
+        ...panel,
+        localTreeOverride: action.tree,
+      }));
     case "set-tab":
       return updatePanel(state, action.panelId, (panel) => ({
         ...panel,
@@ -165,7 +187,8 @@ export function playgroundPanelsReducer(
           text: action.text,
           source: action.source,
           status:
-            action.text === panel.editor.text ? panel.editor.status : "dirty",
+            action.status ??
+            (action.text === panel.editor.text ? panel.editor.status : "dirty"),
         },
       }));
     case "set-editor-validation":
@@ -194,6 +217,7 @@ export function playgroundPanelsReducer(
           ...createEditorDraft(),
           text: action.text,
         },
+        localTreeOverride: null,
       }));
   }
 }
