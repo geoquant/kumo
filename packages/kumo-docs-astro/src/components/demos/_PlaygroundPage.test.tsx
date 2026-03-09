@@ -1,0 +1,492 @@
+import React, { createContext, useContext, useImperativeHandle } from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, beforeEach, expect, it, vi } from "vitest";
+
+import type { UITree } from "@cloudflare/kumo/streaming";
+const { streamJsonlUIMock, streamToolConfirmationMock } = vi.hoisted(() => ({
+  streamJsonlUIMock: vi.fn(),
+  streamToolConfirmationMock: vi.fn(),
+}));
+
+import { PlaygroundPage } from "./_PlaygroundPage";
+
+vi.mock("~/components/ThemeToggle", () => ({
+  ThemeToggle: () => <button type="button">Theme</button>,
+}));
+
+vi.mock("~/components/HighlightedCode", () => ({
+  HighlightedCode: ({ code }: { readonly code: string }) => <pre>{code}</pre>,
+}));
+
+vi.mock("./DemoButton", () => ({
+  DemoButton: ({ children }: { readonly children?: React.ReactNode }) => (
+    <button type="button">{children}</button>
+  ),
+}));
+
+vi.mock("~/lib/stream-jsonl-ui", () => ({
+  streamJsonlUI: streamJsonlUIMock,
+}));
+
+vi.mock("~/lib/tool-middleware", async () => {
+  const actual = await vi.importActual<typeof import("~/lib/tool-middleware")>(
+    "~/lib/tool-middleware",
+  );
+
+  return {
+    ...actual,
+    streamToolConfirmation: streamToolConfirmationMock,
+  };
+});
+
+vi.mock("react-resizable-panels", async () => {
+  return {
+    Group: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+      <div {...props}>{children}</div>
+    ),
+    Panel: ({
+      children,
+      panelRef,
+      ...props
+    }: React.HTMLAttributes<HTMLDivElement> & {
+      readonly panelRef?: React.Ref<{
+        collapse: () => void;
+        expand: () => void;
+      }>;
+    }) => {
+      useImperativeHandle(panelRef, () => ({ collapse() {}, expand() {} }));
+      return <div {...props}>{children}</div>;
+    },
+    Separator: ({
+      children,
+      ...props
+    }: React.HTMLAttributes<HTMLDivElement>) => (
+      <div {...props}>{children}</div>
+    ),
+    useDefaultLayout: () => ({
+      defaultLayout: undefined,
+      onLayoutChanged: vi.fn(),
+    }),
+  };
+});
+
+vi.mock("@cloudflare/kumo", async (importOriginal) => {
+  const react = await vi.importActual<typeof import("react")>("react");
+  const actual = await importOriginal<typeof import("@cloudflare/kumo")>();
+
+  const PopoverContext = createContext<
+    | {
+        readonly open: boolean;
+        readonly setOpen: (open: boolean) => void;
+      }
+    | undefined
+  >(undefined);
+
+  function Button({
+    children,
+    icon,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    readonly icon?: React.ReactNode;
+  }) {
+    return (
+      <button {...props}>
+        {icon}
+        {children}
+      </button>
+    );
+  }
+
+  function Checkbox({
+    label,
+    checked,
+    onCheckedChange,
+  }: {
+    readonly label: string;
+    readonly checked?: boolean;
+    readonly onCheckedChange?: (checked: boolean) => void;
+  }) {
+    return (
+      <label>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(event) => onCheckedChange?.(event.target.checked)}
+        />
+        {label}
+      </label>
+    );
+  }
+
+  function Select({
+    children,
+    value,
+    onValueChange,
+    ...props
+  }: React.SelectHTMLAttributes<HTMLSelectElement> & {
+    readonly onValueChange?: (value: string) => void;
+  }) {
+    return (
+      <select
+        {...props}
+        value={value}
+        onChange={(event) => onValueChange?.(event.target.value)}
+      >
+        {children}
+      </select>
+    );
+  }
+  Select.Option = function Option({
+    children,
+    ...props
+  }: React.OptionHTMLAttributes<HTMLOptionElement>) {
+    return <option {...props}>{children}</option>;
+  };
+
+  function InputArea({
+    value,
+    onValueChange,
+    ...props
+  }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
+    readonly onValueChange?: (value: string) => void;
+  }) {
+    return (
+      <textarea
+        {...props}
+        value={value}
+        onChange={(event) => onValueChange?.(event.target.value)}
+      />
+    );
+  }
+
+  function Tabs({
+    tabs,
+    value,
+    onValueChange,
+  }: {
+    readonly tabs: readonly {
+      readonly value: string;
+      readonly label: string;
+    }[];
+    readonly value: string;
+    readonly onValueChange: (value: string) => void;
+  }) {
+    return (
+      <div>
+        {tabs.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            aria-pressed={tab.value === value}
+            onClick={() => onValueChange(tab.value)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  function Popover({
+    open = false,
+    onOpenChange,
+    children,
+  }: {
+    readonly open?: boolean;
+    readonly onOpenChange?: (open: boolean) => void;
+    readonly children: React.ReactNode;
+  }) {
+    return (
+      <PopoverContext.Provider
+        value={{ open, setOpen: (next) => onOpenChange?.(next) }}
+      >
+        <div>{children}</div>
+      </PopoverContext.Provider>
+    );
+  }
+
+  Popover.Trigger = function PopoverTrigger({
+    children,
+  }: {
+    readonly children: React.ReactElement<{ onClick?: () => void }>;
+  }) {
+    const context = useContext(PopoverContext);
+    if (context === undefined) {
+      return children;
+    }
+
+    return react.cloneElement(children, {
+      onClick: () => context.setOpen(!context.open),
+    });
+  };
+
+  Popover.Content = function PopoverContent({
+    children,
+  }: {
+    readonly children: React.ReactNode;
+  }) {
+    const context = useContext(PopoverContext);
+    return context?.open ? <div>{children}</div> : null;
+  };
+
+  Popover.Title = ({ children }: { readonly children: React.ReactNode }) => (
+    <div>{children}</div>
+  );
+  Popover.Description = ({
+    children,
+  }: {
+    readonly children: React.ReactNode;
+  }) => <div>{children}</div>;
+
+  return {
+    ...actual,
+    Button,
+    Checkbox,
+    CloudflareLogo: () => <div>Cloudflare</div>,
+    Cluster: ({ children }: { readonly children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+    InputArea,
+    Loader: () => <div>Loading</div>,
+    Popover,
+    Select,
+    Stack: ({ children }: { readonly children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+    Tabs,
+    cn: (...values: Array<string | false | null | undefined>) =>
+      values.filter(Boolean).join(" "),
+  };
+});
+
+function buildPatchOps(tree: UITree) {
+  return [
+    { op: "replace", path: "/root", value: tree.root },
+    { op: "replace", path: "/elements", value: tree.elements },
+  ] as const;
+}
+
+function buildPanelATree(counterText: string, includeNote: boolean): UITree {
+  return {
+    root: "surface",
+    elements: {
+      surface: {
+        key: "surface",
+        type: "Surface",
+        props: { heading: "Counter" },
+        children: ["stack"],
+      },
+      stack: {
+        key: "stack",
+        type: "Stack",
+        props: {},
+        children: includeNote
+          ? ["counter", "note", "button"]
+          : ["counter", "button"],
+        parentKey: "surface",
+      },
+      counter: {
+        key: "counter",
+        type: "Text",
+        props: { children: counterText },
+        parentKey: "stack",
+      },
+      ...(includeNote
+        ? {
+            note: {
+              key: "note",
+              type: "Text",
+              props: { children: "Edited note" },
+              parentKey: "stack",
+            },
+          }
+        : {}),
+      button: {
+        key: "button",
+        type: "Button",
+        props: { children: "Increment" },
+        parentKey: "stack",
+        action: { name: "increment", params: { target: "counter" } },
+      },
+    },
+  };
+}
+
+function buildPanelBTree(text: string): UITree {
+  return {
+    root: "surface",
+    elements: {
+      surface: {
+        key: "surface",
+        type: "Surface",
+        props: { heading: "Baseline" },
+        children: ["body"],
+      },
+      body: {
+        key: "body",
+        type: "Text",
+        props: { children: text },
+        parentKey: "surface",
+      },
+    },
+  };
+}
+
+const INITIAL_A_TREE = buildPanelATree("0", false);
+const INITIAL_B_TREE = buildPanelBTree("Baseline body");
+
+describe("PlaygroundPage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.innerWidth = 1280;
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/api/chat/prompt")) {
+          return new Response(
+            JSON.stringify({ prompt: "System prompt from test" }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+
+        if (url.includes("/api/chat/skills")) {
+          return new Response(
+            JSON.stringify({
+              skills: [
+                {
+                  id: "skill-one",
+                  name: "Skill One",
+                  description: "Skill description",
+                },
+              ],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }),
+    );
+
+    streamJsonlUIMock.mockImplementation(
+      async ({
+        body,
+        onPatches,
+        onToken,
+      }: {
+        readonly body: Record<string, unknown>;
+        readonly onPatches: (
+          ops: readonly {
+            readonly op: string;
+            readonly path: string;
+            readonly value: unknown;
+          }[],
+        ) => void;
+        readonly onToken?: (token: string) => void;
+      }) => {
+        const isPanelB = body["skipSystemPrompt"] === true;
+        const hasSkills = Array.isArray(body["skillIds"]);
+        const tree = isPanelB
+          ? buildPanelBTree(
+              hasSkills
+                ? "Skill-applied baseline"
+                : (INITIAL_B_TREE.elements.body?.props.children as string),
+            )
+          : INITIAL_A_TREE;
+        onToken?.(JSON.stringify(tree));
+        onPatches(buildPatchOps(tree));
+        return isPanelB ? "panel-b-response" : "panel-a-response";
+      },
+    );
+
+    streamToolConfirmationMock.mockImplementation(
+      async (
+        _request: unknown,
+        callbacks: {
+          readonly onTreeUpdate: (tree: UITree) => void;
+          readonly onComplete: (tree: UITree) => void;
+        },
+      ) => {
+        const tree = buildPanelBTree("Approve create-worker-hello-world");
+        callbacks.onTreeUpdate(tree);
+        callbacks.onComplete(tree);
+      },
+    );
+  });
+
+  it("covers a/b streaming, prompt view, and action log flows", async () => {
+    render(<PlaygroundPage />);
+
+    fireEvent.change(screen.getByLabelText("Prompt"), {
+      target: { value: "build me a counter" },
+    });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(streamJsonlUIMock).toHaveBeenCalledTimes(2);
+      expect(screen.getByText("Increment")).toBeTruthy();
+      expect(screen.getByText("Baseline body")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText("Increment"));
+    await waitFor(() => {
+      expect(screen.getByText("1")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getAllByText("Actions")[0]);
+    await waitFor(() => {
+      expect(screen.getByText("increment")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getAllByText("Prompt")[0]);
+    await waitFor(() => {
+      expect(screen.getByText("System prompt from test")).toBeTruthy();
+    });
+  });
+
+  it("replays panel b with selected skills", async () => {
+    render(<PlaygroundPage />);
+
+    fireEvent.change(screen.getByLabelText("Prompt"), {
+      target: { value: "build me a counter" },
+    });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(streamJsonlUIMock).toHaveBeenCalledTimes(2);
+    });
+
+    fireEvent.click(screen.getByText("Skills"));
+    fireEvent.click(screen.getByLabelText("Skill One"));
+    fireEvent.click(screen.getByText("Apply"));
+
+    await waitFor(() => {
+      expect(streamJsonlUIMock).toHaveBeenCalledTimes(3);
+      expect(streamJsonlUIMock.mock.calls[2]?.[0]?.body).toMatchObject({
+        skipSystemPrompt: true,
+        skillIds: ["skill-one"],
+      });
+    });
+  });
+
+  it("renders inline tool confirmation cards for intercepted tool prompts", async () => {
+    render(<PlaygroundPage />);
+
+    fireEvent.change(screen.getByLabelText("Prompt"), {
+      target: { value: "create a new hello world worker" },
+    });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(streamToolConfirmationMock).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByText("Approve create-worker-hello-world"),
+      ).toBeTruthy();
+    });
+  });
+});

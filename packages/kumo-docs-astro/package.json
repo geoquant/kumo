@@ -16,7 +16,8 @@
     "typecheck": "astro check",
     "lint": "oxlint src/ && node ../../lint/lint-astro-colors.js src/",
     "lint:oxlint": "oxlint src/",
-    "lint:astro": "node ../../lint/lint-astro-colors.js src/"
+    "lint:astro": "node ../../lint/lint-astro-colors.js src/",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.12",
@@ -38,14 +39,17 @@
     "@astrojs/react": "^4.2.1",
     "@emotion/is-prop-valid": "^1.4.0",
     "@tailwindcss/vite": "catalog:",
+    "@testing-library/react": "16.3.1",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "happy-dom": "catalog:",
     "oxlint": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwindcss": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
+    "vitest": "catalog:",
     "wrangler": "catalog:"
   }
 }
