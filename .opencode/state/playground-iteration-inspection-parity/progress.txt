@@ -1,0 +1,17 @@
+# Progress Log
+PRD: playground-iteration-inspection-parity
+Started: 2026-03-08
+
+## Codebase Patterns
+- Verify the current branch is `geoquant/streaming-ui` before starting any new work for this PRD; do not branch away for playground parity tasks.
+- Keep shared playground state shapes in `packages/kumo-docs-astro/src/lib/playground/types.ts` and pure state transitions in `packages/kumo-docs-astro/src/lib/playground/state.ts`.
+- Migrate mirrored panel UI state first (tabs, status, raw JSONL, action logs, layout flags) and leave stream/runtime hooks intact until later tasks need deeper consolidation.
+
+---
+
+## Task - architecture-1
+- Implemented shared playground panel/layout/editor types in `packages/kumo-docs-astro/src/lib/playground/types.ts`.
+- Implemented pure panel/layout reducer helpers in `packages/kumo-docs-astro/src/lib/playground/state.ts`.
+- Updated `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` to consume reducer-backed panel/layout state for tabs, stream status, raw JSONL, action logs, and chat minimization.
+- Files changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`, `packages/kumo-docs-astro/src/lib/playground/state.ts`, `packages/kumo-docs-astro/src/lib/playground/types.ts`, `.opencode/state/playground-iteration-inspection-parity/prd.json`, `.opencode/state/playground-iteration-inspection-parity/progress.txt`
+- **Learnings:** introduce pure reducers before adding new tabs or layouts; this removes `foo` / `noPromptFoo` state drift without disturbing the working stream lifecycle.
