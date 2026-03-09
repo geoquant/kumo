@@ -162,7 +162,7 @@ const PANEL_TAB_CLASS = "text-xs";
 /** Tab definitions for each panel. Both panels have the same tabs. */
 const PANEL_TABS: TabsItem[] = [
   { value: "preview", label: "UI", className: PANEL_TAB_CLASS },
-  { value: "code", label: "Code", className: PANEL_TAB_CLASS },
+  { value: "code", label: "TSX", className: PANEL_TAB_CLASS },
   { value: "editor", label: "Editor", className: PANEL_TAB_CLASS },
   { value: "tree", label: "Tree", className: PANEL_TAB_CLASS },
   { value: "jsonl", label: "JSONL", className: PANEL_TAB_CLASS },
@@ -1621,6 +1621,7 @@ function ComparisonPanels({
             onAction={onAction}
             actionLog={leftActionLog}
             onClearActionLog={onClearLeftActionLog}
+            exportComponentName="GeneratedPanelA"
           />
         </div>
       </GridItem>
@@ -1666,6 +1667,7 @@ function ComparisonPanels({
             onAction={onNoPromptAction}
             actionLog={rightActionLog}
             onClearActionLog={onClearRightActionLog}
+            exportComponentName="GeneratedPanelB"
           />
         </div>
       </GridItem>
@@ -2099,6 +2101,7 @@ function PanelContent({
   streamStatus,
   actionLog,
   onClearActionLog,
+  exportComponentName,
 }: {
   readonly tab: PanelTab;
   readonly tree: UITree;
@@ -2131,6 +2134,7 @@ function PanelContent({
   readonly streamStatus?: StreamStatus;
   readonly actionLog: readonly ActionLogEntry[];
   readonly onClearActionLog: () => void;
+  readonly exportComponentName: string;
 }) {
   switch (tab) {
     case "preview":
@@ -2145,7 +2149,13 @@ function PanelContent({
         />
       );
     case "code":
-      return <CodeTabContent tree={tree} showTree={showTree} />;
+      return (
+        <CodeTabContent
+          tree={tree}
+          showTree={showTree}
+          exportComponentName={exportComponentName}
+        />
+      );
     case "editor":
       return (
         <EditorTabContent
@@ -2640,16 +2650,26 @@ const MARKDOWN_COMPONENTS = {
 function CodeTabContent({
   tree,
   showTree,
+  exportComponentName,
 }: {
   readonly tree: UITree;
   readonly showTree: boolean;
+  readonly exportComponentName: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const downloadedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const jsxCode = useMemo(
-    () => (showTree ? uiTreeToJsx(tree) : ""),
-    [tree, showTree],
+    () =>
+      showTree ? uiTreeToJsx(tree, { componentName: exportComponentName }) : "",
+    [exportComponentName, tree, showTree],
+  );
+
+  const includesPlaygroundOnlyComponent = useMemo(
+    () => jsxCode.includes("DemoButton"),
+    [jsxCode],
   );
 
   const handleCopy = useCallback(() => {
@@ -2660,32 +2680,68 @@ function CodeTabContent({
     });
   }, [jsxCode]);
 
+  const handleDownload = useCallback(() => {
+    const blob = new Blob([jsxCode], { type: "text/tsx;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${exportComponentName}.tsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setDownloaded(true);
+    if (downloadedTimerRef.current) clearTimeout(downloadedTimerRef.current);
+    downloadedTimerRef.current = setTimeout(() => setDownloaded(false), 2000);
+  }, [exportComponentName, jsxCode]);
+
   // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      if (downloadedTimerRef.current) clearTimeout(downloadedTimerRef.current);
     };
   }, []);
 
   if (!showTree) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-kumo-subtle">Generate UI to see code</p>
+        <p className="text-kumo-subtle">Generate UI to see TSX</p>
       </div>
     );
   }
 
   return (
-    <div className="relative h-full">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleCopy}
-        icon={copied ? <CheckIcon /> : <CopyIcon />}
-        className="absolute right-4 top-4 z-10"
-      >
-        {copied ? "Copied" : "Copy"}
-      </Button>
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between gap-3 border-b border-kumo-line px-4 py-3">
+        <div>
+          <p className="text-sm font-medium text-kumo-default">
+            {exportComponentName}
+          </p>
+          <p className="text-xs text-kumo-subtle">Exportable TSX module</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopy}
+            icon={copied ? <CheckIcon /> : <CopyIcon />}
+          >
+            {copied ? "Copied" : "Copy"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleDownload}>
+            {downloaded ? "Downloaded" : "Download .tsx"}
+          </Button>
+        </div>
+      </div>
+      {includesPlaygroundOnlyComponent ? (
+        <div className="border-b border-kumo-line bg-kumo-warning/10 px-4 py-2">
+          <p className="text-xs text-kumo-subtle">
+            Warning: this export references `DemoButton`, which is
+            playground-only and not shipped by `@cloudflare/kumo`.
+          </p>
+        </div>
+      ) : null}
       <div className="h-full overflow-auto">
         <HighlightedCode code={jsxCode} lang="tsx" />
       </div>
