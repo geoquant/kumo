@@ -73,7 +73,6 @@ const fakeEn: KumoTranslation = {
   "copy-command": "Copy command",
   breadcrumb: "breadcrumb",
   logo: "logo",
-  "cloudflare-logo": "Cloudflare logo",
   "powered-by-cloudflare": "Powered by Cloudflare",
   "delete-resource": (n) => `Delete ${n}`,
   "delete-action-cannot-be-undone": (n, t) =>

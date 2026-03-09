@@ -44,7 +44,6 @@
   "copy-command": "Copy command",
   "breadcrumb": "breadcrumb",
   "logo": "logo",
-  "cloudflare-logo": "Cloudflare logo",
   "powered-by-cloudflare": "Powered by Cloudflare",
   "delete-resource": "Delete {resourceName}",
   "delete-action-cannot-be-undone": "This action cannot be undone. This will permanently delete the {resourceName} {resourceType}.",

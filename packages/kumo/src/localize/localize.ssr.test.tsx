@@ -52,7 +52,6 @@ const fakeEn: KumoTranslation = {
   breadcrumb: "breadcrumb",
   "powered-by-cloudflare": "Powered by Cloudflare",
   logo: "logo",
-  "cloudflare-logo": "Cloudflare logo",
   "no-labels-found": "No labels found.",
   "select-row": "Select row",
   "select-all-rows": "Select all rows",

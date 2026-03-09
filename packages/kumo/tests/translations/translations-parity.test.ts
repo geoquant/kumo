@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import en from "../../src/translations/en";
 import { createTranslation } from "../../src/translations/create-translation";
 
-const OPTIONAL_KEYS = new Set<string>(["cloudflare-logo"]);
-
 function isStringRecord(
   value: unknown,
 ): value is Readonly<Record<string, string>> {
@@ -70,9 +68,7 @@ describe("translation JSON parity", () => {
     throw new Error("en.json translation source not found");
   }
 
-  const requiredEnglishKeys = Object.keys(englishTranslation.values)
-    .filter((key) => !OPTIONAL_KEYS.has(key))
-    .sort();
+  const requiredEnglishKeys = Object.keys(englishTranslation.values).sort();
 
   for (const translation of translations) {
     if (translation.fileName === "en.json") continue;
