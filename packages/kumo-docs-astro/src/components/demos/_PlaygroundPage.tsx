@@ -249,6 +249,11 @@ const TOOL_ACTION_HANDLERS: Readonly<ActionHandlerMap> = {
 const PLAYGROUND_HANDLERS: Readonly<ActionHandlerMap> =
   createHandlerMap(TOOL_ACTION_HANDLERS);
 
+const NOOP_LAYOUT_STORAGE = {
+  getItem: () => null,
+  setItem: () => {},
+};
+
 // =============================================================================
 // Constants
 // =============================================================================
@@ -352,6 +357,7 @@ function PlaygroundContent() {
   const rootLayoutPersistence = useDefaultLayout({
     id: "playground-root-layout",
     panelIds: ["chat", "workspace"],
+    storage: typeof window === "undefined" ? NOOP_LAYOUT_STORAGE : localStorage,
   });
 
   // --- Input state ---
@@ -1748,6 +1754,7 @@ function ComparisonPanels({
   const workspaceLayoutPersistence = useDefaultLayout({
     id: "playground-workspace-layout",
     panelIds: ["a", "b"],
+    storage: typeof window === "undefined" ? NOOP_LAYOUT_STORAGE : localStorage,
   });
 
   return (
