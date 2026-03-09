@@ -402,7 +402,7 @@
         }
       },
       "examples": [
-        "<div className=\"flex flex-wrap items-center gap-2\">\n      <Button variant=\"secondary\">Button</Button>\n      <Button variant=\"secondary\" shape=\"square\" icon={PlusIcon} />\n    </div>",
+        "<div className=\"flex flex-wrap items-center gap-2\">\n      <Button variant=\"secondary\">Button</Button>\n      <Button\n        variant=\"secondary\"\n        shape=\"square\"\n        icon={PlusIcon}\n        aria-label=\"Add\"\n      />\n    </div>",
         "<Button variant=\"primary\">Primary</Button>",
         "<Button variant=\"secondary\">Secondary</Button>",
         "<Button variant=\"ghost\">Ghost</Button>",
@@ -2991,6 +2991,16 @@
             "center"
           ]
         },
+        "canvas": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Whether to render the pannable canvas wrapper.\n- `true`: Renders with pannable canvas, scrollbars, and pan gestures (default)\n- `false`: Renders only the node list without canvas wrapper"
+        },
+        "padding": {
+          "type": "object",
+          "optional": true,
+          "description": "Padding around the diagram content within the canvas.\n- `x`: Horizontal padding in pixels (default: 16)\n- `y`: Vertical padding in pixels (default: 64)"
+        },
         "className": {
           "type": "string",
           "optional": true
@@ -3010,7 +3020,8 @@
         "<Flow className=\"rounded-lg border border-kumo-line\">\n      <Flow.Node>Start</Flow.Node>\n      <Flow.Node>Authenticate</Flow.Node>\n      <Flow.Node>Validate</Flow.Node>\n      <Flow.Node>Transform</Flow.Node>\n      <Flow.Node>Process</Flow.Node>\n      <Flow.Node>Store</Flow.Node>\n      <Flow.Node>Notify</Flow.Node>\n      <Flow.Node>Log</Flow.Node>\n      <Flow.Node>Complete</Flow.Node>\n      <Flow.Node>End</Flow.Node>\n    </Flow>",
         "<Flow>\n      <Flow.Node>Request</Flow.Node>\n      <Flow.Parallel>\n        <Flow.Node>Primary Handler</Flow.Node>\n        <Flow.Node disabled>Backup Handler (disabled)</Flow.Node>\n      </Flow.Parallel>\n      <Flow.Node>Response</Flow.Node>\n    </Flow>",
         "<Flow>\n      <Flow.Node>Start</Flow.Node>\n      <Flow.Parallel align=\"end\">\n        <Flow.Node>Short</Flow.Node>\n        <Flow.Node>Medium Length</Flow.Node>\n        <Flow.Node>Very Long Node Name</Flow.Node>\n      </Flow.Parallel>\n      <Flow.Node>End</Flow.Node>\n    </Flow>",
-        "<Flow>\n      <Flow.Parallel>\n        <Flow.List>\n          <Flow.Node>Client Users</Flow.Node>\n          <Flow.Node>Engineering Team Access</Flow.Node>\n        </Flow.List>\n        <Flow.List>\n          <Flow.Parallel>\n            <Flow.Node>All Authenticated Users</Flow.Node>\n            <Flow.Node>Client Users</Flow.Node>\n            <Flow.Node>Site Users</Flow.Node>\n          </Flow.Parallel>\n          <Flow.Node>Contractor Access</Flow.Node>\n        </Flow.List>\n      </Flow.Parallel>\n      <Flow.Node>Destinations</Flow.Node>\n    </Flow>"
+        "<Flow>\n      <Flow.Parallel>\n        <Flow.List>\n          <Flow.Node>Client Users</Flow.Node>\n          <Flow.Node>Engineering Team Access</Flow.Node>\n        </Flow.List>\n        <Flow.List>\n          <Flow.Parallel>\n            <Flow.Node>All Authenticated Users</Flow.Node>\n            <Flow.Node>Client Users</Flow.Node>\n            <Flow.Node>Site Users</Flow.Node>\n          </Flow.Parallel>\n          <Flow.Node>Contractor Access</Flow.Node>\n        </Flow.List>\n      </Flow.Parallel>\n      <Flow.Node>Destinations</Flow.Node>\n    </Flow>",
+        "<Flow>\n      <Flow.Node>Incoming Request</Flow.Node>\n      <Flow.Parallel>\n        <Flow.Node\n          render={\n            <ExpandableNode title=\"Auth Service\">\n              <p>Validates JWT tokens and session cookies.</p>\n              <p className=\"mt-1\">\n                Connects to identity provider via OAuth 2.0.\n              </p>\n            </ExpandableNode>\n          }\n        />\n        <Flow.Node\n          render={\n            <ExpandableNode title=\"Rate Limiter\">\n              <p>Enforces per-IP request limits.</p>\n              <p className=\"mt-1\">Sliding window: 100 req/min.</p>\n            </ExpandableNode>\n          }\n        />\n      </Flow.Parallel>\n      <Flow.Node>Route to Origin</Flow.Node>\n    </Flow>"
       ],
       "colors": [
         "bg-kumo-fill",
@@ -3344,7 +3355,7 @@
         }
       },
       "examples": [
-        "<LayerCard>\n      <LayerCard.Secondary className=\"flex items-center justify-between\">\n        <div>Next Steps</div>\n        <Button variant=\"ghost\" size=\"sm\" shape=\"square\">\n          <ArrowRightIcon size={16} />\n        </Button>\n      </LayerCard.Secondary>\n\n      <LayerCard.Primary>Get started with Kumo</LayerCard.Primary>\n    </LayerCard>",
+        "<LayerCard>\n      <LayerCard.Secondary className=\"flex items-center justify-between\">\n        <div>Next Steps</div>\n        <Button\n          variant=\"ghost\"\n          size=\"sm\"\n          shape=\"square\"\n          aria-label=\"Go to next steps\"\n        >\n          <ArrowRightIcon size={16} />\n        </Button>\n      </LayerCard.Secondary>\n\n      <LayerCard.Primary>Get started with Kumo</LayerCard.Primary>\n    </LayerCard>",
         "<LayerCard className=\"w-[250px]\">\n      <LayerCard.Secondary>Getting Started</LayerCard.Secondary>\n      <LayerCard.Primary>\n        <p className=\"text-sm text-kumo-subtle\">\n          Quick start guide for new users\n        </p>\n      </LayerCard.Primary>\n    </LayerCard>",
         "<div className=\"flex gap-4\">\n      <LayerCard className=\"w-[200px]\">\n        <LayerCard.Secondary>Components</LayerCard.Secondary>\n        <LayerCard.Primary>\n          <p className=\"text-sm\">Browse all components</p>\n        </LayerCard.Primary>\n      </LayerCard>\n      <LayerCard className=\"w-[200px]\">\n        <LayerCard.Secondary>Examples</LayerCard.Secondary>\n        <LayerCard.Primary>\n          <p className=\"text-sm\">View code examples</p>\n        </LayerCard.Primary>\n      </LayerCard>\n    </div>"
       ],
@@ -3651,7 +3662,7 @@
         "<Meter label=\"Progress\" value={40} showValue={false} />",
         "<Meter label=\"Quota reached\" value={100} />",
         "<Meter label=\"Memory usage\" value={15} />",
-        "<Meter\n      label=\"Upload progress\"\n      value={80}\n      indicatorClassName=\"from-green-500 via-green-500 to-green-500\"\n    />"
+        "<Meter\n      label=\"Upload progress\"\n      value={80}\n      indicatorClassName=\"from-kumo-success via-kumo-success to-kumo-success\"\n    />"
       ],
       "colors": [
         "bg-kumo-fill",
@@ -4979,43 +4990,29 @@
       "importPath": "@cloudflare/kumo",
       "category": "Overlay",
       "props": {
-        "align": {
-          "type": "enum",
-          "optional": true,
-          "description": "Alignment on the axis perpendicular to `side`.\n- `\"start\"` — Align to the start edge\n- `\"center\"` — Center-aligned\n- `\"end\"` — Align to the end edge",
-          "values": [
-            "start",
-            "center",
-            "end"
-          ]
-        },
-        "asChild": {
-          "type": "boolean",
-          "optional": true,
-          "description": "When `true`, the trigger wraps the child element instead of adding a wrapper."
-        },
-        "className": {
-          "type": "string",
-          "optional": true,
-          "description": "Additional CSS classes merged via `cn()`."
-        },
         "side": {
           "type": "enum",
-          "optional": true,
-          "description": "Preferred side of the trigger to render the tooltip.\n- `\"top\"` — Tooltip appears above the trigger\n- `\"bottom\"` — Tooltip appears below the trigger\n- `\"left\"` — Tooltip appears to the left of the trigger\n- `\"right\"` — Tooltip appears to the right of the trigger",
           "values": [
             "top",
             "bottom",
             "left",
             "right"
           ],
+          "default": "top",
           "descriptions": {
             "top": "Tooltip appears above the trigger",
             "bottom": "Tooltip appears below the trigger",
             "left": "Tooltip appears to the left of the trigger",
             "right": "Tooltip appears to the right of the trigger"
-          },
-          "default": "top"
+          }
+        },
+        "className": {
+          "type": "string",
+          "description": "Additional CSS classes"
+        },
+        "children": {
+          "type": "ReactNode",
+          "description": "Child elements"
         },
         "content": {
           "type": "ReactNode",
@@ -5024,9 +5021,9 @@
         }
       },
       "examples": [
-        "<TooltipProvider>\n      <Tooltip content=\"Add new item\" asChild>\n        <Button shape=\"square\" icon={PlusIcon} />\n      </Tooltip>\n    </TooltipProvider>",
-        "<TooltipProvider>\n      <Tooltip content=\"Add\" asChild>\n        <Button shape=\"square\" icon={PlusIcon} />\n      </Tooltip>\n    </TooltipProvider>",
-        "<TooltipProvider>\n      <div className=\"flex gap-2\">\n        <Tooltip content=\"Add\" asChild>\n          <Button shape=\"square\" icon={PlusIcon} />\n        </Tooltip>\n        <Tooltip content=\"Change language\" asChild>\n          <Button shape=\"square\" icon={TranslateIcon} />\n        </Tooltip>\n      </div>\n    </TooltipProvider>"
+        "<TooltipProvider>\n      <Tooltip content=\"Add new item\" asChild>\n        <Button shape=\"square\" icon={PlusIcon} aria-label=\"Add new item\" />\n      </Tooltip>\n    </TooltipProvider>",
+        "<TooltipProvider>\n      <Tooltip content=\"Add\" asChild>\n        <Button shape=\"square\" icon={PlusIcon} aria-label=\"Add\" />\n      </Tooltip>\n    </TooltipProvider>",
+        "<TooltipProvider>\n      <div className=\"flex gap-2\">\n        <Tooltip content=\"Add\" asChild>\n          <Button shape=\"square\" icon={PlusIcon} aria-label=\"Add\" />\n        </Tooltip>\n        <Tooltip content=\"Change language\" asChild>\n          <Button\n            shape=\"square\"\n            icon={TranslateIcon}\n            aria-label=\"Change language\"\n          />\n        </Tooltip>\n      </div>\n    </TooltipProvider>"
       ],
       "colors": [
         "bg-kumo-base",

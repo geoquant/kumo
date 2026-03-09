@@ -57,6 +57,7 @@ import {
 } from "./sub-components.js";
 import { generateAIContext } from "./markdown-generator.js";
 import { generateSchemasFile } from "./schema-generator.js";
+import { generateComponentBehaviorManifest } from "./behavior-generator.js";
 import { generateComponentManifest } from "./generative-map-generator.js";
 import {
   PASSTHROUGH_COMPONENT_DOCS,
@@ -900,6 +901,7 @@ async function main() {
   const { registry, componentColors } = await generateRegistry();
   const aiContext = generateAIContext(registry, componentColors);
   const schemasContent = generateSchemasFile(registry);
+  const behaviorManifest = generateComponentBehaviorManifest(registry);
 
   // Ensure output directory exists
   const outputDir = join(__dirname, "../../ai");
@@ -919,6 +921,10 @@ async function main() {
   const schemasPath = join(outputDir, "schemas.ts");
   writeFileSync(schemasPath, schemasContent);
   console.log(`✓ Generated ${schemasPath}`);
+
+  const behaviorPath = join(outputDir, "component-behavior.json");
+  writeFileSync(behaviorPath, JSON.stringify(behaviorManifest, null, 2));
+  console.log(`✓ Generated ${behaviorPath}`);
 
   // Write generative component manifest
   const manifestContent = generateComponentManifest(registry);

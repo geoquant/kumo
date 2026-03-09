@@ -79,6 +79,59 @@ export interface BlockSchema extends ComponentSchema {
   dependencies: string[];
 }
 
+export type LayoutRole =
+  | "layout"
+  | "content"
+  | "input"
+  | "action"
+  | "feedback"
+  | "navigation"
+  | "data-display"
+  | "brand"
+  | "other";
+
+export type WrapperKind =
+  | "none"
+  | "stateful"
+  | "generative"
+  | "stateful+generative";
+
+export type GenerativeSupportStatus = "supported" | "excluded";
+
+export interface ComponentBehaviorSupport {
+  status: GenerativeSupportStatus;
+  reason?: string;
+}
+
+export interface ComponentBehaviorEvent {
+  prop: string;
+  event: string;
+  payload: string;
+}
+
+export interface ComponentBehaviorValidationHints {
+  requiredProps: readonly string[];
+  enumProps: Readonly<Record<string, readonly string[]>>;
+  acceptsChildren: boolean;
+}
+
+export interface ComponentBehaviorSchema {
+  name: string;
+  type: ComponentType;
+  generativeSupport: ComponentBehaviorSupport;
+  layoutRole: LayoutRole;
+  bindableProps: readonly string[];
+  emittedEvents: readonly ComponentBehaviorEvent[];
+  wrapperKind: WrapperKind;
+  validation: ComponentBehaviorValidationHints;
+}
+
+export interface ComponentBehaviorManifest {
+  version: string;
+  components: Record<string, ComponentBehaviorSchema>;
+  blocks?: Record<string, ComponentBehaviorSchema>;
+}
+
 /**
  * Dimension configuration for component parts
  */

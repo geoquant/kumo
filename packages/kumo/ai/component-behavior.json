@@ -1,0 +1,1249 @@
+{
+  "version": "1.0.0",
+  "components": {
+    "Badge": {
+      "name": "Badge",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "content",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "variant": [
+            "primary",
+            "secondary",
+            "destructive",
+            "success",
+            "outline",
+            "beta"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Banner": {
+      "name": "Banner",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "feedback",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "variant": [
+            "default",
+            "alert",
+            "error"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Breadcrumbs": {
+      "name": "Breadcrumbs",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "navigation",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "size": [
+            "sm",
+            "base"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Button": {
+      "name": "Button",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "action",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "shape": [
+            "base",
+            "square",
+            "circle"
+          ],
+          "size": [
+            "xs",
+            "sm",
+            "base",
+            "lg"
+          ],
+          "type": [
+            "submit",
+            "reset",
+            "button"
+          ],
+          "variant": [
+            "primary",
+            "secondary",
+            "ghost",
+            "destructive",
+            "secondary-destructive",
+            "outline"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Checkbox": {
+      "name": "Checkbox",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "input",
+      "bindableProps": [
+        "checked"
+      ],
+      "emittedEvents": [
+        {
+          "prop": "onCheckedChange",
+          "event": "checked-change",
+          "payload": "checked"
+        },
+        {
+          "prop": "onValueChange",
+          "event": "value-change",
+          "payload": "value"
+        }
+      ],
+      "wrapperKind": "stateful",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "variant": [
+            "default",
+            "error"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "ClipboardText": {
+      "name": "ClipboardText",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "action",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [
+          "text"
+        ],
+        "enumProps": {
+          "size": [
+            "sm",
+            "base",
+            "lg"
+          ]
+        },
+        "acceptsChildren": false
+      }
+    },
+    "CloudflareLogo": {
+      "name": "CloudflareLogo",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "brand",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "generative",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "accumulate": [
+            "none",
+            "sum"
+          ],
+          "additive": [
+            "replace",
+            "sum"
+          ],
+          "alignmentBaseline": [
+            "auto",
+            "baseline",
+            "before-edge",
+            "text-before-edge",
+            "middle",
+            "central",
+            "after-edge",
+            "text-after-edge",
+            "ideographic",
+            "alphabetic",
+            "hanging",
+            "mathematical",
+            "inherit"
+          ],
+          "allowReorder": [
+            "no",
+            "yes"
+          ],
+          "arabicForm": [
+            "initial",
+            "medial",
+            "terminal",
+            "isolated"
+          ],
+          "colorInterpolationFilters": [
+            "auto",
+            "sRGB",
+            "linearRGB",
+            "inherit"
+          ],
+          "dominantBaseline": [
+            "auto",
+            "use-script",
+            "no-change",
+            "reset-size",
+            "ideographic",
+            "alphabetic",
+            "hanging",
+            "mathematical",
+            "central",
+            "middle",
+            "text-after-edge",
+            "text-before-edge",
+            "inherit"
+          ],
+          "fillRule": [
+            "nonzero",
+            "evenodd",
+            "inherit"
+          ],
+          "strokeLinecap": [
+            "butt",
+            "round",
+            "square",
+            "inherit"
+          ],
+          "strokeLinejoin": [
+            "miter",
+            "round",
+            "bevel",
+            "inherit"
+          ],
+          "textAnchor": [
+            "start",
+            "middle",
+            "end",
+            "inherit"
+          ],
+          "variant": [
+            "glyph",
+            "full"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Cluster": {
+      "name": "Cluster",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "layout",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "align": [
+            "start",
+            "center",
+            "end",
+            "baseline",
+            "stretch"
+          ],
+          "gap": [
+            "none",
+            "xs",
+            "sm",
+            "base",
+            "lg",
+            "xl"
+          ],
+          "justify": [
+            "start",
+            "center",
+            "end",
+            "between"
+          ],
+          "wrap": [
+            "wrap",
+            "nowrap"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Code": {
+      "name": "Code",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "content",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [
+          "code"
+        ],
+        "enumProps": {
+          "lang": [
+            "ts",
+            "tsx",
+            "jsonc",
+            "bash",
+            "css"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Collapsible": {
+      "name": "Collapsible",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "content",
+      "bindableProps": [
+        "open"
+      ],
+      "emittedEvents": [
+        {
+          "prop": "onOpenChange",
+          "event": "open-change",
+          "payload": "open"
+        }
+      ],
+      "wrapperKind": "stateful",
+      "validation": {
+        "requiredProps": [
+          "label"
+        ],
+        "enumProps": {},
+        "acceptsChildren": true
+      }
+    },
+    "Combobox": {
+      "name": "Combobox",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Complex dropdown with search, multi-select, portals; requires host state"
+      },
+      "layoutRole": "input",
+      "bindableProps": [
+        "value"
+      ],
+      "emittedEvents": [
+        {
+          "prop": "onValueChange",
+          "event": "value-change",
+          "payload": "value"
+        }
+      ],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [
+          "items"
+        ],
+        "enumProps": {
+          "inputSide": [
+            "right",
+            "top"
+          ],
+          "size": [
+            "xs",
+            "sm",
+            "base",
+            "lg"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "CommandPalette": {
+      "name": "CommandPalette",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Complex overlay with 14 sub-components; requires host keyboard handling"
+      },
+      "layoutRole": "navigation",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [
+          "open"
+        ],
+        "enumProps": {},
+        "acceptsChildren": true
+      }
+    },
+    "DatePicker": {
+      "name": "DatePicker",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Calendar overlay requires date library and complex state management"
+      },
+      "layoutRole": "other",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {},
+        "acceptsChildren": true
+      }
+    },
+    "DateRangePicker": {
+      "name": "DateRangePicker",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Calendar overlay requires date library and complex state management"
+      },
+      "layoutRole": "input",
+      "bindableProps": [],
+      "emittedEvents": [
+        {
+          "prop": "onEndDateChange",
+          "event": "end-date-change",
+          "payload": "event"
+        },
+        {
+          "prop": "onStartDateChange",
+          "event": "start-date-change",
+          "payload": "event"
+        }
+      ],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "size": [
+            "sm",
+            "base",
+            "lg"
+          ],
+          "variant": [
+            "default",
+            "subtle"
+          ]
+        },
+        "acceptsChildren": false
+      }
+    },
+    "Dialog": {
+      "name": "Dialog",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Portal-based overlay; LLM-generated content should be inline"
+      },
+      "layoutRole": "other",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "size": [
+            "base",
+            "sm",
+            "lg",
+            "xl"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "DropdownMenu": {
+      "name": "DropdownMenu",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Portal-based overlay with sub-menus; requires host trigger management"
+      },
+      "layoutRole": "other",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "variant": [
+            "default",
+            "danger"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Empty": {
+      "name": "Empty",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "content",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [
+          "title"
+        ],
+        "enumProps": {
+          "size": [
+            "sm",
+            "base",
+            "lg"
+          ]
+        },
+        "acceptsChildren": false
+      }
+    },
+    "Field": {
+      "name": "Field",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "input",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {},
+        "acceptsChildren": true
+      }
+    },
+    "Flow": {
+      "name": "Flow",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "layout",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "align": [
+            "start",
+            "center"
+          ],
+          "orientation": [
+            "horizontal",
+            "vertical"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Grid": {
+      "name": "Grid",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "layout",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "generative",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "gap": [
+            "none",
+            "sm",
+            "base",
+            "lg"
+          ],
+          "variant": [
+            "2up",
+            "side-by-side",
+            "2-1",
+            "1-2",
+            "1-3up",
+            "3up",
+            "4up",
+            "6up",
+            "1-2-4up"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Input": {
+      "name": "Input",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "input",
+      "bindableProps": [
+        "value"
+      ],
+      "emittedEvents": [
+        {
+          "prop": "onChange",
+          "event": "change",
+          "payload": "event.target.value"
+        }
+      ],
+      "wrapperKind": "generative",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "size": [
+            "xs",
+            "sm",
+            "base",
+            "lg"
+          ],
+          "variant": [
+            "default",
+            "error"
+          ]
+        },
+        "acceptsChildren": false
+      }
+    },
+    "InputArea": {
+      "name": "InputArea",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "input",
+      "bindableProps": [
+        "value"
+      ],
+      "emittedEvents": [
+        {
+          "prop": "onChange",
+          "event": "change",
+          "payload": "event.target.value"
+        }
+      ],
+      "wrapperKind": "generative",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {},
+        "acceptsChildren": false
+      }
+    },
+    "Label": {
+      "name": "Label",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "other",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {},
+        "acceptsChildren": true
+      }
+    },
+    "LayerCard": {
+      "name": "LayerCard",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Specialized dashboard layout component; not suited for freeform generation"
+      },
+      "layoutRole": "content",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {},
+        "acceptsChildren": true
+      }
+    },
+    "Link": {
+      "name": "Link",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "navigation",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "referrerPolicy": [
+            "",
+            "no-referrer",
+            "no-referrer-when-downgrade",
+            "origin",
+            "origin-when-cross-origin",
+            "same-origin",
+            "strict-origin",
+            "strict-origin-when-cross-origin",
+            "unsafe-url"
+          ],
+          "variant": [
+            "inline",
+            "current",
+            "plain"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Loader": {
+      "name": "Loader",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "feedback",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "size": [
+            "sm",
+            "base",
+            "lg"
+          ]
+        },
+        "acceptsChildren": false
+      }
+    },
+    "MenuBar": {
+      "name": "MenuBar",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Complex keyboard-navigable menu system; requires host integration"
+      },
+      "layoutRole": "navigation",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [
+          "options"
+        ],
+        "enumProps": {},
+        "acceptsChildren": false
+      }
+    },
+    "Meter": {
+      "name": "Meter",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "data-display",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [
+          "label"
+        ],
+        "enumProps": {},
+        "acceptsChildren": false
+      }
+    },
+    "Pagination": {
+      "name": "Pagination",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Requires host-managed page state and data fetching"
+      },
+      "layoutRole": "navigation",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [
+          "setPage"
+        ],
+        "enumProps": {
+          "controls": [
+            "full",
+            "simple"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Popover": {
+      "name": "Popover",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Portal-based overlay; LLM-generated content should be inline"
+      },
+      "layoutRole": "other",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "side": [
+            "top",
+            "bottom",
+            "left",
+            "right"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Radio": {
+      "name": "Radio",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "input",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [
+          "legend"
+        ],
+        "enumProps": {
+          "controlPosition": [
+            "start",
+            "end"
+          ],
+          "orientation": [
+            "vertical",
+            "horizontal"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Select": {
+      "name": "Select",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "input",
+      "bindableProps": [
+        "value"
+      ],
+      "emittedEvents": [
+        {
+          "prop": "onValueChange",
+          "event": "value-change",
+          "payload": "value"
+        }
+      ],
+      "wrapperKind": "stateful+generative",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {},
+        "acceptsChildren": true
+      }
+    },
+    "SensitiveInput": {
+      "name": "SensitiveInput",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Security-sensitive input; should not be auto-generated"
+      },
+      "layoutRole": "other",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "size": [
+            "xs",
+            "sm",
+            "base",
+            "lg"
+          ],
+          "variant": [
+            "default",
+            "error"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Stack": {
+      "name": "Stack",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "layout",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "generative",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "align": [
+            "start",
+            "center",
+            "end",
+            "stretch"
+          ],
+          "gap": [
+            "none",
+            "xs",
+            "sm",
+            "base",
+            "lg",
+            "xl"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Surface": {
+      "name": "Surface",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "layout",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "generative",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {},
+        "acceptsChildren": true
+      }
+    },
+    "Switch": {
+      "name": "Switch",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "input",
+      "bindableProps": [
+        "checked"
+      ],
+      "emittedEvents": [
+        {
+          "prop": "onCheckedChange",
+          "event": "checked-change",
+          "payload": "checked"
+        },
+        {
+          "prop": "onClick",
+          "event": "click",
+          "payload": "event"
+        }
+      ],
+      "wrapperKind": "stateful",
+      "validation": {
+        "requiredProps": [
+          "onClick"
+        ],
+        "enumProps": {
+          "size": [
+            "sm",
+            "base",
+            "lg"
+          ],
+          "type": [
+            "submit",
+            "reset",
+            "button"
+          ],
+          "variant": [
+            "default",
+            "error"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Table": {
+      "name": "Table",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "data-display",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "layout": [
+            "auto",
+            "fixed"
+          ],
+          "variant": [
+            "default",
+            "selected"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Tabs": {
+      "name": "Tabs",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "navigation",
+      "bindableProps": [
+        "value"
+      ],
+      "emittedEvents": [
+        {
+          "prop": "onValueChange",
+          "event": "value-change",
+          "payload": "value"
+        }
+      ],
+      "wrapperKind": "stateful",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "variant": [
+            "segmented",
+            "underline"
+          ]
+        },
+        "acceptsChildren": false
+      }
+    },
+    "Text": {
+      "name": "Text",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "content",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "generative",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "size": [
+            "xs",
+            "sm",
+            "base",
+            "lg"
+          ],
+          "variant": [
+            "heading1",
+            "heading2",
+            "heading3",
+            "body",
+            "secondary",
+            "success",
+            "error",
+            "mono",
+            "mono-secondary"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "TimeseriesChart": {
+      "name": "TimeseriesChart",
+      "type": "component",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "data-display",
+      "bindableProps": [],
+      "emittedEvents": [
+        {
+          "prop": "onTimeRangeChange",
+          "event": "time-range-change",
+          "payload": "from,to"
+        }
+      ],
+      "wrapperKind": "generative",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {},
+        "acceptsChildren": true
+      }
+    },
+    "Toasty": {
+      "name": "Toasty",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Toast notification system requires imperative host API"
+      },
+      "layoutRole": "feedback",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "variant": [
+            "default",
+            "error",
+            "warning"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "Tooltip": {
+      "name": "Tooltip",
+      "type": "component",
+      "generativeSupport": {
+        "status": "excluded",
+        "reason": "Portal-based overlay; requires hover trigger management"
+      },
+      "layoutRole": "other",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [
+          "content"
+        ],
+        "enumProps": {
+          "side": [
+            "top",
+            "bottom",
+            "left",
+            "right"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    }
+  },
+  "blocks": {
+    "DeleteResource": {
+      "name": "DeleteResource",
+      "type": "block",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "other",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [
+          "open",
+          "resourceName",
+          "resourceType"
+        ],
+        "enumProps": {
+          "size": [
+            "sm",
+            "base"
+          ]
+        },
+        "acceptsChildren": false
+      }
+    },
+    "PageHeader": {
+      "name": "PageHeader",
+      "type": "block",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "layout",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {
+          "spacing": [
+            "compact",
+            "base",
+            "relaxed"
+          ]
+        },
+        "acceptsChildren": true
+      }
+    },
+    "ResourceListPage": {
+      "name": "ResourceListPage",
+      "type": "block",
+      "generativeSupport": {
+        "status": "supported"
+      },
+      "layoutRole": "layout",
+      "bindableProps": [],
+      "emittedEvents": [],
+      "wrapperKind": "none",
+      "validation": {
+        "requiredProps": [],
+        "enumProps": {},
+        "acceptsChildren": true
+      }
+    }
+  }
+}

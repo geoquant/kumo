@@ -6,10 +6,18 @@
  */
 
 export type {
+  ComponentBehaviorEvent,
+  ComponentBehaviorManifest,
+  ComponentBehaviorSchema,
+  ComponentBehaviorSupport,
+  ComponentBehaviorValidationHints,
   ComponentRegistry,
   ComponentSchema,
   ComponentStyling,
   ComponentType,
+  GenerativeSupportStatus,
+  LayoutRole,
   PropSchema,
   SubComponentSchema,
+  WrapperKind,
 } from "./types";

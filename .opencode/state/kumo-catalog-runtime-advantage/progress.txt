@@ -1,0 +1,17 @@
+# Progress Log
+PRD: kumo-catalog-runtime-advantage
+Started: 2026-03-09
+
+## Codebase Patterns
+- Registry codegen is the SSOT: add new metadata in `packages/kumo/scripts/component-registry/` and regenerate committed artifacts instead of hand-editing files in `packages/kumo/ai/` or `packages/kumo/src/generative/`.
+- Generative classification lives in `packages/kumo/scripts/component-registry/generative-map-generator.ts`; downstream tests treat the generated `component-manifest.ts` as the contract for prompt-builder, validator, and component-map behavior.
+- Behavior-only runtime hints should come from one small overlay in `packages/kumo/scripts/component-registry/metadata.ts`, not scattered per-consumer allowlists.
+- When a generated artifact is string-compared in tests, rerun the generator after formatting so checked-in output matches the generator's exact serialization.
+
+---
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - [catalog-1]
+- Implemented a new behavior-manifest generator that emits `packages/kumo/ai/component-behavior.json` from the registry pipeline with generative support, layout roles, bindable props, emitted events, wrapper kinds, and validation hints.
+- Files changed: `packages/kumo/scripts/component-registry/behavior-generator.ts`, `packages/kumo/scripts/component-registry/behavior-generator.test.ts`, `packages/kumo/scripts/component-registry/generative-map-generator.ts`, `packages/kumo/scripts/component-registry/index.ts`, `packages/kumo/scripts/component-registry/metadata.ts`, `packages/kumo/scripts/component-registry/types.ts`, `packages/kumo/scripts/component-registry/cache.ts`, `packages/kumo/src/registry/types.ts`, `packages/kumo/src/registry/index.ts`, `packages/kumo/tests/generative/drift-detection.test.ts`, `packages/kumo/ai/component-behavior.json`, `packages/kumo/src/generative/component-manifest.ts`, `packages/kumo/ai/component-registry.json`, `packages/kumo/ai/component-registry.md`, `packages/kumo/ai/schemas.ts`.
+- **Learnings:** keep wrapper classification in one generator source so behavior metadata and generative manifest do not drift; use a small behavior overlay only for runtime hints that the registry cannot infer cleanly (bindings and event payloads).

@@ -17,6 +17,7 @@ import type {
 // =============================================================================
 // Cache version - INCREMENT THIS when you change:
 // - ADDITIONAL_COMPONENT_PROPS (manual prop overrides)
+// - COMPONENT_BEHAVIOR_OVERLAY (manual runtime behavior hints)
 // - COMPONENT_STYLING_METADATA (Figma styling data)
 // - Parser logic, filtering rules, or output format
 //
@@ -24,7 +25,7 @@ import type {
 // Changes to shared code in THIS file won't invalidate cache without a version bump.
 // Or use: pnpm codegen:registry --no-cache
 // =============================================================================
-export const CACHE_VERSION = 4;
+export const CACHE_VERSION = 5;
 
 /**
  * Compute SHA-256 hash of file content.

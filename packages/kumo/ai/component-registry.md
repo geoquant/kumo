@@ -325,7 +325,12 @@ Primary action trigger. Supports multiple variants, sizes, shapes, icons, and lo
 ```tsx
 <div className="flex flex-wrap items-center gap-2">
       <Button variant="secondary">Button</Button>
-      <Button variant="secondary" shape="square" icon={PlusIcon} />
+      <Button
+        variant="secondary"
+        shape="square"
+        icon={PlusIcon}
+        aria-label="Add"
+      />
     </div>
 ```
 
@@ -2847,6 +2852,14 @@ Flow component
   Controls vertical alignment of nodes in horizontal orientation.
 - `start`: Nodes align to the top (default)
 - `center`: Nodes are vertically centered
+- `canvas`: boolean
+  Whether to render the pannable canvas wrapper.
+- `true`: Renders with pannable canvas, scrollbars, and pan gestures (default)
+- `false`: Renders only the node list without canvas wrapper
+- `padding`: object
+  Padding around the diagram content within the canvas.
+- `x`: Horizontal padding in pixels (default: 16)
+- `y`: Vertical padding in pixels (default: 64)
 - `className`: string
 - `children`: ReactNode
 
@@ -2948,6 +2961,33 @@ Flow component
         <Flow.Node>Very Long Node Name</Flow.Node>
       </Flow.Parallel>
       <Flow.Node>End</Flow.Node>
+    </Flow>
+```
+
+```tsx
+<Flow>
+      <Flow.Node>Incoming Request</Flow.Node>
+      <Flow.Parallel>
+        <Flow.Node
+          render={
+            <ExpandableNode title="Auth Service">
+              <p>Validates JWT tokens and session cookies.</p>
+              <p className="mt-1">
+                Connects to identity provider via OAuth 2.0.
+              </p>
+            </ExpandableNode>
+          }
+        />
+        <Flow.Node
+          render={
+            <ExpandableNode title="Rate Limiter">
+              <p>Enforces per-IP request limits.</p>
+              <p className="mt-1">Sliding window: 100 req/min.</p>
+            </ExpandableNode>
+          }
+        />
+      </Flow.Parallel>
+      <Flow.Node>Route to Origin</Flow.Node>
     </Flow>
 ```
 
@@ -3500,7 +3540,12 @@ Secondary sub-component
 <LayerCard>
       <LayerCard.Secondary className="flex items-center justify-between">
         <div>Next Steps</div>
-        <Button variant="ghost" size="sm" shape="square">
+        <Button
+          variant="ghost"
+          size="sm"
+          shape="square"
+          aria-label="Go to next steps"
+        >
           <ArrowRightIcon size={16} />
         </Button>
       </LayerCard.Secondary>
@@ -3795,7 +3840,7 @@ Progress bar showing a measured value within a known range (e.g. quota usage).
 <Meter
       label="Upload progress"
       value={80}
-      indicatorClassName="from-green-500 via-green-500 to-green-500"
+      indicatorClassName="from-kumo-success via-kumo-success to-kumo-success"
     />
 ```
 
@@ -5563,20 +5608,15 @@ Accessible popup that shows additional information on hover/focus. Wrap your app
 
 **Props:**
 
-- `align`: enum
-  Alignment on the axis perpendicular to `side`.
-- `"start"` — Align to the start edge
-- `"center"` — Center-aligned
-- `"end"` — Align to the end edge
-- `asChild`: boolean
-  When `true`, the trigger wraps the child element instead of adding a wrapper.
-- `className`: string
-  Additional CSS classes merged via `cn()`.
 - `side`: enum [default: top]
   - `"top"`: Tooltip appears above the trigger
   - `"bottom"`: Tooltip appears below the trigger
   - `"left"`: Tooltip appears to the left of the trigger
   - `"right"`: Tooltip appears to the right of the trigger
+- `className`: string
+  Additional CSS classes
+- `children`: ReactNode
+  Child elements
 - `content`: ReactNode (required)
   Content to display in the tooltip
 
@@ -5589,7 +5629,7 @@ Accessible popup that shows additional information on hover/focus. Wrap your app
 ```tsx
 <TooltipProvider>
       <Tooltip content="Add new item" asChild>
-        <Button shape="square" icon={PlusIcon} />
+        <Button shape="square" icon={PlusIcon} aria-label="Add new item" />
       </Tooltip>
     </TooltipProvider>
 ```
@@ -5598,10 +5638,14 @@ Accessible popup that shows additional information on hover/focus. Wrap your app
 <TooltipProvider>
       <div className="flex gap-2">
         <Tooltip content="Add" asChild>
-          <Button shape="square" icon={PlusIcon} />
+          <Button shape="square" icon={PlusIcon} aria-label="Add" />
         </Tooltip>
         <Tooltip content="Change language" asChild>
-          <Button shape="square" icon={TranslateIcon} />
+          <Button
+            shape="square"
+            icon={TranslateIcon}
+            aria-label="Change language"
+          />
         </Tooltip>
       </div>
     </TooltipProvider>

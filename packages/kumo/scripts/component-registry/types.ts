@@ -7,12 +7,19 @@
 
 // Re-export shared registry types (the output schema)
 export type {
+  BlockSchema,
+  ComponentBehaviorEvent,
+  ComponentBehaviorManifest,
+  ComponentBehaviorSchema,
+  ComponentBehaviorValidationHints,
   ComponentRegistry,
   ComponentSchema,
   ComponentStyling,
   ComponentType,
+  LayoutRole,
   PropSchema,
   SubComponentSchema,
+  WrapperKind,
 } from "../../src/registry/types";
 
 // =============================================================================
@@ -140,6 +147,23 @@ export interface ProcessComponentResult {
 export interface GenerateRegistryResult {
   registry: ComponentRegistry;
   componentColors: Map<string, string[]>;
+}
+
+// =============================================================================
+// Behavior Overlay Types
+// =============================================================================
+
+import type {
+  ComponentBehaviorEvent,
+  LayoutRole,
+} from "../../src/registry/types";
+
+export interface ComponentBehaviorOverlay {
+  layoutRole?: LayoutRole;
+  bindableProps?: readonly string[];
+  emittedEvents?: readonly ComponentBehaviorEvent[];
+  acceptsChildren?: boolean;
+  requiredProps?: readonly string[];
 }
 
 // =============================================================================
