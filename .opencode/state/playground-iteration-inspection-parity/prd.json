@@ -67,7 +67,7 @@
         "Action entries show description and parameter names/types",
         "Catalog explorer is usable without leaving `/playground`"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "export-1",
