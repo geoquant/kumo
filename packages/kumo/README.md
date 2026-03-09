@@ -28,6 +28,28 @@ npx @cloudflare/kumo docs       # Get all component docs
 
 The CLI reads from `ai/component-registry.json` (generated from TypeScript types + demo examples).
 
+## Why Kumo For Generative UI
+
+Kumo's generative/runtime story is built from the real design system surface, not from a second handwritten DSL.
+
+- `ai/component-registry.json` is generated from component source, TypeScript props, and docs demo examples.
+- `ai/component-behavior.json` adds generated runtime hints such as bindable props, wrapper kind, layout role, and emitted events.
+- `ai/schemas.ts` and `src/generative/component-manifest.ts` are generated from the same pipeline.
+
+That means prompts, validation, wrappers, renderers, streaming, and loadable all consume the same generated truth instead of drifting across hand-maintained schema tables.
+
+### Runtime Migration Stance
+
+`AppSpec` is the canonical internal runtime model.
+
+`UITree` is still accepted as a compatibility input during rollout so existing playground, streaming, and host integrations keep working while the runtime converges behind the scenes.
+
+### Positioning
+
+Kumo is optimized for teams that want catalog-derived fidelity from a real component library.
+
+Instead of adopting a handwritten schema/render system such as `json-render`, Kumo generates its prompt/runtime contract from the same components designers and product engineers already ship.
+
 ## Usage
 
 ### Import Components

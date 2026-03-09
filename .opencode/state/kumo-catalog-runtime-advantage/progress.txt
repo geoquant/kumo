@@ -11,6 +11,7 @@ Started: 2026-03-09
 - Async import tests must await the import promise directly; wrapping `await import(...)` inside `expect(async () => {}).not.toThrow()` can leave Vite module fetches pending and make Vitest fail with unhandled worker RPC shutdown errors.
 - Freshness checks should validate both layers of the pipeline: demo-source -> `dist/demo-metadata.json`, then metadata + component source -> all checked-in registry artifacts.
 - Loadable can stay host-first externally while using AppSpec internally by mirroring each container's legacy UITree into a canonical spec and treating `/state`/`/meta` patches as spec-native updates.
+- Docs work can live in package markdown when the docs site has unrelated failing suites; keep the narrative aligned with generated artifacts so contributor guidance and AI guidance describe the same runtime contract.
 
 ---
 <!-- Task logs below - APPEND ONLY -->
@@ -39,3 +40,8 @@ Started: 2026-03-09
 - Updated `packages/kumo/src/loadable/index.ts` so the UMD/loadable API keeps a canonical AppSpec mirror per container while preserving the existing UITree host API. Legacy `/root` and `/elements` RFC6902 patches still flow through the UITree path, while `/state`/`/meta`/`/watch` patches now update the internal runtime directly and render through the same AppSpec-backed renderer path used elsewhere.
 - Files changed: `packages/kumo/src/loadable/index.ts`, `packages/kumo/tests/loadable/loadable-tree-access.test.ts`, `packages/kumo/tests/imports/deep-imports.test.ts`.
 - **Learnings:** once deep-import tests await real module imports, some component entrypoints need longer per-test timeouts; otherwise the runtime migration looks flaky even when the underlying loadable/render path is correct.
+
+## Task - [docs-1]
+- Updated `packages/kumo/README.md` and `packages/kumo/ai/USAGE.md` to document Kumo's catalog-derived generative/runtime story: generated registry + behavior artifacts are the shared truth for prompts, validation, wrappers, renderers, streaming, and loadable; `AppSpec` is canonical internally while `UITree` remains a compatibility input; and Kumo intentionally differentiates itself from handwritten schema systems such as `json-render`.
+- Files changed: `packages/kumo/README.md`, `packages/kumo/ai/USAGE.md`.
+- **Learnings:** the clearest migration docs pair a human-facing README with the AI usage guide so both contributors and agents see the same explanation of why generated catalog fidelity matters more than inventing a second DSL.
