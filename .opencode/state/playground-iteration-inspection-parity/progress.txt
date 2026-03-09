@@ -7,6 +7,7 @@ Started: 2026-03-08
 - Keep shared playground state shapes in `packages/kumo-docs-astro/src/lib/playground/types.ts` and pure state transitions in `packages/kumo-docs-astro/src/lib/playground/state.ts`.
 - Migrate mirrored panel UI state first (tabs, status, raw JSONL, action logs, layout flags) and leave stream/runtime hooks intact until later tasks need deeper consolidation.
 - For inspection tabs, derive a memoized JSON-friendly view model in `src/lib/playground/` and render it through `HighlightedCode` with the same copy-button pattern used by JSONL and TSX tabs.
+- When an editor can override streamed output, keep the streamed tree and local override separate; render `override ?? streamTree` and only patch the override locally when interactive actions fire.
 
 ---
 
@@ -23,3 +24,11 @@ Started: 2026-03-08
 - Added `TreeTabContent` to `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` with live updates during streaming, copy-to-clipboard support, and empty/loading states.
 - Files changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`, `packages/kumo-docs-astro/src/lib/playground/nested-tree.ts`, `packages/kumo-docs-astro/src/lib/playground/types.ts`, `.opencode/state/playground-iteration-inspection-parity/prd.json`, `.opencode/state/playground-iteration-inspection-parity/progress.txt`
 - **Learnings:** nested inspection should not depend on `isRenderableTree()`; deriving from the raw `UITree` lets the debug view appear earlier during partial streaming.
+
+## Task - validation-1
+- Added a new `Editor` tab to both playground panels with `Format`, `Validate`, `Apply`, and `Reset to latest streamed tree` controls.
+- Implemented `packages/kumo-docs-astro/src/lib/playground/validate-tree.ts` to parse edited JSON and validate `UITree` shape through Kumo catalog validation before apply.
+- Extended playground panel state to track local tree overrides separately from streamed trees so manual edits update preview, TSX, grading, and tree views without triggering a new request.
+- Routed interactive action patches against local overrides when present so edited previews remain internally consistent.
+- Files changed: `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`, `packages/kumo-docs-astro/src/lib/playground/state.ts`, `packages/kumo-docs-astro/src/lib/playground/types.ts`, `packages/kumo-docs-astro/src/lib/playground/validate-tree.ts`, `.opencode/state/playground-iteration-inspection-parity/prd.json`, `.opencode/state/playground-iteration-inspection-parity/progress.txt`
+- **Learnings:** validation helpers should cache an initialized catalog instance, and editor reset should clear local overrides before the next streamed generation starts.

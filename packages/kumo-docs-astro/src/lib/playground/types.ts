@@ -11,6 +11,7 @@ export type StreamStatus = "idle" | "streaming" | "error";
 export type PanelTab =
   | "preview"
   | "code"
+  | "editor"
   | "tree"
   | "jsonl"
   | "actions"
@@ -39,6 +40,7 @@ export interface EditorDraft {
 
 export interface PanelArtifact {
   readonly tree: UITree;
+  readonly localTreeOverride: UITree | null;
   readonly rawJsonl: string;
   readonly status: StreamStatus;
   readonly activeTab: PanelTab;

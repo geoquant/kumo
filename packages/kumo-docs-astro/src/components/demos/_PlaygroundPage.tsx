@@ -52,6 +52,7 @@ import {
   useRuntimeValueStore,
   createHandlerMap,
   dispatchAction,
+  applyPatch,
   processActionResult,
   type ActionEvent,
   type ActionHandler,
@@ -107,6 +108,7 @@ import {
   playgroundPanelsReducer,
 } from "~/lib/playground/state";
 import { buildNestedTree } from "~/lib/playground/nested-tree";
+import { validateEditableTree } from "~/lib/playground/validate-tree";
 import type {
   ActionLogEntry,
   PanelTab,
@@ -153,6 +155,7 @@ const PANEL_TAB_CLASS = "text-xs";
 const PANEL_TABS: TabsItem[] = [
   { value: "preview", label: "UI", className: PANEL_TAB_CLASS },
   { value: "code", label: "Code", className: PANEL_TAB_CLASS },
+  { value: "editor", label: "Editor", className: PANEL_TAB_CLASS },
   { value: "tree", label: "Tree", className: PANEL_TAB_CLASS },
   { value: "jsonl", label: "JSONL", className: PANEL_TAB_CLASS },
   { value: "actions", label: "Actions", className: PANEL_TAB_CLASS },
@@ -349,9 +352,13 @@ function PlaygroundContent() {
   const leftTab = panelState.a.activeTab;
   const rightTab = panelState.b.activeTab;
   const status = panelState.a.status;
+  const leftEditor = panelState.a.editor;
+  const leftLocalTreeOverride = panelState.a.localTreeOverride;
   const rawJsonl = panelState.a.rawJsonl;
   const leftActionLog = panelState.a.actionLog;
   const noPromptStatus = panelState.b.status;
+  const rightEditor = panelState.b.editor;
+  const rightLocalTreeOverride = panelState.b.localTreeOverride;
   const noPromptRawJsonl = panelState.b.rawJsonl;
   const rightActionLog = panelState.b.actionLog;
   const chatMinimized = layoutState.chatMinimized;
@@ -437,6 +444,140 @@ function PlaygroundContent() {
   const clearRightActionLog = useCallback(() => {
     dispatchPanelState({ type: "clear-action-log", panelId: "b" });
   }, [dispatchPanelState]);
+  const setLeftStreamTree = useCallback(
+    (nextTree: UITree) => {
+      dispatchPanelState({ type: "set-tree", panelId: "a", tree: nextTree });
+    },
+    [dispatchPanelState],
+  );
+  const setRightStreamTree = useCallback(
+    (nextTree: UITree) => {
+      dispatchPanelState({ type: "set-tree", panelId: "b", tree: nextTree });
+    },
+    [dispatchPanelState],
+  );
+  const setLeftLocalTreeOverride = useCallback(
+    (nextTree: UITree | null) => {
+      dispatchPanelState({
+        type: "set-local-tree-override",
+        panelId: "a",
+        tree: nextTree,
+      });
+    },
+    [dispatchPanelState],
+  );
+  const setRightLocalTreeOverride = useCallback(
+    (nextTree: UITree | null) => {
+      dispatchPanelState({
+        type: "set-local-tree-override",
+        panelId: "b",
+        tree: nextTree,
+      });
+    },
+    [dispatchPanelState],
+  );
+  const syncLeftEditorFromStream = useCallback(
+    (text: string) => {
+      dispatchPanelState({
+        type: "set-editor-text",
+        panelId: "a",
+        text,
+        source: "stream",
+        status: "clean",
+      });
+    },
+    [dispatchPanelState],
+  );
+  const syncRightEditorFromStream = useCallback(
+    (text: string) => {
+      dispatchPanelState({
+        type: "set-editor-text",
+        panelId: "b",
+        text,
+        source: "stream",
+        status: "clean",
+      });
+    },
+    [dispatchPanelState],
+  );
+  const setLeftEditorText = useCallback(
+    (text: string, source: "stream" | "manual") => {
+      dispatchPanelState({
+        type: "set-editor-text",
+        panelId: "a",
+        text,
+        source,
+      });
+    },
+    [dispatchPanelState],
+  );
+  const setRightEditorText = useCallback(
+    (text: string, source: "stream" | "manual") => {
+      dispatchPanelState({
+        type: "set-editor-text",
+        panelId: "b",
+        text,
+        source,
+      });
+    },
+    [dispatchPanelState],
+  );
+  const setLeftEditorValidation = useCallback(
+    (
+      issues: readonly {
+        readonly message: string;
+        readonly path: readonly (string | number)[];
+      }[],
+    ) => {
+      dispatchPanelState({
+        type: "set-editor-validation",
+        panelId: "a",
+        issues,
+      });
+    },
+    [dispatchPanelState],
+  );
+  const setRightEditorValidation = useCallback(
+    (
+      issues: readonly {
+        readonly message: string;
+        readonly path: readonly (string | number)[];
+      }[],
+    ) => {
+      dispatchPanelState({
+        type: "set-editor-validation",
+        panelId: "b",
+        issues,
+      });
+    },
+    [dispatchPanelState],
+  );
+  const markLeftEditorApplied = useCallback(() => {
+    dispatchPanelState({
+      type: "mark-editor-applied",
+      panelId: "a",
+      appliedAt: new Date().toISOString(),
+    });
+  }, [dispatchPanelState]);
+  const markRightEditorApplied = useCallback(() => {
+    dispatchPanelState({
+      type: "mark-editor-applied",
+      panelId: "b",
+      appliedAt: new Date().toISOString(),
+    });
+  }, [dispatchPanelState]);
+  const resetLeftEditor = useCallback(
+    (text: string) => {
+      dispatchPanelState({ type: "reset-editor", panelId: "a", text });
+    },
+    [dispatchPanelState],
+  );
+  const resetRightEditor = useCallback(
+    (text: string) => {
+      dispatchPanelState({ type: "reset-editor", panelId: "b", text });
+    },
+    [dispatchPanelState],
+  );
 
   // --- System prompt text (fetched once for the prompt-view toggle) ---
   const [systemPromptText, setSystemPromptText] = useState<string | null>(null);
@@ -553,6 +694,16 @@ function PlaygroundContent() {
       if (result === null) return;
       processActionResult(result, {
         applyPatches: (patches: readonly JsonPatchOp[]) => {
+          if (leftLocalTreeOverride !== null) {
+            let nextTree = leftLocalTreeOverride;
+            for (const patch of patches) {
+              nextTree = applyPatch(nextTree, patch);
+            }
+            setLeftLocalTreeOverride(nextTree);
+            syncLeftEditorFromStream(JSON.stringify(nextTree, null, 2));
+            return;
+          }
+
           applyPatchesRef.current(patches);
         },
         sendMessage: (content: string) => {
@@ -574,7 +725,12 @@ function PlaygroundContent() {
         },
       });
     },
-    [appendLeftActionLog],
+    [
+      appendLeftActionLog,
+      leftLocalTreeOverride,
+      setLeftLocalTreeOverride,
+      syncLeftEditorFromStream,
+    ],
   );
 
   // --- UITree hooks ---
@@ -599,6 +755,16 @@ function PlaygroundContent() {
       if (result === null) return;
       processActionResult(result, {
         applyPatches: (patches: readonly JsonPatchOp[]) => {
+          if (rightLocalTreeOverride !== null) {
+            let nextTree = rightLocalTreeOverride;
+            for (const patch of patches) {
+              nextTree = applyPatch(nextTree, patch);
+            }
+            setRightLocalTreeOverride(nextTree);
+            syncRightEditorFromStream(JSON.stringify(nextTree, null, 2));
+            return;
+          }
+
           noPromptApplyPatchesRef.current(patches);
         },
         sendMessage: (content: string) => {
@@ -618,7 +784,12 @@ function PlaygroundContent() {
         },
       });
     },
-    [appendRightActionLog],
+    [
+      appendRightActionLog,
+      rightLocalTreeOverride,
+      setRightLocalTreeOverride,
+      syncRightEditorFromStream,
+    ],
   );
 
   // --- Action handler (chat sidebar tool cards) ---
@@ -751,11 +922,52 @@ function PlaygroundContent() {
     reset: noPromptReset,
   } = useUITree({ batchPatches: true, onAction: handleNoPromptAction });
 
+  const leftEffectiveTree = leftLocalTreeOverride ?? tree;
+  const rightEffectiveTree = rightLocalTreeOverride ?? noPromptTree;
+
   // Keep stable refs in sync
-  treeRef.current = tree;
-  noPromptTreeRef.current = noPromptTree;
+  treeRef.current = leftEffectiveTree;
+  noPromptTreeRef.current = rightEffectiveTree;
   applyPatchesRef.current = applyPatches;
   noPromptApplyPatchesRef.current = noPromptApplyPatches;
+
+  useEffect(() => {
+    setLeftStreamTree(tree);
+    if (leftLocalTreeOverride !== null) {
+      return;
+    }
+
+    const nextText = JSON.stringify(tree, null, 2);
+    if (leftEditor.text !== nextText || leftEditor.source !== "stream") {
+      syncLeftEditorFromStream(nextText);
+    }
+  }, [
+    leftEditor.source,
+    leftEditor.text,
+    leftLocalTreeOverride,
+    setLeftStreamTree,
+    syncLeftEditorFromStream,
+    tree,
+  ]);
+
+  useEffect(() => {
+    setRightStreamTree(noPromptTree);
+    if (rightLocalTreeOverride !== null) {
+      return;
+    }
+
+    const nextText = JSON.stringify(noPromptTree, null, 2);
+    if (rightEditor.text !== nextText || rightEditor.source !== "stream") {
+      syncRightEditorFromStream(nextText);
+    }
+  }, [
+    noPromptTree,
+    rightEditor.source,
+    rightEditor.text,
+    rightLocalTreeOverride,
+    setRightStreamTree,
+    syncRightEditorFromStream,
+  ]);
 
   // --- Cleanup on unmount ---
   useEffect(() => {
@@ -815,6 +1027,7 @@ function PlaygroundContent() {
       // Reset Panel B state
       noPromptRuntimeValueStore.clear();
       noPromptReset();
+      resetRightEditor("");
       setNoPromptStatus("streaming");
       setNoPromptRawJsonl("");
       noPromptRawJsonlRef.current = "";
@@ -959,6 +1172,7 @@ function PlaygroundContent() {
       // Reset Panel A state
       runtimeValueStore.clear();
       reset();
+      resetLeftEditor("");
       setErrorMessage(null);
       setStatus("streaming");
       setInputValue("");
@@ -1062,8 +1276,8 @@ function PlaygroundContent() {
   // Keep handleSubmit ref in sync for action dispatch
   handleSubmitRef.current = handleSubmit;
 
-  const showTree = isRenderableTree(tree);
-  const showNoPromptTree = isRenderableTree(noPromptTree);
+  const showTree = isRenderableTree(leftEffectiveTree);
+  const showNoPromptTree = isRenderableTree(rightEffectiveTree);
   const isNoPromptStreaming = noPromptStatus === "streaming";
   /** True when any stream is active — gates user interaction. */
   const isAnyStreaming = isStreaming || isNoPromptStreaming;
@@ -1169,7 +1383,8 @@ function PlaygroundContent() {
             </div>
           )}
           <ComparisonPanels
-            tree={tree}
+            tree={leftEffectiveTree}
+            streamedTree={tree}
             showTree={showTree}
             runtimeValueStore={runtimeValueStore}
             isStreaming={isStreaming}
@@ -1178,9 +1393,18 @@ function PlaygroundContent() {
             systemPromptText={systemPromptText}
             leftTab={leftTab}
             onLeftTabChange={setLeftTab}
+            leftEditorText={leftEditor.text}
+            leftEditorStatus={leftEditor.status}
+            leftEditorIssues={leftEditor.validationIssues}
+            onLeftEditorTextChange={setLeftEditorText}
+            onLeftEditorValidate={setLeftEditorValidation}
+            onLeftEditorReset={resetLeftEditor}
+            onLeftEditorApplyTree={setLeftLocalTreeOverride}
+            onLeftEditorApplied={markLeftEditorApplied}
             leftActionLog={leftActionLog}
             onClearLeftActionLog={clearLeftActionLog}
-            noPromptTree={noPromptTree}
+            noPromptTree={rightEffectiveTree}
+            noPromptStreamedTree={noPromptTree}
             noPromptRuntimeValueStore={noPromptRuntimeValueStore}
             showNoPromptTree={showNoPromptTree}
             isNoPromptStreaming={isNoPromptStreaming}
@@ -1188,6 +1412,14 @@ function PlaygroundContent() {
             noPromptRawJsonl={noPromptRawJsonl}
             rightTab={rightTab}
             onRightTabChange={setRightTab}
+            rightEditorText={rightEditor.text}
+            rightEditorStatus={rightEditor.status}
+            rightEditorIssues={rightEditor.validationIssues}
+            onRightEditorTextChange={setRightEditorText}
+            onRightEditorValidate={setRightEditorValidation}
+            onRightEditorReset={resetRightEditor}
+            onRightEditorApplyTree={setRightLocalTreeOverride}
+            onRightEditorApplied={markRightEditorApplied}
             onNoPromptAction={handleNoPromptAction}
             rightActionLog={rightActionLog}
             onClearRightActionLog={clearRightActionLog}
@@ -1210,6 +1442,7 @@ function PlaygroundContent() {
 interface ComparisonPanelsProps {
   // Primary (left) panel data
   readonly tree: UITree;
+  readonly streamedTree: UITree;
   readonly showTree: boolean;
   readonly runtimeValueStore: RuntimeValueStore;
   readonly isStreaming: boolean;
@@ -1218,11 +1451,31 @@ interface ComparisonPanelsProps {
   readonly systemPromptText: string | null;
   readonly leftTab: PanelTab;
   readonly onLeftTabChange: (tab: PanelTab) => void;
+  readonly leftEditorText: string;
+  readonly leftEditorStatus: "clean" | "dirty" | "invalid" | "applied";
+  readonly leftEditorIssues: readonly {
+    readonly message: string;
+    readonly path: readonly (string | number)[];
+  }[];
+  readonly onLeftEditorTextChange: (
+    text: string,
+    source: "stream" | "manual",
+  ) => void;
+  readonly onLeftEditorValidate: (
+    issues: readonly {
+      readonly message: string;
+      readonly path: readonly (string | number)[];
+    }[],
+  ) => void;
+  readonly onLeftEditorReset: (text: string) => void;
+  readonly onLeftEditorApplyTree: (tree: UITree | null) => void;
+  readonly onLeftEditorApplied: () => void;
   // Left panel action log
   readonly leftActionLog: readonly ActionLogEntry[];
   readonly onClearLeftActionLog: () => void;
   // Comparison (right) panel data
   readonly noPromptTree: UITree;
+  readonly noPromptStreamedTree: UITree;
   readonly noPromptRuntimeValueStore: RuntimeValueStore;
   readonly showNoPromptTree: boolean;
   readonly isNoPromptStreaming: boolean;
@@ -1230,6 +1483,25 @@ interface ComparisonPanelsProps {
   readonly noPromptRawJsonl: string;
   readonly rightTab: PanelTab;
   readonly onRightTabChange: (tab: PanelTab) => void;
+  readonly rightEditorText: string;
+  readonly rightEditorStatus: "clean" | "dirty" | "invalid" | "applied";
+  readonly rightEditorIssues: readonly {
+    readonly message: string;
+    readonly path: readonly (string | number)[];
+  }[];
+  readonly onRightEditorTextChange: (
+    text: string,
+    source: "stream" | "manual",
+  ) => void;
+  readonly onRightEditorValidate: (
+    issues: readonly {
+      readonly message: string;
+      readonly path: readonly (string | number)[];
+    }[],
+  ) => void;
+  readonly onRightEditorReset: (text: string) => void;
+  readonly onRightEditorApplyTree: (tree: UITree | null) => void;
+  readonly onRightEditorApplied: () => void;
   // Right panel action handler + log
   readonly onNoPromptAction?: (event: ActionEvent) => void;
   readonly rightActionLog: readonly ActionLogEntry[];
@@ -1245,6 +1517,7 @@ interface ComparisonPanelsProps {
 /** Renders two side-by-side panels, each with its own tab bar and content. */
 function ComparisonPanels({
   tree,
+  streamedTree,
   showTree,
   runtimeValueStore,
   isStreaming,
@@ -1253,9 +1526,18 @@ function ComparisonPanels({
   systemPromptText,
   leftTab,
   onLeftTabChange,
+  leftEditorText,
+  leftEditorStatus,
+  leftEditorIssues,
+  onLeftEditorTextChange,
+  onLeftEditorValidate,
+  onLeftEditorReset,
+  onLeftEditorApplyTree,
+  onLeftEditorApplied,
   leftActionLog,
   onClearLeftActionLog,
   noPromptTree,
+  noPromptStreamedTree,
   noPromptRuntimeValueStore,
   showNoPromptTree,
   isNoPromptStreaming,
@@ -1263,6 +1545,14 @@ function ComparisonPanels({
   noPromptRawJsonl,
   rightTab,
   onRightTabChange,
+  rightEditorText,
+  rightEditorStatus,
+  rightEditorIssues,
+  onRightEditorTextChange,
+  onRightEditorValidate,
+  onRightEditorReset,
+  onRightEditorApplyTree,
+  onRightEditorApplied,
   onNoPromptAction,
   rightActionLog,
   onClearRightActionLog,
@@ -1292,7 +1582,16 @@ function ComparisonPanels({
             runtimeValueStore={runtimeValueStore}
             isStreaming={isStreaming}
             rawJsonl={rawJsonl}
+            streamedTree={streamedTree}
             promptText={systemPromptText}
+            editorText={leftEditorText}
+            editorStatus={leftEditorStatus}
+            editorIssues={leftEditorIssues}
+            onEditorTextChange={onLeftEditorTextChange}
+            onEditorValidate={onLeftEditorValidate}
+            onEditorReset={onLeftEditorReset}
+            onEditorApplyTree={onLeftEditorApplyTree}
+            onEditorApplied={onLeftEditorApplied}
             onAction={onAction}
             actionLog={leftActionLog}
             onClearActionLog={onClearLeftActionLog}
@@ -1327,7 +1626,16 @@ function ComparisonPanels({
             runtimeValueStore={noPromptRuntimeValueStore}
             isStreaming={isNoPromptStreaming}
             rawJsonl={noPromptRawJsonl}
+            streamedTree={noPromptStreamedTree}
             promptText={BASELINE_PROMPT}
+            editorText={rightEditorText}
+            editorStatus={rightEditorStatus}
+            editorIssues={rightEditorIssues}
+            onEditorTextChange={onRightEditorTextChange}
+            onEditorValidate={onRightEditorValidate}
+            onEditorReset={onRightEditorReset}
+            onEditorApplyTree={onRightEditorApplyTree}
+            onEditorApplied={onRightEditorApplied}
             streamStatus={noPromptStatus}
             onAction={onNoPromptAction}
             actionLog={rightActionLog}
@@ -1470,7 +1778,16 @@ function PanelContent({
   runtimeValueStore,
   isStreaming,
   rawJsonl,
+  streamedTree,
   promptText,
+  editorText,
+  editorStatus,
+  editorIssues,
+  onEditorTextChange,
+  onEditorValidate,
+  onEditorReset,
+  onEditorApplyTree,
+  onEditorApplied,
   onAction,
   streamStatus,
   actionLog,
@@ -1482,7 +1799,27 @@ function PanelContent({
   readonly runtimeValueStore: RuntimeValueStore;
   readonly isStreaming: boolean;
   readonly rawJsonl: string;
+  readonly streamedTree: UITree;
   readonly promptText: string | null;
+  readonly editorText: string;
+  readonly editorStatus: "clean" | "dirty" | "invalid" | "applied";
+  readonly editorIssues: readonly {
+    readonly message: string;
+    readonly path: readonly (string | number)[];
+  }[];
+  readonly onEditorTextChange: (
+    text: string,
+    source: "stream" | "manual",
+  ) => void;
+  readonly onEditorValidate: (
+    issues: readonly {
+      readonly message: string;
+      readonly path: readonly (string | number)[];
+    }[],
+  ) => void;
+  readonly onEditorReset: (text: string) => void;
+  readonly onEditorApplyTree: (tree: UITree | null) => void;
+  readonly onEditorApplied: () => void;
   readonly onAction?: (event: ActionEvent) => void;
   readonly streamStatus?: StreamStatus;
   readonly actionLog: readonly ActionLogEntry[];
@@ -1502,6 +1839,22 @@ function PanelContent({
       );
     case "code":
       return <CodeTabContent tree={tree} showTree={showTree} />;
+    case "editor":
+      return (
+        <EditorTabContent
+          tree={tree}
+          streamedTree={streamedTree}
+          text={editorText}
+          status={editorStatus}
+          issues={editorIssues}
+          isStreaming={isStreaming}
+          onTextChange={onEditorTextChange}
+          onValidate={onEditorValidate}
+          onReset={onEditorReset}
+          onApplyTree={onEditorApplyTree}
+          onApplied={onEditorApplied}
+        />
+      );
     case "tree":
       return <TreeTabContent tree={tree} isStreaming={isStreaming} />;
     case "jsonl":
@@ -1600,6 +1953,184 @@ function TreeTabContent({
       <div className="h-full overflow-auto">
         <HighlightedCode code={nestedTreeJson} lang="json" />
       </div>
+    </div>
+  );
+}
+
+/** Editable JSON tree view with validate/apply/reset controls. */
+function EditorTabContent({
+  tree,
+  streamedTree,
+  text,
+  status,
+  issues,
+  isStreaming,
+  onTextChange,
+  onValidate,
+  onReset,
+  onApplyTree,
+  onApplied,
+}: {
+  readonly tree: UITree;
+  readonly streamedTree: UITree;
+  readonly text: string;
+  readonly status: "clean" | "dirty" | "invalid" | "applied";
+  readonly issues: readonly {
+    readonly message: string;
+    readonly path: readonly (string | number)[];
+  }[];
+  readonly isStreaming: boolean;
+  readonly onTextChange: (text: string, source: "stream" | "manual") => void;
+  readonly onValidate: (
+    issues: readonly {
+      readonly message: string;
+      readonly path: readonly (string | number)[];
+    }[],
+  ) => void;
+  readonly onReset: (text: string) => void;
+  readonly onApplyTree: (tree: UITree | null) => void;
+  readonly onApplied: () => void;
+}) {
+  const [isWorking, setIsWorking] = useState(false);
+
+  const resetText = useMemo(
+    () => JSON.stringify(streamedTree, null, 2),
+    [streamedTree],
+  );
+  const currentTreeText = useMemo(() => JSON.stringify(tree, null, 2), [tree]);
+
+  const runValidation = useCallback(async () => {
+    setIsWorking(true);
+    try {
+      const result = await validateEditableTree(text, CUSTOM_COMPONENTS);
+      if (result.success) {
+        onValidate([]);
+      } else {
+        onValidate(result.issues);
+      }
+      return result;
+    } finally {
+      setIsWorking(false);
+    }
+  }, [onValidate, text]);
+
+  const handleFormat = useCallback(() => {
+    try {
+      const formatted = JSON.stringify(JSON.parse(text), null, 2);
+      onTextChange(formatted, "manual");
+      onValidate([]);
+    } catch (error) {
+      onValidate([
+        {
+          message:
+            error instanceof Error ? error.message : "Invalid JSON document",
+          path: [],
+        },
+      ]);
+    }
+  }, [onTextChange, onValidate, text]);
+
+  const handleApply = useCallback(async () => {
+    const result = await runValidation();
+    if (!result.success) {
+      return;
+    }
+
+    const nextText = JSON.stringify(result.tree, null, 2);
+    onTextChange(nextText, "manual");
+    onApplyTree(result.tree);
+    onApplied();
+  }, [onApplied, onApplyTree, onTextChange, runValidation]);
+
+  const handleReset = useCallback(() => {
+    onApplyTree(null);
+    onReset(resetText);
+  }, [onApplyTree, onReset, resetText]);
+
+  return (
+    <div className="flex h-full flex-col gap-3 p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleFormat}
+          disabled={isStreaming || isWorking}
+        >
+          Format
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => void runValidation()}
+          disabled={isStreaming || isWorking}
+        >
+          Validate
+        </Button>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => void handleApply()}
+          disabled={isStreaming || isWorking}
+        >
+          Apply
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleReset}
+          disabled={isStreaming || isWorking}
+        >
+          Reset to latest streamed tree
+        </Button>
+        <span className="ml-auto text-xs text-kumo-subtle">
+          {isWorking ? "Working..." : `Status: ${status}`}
+        </span>
+      </div>
+
+      <div className="rounded-lg border border-kumo-line bg-kumo-base overflow-hidden">
+        <textarea
+          value={text}
+          onChange={(event) => onTextChange(event.target.value, "manual")}
+          spellCheck={false}
+          disabled={isStreaming || isWorking}
+          aria-label="Editable UI tree JSON"
+          className="min-h-[320px] w-full resize-none bg-transparent px-4 py-3 font-mono text-xs leading-5 text-kumo-default outline-none"
+        />
+      </div>
+
+      {issues.length > 0 ? (
+        <div className="rounded-lg border border-kumo-danger/40 bg-kumo-danger/10 p-3">
+          <p className="mb-2 text-xs font-medium text-kumo-danger">
+            Validation issues ({issues.length})
+          </p>
+          <div className="space-y-1">
+            {issues.map((issue, index) => (
+              <p
+                key={`${issue.message}-${index}`}
+                className="font-mono text-xs text-kumo-danger"
+              >
+                {issue.path.length > 0
+                  ? `${issue.path.join(".")}: ${issue.message}`
+                  : issue.message}
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-kumo-subtle">
+          Editing is local to this panel. Apply updates preview, TSX, grading,
+          and tree views without sending a new request.
+        </p>
+      )}
+
+      <details className="rounded-lg border border-kumo-line bg-kumo-elevated px-3 py-2">
+        <summary className="cursor-pointer text-xs text-kumo-subtle">
+          Current effective tree snapshot
+        </summary>
+        <div className="mt-2 max-h-40 overflow-auto">
+          <HighlightedCode code={currentTreeText} lang="json" />
+        </div>
+      </details>
     </div>
   );
 }
