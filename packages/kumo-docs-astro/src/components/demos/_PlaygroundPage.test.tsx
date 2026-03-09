@@ -332,6 +332,153 @@ function buildPanelBTree(text: string): UITree {
   };
 }
 
+function buildConfirmationTree(toolId: string): UITree {
+  return {
+    root: "surface",
+    elements: {
+      surface: {
+        key: "surface",
+        type: "Surface",
+        props: {},
+        children: ["stack"],
+      },
+      stack: {
+        key: "stack",
+        type: "Stack",
+        props: {},
+        children: ["copy", "cancel", "approve"],
+        parentKey: "surface",
+      },
+      copy: {
+        key: "copy",
+        type: "Text",
+        props: { children: "Create a new worker now" },
+        parentKey: "stack",
+      },
+      cancel: {
+        key: "cancel",
+        type: "Button",
+        props: { children: "Cancel" },
+        parentKey: "stack",
+        action: { name: "tool_cancel", params: { toolId } },
+      },
+      approve: {
+        key: "approve",
+        type: "Button",
+        props: { children: "Approve" },
+        parentKey: "stack",
+        action: { name: "tool_approve", params: { toolId } },
+      },
+    },
+  };
+}
+
+function buildFollowupTree(includeTable: boolean): UITree {
+  return {
+    root: "surface",
+    elements: {
+      surface: {
+        key: "surface",
+        type: "Surface",
+        props: {},
+        children: includeTable
+          ? ["logo", "heading", "chart", "badge", "table"]
+          : ["logo", "heading", "badge"],
+      },
+      logo: {
+        key: "logo",
+        type: "CloudflareLogo",
+        props: {},
+        parentKey: "surface",
+      },
+      heading: {
+        key: "heading",
+        type: "Text",
+        props: { children: "hello-world", variant: "heading2" },
+        parentKey: "surface",
+      },
+      ...(includeTable
+        ? {
+            chart: {
+              key: "chart",
+              type: "TimeseriesChart",
+              props: {
+                data: [
+                  {
+                    name: "Requests",
+                    data: [
+                      [1710000000000, 10],
+                      [1710000060000, 18],
+                    ],
+                    color: "#f38020",
+                  },
+                ],
+              },
+              parentKey: "surface",
+            },
+          }
+        : {}),
+      badge: {
+        key: "badge",
+        type: "Badge",
+        props: { children: "Active" },
+        parentKey: "surface",
+      },
+      ...(includeTable
+        ? {
+            table: {
+              key: "table",
+              type: "Table",
+              props: {},
+              children: ["head", "body"],
+              parentKey: "surface",
+            },
+            head: {
+              key: "head",
+              type: "TableHead",
+              props: {},
+              children: ["head-row"],
+              parentKey: "table",
+            },
+            "head-row": {
+              key: "head-row",
+              type: "TableRow",
+              props: {},
+              children: ["head-cell"],
+              parentKey: "head",
+            },
+            "head-cell": {
+              key: "head-cell",
+              type: "TableHeader",
+              props: { children: "Name" },
+              parentKey: "head-row",
+            },
+            body: {
+              key: "body",
+              type: "TableBody",
+              props: {},
+              children: ["row"],
+              parentKey: "table",
+            },
+            row: {
+              key: "row",
+              type: "TableRow",
+              props: {},
+              children: ["cell"],
+              parentKey: "body",
+            },
+            cell: {
+              key: "cell",
+              type: "TableCell",
+              props: { children: "hello-world" },
+              parentKey: "row",
+            },
+          }
+        : {}),
+    },
+  };
+}
+
 const INITIAL_A_TREE = buildPanelATree("0", false);
 const INITIAL_B_TREE = buildPanelBTree("Baseline body");
 
@@ -487,6 +634,198 @@ describe("PlaygroundPage", () => {
       expect(
         screen.getByText("Approve create-worker-hello-world"),
       ).toBeTruthy();
+    });
+  });
+
+  it("keeps create-worker confirmation in chat and out of workspace panels", async () => {
+    streamJsonlUIMock.mockImplementation(
+      async ({
+        body,
+        onPatches,
+        onToken,
+      }: {
+        readonly body: Record<string, unknown>;
+        readonly onPatches: (
+          ops: readonly {
+            readonly op: string;
+            readonly path: string;
+            readonly value: unknown;
+          }[],
+        ) => void;
+        readonly onToken?: (token: string) => void;
+      }) => {
+        const message = String(body["message"] ?? "");
+        const isPanelB = body["skipSystemPrompt"] === true;
+        const tree = message.includes("deployment dashboard")
+          ? isPanelB
+            ? buildPanelBTree("bad followup")
+            : buildFollowupTree(true)
+          : buildConfirmationTree(
+              isPanelB ? "create-worker-b" : "create-worker-a",
+            );
+
+        onToken?.(JSON.stringify(tree));
+        onPatches(buildPatchOps(tree));
+        return isPanelB ? "panel-b-response" : "panel-a-response";
+      },
+    );
+
+    streamToolConfirmationMock.mockImplementation(
+      async (
+        _request: unknown,
+        callbacks: {
+          readonly onTreeUpdate: (tree: UITree) => void;
+          readonly onComplete: (tree: UITree) => void;
+        },
+      ) => {
+        const tree = buildConfirmationTree("create-worker-hello-world");
+        callbacks.onTreeUpdate(tree);
+        callbacks.onComplete(tree);
+      },
+    );
+
+    render(<PlaygroundPage />);
+
+    fireEvent.change(screen.getByLabelText("Prompt"), {
+      target: { value: "create a new hello world worker" },
+    });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(streamToolConfirmationMock).toHaveBeenCalledTimes(1);
+      expect(streamJsonlUIMock).not.toHaveBeenCalled();
+      expect(screen.getByText("Awaiting follow-up stage.")).toBeTruthy();
+    });
+  });
+
+  it("scrubs prior chat and a/b outputs with the history slider", async () => {
+    streamJsonlUIMock.mockImplementation(
+      async ({
+        body,
+        onPatches,
+        onToken,
+      }: {
+        readonly body: Record<string, unknown>;
+        readonly onPatches: (
+          ops: readonly {
+            readonly op: string;
+            readonly path: string;
+            readonly value: unknown;
+          }[],
+        ) => void;
+        readonly onToken?: (token: string) => void;
+      }) => {
+        const message = String(body["message"] ?? "");
+        const isPanelB = body["skipSystemPrompt"] === true;
+        const tree = message.includes("dashboard")
+          ? isPanelB
+            ? buildPanelBTree("Dashboard baseline")
+            : buildFollowupTree(false)
+          : isPanelB
+            ? INITIAL_B_TREE
+            : INITIAL_A_TREE;
+
+        onToken?.(JSON.stringify(tree));
+        onPatches(buildPatchOps(tree));
+        return isPanelB ? "panel-b-response" : "panel-a-response";
+      },
+    );
+
+    render(<PlaygroundPage />);
+
+    fireEvent.change(screen.getByLabelText("Prompt"), {
+      target: { value: "build me a counter" },
+    });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Baseline body")).toBeTruthy();
+      expect(screen.getAllByText("build me a counter").length).toBeGreaterThan(
+        0,
+      );
+    });
+
+    fireEvent.change(screen.getByLabelText("Prompt"), {
+      target: { value: "build dashboard" },
+    });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Dashboard baseline")).toBeTruthy();
+      expect(screen.getByText("hello-world")).toBeTruthy();
+      expect(screen.getAllByText("build dashboard").length).toBeGreaterThan(0);
+    });
+
+    fireEvent.change(screen.getByLabelText("Output history"), {
+      target: { value: "1" },
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Dashboard baseline")).toBeNull();
+      expect(screen.queryByText("hello-world")).toBeNull();
+      expect(
+        screen.getByText("Viewing history. Return to latest to keep editing."),
+      ).toBeTruthy();
+      expect(screen.getAllByText("build me a counter").length).toBeGreaterThan(
+        0,
+      );
+      expect(screen.queryAllByText("build dashboard")).toHaveLength(0);
+    });
+  });
+
+  it("captures tool confirmations in history before later panel generations", async () => {
+    streamToolConfirmationMock.mockImplementation(
+      async (
+        _request: unknown,
+        callbacks: {
+          readonly onTreeUpdate: (tree: UITree) => void;
+          readonly onComplete: (tree: UITree) => void;
+        },
+      ) => {
+        const tree = buildConfirmationTree("create-worker-hello-world");
+        callbacks.onTreeUpdate(tree);
+        callbacks.onComplete(tree);
+      },
+    );
+
+    render(<PlaygroundPage />);
+
+    fireEvent.click(screen.getByText("Create worker"));
+
+    await waitFor(() => {
+      expect(screen.getByText("1/1")).toBeTruthy();
+      expect(screen.getByText("Create a new worker now")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText("Counter"));
+
+    await waitFor(() => {
+      expect(screen.getByText("2/2")).toBeTruthy();
+      expect(screen.getAllByText("Increment").length).toBeGreaterThan(0);
+    });
+
+    fireEvent.change(screen.getByLabelText("Output history"), {
+      target: { value: "1" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Create a new worker now")).toBeTruthy();
+      expect(
+        screen.queryByText(
+          "Viewing history. Return to latest to keep editing.",
+        ),
+      ).toBeTruthy();
+    });
+
+    fireEvent.change(screen.getByLabelText("Output history"), {
+      target: { value: "0" },
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Describe the UI you want to generate"),
+      ).toBeTruthy();
+      expect(screen.queryByText("Create a new worker now")).toBeNull();
     });
   });
 });
