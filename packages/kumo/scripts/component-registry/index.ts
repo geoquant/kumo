@@ -692,7 +692,7 @@ async function processComponentsInParallel(
 // Generate Registry
 // =============================================================================
 
-async function generateRegistry(): Promise<GenerateRegistryResult> {
+export async function generateRegistry(): Promise<GenerateRegistryResult> {
   const startTime = Date.now();
 
   // Auto-discover components and blocks from filesystem
@@ -947,4 +947,6 @@ async function main() {
 // Re-export types for external consumers
 export type { ComponentType } from "./types.js";
 
-main().catch(console.error);
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch(console.error);
+}

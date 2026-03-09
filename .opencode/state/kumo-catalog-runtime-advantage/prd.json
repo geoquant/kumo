@@ -51,7 +51,7 @@
         "New components are not silently absent from prompt/runtime visibility; they are either included or explicitly marked excluded with a reason.",
         "The freshness pipeline and validation remain scoped to `geoquant/streaming-ui`."
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "streaming-1",

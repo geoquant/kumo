@@ -22,6 +22,7 @@ import * as ts from "typescript";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const demosDir = join(__dirname, "../src/components/demos");
 const outputDir = join(__dirname, "../dist");
+const DEMO_METADATA_VERSION = "1.0.0";
 
 // =============================================================================
 // Types
@@ -239,19 +240,14 @@ function parseDemoFile(filePath: string): ComponentDemos | null {
 // Main
 // =============================================================================
 
-function main() {
-  console.log("Extracting demo examples from kumo-docs-astro...\n");
-
-  // Find all demo files
+export function generateDemoMetadata(): DemoMetadata {
   const files = readdirSync(demosDir).filter(
     (f) => f.endsWith("Demo.tsx") && !f.startsWith("_"),
   );
 
-  console.log(`Found ${files.length} demo files\n`);
-
   const metadata: DemoMetadata = {
     generatedAt: new Date().toISOString(),
-    version: "1.0.0",
+    version: DEMO_METADATA_VERSION,
     components: {},
   };
 
@@ -270,6 +266,23 @@ function main() {
     }
   }
 
+  return metadata;
+}
+
+function main() {
+  console.log("Extracting demo examples from kumo-docs-astro...\n");
+
+  const files = readdirSync(demosDir).filter(
+    (f) => f.endsWith("Demo.tsx") && !f.startsWith("_"),
+  );
+  console.log(`Found ${files.length} demo files\n`);
+
+  const metadata = generateDemoMetadata();
+  const totalDemos = Object.values(metadata.components).reduce(
+    (sum, component) => sum + component.demos.length,
+    0,
+  );
+
   // Ensure output directory exists
   mkdirSync(outputDir, { recursive: true });
 
@@ -281,4 +294,6 @@ function main() {
   console.log(`✓ Wrote ${outputPath}`);
 }
 
-main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main();
+}
