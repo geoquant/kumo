@@ -101,9 +101,7 @@ export function Label({
     <>
       {children}
       {showOptional && (
-        <span className="font-normal text-kumo-strong">
-          ({term("optional")})
-        </span>
+        <span className="font-normal text-kumo-strong">{term("optional")}</span>
       )}
       {tooltip && (
         <Tooltip content={tooltip}>
