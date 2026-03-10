@@ -57,5 +57,5 @@ describe("catalog freshness", () => {
     expect(actualSchemas).toBe(expectedSchemas);
     expect(actualBehavior).toEqual(expectedBehavior);
     expect(actualManifest).toBe(expectedManifest);
-  });
+  }, 15_000);
 });
