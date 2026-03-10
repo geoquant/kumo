@@ -2675,7 +2675,7 @@ function ComparisonPanels({
               if (isPanelTab(v)) onLeftTabChange(v);
             }}
           />
-          <div className="flex-1 overflow-auto">
+          <div className="flex min-h-0 flex-1 overflow-auto">
             <PanelContent
               tab={visibleLeftTab}
               tree={tree}
@@ -2729,7 +2729,7 @@ function ComparisonPanels({
               if (isPanelTab(v)) onRightTabChange(v);
             }}
           />
-          <div className="flex-1 overflow-auto">
+          <div className="flex min-h-0 flex-1 overflow-auto">
             <PanelContent
               tab={visibleRightTab}
               tree={noPromptTree}
@@ -3333,7 +3333,7 @@ function MobilePlaygroundShell({
                 if (isPanelTab(v)) onLeftTabChange(v);
               }}
             />
-            <div className="flex-1 overflow-auto">
+            <div className="flex min-h-0 flex-1 overflow-auto">
               <PanelContent
                 tab={visibleLeftTab}
                 tree={leftTree}
@@ -3380,7 +3380,7 @@ function MobilePlaygroundShell({
                 if (isPanelTab(v)) onRightTabChange(v);
               }}
             />
-            <div className="flex-1 overflow-auto">
+            <div className="flex min-h-0 flex-1 overflow-auto">
               <PanelContent
                 tab={visibleRightTab}
                 tree={rightTree}
@@ -4417,7 +4417,7 @@ function PreviewContent({
   }
   if (isStreaming) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full w-full items-center justify-center">
         <Loader size="sm" />
       </div>
     );
