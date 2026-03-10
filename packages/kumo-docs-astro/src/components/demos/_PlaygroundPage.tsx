@@ -111,10 +111,6 @@ import {
 } from "~/lib/tool-registry";
 import { buildStageArtifact } from "~/lib/playground/eval-analysis";
 import {
-  createPlaygroundFeedbackExport,
-  parsePlaygroundFeedbackExportText,
-} from "~/lib/playground/feedback-export";
-import {
   createScenarioRunPair,
   isScenarioRunComplete,
 } from "~/lib/playground/feedback-run";
@@ -221,11 +217,6 @@ interface PendingFollowupCapture {
   readonly promptText: string;
 }
 
-interface FeedbackTransferMessage {
-  readonly kind: "success" | "error";
-  readonly text: string;
-}
-
 interface OutputHistoryPanelSnapshot {
   readonly tree: UITree;
   readonly rawJsonl: string;
@@ -259,30 +250,6 @@ function extractPromptString(body: unknown): string | null {
   if (!("prompt" in body)) return null;
   const narrow: { prompt: unknown } = body;
   return typeof narrow.prompt === "string" ? narrow.prompt : null;
-}
-
-function readFileAsText(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-        return;
-      }
-
-      reject(new Error("Failed to read file"));
-    };
-
-    reader.onerror = () => reject(new Error("Failed to read file"));
-    reader.readAsText(file);
-  });
-}
-
-function getLatestFeedbackRun(
-  runs: readonly ScenarioRunPair[],
-): ScenarioRunPair | null {
-  return runs.at(-1) ?? null;
 }
 
 function cloneOutputHistorySnapshot(
@@ -561,13 +528,10 @@ function PlaygroundContent() {
   // --- Input state ---
   const [inputValue, setInputValue] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
-  const [feedbackTransferMessage, setFeedbackTransferMessage] =
-    useState<FeedbackTransferMessage | null>(null);
   const [outputHistory, setOutputHistory] = useState<
     readonly OutputHistorySnapshot[]
   >([]);
   const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(0);
-  const feedbackImportInputRef = useRef<HTMLInputElement | null>(null);
   const pendingEvalCaptureRef = useRef<PendingEvalCapture | null>(null);
   const pendingFollowupCaptureRef = useRef<PendingFollowupCapture | null>(null);
   const pendingOutputHistoryRef = useRef<PendingOutputHistoryCapture | null>(
@@ -887,118 +851,6 @@ function PlaygroundContent() {
       dispatchPanelState({ type: "reset-editor", panelId: "b", text });
     },
     [dispatchPanelState],
-  );
-  const hydrateImportedFeedbackRuns = useCallback(
-    (runs: readonly ScenarioRunPair[]) => {
-      dispatchPanelState({ type: "hydrate-feedback-runs", runs });
-
-      const latestRun = getLatestFeedbackRun(runs);
-      if (latestRun === null) {
-        return;
-      }
-
-      const artifacts = getPreferredRunArtifacts(latestRun);
-      if (artifacts?.a !== null && artifacts?.a !== undefined) {
-        dispatchPanelState({
-          type: "set-tree",
-          panelId: "a",
-          tree: artifacts.a.tree,
-        });
-        setRawJsonl(artifacts.a.rawJsonl);
-        setStatus("idle");
-        resetLeftEditor(JSON.stringify(artifacts.a.tree, null, 2));
-        setLeftLocalTreeOverride(artifacts.a.tree);
-      }
-
-      if (artifacts?.b !== null && artifacts?.b !== undefined) {
-        dispatchPanelState({
-          type: "set-tree",
-          panelId: "b",
-          tree: artifacts.b.tree,
-        });
-        setNoPromptRawJsonl(artifacts.b.rawJsonl);
-        setNoPromptStatus("idle");
-        resetRightEditor(JSON.stringify(artifacts.b.tree, null, 2));
-        setRightLocalTreeOverride(artifacts.b.tree);
-      }
-    },
-    [
-      dispatchPanelState,
-      resetLeftEditor,
-      resetRightEditor,
-      setLeftLocalTreeOverride,
-      setNoPromptRawJsonl,
-      setNoPromptStatus,
-      setRawJsonl,
-      setRightLocalTreeOverride,
-      setStatus,
-    ],
-  );
-  const handleExportFeedback = useCallback(() => {
-    if (feedbackState.runs.length === 0) {
-      return;
-    }
-
-    const exportedAt = new Date().toISOString();
-    const payload = createPlaygroundFeedbackExport({
-      branch: __BUILD_BRANCH__,
-      exportedAt,
-      runs: feedbackState.runs,
-    });
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `playground-feedback-${exportedAt.replace(/[:.]/g, "-")}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-
-    setFeedbackTransferMessage({
-      kind: "success",
-      text: `Exported ${String(feedbackState.runs.length)} run${feedbackState.runs.length === 1 ? "" : "s"}.`,
-    });
-  }, [feedbackState.runs]);
-  const handleImportFeedbackClick = useCallback(() => {
-    feedbackImportInputRef.current?.click();
-  }, []);
-  const handleImportFeedbackChange = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      event.target.value = "";
-      if (!file) {
-        return;
-      }
-
-      try {
-        const text = await readFileAsText(file);
-        const parsed = parsePlaygroundFeedbackExportText(text);
-        if (parsed === null) {
-          setFeedbackTransferMessage({
-            kind: "error",
-            text: "Invalid feedback export.",
-          });
-          return;
-        }
-
-        pendingEvalCaptureRef.current = null;
-        pendingFollowupCaptureRef.current = null;
-        hydrateImportedFeedbackRuns(parsed.runs);
-        setFeedbackTransferMessage({
-          kind: "success",
-          text: `Imported ${String(parsed.runs.length)} run${parsed.runs.length === 1 ? "" : "s"} from ${parsed.branch}.`,
-        });
-      } catch {
-        setFeedbackTransferMessage({
-          kind: "error",
-          text: "Failed to import feedback export.",
-        });
-      }
-    },
-    [hydrateImportedFeedbackRuns],
   );
 
   // --- System prompt text (fetched once for the prompt-view toggle) ---
@@ -2124,90 +1976,76 @@ function PlaygroundContent() {
 
   if (isMobileViewport) {
     return (
-      <>
-        <input
-          ref={feedbackImportInputRef}
-          type="file"
-          accept=".json"
-          className="hidden"
-          onChange={handleImportFeedbackChange}
-        />
-        <MobilePlaygroundShell
-          mobileView={mobileView}
-          onMobileViewChange={setMobileView}
-          outputHistory={outputHistory}
-          selectedHistoryIndex={selectedHistoryIndex}
-          onHistoryIndexChange={handleHistoryIndexChange}
-          onReturnToLatestHistory={returnToLatestHistory}
-          isHistoryStreamingLocked={isAnyStreaming}
-          inputValue={inputValue}
-          onInputChange={setInputValue}
-          selectedModel={selectedModel}
-          onModelChange={setSelectedModel}
-          isAnyStreaming={isAnyStreaming}
-          status={displayedStatus}
-          messages={displayedMessages}
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-          messagesEndRef={messagesEndRef}
-          presets={PRESET_PROMPTS}
-          onToolAction={handleToolAction}
-          leftTab={leftTab}
-          onLeftTabChange={setLeftTab}
-          leftTree={displayedLeftTree}
-          leftStreamedTree={historyPreview?.panelA.tree ?? tree}
-          leftShowTree={displayedLeftShowTree}
-          leftRuntimeValueStore={displayedLeftRuntimeValueStore}
-          isLeftStreaming={isHistoryPlayback ? false : isStreaming}
-          leftRawJsonl={displayedLeftRawJsonl}
-          onLeftAction={isHistoryPlayback ? undefined : handleAction}
-          leftPromptText={displayedLeftPromptText}
-          leftEditorText={displayedLeftEditorText}
-          leftEditorStatus={displayedLeftEditorStatus}
-          leftEditorIssues={displayedLeftEditorIssues}
-          onLeftEditorTextChange={setLeftEditorText}
-          onLeftEditorValidate={setLeftEditorValidation}
-          onLeftEditorReset={resetLeftEditor}
-          onLeftEditorApplyTree={setLeftLocalTreeOverride}
-          onLeftEditorApplied={markLeftEditorApplied}
-          leftActionLog={displayedLeftActionLog}
-          onClearLeftActionLog={clearLeftActionLog}
-          rightTab={rightTab}
-          onRightTabChange={setRightTab}
-          rightTree={displayedRightTree}
-          rightStreamedTree={historyPreview?.panelB.tree ?? noPromptTree}
-          rightShowTree={displayedRightShowTree}
-          rightRuntimeValueStore={displayedRightRuntimeValueStore}
-          isRightStreaming={isHistoryPlayback ? false : isNoPromptStreaming}
-          rightRawJsonl={displayedRightRawJsonl}
-          onRightAction={isHistoryPlayback ? undefined : handleNoPromptAction}
-          rightPromptText={displayedRightPromptText}
-          rightEditorText={displayedRightEditorText}
-          rightEditorStatus={displayedRightEditorStatus}
-          rightEditorIssues={displayedRightEditorIssues}
-          onRightEditorTextChange={setRightEditorText}
-          onRightEditorValidate={setRightEditorValidation}
-          onRightEditorReset={resetRightEditor}
-          onRightEditorApplyTree={setRightLocalTreeOverride}
-          onRightEditorApplied={markRightEditorApplied}
-          rightStatus={displayedRightStatus}
-          rightActionLog={displayedRightActionLog}
-          onClearRightActionLog={clearRightActionLog}
-          skills={skills}
-          pendingSkillIds={pendingSkillIds}
-          onToggleSkill={handleToggleSkill}
-          onApplySkills={handleApplySkills}
-          isSkillApplyDisabled={
-            isAnyStreaming || !hasSubmitted || isHistoryPlayback
-          }
-          onImportFeedback={handleImportFeedbackClick}
-          onExportFeedback={handleExportFeedback}
-          isFeedbackTransferDisabled={isAnyStreaming}
-          canExportFeedback={feedbackState.runs.length > 0}
-          feedbackTransferMessage={feedbackTransferMessage}
-          isHistoryPlayback={isHistoryPlayback}
-        />
-      </>
+      <MobilePlaygroundShell
+        mobileView={mobileView}
+        onMobileViewChange={setMobileView}
+        outputHistory={outputHistory}
+        selectedHistoryIndex={selectedHistoryIndex}
+        onHistoryIndexChange={handleHistoryIndexChange}
+        onReturnToLatestHistory={returnToLatestHistory}
+        isHistoryStreamingLocked={isAnyStreaming}
+        inputValue={inputValue}
+        onInputChange={setInputValue}
+        selectedModel={selectedModel}
+        onModelChange={setSelectedModel}
+        isAnyStreaming={isAnyStreaming}
+        status={displayedStatus}
+        messages={displayedMessages}
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        messagesEndRef={messagesEndRef}
+        presets={PRESET_PROMPTS}
+        onToolAction={handleToolAction}
+        leftTab={leftTab}
+        onLeftTabChange={setLeftTab}
+        leftTree={displayedLeftTree}
+        leftStreamedTree={historyPreview?.panelA.tree ?? tree}
+        leftShowTree={displayedLeftShowTree}
+        leftRuntimeValueStore={displayedLeftRuntimeValueStore}
+        isLeftStreaming={isHistoryPlayback ? false : isStreaming}
+        leftRawJsonl={displayedLeftRawJsonl}
+        onLeftAction={isHistoryPlayback ? undefined : handleAction}
+        leftPromptText={displayedLeftPromptText}
+        leftEditorText={displayedLeftEditorText}
+        leftEditorStatus={displayedLeftEditorStatus}
+        leftEditorIssues={displayedLeftEditorIssues}
+        onLeftEditorTextChange={setLeftEditorText}
+        onLeftEditorValidate={setLeftEditorValidation}
+        onLeftEditorReset={resetLeftEditor}
+        onLeftEditorApplyTree={setLeftLocalTreeOverride}
+        onLeftEditorApplied={markLeftEditorApplied}
+        leftActionLog={displayedLeftActionLog}
+        onClearLeftActionLog={clearLeftActionLog}
+        rightTab={rightTab}
+        onRightTabChange={setRightTab}
+        rightTree={displayedRightTree}
+        rightStreamedTree={historyPreview?.panelB.tree ?? noPromptTree}
+        rightShowTree={displayedRightShowTree}
+        rightRuntimeValueStore={displayedRightRuntimeValueStore}
+        isRightStreaming={isHistoryPlayback ? false : isNoPromptStreaming}
+        rightRawJsonl={displayedRightRawJsonl}
+        onRightAction={isHistoryPlayback ? undefined : handleNoPromptAction}
+        rightPromptText={displayedRightPromptText}
+        rightEditorText={displayedRightEditorText}
+        rightEditorStatus={displayedRightEditorStatus}
+        rightEditorIssues={displayedRightEditorIssues}
+        onRightEditorTextChange={setRightEditorText}
+        onRightEditorValidate={setRightEditorValidation}
+        onRightEditorReset={resetRightEditor}
+        onRightEditorApplyTree={setRightLocalTreeOverride}
+        onRightEditorApplied={markRightEditorApplied}
+        rightStatus={displayedRightStatus}
+        rightActionLog={displayedRightActionLog}
+        onClearRightActionLog={clearRightActionLog}
+        skills={skills}
+        pendingSkillIds={pendingSkillIds}
+        onToggleSkill={handleToggleSkill}
+        onApplySkills={handleApplySkills}
+        isSkillApplyDisabled={
+          isAnyStreaming || !hasSubmitted || isHistoryPlayback
+        }
+        isHistoryPlayback={isHistoryPlayback}
+      />
     );
   }
 
@@ -2293,13 +2131,6 @@ function PlaygroundContent() {
                 >
                   Catalog
                 </Button>
-                <FeedbackTransferToolbar
-                  onImport={handleImportFeedbackClick}
-                  onExport={handleExportFeedback}
-                  transferDisabled={isAnyStreaming}
-                  exportDisabled={feedbackState.runs.length === 0}
-                  message={feedbackTransferMessage}
-                />
                 <a
                   href="/"
                   className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
@@ -2412,13 +2243,6 @@ function PlaygroundContent() {
           </div>
         </Panel>
       </Group>
-      <input
-        ref={feedbackImportInputRef}
-        type="file"
-        accept=".json"
-        className="hidden"
-        onChange={handleImportFeedbackChange}
-      />
     </div>
   );
 }
@@ -2666,7 +2490,12 @@ function ComparisonPanels({
           onWorkspaceResize([a, b]);
         }}
       >
-        <Panel id="a" minSize="20rem" defaultSize="50%" className="min-w-0">
+        <Panel
+          id="a"
+          minSize="20rem"
+          defaultSize="50%"
+          className="flex h-full min-w-0 flex-col"
+        >
           <PanelHeader
             label="A"
             tabs={PANEL_TABS}
@@ -2704,7 +2533,12 @@ function ComparisonPanels({
 
         <PlaygroundResizeHandle orientation="vertical" />
 
-        <Panel id="b" minSize="20rem" defaultSize="50%" className="min-w-0">
+        <Panel
+          id="b"
+          minSize="20rem"
+          defaultSize="50%"
+          className="flex h-full min-w-0 flex-col"
+        >
           <PanelHeader
             label="B"
             actions={
@@ -3139,11 +2973,6 @@ function MobilePlaygroundShell({
   onToggleSkill,
   onApplySkills,
   isSkillApplyDisabled,
-  onImportFeedback,
-  onExportFeedback,
-  isFeedbackTransferDisabled,
-  canExportFeedback,
-  feedbackTransferMessage,
   isHistoryPlayback,
 }: {
   readonly mobileView: "chat" | "a" | "b" | "catalog";
@@ -3233,11 +3062,6 @@ function MobilePlaygroundShell({
   readonly onToggleSkill: (id: string, checked: boolean) => void;
   readonly onApplySkills: () => void;
   readonly isSkillApplyDisabled: boolean;
-  readonly onImportFeedback: () => void;
-  readonly onExportFeedback: () => void;
-  readonly isFeedbackTransferDisabled: boolean;
-  readonly canExportFeedback: boolean;
-  readonly feedbackTransferMessage: FeedbackTransferMessage | null;
   readonly isHistoryPlayback: boolean;
 }) {
   const shellTabs = [
@@ -3255,13 +3079,6 @@ function MobilePlaygroundShell({
         <div className="flex h-[61px] items-center justify-between px-4">
           <CloudflareLogo variant="glyph" className="h-5 w-auto shrink-0" />
           <div className="flex items-center gap-1">
-            <FeedbackTransferToolbar
-              onImport={onImportFeedback}
-              onExport={onExportFeedback}
-              transferDisabled={isFeedbackTransferDisabled}
-              exportDisabled={!canExportFeedback}
-              message={feedbackTransferMessage}
-            />
             <a
               href="/"
               className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
@@ -3656,58 +3473,6 @@ function PanelHeader({
         />
       </div>
     </div>
-  );
-}
-
-function FeedbackTransferToolbar({
-  onImport,
-  onExport,
-  transferDisabled,
-  exportDisabled,
-  message,
-}: {
-  readonly onImport: () => void;
-  readonly onExport: () => void;
-  readonly transferDisabled: boolean;
-  readonly exportDisabled: boolean;
-  readonly message: FeedbackTransferMessage | null;
-}) {
-  return (
-    <>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onImport}
-        disabled={transferDisabled}
-      >
-        Import
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onExport}
-        disabled={transferDisabled || exportDisabled}
-      >
-        Export
-      </Button>
-      <a
-        href="/playground/report"
-        className="inline-flex h-8 items-center rounded-md px-2 text-sm text-kumo-subtle hover:bg-kumo-elevated hover:text-kumo-default"
-      >
-        Report
-      </a>
-      {message !== null ? (
-        <span
-          className={cn(
-            "hidden max-w-56 truncate text-xs md:inline",
-            message.kind === "error" ? "text-kumo-danger" : "text-kumo-subtle",
-          )}
-          title={message.text}
-        >
-          {message.text}
-        </span>
-      ) : null}
-    </>
   );
 }
 
