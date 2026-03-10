@@ -306,17 +306,6 @@ function createOutputHistorySnapshot(input: {
   };
 }
 
-function getOutputHistoryLabel(prompt: string): string {
-  const normalized = prompt.trim().replace(/\s+/g, " ");
-  if (normalized.length === 0) {
-    return "Untitled output";
-  }
-  if (normalized.length <= 48) {
-    return normalized;
-  }
-  return `${normalized.slice(0, 45)}...`;
-}
-
 function createSnapshotRuntimeStore(
   values: Readonly<Record<string, unknown>>,
 ): RuntimeValueStore {
@@ -2078,7 +2067,6 @@ function PlaygroundContent() {
             minimized={chatMinimized}
             onToggleMinimize={toggleChat}
             onToolAction={handleToolAction}
-            historyEntry={activeHistoryEntry}
             isHistoryPlayback={isHistoryPlayback}
             onReturnToLatest={returnToLatestHistory}
           />
@@ -4999,7 +4987,6 @@ interface PlaygroundChatSidebarProps {
   readonly onToggleMinimize: () => void;
   /** Action handler for inline tool confirmation card actions (tool_approve / tool_cancel). */
   readonly onToolAction: (event: ActionEvent) => void;
-  readonly historyEntry: OutputHistorySnapshot | null;
   readonly isHistoryPlayback: boolean;
   readonly onReturnToLatest: () => void;
 }
@@ -5020,7 +5007,6 @@ function PlaygroundChatSidebar({
   minimized,
   onToggleMinimize,
   onToolAction,
-  historyEntry,
   isHistoryPlayback,
   onReturnToLatest,
 }: PlaygroundChatSidebarProps) {
@@ -5091,11 +5077,6 @@ function PlaygroundChatSidebar({
             {Math.ceil(turnCount / 2) === 1 ? "turn" : "turns"}
           </span>
         )}
-        {historyEntry !== null && !isStreaming ? (
-          <span className="max-w-40 truncate text-[11px] text-kumo-subtle">
-            {getOutputHistoryLabel(historyEntry.prompt)}
-          </span>
-        ) : null}
         <button
           type="button"
           onClick={onToggleMinimize}
