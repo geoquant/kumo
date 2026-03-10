@@ -1126,8 +1126,15 @@
       ],
       "wrapperKind": "generative",
       "validation": {
-        "requiredProps": [],
-        "enumProps": {},
+        "requiredProps": [
+          "data"
+        ],
+        "enumProps": {
+          "type": [
+            "line",
+            "bar"
+          ]
+        },
         "acceptsChildren": true
       }
     },

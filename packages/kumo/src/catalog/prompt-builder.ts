@@ -170,7 +170,13 @@ function groupForType(uiType: string, category: string): PromptGroup {
     return "Layout";
   }
 
-  if (uiType.startsWith("Table") || uiType === "Meter") return "Data Display";
+  if (
+    uiType.startsWith("Table") ||
+    uiType === "Meter" ||
+    uiType === "TimeseriesChart"
+  ) {
+    return "Data Display";
+  }
   if (
     uiType === "Link" ||
     uiType === "Breadcrumbs" ||

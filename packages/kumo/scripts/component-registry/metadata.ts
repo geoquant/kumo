@@ -265,6 +265,56 @@ export const ADDITIONAL_COMPONENT_PROPS: Record<
       description: "Callback when checkbox value changes",
     },
   },
+  TimeseriesChart: {
+    type: {
+      type: "enum",
+      values: ["line", "bar"],
+      default: "line",
+      description:
+        'Visual style of each series. Use `"bar"` for stacked bar charts and `"line"` for time-series trend charts.',
+    },
+    data: {
+      type: "Array<{ name: string; data: [number, number][]; color: string }>",
+      required: true,
+      description:
+        "Series data. Each item needs a label, a `[timestamp_ms, value]` array, and a display color.",
+    },
+    xAxisName: {
+      type: "string",
+      description: "Optional x-axis label.",
+    },
+    xAxisTickCount: {
+      type: "number",
+      description: "Optional number of x-axis ticks.",
+    },
+    yAxisName: {
+      type: "string",
+      description: "Optional y-axis label.",
+    },
+    yAxisTickCount: {
+      type: "number",
+      description: "Optional number of y-axis ticks.",
+    },
+    incomplete: {
+      type: "{ before?: number; after?: number }",
+      description:
+        "Optional time bounds used to render incomplete periods with dashed lines.",
+    },
+    height: {
+      type: "number",
+      description: "Chart height in pixels.",
+      default: "350",
+    },
+    gradient: {
+      type: "boolean",
+      description:
+        "Whether to render a gradient under line series. Ignored for bar charts.",
+    },
+    loading: {
+      type: "boolean",
+      description: "Show the loading skeleton instead of chart data.",
+    },
+  },
 };
 
 // =============================================================================

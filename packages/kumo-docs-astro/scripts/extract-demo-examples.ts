@@ -15,7 +15,7 @@
  */
 
 import { readFileSync, writeFileSync, readdirSync, mkdirSync } from "node:fs";
-import { dirname, join, basename } from "node:path";
+import { dirname, join, basename, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as ts from "typescript";
 
@@ -231,9 +231,33 @@ function parseDemoFile(filePath: string): ComponentDemos | null {
 
   return {
     componentName,
-    sourceFile: basename(filePath),
+    sourceFile: relative(demosDir, filePath),
     demos,
   };
+}
+
+function collectDemoFiles(dirPath: string): string[] {
+  const entries = readdirSync(dirPath, { withFileTypes: true });
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    if (entry.name.startsWith("_")) {
+      continue;
+    }
+
+    const entryPath = join(dirPath, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...collectDemoFiles(entryPath));
+      continue;
+    }
+
+    if (entry.isFile() && entry.name.endsWith("Demo.tsx")) {
+      files.push(entryPath);
+    }
+  }
+
+  return files;
 }
 
 // =============================================================================
@@ -241,9 +265,7 @@ function parseDemoFile(filePath: string): ComponentDemos | null {
 // =============================================================================
 
 export function generateDemoMetadata(): DemoMetadata {
-  const files = readdirSync(demosDir).filter(
-    (f) => f.endsWith("Demo.tsx") && !f.startsWith("_"),
-  );
+  const files = collectDemoFiles(demosDir);
 
   const metadata: DemoMetadata = {
     generatedAt: new Date().toISOString(),
@@ -253,8 +275,7 @@ export function generateDemoMetadata(): DemoMetadata {
 
   let totalDemos = 0;
 
-  for (const file of files) {
-    const filePath = join(demosDir, file);
+  for (const filePath of files) {
     const result = parseDemoFile(filePath);
 
     if (result) {

@@ -34,6 +34,7 @@ export const CATEGORY_MAP: Record<string, string> = {
   // Display
   badge: "Display",
   breadcrumbs: "Display",
+  chart: "Display",
   code: "Display",
   collapsible: "Display",
   empty: "Display",
