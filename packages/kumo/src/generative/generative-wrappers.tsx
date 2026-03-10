@@ -292,12 +292,19 @@ export const GenerativeSurface = forwardRef<
   HTMLDivElement,
   Record<string, unknown>
 >(function GenerativeSurface(props, ref) {
-  const { className, ...rest } = props;
-  return React.createElement(Surface, {
-    ref,
-    className: cn("rounded-lg p-6", className as string),
-    ...rest,
-  });
+  const { children, className, ...rest } = props;
+  return React.createElement(
+    Surface,
+    {
+      ref,
+      className: cn(
+        "rounded-lg p-6",
+        typeof className === "string" ? className : undefined,
+      ),
+      ...rest,
+    },
+    children as React.ReactNode,
+  );
 });
 GenerativeSurface.displayName = "GenerativeSurface";
 
@@ -380,6 +387,7 @@ export const GenerativeGrid = forwardRef<
   HTMLDivElement,
   Record<string, unknown>
 >(function GenerativeGrid(props, ref) {
+  const { children, ...rest } = props;
   const variant = props["variant"];
   const columns = props["columns"];
   const gap = props["gap"];
@@ -393,12 +401,16 @@ export const GenerativeGrid = forwardRef<
     defaults["gap"] = "base";
   }
 
-  return React.createElement(Grid, {
-    ref,
-    className: cn(readClassName(props)),
-    ...defaults,
-    ...stripClassName(props),
-  });
+  return React.createElement(
+    Grid,
+    {
+      ref,
+      className: cn(readClassName(props)),
+      ...defaults,
+      ...stripClassName(rest),
+    },
+    children as React.ReactNode,
+  );
 });
 GenerativeGrid.displayName = "GenerativeGrid";
 
@@ -416,6 +428,7 @@ export const GenerativeStack = forwardRef<
   HTMLDivElement,
   Record<string, unknown>
 >(function GenerativeStack(props, ref) {
+  const { children, ...rest } = props;
   const gap = props["gap"];
 
   const defaults: Record<string, unknown> = {};
@@ -424,12 +437,16 @@ export const GenerativeStack = forwardRef<
     defaults["gap"] = "base";
   }
 
-  return React.createElement(Stack, {
-    ref,
-    className: cn(readClassName(props)),
-    ...defaults,
-    ...stripClassName(props),
-  });
+  return React.createElement(
+    Stack,
+    {
+      ref,
+      className: cn(readClassName(props)),
+      ...defaults,
+      ...stripClassName(rest),
+    },
+    children as React.ReactNode,
+  );
 });
 GenerativeStack.displayName = "GenerativeStack";
 
@@ -502,17 +519,22 @@ export function GenerativeTimeseriesChart(
 export function GenerativeSelect(
   props: Record<string, unknown>,
 ): React.JSX.Element {
-  const passthrough = stripClassName(props);
+  const { children, ...rest } = props;
+  const passthrough = stripClassName(rest);
   const label = passthrough["label"];
   const hideLabel = passthrough["hideLabel"];
 
   const shouldDefaultShowLabel =
     label != null && typeof hideLabel !== "boolean";
 
-  return React.createElement(StatefulSelect, {
-    className: cn("w-full", readClassName(props)),
-    ...passthrough,
-    ...(shouldDefaultShowLabel ? { hideLabel: false } : null),
-  });
+  return React.createElement(
+    StatefulSelect,
+    {
+      className: cn("w-full", readClassName(props)),
+      ...passthrough,
+      ...(shouldDefaultShowLabel ? { hideLabel: false } : null),
+    },
+    children as React.ReactNode,
+  );
 }
 GenerativeSelect.displayName = "GenerativeSelect";

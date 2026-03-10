@@ -1992,6 +1992,18 @@ function UITreeRendererImpl({
   runtimeValueStore,
   customComponents,
 }: UITreeRendererProps): React.JSX.Element | null {
+  if (data == null && auth == null) {
+    return (
+      <UITreeRendererBase
+        tree={tree}
+        streaming={streaming}
+        onAction={onAction}
+        runtimeValueStore={runtimeValueStore}
+        customComponents={customComponents}
+      />
+    );
+  }
+
   const initialSpec: CompatibleUITreeInput = useMemo(
     () => ({
       tree,
