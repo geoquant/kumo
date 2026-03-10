@@ -4898,7 +4898,7 @@
       "type": "component",
       "description": "TimeseriesChart — a time-series line or bar chart.  Built on `Chart` (Apache ECharts) with opinionated defaults for time-series data: a time-typed x-axis, dashed lines for incomplete data periods, brush-based time range selection, and automatic tooltip deduplication.",
       "importPath": "@cloudflare/kumo",
-      "category": "Other",
+      "category": "Display",
       "props": {
         "className": {
           "type": "string",
@@ -4907,9 +4907,66 @@
         "children": {
           "type": "ReactNode",
           "description": "Child elements"
+        },
+        "type": {
+          "type": "enum",
+          "values": [
+            "line",
+            "bar"
+          ],
+          "default": "line",
+          "description": "Visual style of each series. Use `\"bar\"` for stacked bar charts and `\"line\"` for time-series trend charts."
+        },
+        "data": {
+          "type": "Array<{ name: string; data: [number, number][]; color: string }>",
+          "required": true,
+          "description": "Series data. Each item needs a label, a `[timestamp_ms, value]` array, and a display color."
+        },
+        "xAxisName": {
+          "type": "string",
+          "description": "Optional x-axis label."
+        },
+        "xAxisTickCount": {
+          "type": "number",
+          "description": "Optional number of x-axis ticks."
+        },
+        "yAxisName": {
+          "type": "string",
+          "description": "Optional y-axis label."
+        },
+        "yAxisTickCount": {
+          "type": "number",
+          "description": "Optional number of y-axis ticks."
+        },
+        "incomplete": {
+          "type": "{ before?: number; after?: number }",
+          "description": "Optional time bounds used to render incomplete periods with dashed lines."
+        },
+        "height": {
+          "type": "number",
+          "description": "Chart height in pixels.",
+          "default": "350"
+        },
+        "gradient": {
+          "type": "boolean",
+          "description": "Whether to render a gradient under line series. Ignored for bar charts."
+        },
+        "loading": {
+          "type": "boolean",
+          "description": "Show the loading skeleton instead of chart data."
         }
       },
-      "examples": [],
+      "examples": [
+        "<TimeseriesChart\n      echarts={echarts}\n      isDarkMode={isDarkMode}\n      data={data}\n      xAxisName=\"Time (UTC)\"\n      yAxisName=\"Count\"\n    />",
+        "<TimeseriesChart\n      echarts={echarts}\n      isDarkMode={isDarkMode}\n      data={data}\n      xAxisName=\"Time (UTC)\"\n      yAxisName=\"Count\"\n      yAxisTickLabelFormat={(value) => {\n        return Math.round(value).toString() + \" requests\";\n      }}\n    />",
+        "<TimeseriesChart\n      yAxisTickCount={2}\n      echarts={echarts}\n      isDarkMode={isDarkMode}\n      data={data}\n      height={160}\n    />",
+        "<TimeseriesChart\n      echarts={echarts}\n      isDarkMode={isDarkMode}\n      data={data}\n      xAxisName=\"Time (UTC)\"\n      yAxisName=\"Count\"\n      gradient\n    />",
+        "<TimeseriesChart\n      echarts={echarts}\n      isDarkMode={isDarkMode}\n      data={data}\n      xAxisName=\"Time (UTC)\"\n      yAxisName=\"Mbps\"\n      incomplete={{ after: incompleteTimestamp }}\n    />",
+        "<TimeseriesChart\n      echarts={echarts}\n      isDarkMode={isDarkMode}\n      data={data}\n      xAxisName=\"Time (UTC)\"\n      yAxisName=\"%\"\n      onTimeRangeChange={(from, to) => {\n        alert(\n          `Selected range:\\nFrom: ${new Date(from).toLocaleString()}\\nTo: ${new Date(to).toLocaleString()}`,\n        );\n      }}\n    />",
+        "<TimeseriesChart\n      echarts={echarts}\n      isDarkMode={isDarkMode}\n      type=\"bar\"\n      data={data}\n      xAxisName=\"Time (UTC)\"\n      yAxisName=\"Count\"\n    />",
+        "<div className=\"flex flex-col flex-1 w-full\">\n      <TimeseriesChart\n        echarts={echarts}\n        isDarkMode={isDarkMode}\n        xAxisName=\"Time (UTC)\"\n        yAxisName=\"Count\"\n        data={[]}\n        loading\n      />\n    </div>",
+        "<LayerCard>\n      <LayerCard.Secondary>Read latency</LayerCard.Secondary>\n      <LayerCard.Primary>\n        <div className=\"flex divide-x divide-kumo-line gap-4 px-2 mb-2\">\n          <ChartLegend.LargeItem\n            name=\"P99\"\n            color={ChartPalette.semantic(\"Attention\", isDarkMode)}\n            value=\"124\"\n            unit=\"ms\"\n          />\n          <ChartLegend.LargeItem\n            name=\"P95\"\n            color={ChartPalette.semantic(\"Warning\", isDarkMode)}\n            value=\"76\"\n            unit=\"ms\"\n          />\n          <ChartLegend.LargeItem\n            name=\"P75\"\n            color={ChartPalette.semantic(\"Neutral\", isDarkMode)}\n            value=\"32\"\n            unit=\"ms\"\n          />\n          <ChartLegend.LargeItem\n            name=\"P50\"\n            color={ChartPalette.semantic(\"NeutralLight\", isDarkMode)}\n            value=\"10\"\n            unit=\"ms\"\n          />\n        </div>\n        <TimeseriesChart\n          xAxisName=\"Time (UTC)\"\n          echarts={echarts}\n          isDarkMode={isDarkMode}\n          data={data}\n          height={300}\n        />\n      </LayerCard.Primary>\n    </LayerCard>"
+      ],
       "colors": []
     },
     "Toasty": {
@@ -5288,7 +5345,8 @@
         "Empty",
         "LayerCard",
         "Meter",
-        "Text"
+        "Text",
+        "TimeseriesChart"
       ],
       "Feedback": [
         "Banner",
@@ -5318,7 +5376,6 @@
         "SensitiveInput",
         "Stack",
         "Table",
-        "TimeseriesChart",
         "DeleteResource"
       ],
       "Navigation": [

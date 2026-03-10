@@ -41,6 +41,9 @@ describe("generateComponentBehaviorManifest", () => {
     expect(manifest.components.TimeseriesChart.generativeSupport.status).toBe(
       "supported",
     );
+    expect(
+      manifest.components.TimeseriesChart.validation.enumProps.type,
+    ).toEqual(["line", "bar"]);
     expect(manifest.components.TimeseriesChart.emittedEvents).toContainEqual({
       prop: "onTimeRangeChange",
       event: "time-range-change",

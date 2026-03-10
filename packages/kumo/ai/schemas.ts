@@ -747,6 +747,16 @@ export const TextPropsSchema = z.object({
 export const TimeseriesChartPropsSchema = z.object({
   className: z.string().optional(), // Additional CSS classes
   children: z.union([z.string(), z.number(), z.boolean(), z.null(), DynamicValueSchema]).optional(), // Child elements
+  type: z.enum(["line", "bar"]).optional(), // Visual style of each series. Use `"bar"` for stacked bar charts and `"line"` for time-series trend charts.
+  data: z.unknown(), // Series data. Each item needs a label, a `[timestamp_ms, value]` array, and a display color.
+  xAxisName: z.string().optional(), // Optional x-axis label.
+  xAxisTickCount: z.number().optional(), // Optional number of x-axis ticks.
+  yAxisName: z.string().optional(), // Optional y-axis label.
+  yAxisTickCount: z.number().optional(), // Optional number of y-axis ticks.
+  incomplete: z.unknown().optional(), // Optional time bounds used to render incomplete periods with dashed lines.
+  height: z.number().optional(), // Chart height in pixels.
+  gradient: z.boolean().optional(), // Whether to render a gradient under line series. Ignored for bar charts.
+  loading: z.boolean().optional(), // Show the loading skeleton instead of chart data.
 });
 
 export const ToastyPropsSchema = z.object({

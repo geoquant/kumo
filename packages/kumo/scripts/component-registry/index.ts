@@ -113,10 +113,24 @@ function loadDemoExamples(): Map<string, { aiExamples: string[] }> {
 
   const examples = new Map<string, { aiExamples: string[] }>();
 
+  function appendExample(componentName: string, code: string): void {
+    const existing = examples.get(componentName);
+    if (existing == null) {
+      examples.set(componentName, { aiExamples: [code] });
+      return;
+    }
+
+    existing.aiExamples.push(code);
+  }
+
   for (const [componentName, data] of Object.entries(metadata.components)) {
-    examples.set(componentName, {
-      aiExamples: data.demos.map((demo) => demo.code),
-    });
+    for (const demo of data.demos) {
+      appendExample(componentName, demo.code);
+
+      if (componentName === "Chart" && demo.code.includes("<TimeseriesChart")) {
+        appendExample("TimeseriesChart", demo.code);
+      }
+    }
   }
 
   return examples;

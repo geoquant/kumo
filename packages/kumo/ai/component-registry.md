@@ -5555,7 +5555,7 @@ TimeseriesChart — a time-series line or bar chart.  Built on `Chart` (Apache E
 
 **Import:** `import { TimeseriesChart } from "@cloudflare/kumo";`
 
-**Category:** Other
+**Category:** Display
 
 **Props:**
 
@@ -5563,6 +5563,153 @@ TimeseriesChart — a time-series line or bar chart.  Built on `Chart` (Apache E
   Additional CSS classes
 - `children`: ReactNode
   Child elements
+- `type`: enum [default: line]
+  Visual style of each series. Use `"bar"` for stacked bar charts and `"line"` for time-series trend charts.
+- `data`: Array<{ name: string; data: [number, number][]; color: string }> (required)
+  Series data. Each item needs a label, a `[timestamp_ms, value]` array, and a display color.
+- `xAxisName`: string
+  Optional x-axis label.
+- `xAxisTickCount`: number
+  Optional number of x-axis ticks.
+- `yAxisName`: string
+  Optional y-axis label.
+- `yAxisTickCount`: number
+  Optional number of y-axis ticks.
+- `incomplete`: { before?: number; after?: number }
+  Optional time bounds used to render incomplete periods with dashed lines.
+- `height`: number [default: 350]
+  Chart height in pixels.
+- `gradient`: boolean
+  Whether to render a gradient under line series. Ignored for bar charts.
+- `loading`: boolean
+  Show the loading skeleton instead of chart data.
+
+**Examples:**
+
+```tsx
+<TimeseriesChart
+      echarts={echarts}
+      isDarkMode={isDarkMode}
+      data={data}
+      xAxisName="Time (UTC)"
+      yAxisName="Count"
+    />
+```
+
+```tsx
+<TimeseriesChart
+      echarts={echarts}
+      isDarkMode={isDarkMode}
+      data={data}
+      xAxisName="Time (UTC)"
+      yAxisName="Count"
+      yAxisTickLabelFormat={(value) => {
+        return Math.round(value).toString() + " requests";
+      }}
+    />
+```
+
+```tsx
+<TimeseriesChart
+      yAxisTickCount={2}
+      echarts={echarts}
+      isDarkMode={isDarkMode}
+      data={data}
+      height={160}
+    />
+```
+
+```tsx
+<TimeseriesChart
+      echarts={echarts}
+      isDarkMode={isDarkMode}
+      data={data}
+      xAxisName="Time (UTC)"
+      yAxisName="Mbps"
+      incomplete={{ after: incompleteTimestamp }}
+    />
+```
+
+```tsx
+<TimeseriesChart
+      echarts={echarts}
+      isDarkMode={isDarkMode}
+      data={data}
+      xAxisName="Time (UTC)"
+      yAxisName="%"
+      onTimeRangeChange={(from, to) => {
+        alert(
+          `Selected range:\nFrom: ${new Date(from).toLocaleString()}\nTo: ${new Date(to).toLocaleString()}`,
+        );
+      }}
+    />
+```
+
+```tsx
+<TimeseriesChart
+      echarts={echarts}
+      isDarkMode={isDarkMode}
+      type="bar"
+      data={data}
+      xAxisName="Time (UTC)"
+      yAxisName="Count"
+    />
+```
+
+```tsx
+<div className="flex flex-col flex-1 w-full">
+      <TimeseriesChart
+        echarts={echarts}
+        isDarkMode={isDarkMode}
+        xAxisName="Time (UTC)"
+        yAxisName="Count"
+        data={[]}
+        loading
+      />
+    </div>
+```
+
+```tsx
+<LayerCard>
+      <LayerCard.Secondary>Read latency</LayerCard.Secondary>
+      <LayerCard.Primary>
+        <div className="flex divide-x divide-kumo-line gap-4 px-2 mb-2">
+          <ChartLegend.LargeItem
+            name="P99"
+            color={ChartPalette.semantic("Attention", isDarkMode)}
+            value="124"
+            unit="ms"
+          />
+          <ChartLegend.LargeItem
+            name="P95"
+            color={ChartPalette.semantic("Warning", isDarkMode)}
+            value="76"
+            unit="ms"
+          />
+          <ChartLegend.LargeItem
+            name="P75"
+            color={ChartPalette.semantic("Neutral", isDarkMode)}
+            value="32"
+            unit="ms"
+          />
+          <ChartLegend.LargeItem
+            name="P50"
+            color={ChartPalette.semantic("NeutralLight", isDarkMode)}
+            value="10"
+            unit="ms"
+          />
+        </div>
+        <TimeseriesChart
+          xAxisName="Time (UTC)"
+          echarts={echarts}
+          isDarkMode={isDarkMode}
+          data={data}
+          height={300}
+        />
+      </LayerCard.Primary>
+    </LayerCard>
+```
+
 
 ---
 
@@ -5678,11 +5825,11 @@ Multi-line textarea input with Input variants and InputArea-specific dimensions
 ## Quick Reference
 
 **Components by Category:**
-- **Display:** Badge, Breadcrumbs, Code, Collapsible, Empty, LayerCard, Meter, Text
+- **Display:** Badge, Breadcrumbs, Code, Collapsible, Empty, LayerCard, Meter, Text, TimeseriesChart
 - **Feedback:** Banner, Loader, Toasty
 - **Action:** Button, ClipboardText
 - **Input:** Checkbox, Combobox, DateRangePicker, Field, Input, Radio, Select, Switch
-- **Other:** CloudflareLogo, Cluster, DatePicker, Label, Link, SensitiveInput, Stack, Table, TimeseriesChart, DeleteResource
+- **Other:** CloudflareLogo, Cluster, DatePicker, Label, Link, SensitiveInput, Stack, Table, DeleteResource
 - **Navigation:** CommandPalette, MenuBar, Pagination, Tabs
 - **Overlay:** Dialog, DropdownMenu, Popover, Tooltip
 - **Layout:** Flow, Grid, Surface, PageHeader, ResourceListPage
