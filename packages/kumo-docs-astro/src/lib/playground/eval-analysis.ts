@@ -159,7 +159,7 @@ function buildConfirmationChecks(tree: UITree): readonly ScenarioCheckResult[] {
       "root-exists",
       "Root exists",
       tree.root !== "" && tree.elements[tree.root] !== undefined,
-      `Root \"${tree.root}\" exists.`,
+      `Root "${tree.root}" exists.`,
       "Missing root element.",
     ),
     buildCheck(

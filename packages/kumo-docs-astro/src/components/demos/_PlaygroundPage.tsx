@@ -350,23 +350,6 @@ function createInitialHistorySnapshot(
   };
 }
 
-function getPreferredRunArtifacts(run: ScenarioRunPair): {
-  readonly a: ScenarioRunPair["stages"]["confirmation"]["a"];
-  readonly b: ScenarioRunPair["stages"]["confirmation"]["b"];
-} | null {
-  const followup = run.stages.followup;
-  if (followup.a !== null || followup.b !== null) {
-    return followup;
-  }
-
-  const confirmation = run.stages.confirmation;
-  if (confirmation.a !== null || confirmation.b !== null) {
-    return confirmation;
-  }
-
-  return null;
-}
-
 // =============================================================================
 // Tool action handlers
 // =============================================================================
@@ -1804,8 +1787,6 @@ function PlaygroundContent() {
   // Keep handleSubmit ref in sync for action dispatch
   handleSubmitRef.current = handleSubmit;
 
-  const showTree = isRenderableTree(leftEffectiveTree);
-  const showNoPromptTree = isRenderableTree(rightEffectiveTree);
   const isNoPromptStreaming = noPromptStatus === "streaming";
   /** True when any stream is active — gates user interaction. */
   const isAnyStreaming = isStreaming || isNoPromptStreaming;
@@ -1918,7 +1899,6 @@ function PlaygroundContent() {
   const displayedStatus = historyPreview ? "idle" : status;
   const displayedRightStatus = historyPreview ? "idle" : noPromptStatus;
   const isHistoryPlayback = historyPreview !== null;
-  const latestHistoryIndex = outputHistory.length;
   const activeHistoryEntry =
     outputHistory.length === 0 || selectedHistoryIndex === 0
       ? null
