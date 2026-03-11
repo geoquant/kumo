@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { UITree } from "@cloudflare/kumo/streaming";
 
 import {
+  DEFAULT_PLAYGROUND_VERIFIER_CONFIG,
   buildPlaygroundVerifierReport,
   extractAssistantJsonlFromSse,
 } from "~/lib/playground/verifier";
@@ -184,6 +185,124 @@ describe("playground verifier", () => {
     expect(report.validation.repairedElementCount).toBe(1);
     expect(report.validation.strippedPropCount).toBe(1);
     expect(report.status).toBe("warn");
-    expect(report.reasons).toContain("Element repairs were required.");
+    expect(report.reasons).toContain("Repair count exceeds warning budget.");
+    expect(report.reasons).toContain(
+      "Stripped prop count exceeds warning budget.",
+    );
+  });
+
+  it("exposes named verifier budgets for every tracked back-pressure metric", () => {
+    expect(DEFAULT_PLAYGROUND_VERIFIER_CONFIG.warnThresholds).toMatchObject({
+      maxPromptChars: expect.any(Number),
+      maxPromptTokensEstimate: expect.any(Number),
+      maxSseBytes: expect.any(Number),
+      maxAssistantChars: expect.any(Number),
+      maxPatchOps: expect.any(Number),
+      maxTreeDepth: expect.any(Number),
+      maxRepairCount: expect.any(Number),
+      maxStrippedProps: expect.any(Number),
+      maxMalformedStructureCount: expect.any(Number),
+      maxUnknownTypes: expect.any(Number),
+      maxDroppedLines: expect.any(Number),
+    });
+    expect(DEFAULT_PLAYGROUND_VERIFIER_CONFIG.failThresholds).toMatchObject({
+      maxPromptChars: expect.any(Number),
+      maxPromptTokensEstimate: expect.any(Number),
+      maxSseBytes: expect.any(Number),
+      maxAssistantChars: expect.any(Number),
+      maxPatchOps: expect.any(Number),
+      maxTreeDepth: expect.any(Number),
+      maxRepairCount: expect.any(Number),
+      maxStrippedProps: expect.any(Number),
+      maxMalformedStructureCount: expect.any(Number),
+      maxUnknownTypes: expect.any(Number),
+      maxDroppedLines: expect.any(Number),
+    });
+  });
+
+  it("changes pass warn fail outcomes when verifier budgets change", () => {
+    const tree: UITree = {
+      root: "surface",
+      elements: {
+        surface: {
+          key: "surface",
+          type: "Surface",
+          props: {},
+          children: ["stack"],
+        },
+        stack: {
+          key: "stack",
+          type: "Stack",
+          props: { gap: "base" },
+          parentKey: "surface",
+          children: ["heading", "subheading", "badge"],
+        },
+        heading: {
+          key: "heading",
+          type: "Text",
+          props: { children: "Kumo", variant: "heading1" },
+          parentKey: "stack",
+        },
+        subheading: {
+          key: "subheading",
+          type: "Text",
+          props: { children: "Verifier", variant: "heading2" },
+          parentKey: "stack",
+        },
+        badge: {
+          key: "badge",
+          type: "Badge",
+          props: { children: "Healthy", variant: "success" },
+          parentKey: "stack",
+        },
+      },
+    };
+
+    const baseInput = {
+      request: {
+        message: "render a stack",
+        model: "gpt-oss-120b",
+        promptText: "1234567890",
+      },
+      assistantJsonl: buildJsonl(tree),
+    };
+
+    const passReport = buildPlaygroundVerifierReport({
+      ...baseInput,
+      config: {
+        warnThresholds: {
+          maxPromptChars: 10,
+        },
+        failThresholds: {
+          maxPromptChars: 11,
+        },
+      },
+    });
+    const warnReport = buildPlaygroundVerifierReport({
+      ...baseInput,
+      config: {
+        warnThresholds: {
+          maxPromptChars: 9,
+        },
+        failThresholds: {
+          maxPromptChars: 11,
+        },
+      },
+    });
+    const failReport = buildPlaygroundVerifierReport({
+      ...baseInput,
+      config: {
+        warnThresholds: {
+          maxPromptChars: 9,
+        },
+        failThresholds: {
+          maxPromptChars: 9,
+        },
+      },
+    });
+
+    expect(passReport.status).toBe("pass");
+    expect(warnReport.status).toBe("warn");
+    expect(failReport.status).toBe("fail");
   });
 });

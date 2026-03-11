@@ -33,6 +33,16 @@ export interface PlaygroundVerifierThresholds {
   readonly maxDroppedLines: number;
 }
 
+export interface PlaygroundVerifierConfig {
+  readonly warnThresholds: PlaygroundVerifierThresholds;
+  readonly failThresholds: PlaygroundVerifierThresholds;
+}
+
+export interface PlaygroundVerifierConfigOverrides {
+  readonly warnThresholds?: Partial<PlaygroundVerifierThresholds>;
+  readonly failThresholds?: Partial<PlaygroundVerifierThresholds>;
+}
+
 export interface PlaygroundVerifierRequest {
   readonly message: string;
   readonly model: string;
@@ -105,6 +115,14 @@ interface TreeMetrics {
   readonly missingChildRefCount: number;
 }
 
+interface BudgetCheck {
+  readonly actual: number;
+  readonly warnLimit: number;
+  readonly failLimit: number;
+  readonly warnReason: string;
+  readonly failReason: string;
+}
+
 const DEFAULT_PLAYGROUND_VERIFIER_THRESHOLDS: PlaygroundVerifierThresholds = {
   maxPromptChars: 100_000,
   maxPromptTokensEstimate: 25_000,
@@ -117,6 +135,15 @@ const DEFAULT_PLAYGROUND_VERIFIER_THRESHOLDS: PlaygroundVerifierThresholds = {
   maxMalformedStructureCount: 0,
   maxUnknownTypes: 0,
   maxDroppedLines: 0,
+};
+
+const DEFAULT_PLAYGROUND_VERIFIER_CONFIG: PlaygroundVerifierConfig = {
+  warnThresholds: {
+    ...DEFAULT_PLAYGROUND_VERIFIER_THRESHOLDS,
+    maxRepairCount: 0,
+    maxStrippedProps: 0,
+  },
+  failThresholds: DEFAULT_PLAYGROUND_VERIFIER_THRESHOLDS,
 };
 
 const TABLE_ALLOWED_CHILDREN: Readonly<Record<string, ReadonlySet<string>>> = {
@@ -417,16 +444,136 @@ function buildValidationMetrics(tree: UITree): ValidationMetrics {
   };
 }
 
+function mergeThresholds(input: {
+  readonly base: PlaygroundVerifierThresholds;
+  readonly override?: Partial<PlaygroundVerifierThresholds>;
+}): PlaygroundVerifierThresholds {
+  const { base, override } = input;
+  if (override === undefined) {
+    return base;
+  }
+
+  return {
+    maxPromptChars: override.maxPromptChars ?? base.maxPromptChars,
+    maxPromptTokensEstimate:
+      override.maxPromptTokensEstimate ?? base.maxPromptTokensEstimate,
+    maxSseBytes: override.maxSseBytes ?? base.maxSseBytes,
+    maxAssistantChars: override.maxAssistantChars ?? base.maxAssistantChars,
+    maxPatchOps: override.maxPatchOps ?? base.maxPatchOps,
+    maxTreeDepth: override.maxTreeDepth ?? base.maxTreeDepth,
+    maxRepairCount: override.maxRepairCount ?? base.maxRepairCount,
+    maxStrippedProps: override.maxStrippedProps ?? base.maxStrippedProps,
+    maxMalformedStructureCount:
+      override.maxMalformedStructureCount ?? base.maxMalformedStructureCount,
+    maxUnknownTypes: override.maxUnknownTypes ?? base.maxUnknownTypes,
+    maxDroppedLines: override.maxDroppedLines ?? base.maxDroppedLines,
+  };
+}
+
+function resolvePlaygroundVerifierConfig(
+  overrides?: PlaygroundVerifierConfigOverrides,
+): PlaygroundVerifierConfig {
+  return {
+    warnThresholds: mergeThresholds({
+      base: DEFAULT_PLAYGROUND_VERIFIER_CONFIG.warnThresholds,
+      override: overrides?.warnThresholds,
+    }),
+    failThresholds: mergeThresholds({
+      base: DEFAULT_PLAYGROUND_VERIFIER_CONFIG.failThresholds,
+      override: overrides?.failThresholds,
+    }),
+  };
+}
+
 function buildStatus(input: {
   readonly report: Omit<PlaygroundVerifierReport, "status" | "reasons">;
-  readonly thresholds: PlaygroundVerifierThresholds;
+  readonly config: PlaygroundVerifierConfig;
 }): {
   readonly status: PlaygroundVerifierStatus;
   readonly reasons: readonly string[];
 } {
   const failReasons: string[] = [];
   const warnReasons: string[] = [];
-  const { report, thresholds } = input;
+  const { report } = input;
+  const budgetChecks: readonly BudgetCheck[] = [
+    {
+      actual: report.prompt.promptChars,
+      warnLimit: input.config.warnThresholds.maxPromptChars,
+      failLimit: input.config.failThresholds.maxPromptChars,
+      warnReason: "Prompt chars exceed warning budget.",
+      failReason: "Prompt chars exceed verifier budget.",
+    },
+    {
+      actual: report.prompt.promptTokenEstimate,
+      warnLimit: input.config.warnThresholds.maxPromptTokensEstimate,
+      failLimit: input.config.failThresholds.maxPromptTokensEstimate,
+      warnReason: "Prompt token estimate exceeds warning budget.",
+      failReason: "Prompt token estimate exceeds verifier budget.",
+    },
+    {
+      actual: report.stream.sseBytes,
+      warnLimit: input.config.warnThresholds.maxSseBytes,
+      failLimit: input.config.failThresholds.maxSseBytes,
+      warnReason: "SSE bytes exceed warning budget.",
+      failReason: "SSE bytes exceed verifier budget.",
+    },
+    {
+      actual: report.stream.assistantChars,
+      warnLimit: input.config.warnThresholds.maxAssistantChars,
+      failLimit: input.config.failThresholds.maxAssistantChars,
+      warnReason: "Assistant content exceeds warning budget.",
+      failReason: "Assistant content exceeds verifier budget.",
+    },
+    {
+      actual: report.stream.patchOpCount,
+      warnLimit: input.config.warnThresholds.maxPatchOps,
+      failLimit: input.config.failThresholds.maxPatchOps,
+      warnReason: "Patch op count exceeds warning budget.",
+      failReason: "Patch op count exceeds verifier budget.",
+    },
+    {
+      actual: report.stream.droppedLineCount,
+      warnLimit: input.config.warnThresholds.maxDroppedLines,
+      failLimit: input.config.failThresholds.maxDroppedLines,
+      warnReason: "Dropped JSONL lines exceed warning budget.",
+      failReason: "Dropped JSONL lines exceed verifier budget.",
+    },
+    {
+      actual: report.tree.maxDepth,
+      warnLimit: input.config.warnThresholds.maxTreeDepth,
+      failLimit: input.config.failThresholds.maxTreeDepth,
+      warnReason: "Tree depth exceeds warning budget.",
+      failReason: "Tree depth exceeds verifier budget.",
+    },
+    {
+      actual: report.tree.unknownTypeCount,
+      warnLimit: input.config.warnThresholds.maxUnknownTypes,
+      failLimit: input.config.failThresholds.maxUnknownTypes,
+      warnReason: "Unknown component types exceed warning budget.",
+      failReason: "Unknown component types exceed verifier budget.",
+    },
+    {
+      actual: report.tree.malformedStructureCount,
+      warnLimit: input.config.warnThresholds.maxMalformedStructureCount,
+      failLimit: input.config.failThresholds.maxMalformedStructureCount,
+      warnReason: "Malformed compound structure exceeds warning budget.",
+      failReason: "Malformed compound structure exceeds verifier budget.",
+    },
+    {
+      actual: report.validation.repairedElementCount,
+      warnLimit: input.config.warnThresholds.maxRepairCount,
+      failLimit: input.config.failThresholds.maxRepairCount,
+      warnReason: "Repair count exceeds warning budget.",
+      failReason: "Repair count exceeds verifier budget.",
+    },
+    {
+      actual: report.validation.strippedPropCount,
+      warnLimit: input.config.warnThresholds.maxStrippedProps,
+      failLimit: input.config.failThresholds.maxStrippedProps,
+      warnReason: "Stripped prop count exceeds warning budget.",
+      failReason: "Stripped prop count exceeds verifier budget.",
+    },
+  ];
 
   if (report.stream.patchOpCount === 0) {
     failReasons.push("No patch ops generated.");
@@ -434,46 +581,24 @@ function buildStatus(input: {
   if (!report.tree.renderable) {
     failReasons.push("Tree is not renderable.");
   }
-  if (report.prompt.promptChars > thresholds.maxPromptChars) {
-    failReasons.push("Prompt chars exceed verifier budget.");
-  }
-  if (report.prompt.promptTokenEstimate > thresholds.maxPromptTokensEstimate) {
-    failReasons.push("Prompt token estimate exceeds verifier budget.");
-  }
-  if (report.stream.sseBytes > thresholds.maxSseBytes) {
-    failReasons.push("SSE bytes exceed verifier budget.");
-  }
-  if (report.stream.assistantChars > thresholds.maxAssistantChars) {
-    failReasons.push("Assistant content exceeds verifier budget.");
-  }
-  if (report.stream.patchOpCount > thresholds.maxPatchOps) {
-    failReasons.push("Patch op count exceeds verifier budget.");
-  }
-  if (report.stream.droppedLineCount > thresholds.maxDroppedLines) {
-    failReasons.push("Dropped JSONL lines exceed verifier budget.");
-  }
-  if (report.tree.maxDepth > thresholds.maxTreeDepth) {
-    failReasons.push("Tree depth exceeds verifier budget.");
-  }
-  if (report.tree.unknownTypeCount > thresholds.maxUnknownTypes) {
-    failReasons.push("Unknown component types exceed verifier budget.");
-  }
-  if (
-    report.tree.malformedStructureCount > thresholds.maxMalformedStructureCount
-  ) {
-    failReasons.push("Malformed compound structure exceeds verifier budget.");
-  }
-  if (report.validation.repairedElementCount > thresholds.maxRepairCount) {
-    failReasons.push("Repair count exceeds verifier budget.");
-  }
-  if (report.validation.strippedPropCount > thresholds.maxStrippedProps) {
-    failReasons.push("Stripped prop count exceeds verifier budget.");
+  for (const check of budgetChecks) {
+    if (check.actual > check.failLimit) {
+      failReasons.push(check.failReason);
+      continue;
+    }
+    if (check.actual > check.warnLimit) {
+      warnReasons.push(check.warnReason);
+    }
   }
   if (report.validation.unrepairedInvalidElementCount > 0) {
     failReasons.push("Unrepaired invalid elements remain.");
   }
 
-  if (report.validation.repairedElementCount > 0) {
+  if (
+    report.validation.repairedElementCount > 0 &&
+    report.validation.repairedElementCount <=
+      input.config.warnThresholds.maxRepairCount
+  ) {
     warnReasons.push("Element repairs were required.");
   }
   if (report.validation.normalizationDiffCount > 0) {
@@ -499,12 +624,9 @@ export function buildPlaygroundVerifierReport(input: {
   readonly request: PlaygroundVerifierRequest;
   readonly rawSse?: string;
   readonly assistantJsonl?: string;
-  readonly thresholds?: Partial<PlaygroundVerifierThresholds>;
+  readonly config?: PlaygroundVerifierConfigOverrides;
 }): PlaygroundVerifierReport {
-  const thresholds: PlaygroundVerifierThresholds = {
-    ...DEFAULT_PLAYGROUND_VERIFIER_THRESHOLDS,
-    ...input.thresholds,
-  };
+  const config = resolvePlaygroundVerifierConfig(input.config);
   const promptText = input.request.promptText ?? input.request.message;
   const assistantStream = buildAssistantStream({
     rawSse: input.rawSse,
@@ -557,7 +679,7 @@ export function buildPlaygroundVerifierReport(input: {
     assistantJsonl: assistantStream.assistantJsonl,
   };
 
-  const status = buildStatus({ report: baseReport, thresholds });
+  const status = buildStatus({ report: baseReport, config });
 
   return {
     ...baseReport,
@@ -566,4 +688,7 @@ export function buildPlaygroundVerifierReport(input: {
   };
 }
 
-export { DEFAULT_PLAYGROUND_VERIFIER_THRESHOLDS };
+export {
+  DEFAULT_PLAYGROUND_VERIFIER_CONFIG,
+  DEFAULT_PLAYGROUND_VERIFIER_THRESHOLDS,
+};

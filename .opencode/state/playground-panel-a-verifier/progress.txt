@@ -6,6 +6,7 @@ Started: 2026-03-10
 - Keep panel A-only analysis logic in `packages/kumo-docs-astro/src/lib/playground/` and leave panel B request semantics untouched.
 - Reuse Kumo grading/validation primitives (`gradeTree`, `gradeComposition`, `validateElement`, `normalizeTree`, `isRenderableTree`, `getUnknownTypes`) instead of rebuilding structural checks from scratch.
 - For offline replay, parse raw `/api/chat` SSE by extracting assistant `delta.content` only and ignore reasoning fields before rebuilding JSONL.
+- Keep verifier back-pressure tuning in `DEFAULT_PLAYGROUND_VERIFIER_CONFIG`, with separate warn/fail threshold sets passed through `buildPlaygroundVerifierReport({ config })` instead of caller-specific conditionals.
 
 ---
 
@@ -34,3 +35,14 @@ Started: 2026-03-10
   - `.opencode/state/playground-panel-a-verifier/prd.json`
   - `.opencode/state/playground-panel-a-verifier/progress.txt`
 - **Learnings:** for CLI verification, capture the effective system prompt separately from the POST body, because panel A's server-generated prompt is fetched from `/api/chat/prompt` and supplements are appended client-side only when needed.
+
+## Task - config-1
+- Implemented named verifier budget config in `packages/kumo-docs-astro/src/lib/playground/verifier.ts` with separate warn/fail threshold sets for prompt, stream, patch, depth, repair, stripped-prop, malformed-structure, unknown-type, and dropped-line limits.
+- Added config merging so `buildPlaygroundVerifierReport({ config })` can shift pass/warn/fail outcomes without changing verifier callers.
+- Extended `packages/kumo-docs-astro/src/lib/playground/verifier.test.ts` to cover exported budget shape and config-driven pass/warn/fail transitions.
+- Files changed:
+  - `packages/kumo-docs-astro/src/lib/playground/verifier.ts`
+  - `packages/kumo-docs-astro/src/lib/playground/verifier.test.ts`
+  - `.opencode/state/playground-panel-a-verifier/prd.json`
+  - `.opencode/state/playground-panel-a-verifier/progress.txt`
+- **Learnings:** full docs-package lint still fails on unrelated pre-existing files under `packages/kumo-docs-astro/src/skills/` plus current dirty playground UI edits, so task verification used package typecheck + tests and targeted oxlint on the changed verifier files.

@@ -60,7 +60,7 @@
         "Verify config includes prompt, stream, patch, depth, repair, stripped-prop, malformed-structure, unknown-type, and dropped-line limits.",
         "Verify changing config values changes verifier pass/warn/fail outcomes without requiring component logic rewrites."
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "testing-1",
