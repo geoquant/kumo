@@ -1,0 +1,21 @@
+# Progress Log
+PRD: playground-panel-a-verifier
+Started: 2026-03-10
+
+## Codebase Patterns
+- Keep panel A-only analysis logic in `packages/kumo-docs-astro/src/lib/playground/` and leave panel B request semantics untouched.
+- Reuse Kumo grading/validation primitives (`gradeTree`, `gradeComposition`, `validateElement`, `normalizeTree`, `isRenderableTree`, `getUnknownTypes`) instead of rebuilding structural checks from scratch.
+- For offline replay, parse raw `/api/chat` SSE by extracting assistant `delta.content` only and ignore reasoning fields before rebuilding JSONL.
+
+---
+
+## Task - verifier-1
+- Implemented a shared verifier core in `packages/kumo-docs-astro/src/lib/playground/verifier.ts`.
+- Added offline SSE extraction, JSONL replay, tree metrics, malformed-structure checks, validation/repair counters, grading summaries, and pass/warn/fail status reasons.
+- Added coverage in `packages/kumo-docs-astro/src/lib/playground/verifier.test.ts` for reasoning filtering, healthy report generation, zero-op failure, malformed table structure failure, and repair-count warnings.
+- Files changed:
+  - `packages/kumo-docs-astro/src/lib/playground/verifier.ts`
+  - `packages/kumo-docs-astro/src/lib/playground/verifier.test.ts`
+  - `.opencode/state/playground-panel-a-verifier/prd.json`
+  - `.opencode/state/playground-panel-a-verifier/progress.txt`
+- **Learnings:** full docs-package lint currently fails on many unrelated pre-existing files, so task verification used targeted lint on changed verifier files while keeping branch discipline on `geoquant/streaming-ui`.
