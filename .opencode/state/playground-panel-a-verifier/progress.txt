@@ -19,3 +19,18 @@ Started: 2026-03-10
   - `.opencode/state/playground-panel-a-verifier/prd.json`
   - `.opencode/state/playground-panel-a-verifier/progress.txt`
 - **Learnings:** full docs-package lint currently fails on many unrelated pre-existing files, so task verification used targeted lint on changed verifier files while keeping branch discipline on `geoquant/streaming-ui`.
+
+## Task - cli-1
+- Implemented a CLI-first verifier flow in `packages/kumo-docs-astro/src/lib/playground/verifier-cli.ts` and `packages/kumo-docs-astro/scripts/verify-playground-panel-a.ts`.
+- Added CLI arg parsing, panel A request artifact building, prompt fetch + supplement handling, raw SSE capture, artifact writing, and compact Markdown summary output.
+- Added a package script `playground:verify` in `packages/kumo-docs-astro/package.json`.
+- Added tests in `packages/kumo-docs-astro/src/lib/playground/verifier-cli.test.ts` for arg parsing, panel A request shape, artifact writing, and Markdown formatting.
+- Verified against a live local dev server on `geoquant/streaming-ui` with `show me every kumo component variant`, producing request/report artifacts under `/tmp/playground-verifier-cli/`.
+- Files changed:
+  - `packages/kumo-docs-astro/src/lib/playground/verifier-cli.ts`
+  - `packages/kumo-docs-astro/src/lib/playground/verifier-cli.test.ts`
+  - `packages/kumo-docs-astro/scripts/verify-playground-panel-a.ts`
+  - `packages/kumo-docs-astro/package.json`
+  - `.opencode/state/playground-panel-a-verifier/prd.json`
+  - `.opencode/state/playground-panel-a-verifier/progress.txt`
+- **Learnings:** for CLI verification, capture the effective system prompt separately from the POST body, because panel A's server-generated prompt is fetched from `/api/chat/prompt` and supplements are appended client-side only when needed.

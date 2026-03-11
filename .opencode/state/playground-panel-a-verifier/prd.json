@@ -23,7 +23,7 @@
         "Verify the CLI writes `request.json`, `response.sse`, `assistant.jsonl`, `report.json`, and `report.md` into a timestamped artifact directory.",
         "Verify the generated report summarizes prompt chars, token estimate, SSE bytes, assistant chars, JSONL line count, and patch op count."
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-1",

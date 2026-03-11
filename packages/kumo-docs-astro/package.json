@@ -12,6 +12,7 @@
     "codegen:demos": "tsx scripts/extract-demo-examples.ts",
     "codegen:skills": "tsx scripts/extract-skills.ts",
     "playground:eval:create-worker": "tsx scripts/eval-playground-scenario.ts",
+    "playground:verify": "tsx scripts/verify-playground-panel-a.ts",
     "preview": "astro preview",
     "astro": "astro",
     "typecheck": "astro check",
