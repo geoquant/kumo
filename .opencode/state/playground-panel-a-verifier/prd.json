@@ -48,7 +48,7 @@
         "Verify users can inspect top failure reasons and drill into raw JSONL, tree, or report details from the playground UI.",
         "Verify the new verifier UI does not change panel B prompt behavior, panel B tab semantics, or panel B generation logic."
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "config-1",

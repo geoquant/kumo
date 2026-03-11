@@ -2524,6 +2524,12 @@ function ComparisonPanels({
         >
           <PanelHeader
             label="A"
+            actions={
+              <VerifierStatusPopover
+                report={leftVerifierReport}
+                onInspectTab={onLeftTabChange}
+              />
+            }
             tabs={PANEL_TABS}
             activeTab={visibleLeftTab}
             onTabChange={(v) => {
@@ -3174,6 +3180,12 @@ function MobilePlaygroundShell({
           <div className="flex h-full flex-col overflow-hidden">
             <PanelHeader
               label="A"
+              actions={
+                <VerifierStatusPopover
+                  report={leftVerifierReport}
+                  onInspectTab={onLeftTabChange}
+                />
+              }
               tabs={PANEL_TABS}
               activeTab={visibleLeftTab}
               onTabChange={(v) => {
@@ -3551,6 +3563,132 @@ function FeedbackInspectButtons({
         Grade
       </Button>
     </div>
+  );
+}
+
+function VerifierInspectButtons({
+  onInspectTab,
+}: {
+  readonly onInspectTab: (tab: PanelTab) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button variant="ghost" size="sm" onClick={() => onInspectTab("tree")}>
+        Tree
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => onInspectTab("jsonl")}>
+        JSONL
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => onInspectTab("grading")}>
+        Grade
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => onInspectTab("prompt")}>
+        Prompt
+      </Button>
+    </div>
+  );
+}
+
+function getVerifierStatusLabel(report: PlaygroundVerifierReport): string {
+  switch (report.status) {
+    case "pass":
+      return "Pass";
+    case "warn":
+      return "Warn";
+    case "fail":
+      return "Fail";
+  }
+}
+
+function getVerifierStatusTone(report: PlaygroundVerifierReport): {
+  readonly icon: React.ReactNode;
+  readonly textClassName: string;
+} {
+  switch (report.status) {
+    case "pass":
+      return {
+        icon: <CheckIcon size={12} className="text-kumo-success" />,
+        textClassName: "text-kumo-success",
+      };
+    case "warn":
+      return {
+        icon: <WarningCircleIcon size={12} className="text-kumo-warning" />,
+        textClassName: "text-kumo-warning",
+      };
+    case "fail":
+      return {
+        icon: <XCircleIcon size={12} className="text-kumo-danger" />,
+        textClassName: "text-kumo-danger",
+      };
+  }
+}
+
+function VerifierStatusPopover({
+  report,
+  onInspectTab,
+}: {
+  readonly report: PlaygroundVerifierReport | null;
+  readonly onInspectTab: (tab: PanelTab) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  if (report === null) {
+    return null;
+  }
+
+  const tone = getVerifierStatusTone(report);
+  const topReasons = report.reasons.slice(0, 3);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] transition-colors hover:bg-kumo-elevated",
+            tone.textClassName,
+          )}
+          aria-label="Panel A verifier status"
+        >
+          {tone.icon}
+          {getVerifierStatusLabel(report)}
+        </button>
+      </Popover.Trigger>
+      <Popover.Content side="bottom" align="start" sideOffset={4}>
+        <div className="flex min-w-72 flex-col gap-2 p-3">
+          <Popover.Title>Panel A verifier</Popover.Title>
+          <Popover.Description>
+            {report.status === "pass"
+              ? "Verifier passed before preview mount."
+              : report.status === "warn"
+                ? "Verifier found soft issues; inspect before trusting the output."
+                : "Verifier blocked preview mount; inspect raw output details below."}
+          </Popover.Description>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-kumo-subtle">
+            <span>patch ops {String(report.stream.patchOpCount)}</span>
+            <span>JSONL {String(report.stream.jsonlLineCount)}</span>
+            <span>depth {String(report.tree.maxDepth)}</span>
+            <span>
+              repairs {String(report.validation.repairedElementCount)}
+            </span>
+          </div>
+          {topReasons.length > 0 ? (
+            <div className="space-y-1">
+              {topReasons.map((reason) => (
+                <p key={reason} className="text-xs text-kumo-default">
+                  {reason}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-kumo-subtle">
+              No verifier issues found.
+            </p>
+          )}
+          <VerifierInspectButtons onInspectTab={onInspectTab} />
+        </div>
+      </Popover.Content>
+    </Popover>
   );
 }
 

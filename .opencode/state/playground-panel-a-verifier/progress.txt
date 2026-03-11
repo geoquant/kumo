@@ -8,6 +8,7 @@ Started: 2026-03-10
 - For offline replay, parse raw `/api/chat` SSE by extracting assistant `delta.content` only and ignore reasoning fields before rebuilding JSONL.
 - Keep verifier back-pressure tuning in `DEFAULT_PLAYGROUND_VERIFIER_CONFIG`, with separate warn/fail threshold sets passed through `buildPlaygroundVerifierReport({ config })` instead of caller-specific conditionals.
 - Gate only panel A preview mount from verifier output: defer render until streaming settles, render warn banners inline, and block fail cases while leaving Tree/JSONL/Grade inspection paths available.
+- Reuse compact header popovers plus tab-jump buttons for verifier/debug surfacing, so panel A can expose status + drill-down without changing panel B tabs or adding a new report tab.
 
 ---
 
@@ -58,3 +59,14 @@ Started: 2026-03-10
   - `.opencode/state/playground-panel-a-verifier/prd.json`
   - `.opencode/state/playground-panel-a-verifier/progress.txt`
 - **Learnings:** full docs-package lint still fails on unrelated pre-existing docs-site files, so verification relied on package typecheck + full tests, plus targeted oxlint to confirm the touched playground files had no lint errors.
+
+## Task - ui-2
+- Added compact verifier status surfacing for panel A in `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` with pass/warn/fail header badges, popover summaries, top reasons, and tab-jump buttons into Tree, JSONL, Grade, and Prompt views.
+- Kept panel B semantics untouched by wiring the new verifier UI only into panel A header and existing panel A preview states.
+- Extended `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.test.tsx` to cover pass/warn/fail badge states and verifier detail popovers.
+- Files changed:
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.test.tsx`
+  - `.opencode/state/playground-panel-a-verifier/prd.json`
+  - `.opencode/state/playground-panel-a-verifier/progress.txt`
+- **Learnings:** full docs-package lint still fails on unrelated pre-existing docs-site files, while targeted oxlint on the touched playground files reports only existing non-blocking test warnings from the local component mocks.

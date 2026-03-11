@@ -785,8 +785,18 @@ describe("PlaygroundPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Healthy")).toBeTruthy();
       expect(screen.getByText("Baseline body")).toBeTruthy();
+      expect(screen.getByLabelText("Panel A verifier status")).toBeTruthy();
+      expect(screen.getByText("Pass")).toBeTruthy();
       expect(screen.queryByText("Verifier warnings")).toBeNull();
       expect(screen.queryByText("Verifier blocked panel A render")).toBeNull();
+    });
+
+    fireEvent.click(screen.getByLabelText("Panel A verifier status"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Panel A verifier")).toBeTruthy();
+      expect(screen.getByText("No verifier issues found.")).toBeTruthy();
+      expect(screen.getByText("patch ops 2")).toBeTruthy();
     });
   });
 
@@ -812,6 +822,17 @@ describe("PlaygroundPage", () => {
       ).toBeTruthy();
       expect(screen.getByText("Increment")).toBeTruthy();
       expect(screen.getByText("Baseline body")).toBeTruthy();
+      expect(screen.getByText("Warn")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByLabelText("Panel A verifier status"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Panel A verifier")).toBeTruthy();
+      expect(
+        screen.getAllByText("Repair count exceeds warning budget.").length,
+      ).toBeGreaterThan(0);
+      expect(screen.getAllByText("JSONL").length).toBeGreaterThan(0);
     });
   });
 
@@ -839,6 +860,19 @@ describe("PlaygroundPage", () => {
       ).toBeTruthy();
       expect(screen.queryByText("Broken header")).toBeNull();
       expect(screen.getByText("Baseline body")).toBeTruthy();
+      expect(screen.getByText("Fail")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByLabelText("Panel A verifier status"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Panel A verifier")).toBeTruthy();
+      expect(
+        screen.getAllByText(
+          "Malformed compound structure exceeds verifier budget.",
+        ).length,
+      ).toBeGreaterThan(0);
+      expect(screen.getAllByText("Grade").length).toBeGreaterThan(0);
     });
   });
 
