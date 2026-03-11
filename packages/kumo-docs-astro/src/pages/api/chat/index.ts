@@ -163,6 +163,8 @@ interface ChatRequest {
    * Allows experimenting with minimal prompt variants.
    */
   systemPromptOverride?: string;
+  /** Optional prompt supplement appended only to the generated system prompt. */
+  systemPromptSupplement?: string;
 }
 
 /** Workers AI text-generation message format. */
@@ -246,6 +248,14 @@ function parseChatRequest(body: unknown): ChatRequest | null {
       ? rawOverride
       : undefined;
 
+  const rawSupplement = body["systemPromptSupplement"];
+  const systemPromptSupplement =
+    typeof rawSupplement === "string" &&
+    rawSupplement.length > 0 &&
+    rawSupplement.length <= MAX_SYSTEM_PROMPT_OVERRIDE_LENGTH
+      ? rawSupplement
+      : undefined;
+
   return {
     message,
     history,
@@ -254,6 +264,7 @@ function parseChatRequest(body: unknown): ChatRequest | null {
     currentUITree,
     skipSystemPrompt,
     systemPromptOverride,
+    systemPromptSupplement,
   };
 }
 
@@ -369,6 +380,10 @@ const handlePost: APIRoute = async ({ request, locals }) => {
       if (skillContent) {
         systemPrompt += `\n\n# Additional Design Skills\n\nThe following design skills should heavily influence your output. Apply their principles when generating UI:\n\n${skillContent}`;
       }
+    }
+
+    if (chatRequest.systemPromptSupplement) {
+      systemPrompt += `\n\n${chatRequest.systemPromptSupplement}`;
     }
 
     messages.push({ role: "system", content: systemPrompt });

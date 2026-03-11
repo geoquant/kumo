@@ -36,7 +36,7 @@
         "Run a pathological panel A generation and verify status `fail` prevents panel A tree mount and surfaces verifier failure details instead of wedging the page.",
         "Verify panel B request path and prompt semantics remain unchanged during the same flows."
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-2",

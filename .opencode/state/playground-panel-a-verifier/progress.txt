@@ -7,6 +7,7 @@ Started: 2026-03-10
 - Reuse Kumo grading/validation primitives (`gradeTree`, `gradeComposition`, `validateElement`, `normalizeTree`, `isRenderableTree`, `getUnknownTypes`) instead of rebuilding structural checks from scratch.
 - For offline replay, parse raw `/api/chat` SSE by extracting assistant `delta.content` only and ignore reasoning fields before rebuilding JSONL.
 - Keep verifier back-pressure tuning in `DEFAULT_PLAYGROUND_VERIFIER_CONFIG`, with separate warn/fail threshold sets passed through `buildPlaygroundVerifierReport({ config })` instead of caller-specific conditionals.
+- Gate only panel A preview mount from verifier output: defer render until streaming settles, render warn banners inline, and block fail cases while leaving Tree/JSONL/Grade inspection paths available.
 
 ---
 
@@ -46,3 +47,14 @@ Started: 2026-03-10
   - `.opencode/state/playground-panel-a-verifier/prd.json`
   - `.opencode/state/playground-panel-a-verifier/progress.txt`
 - **Learnings:** full docs-package lint still fails on unrelated pre-existing files under `packages/kumo-docs-astro/src/skills/` plus current dirty playground UI edits, so task verification used package typecheck + tests and targeted oxlint on the changed verifier files.
+
+## Task - ui-1
+- Integrated panel A verifier gating in `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx` so panel A waits for verifier results before preview mount, shows inline warn reasons, and blocks fail cases with failure details while panel B keeps rendering normally.
+- Added pass/warn/fail playground coverage in `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.test.tsx` alongside existing panel A/B flow tests.
+- Verified healthy, borderline, and pathological panel A flows through automated UI tests while panel B baseline output stayed on the existing request path.
+- Files changed:
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx`
+  - `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.test.tsx`
+  - `.opencode/state/playground-panel-a-verifier/prd.json`
+  - `.opencode/state/playground-panel-a-verifier/progress.txt`
+- **Learnings:** full docs-package lint still fails on unrelated pre-existing docs-site files, so verification relied on package typecheck + full tests, plus targeted oxlint to confirm the touched playground files had no lint errors.

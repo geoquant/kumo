@@ -53,6 +53,19 @@ const CUSTOM_COMPONENTS: Readonly<Record<string, CustomComponentDefinition>> = {
   },
 };
 
+const PLAYGROUND_PROMPT_SUPPLEMENT = [
+  "# Playground Overrides",
+  "",
+  "This playground does not use the default 30-element response cap.",
+  "- Do not limit responses to 30 elements.",
+  "- Render as many elements as needed to fully satisfy the request.",
+  "- Prefer completeness and correct component variants over brevity.",
+].join("\n");
+
+export function addPlaygroundPromptSupplement(prompt: string): string {
+  return `${prompt}\n\n${PLAYGROUND_PROMPT_SUPPLEMENT}`;
+}
+
 /** Cached system prompt ��� generated once per cold start. */
 let systemPromptCache: string | null = null;
 let systemPromptPromise: Promise<string> | null = null;
@@ -67,10 +80,12 @@ export async function getSystemPrompt(): Promise<string> {
   if (import.meta.env.DEV) {
     const catalog = createKumoCatalog({ customComponents: CUSTOM_COMPONENTS });
     await initCatalog(catalog);
-    return catalog.generatePrompt({
-      components: [...PROMPT_COMPONENTS],
-      maxPropsPerComponent: 8,
-    });
+    return addPlaygroundPromptSupplement(
+      catalog.generatePrompt({
+        components: [...PROMPT_COMPONENTS],
+        maxPropsPerComponent: 8,
+      }),
+    );
   }
 
   if (systemPromptCache) return systemPromptCache;
@@ -82,10 +97,12 @@ export async function getSystemPrompt(): Promise<string> {
         customComponents: CUSTOM_COMPONENTS,
       });
       await initCatalog(catalog);
-      const prompt = catalog.generatePrompt({
-        components: [...PROMPT_COMPONENTS],
-        maxPropsPerComponent: 8,
-      });
+      const prompt = addPlaygroundPromptSupplement(
+        catalog.generatePrompt({
+          components: [...PROMPT_COMPONENTS],
+          maxPropsPerComponent: 8,
+        }),
+      );
       systemPromptCache = prompt;
       return prompt;
     } catch (err) {

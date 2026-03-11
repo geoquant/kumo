@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import React, { createContext, useContext, useImperativeHandle } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, beforeEach, expect, it, vi } from "vitest";
@@ -6,6 +8,15 @@ import type { UITree } from "@cloudflare/kumo/streaming";
 const { streamJsonlUIMock, streamToolConfirmationMock } = vi.hoisted(() => ({
   streamJsonlUIMock: vi.fn(),
   streamToolConfirmationMock: vi.fn(),
+}));
+
+vi.mock("virtual:kumo-registry", () => ({
+  kumoRegistryJson: JSON.parse(
+    readFileSync(
+      resolve(process.cwd(), "../kumo/ai/component-registry.json"),
+      "utf8",
+    ),
+  ),
 }));
 
 import { PlaygroundPage } from "./_PlaygroundPage";
@@ -266,6 +277,12 @@ function buildPatchOps(tree: UITree) {
   ] as const;
 }
 
+function buildAssistantJsonl(tree: UITree): string {
+  return buildPatchOps(tree)
+    .map((op) => JSON.stringify(op))
+    .join("\n");
+}
+
 function buildPanelATree(counterText: string, includeNote: boolean): UITree {
   return {
     root: "surface",
@@ -273,7 +290,7 @@ function buildPanelATree(counterText: string, includeNote: boolean): UITree {
       surface: {
         key: "surface",
         type: "Surface",
-        props: { heading: "Counter" },
+        props: {},
         children: ["stack"],
       },
       stack: {
@@ -307,6 +324,105 @@ function buildPanelATree(counterText: string, includeNote: boolean): UITree {
         props: { children: "Increment" },
         parentKey: "stack",
         action: { name: "increment", params: { target: "counter" } },
+      },
+    },
+  };
+}
+
+function buildWarnPanelATree(): UITree {
+  return {
+    root: "surface",
+    elements: {
+      surface: {
+        key: "surface",
+        type: "Surface",
+        props: {},
+        children: ["stack"],
+      },
+      stack: {
+        key: "stack",
+        type: "Stack",
+        props: { gap: "medium" },
+        children: ["counter", "button"],
+        parentKey: "surface",
+      },
+      counter: {
+        key: "counter",
+        type: "Text",
+        props: { children: "0" },
+        parentKey: "stack",
+      },
+      button: {
+        key: "button",
+        type: "Button",
+        props: { children: "Increment" },
+        parentKey: "stack",
+      },
+    },
+  };
+}
+
+function buildPassPanelATree(): UITree {
+  return {
+    root: "surface",
+    elements: {
+      surface: {
+        key: "surface",
+        type: "Surface",
+        props: {},
+        children: ["stack"],
+      },
+      stack: {
+        key: "stack",
+        type: "Stack",
+        props: { gap: "base" },
+        children: ["heading", "subheading", "badge"],
+        parentKey: "surface",
+      },
+      heading: {
+        key: "heading",
+        type: "Text",
+        props: { children: "Kumo", variant: "heading1" },
+        parentKey: "stack",
+      },
+      subheading: {
+        key: "subheading",
+        type: "Text",
+        props: { children: "Verifier", variant: "heading2" },
+        parentKey: "stack",
+      },
+      badge: {
+        key: "badge",
+        type: "Badge",
+        props: { children: "Healthy", variant: "success" },
+        parentKey: "stack",
+      },
+    },
+  };
+}
+
+function buildFailPanelATree(): UITree {
+  return {
+    root: "surface",
+    elements: {
+      surface: {
+        key: "surface",
+        type: "Surface",
+        props: {},
+        children: ["table"],
+      },
+      table: {
+        key: "table",
+        type: "Table",
+        props: {},
+        children: ["head"],
+        parentKey: "surface",
+      },
+      head: {
+        key: "head",
+        type: "TableHead",
+        props: { children: "Broken header" },
+        parentKey: "table",
       },
     },
   };
@@ -545,7 +661,7 @@ describe("PlaygroundPage", () => {
                 : (INITIAL_B_TREE.elements.body?.props.children as string),
             )
           : INITIAL_A_TREE;
-        onToken?.(JSON.stringify(tree));
+        onToken?.(buildAssistantJsonl(tree));
         onPatches(buildPatchOps(tree));
         return isPanelB ? "panel-b-response" : "panel-a-response";
       },
@@ -593,6 +709,136 @@ describe("PlaygroundPage", () => {
     fireEvent.click(screen.getAllByText("Prompt")[0]);
     await waitFor(() => {
       expect(screen.getByText("System prompt from test")).toBeTruthy();
+    });
+  });
+
+  it("renders the all variants pill after create worker", async () => {
+    render(<PlaygroundPage />);
+
+    await waitFor(() => {
+      const createWorkerButton = screen.getByText("Create worker");
+      const allVariantsButton = screen.getByText("All variants");
+
+      expect(
+        createWorkerButton.compareDocumentPosition(allVariantsButton),
+      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+  });
+
+  it("adds an exhaustive panel a prompt supplement only", async () => {
+    render(<PlaygroundPage />);
+
+    fireEvent.click(screen.getByText("All variants"));
+
+    await waitFor(() => {
+      expect(streamJsonlUIMock).toHaveBeenCalledTimes(2);
+      expect(streamJsonlUIMock.mock.calls[0]?.[0]?.body).toMatchObject({
+        message: "show me every kumo component variant",
+        systemPromptSupplement: expect.stringContaining(
+          "# Exhaustive Variant Showcase",
+        ),
+      });
+      expect(streamJsonlUIMock.mock.calls[1]?.[0]?.body).toMatchObject({
+        skipSystemPrompt: true,
+      });
+      expect(screen.getByText("Increment")).toBeTruthy();
+      expect(screen.getByText("Baseline body")).toBeTruthy();
+    });
+  });
+
+  it("keeps panel a generated output visible when panel b fails", async () => {
+    streamJsonlUIMock
+      .mockImplementationOnce(async ({ onPatches, onToken }) => {
+        const tree = INITIAL_A_TREE;
+        onToken?.(buildAssistantJsonl(tree));
+        onPatches(buildPatchOps(tree));
+        return "panel-a-response";
+      })
+      .mockRejectedValueOnce(new Error("AI service temporarily unavailable."));
+
+    render(<PlaygroundPage />);
+
+    fireEvent.click(screen.getByText("All variants"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Increment")).toBeTruthy();
+      expect(screen.getByText("Comparison request failed")).toBeTruthy();
+      expect(screen.getByText("Send")).toBeTruthy();
+    });
+  });
+
+  it("renders panel a after verifier passes and keeps panel b unchanged", async () => {
+    streamJsonlUIMock.mockImplementationOnce(async ({ onPatches, onToken }) => {
+      const tree = buildPassPanelATree();
+      onToken?.(buildAssistantJsonl(tree));
+      onPatches(buildPatchOps(tree));
+      return "panel-a-response";
+    });
+
+    render(<PlaygroundPage />);
+
+    fireEvent.change(screen.getByLabelText("Prompt"), {
+      target: { value: "build me a counter" },
+    });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Healthy")).toBeTruthy();
+      expect(screen.getByText("Baseline body")).toBeTruthy();
+      expect(screen.queryByText("Verifier warnings")).toBeNull();
+      expect(screen.queryByText("Verifier blocked panel A render")).toBeNull();
+    });
+  });
+
+  it("surfaces verifier warnings while still rendering panel a", async () => {
+    streamJsonlUIMock.mockImplementationOnce(async ({ onPatches, onToken }) => {
+      const tree = buildWarnPanelATree();
+      onToken?.(buildAssistantJsonl(tree));
+      onPatches(buildPatchOps(tree));
+      return "panel-a-response";
+    });
+
+    render(<PlaygroundPage />);
+
+    fireEvent.change(screen.getByLabelText("Prompt"), {
+      target: { value: "build me a counter" },
+    });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Verifier warnings")).toBeTruthy();
+      expect(
+        screen.getByText("Repair count exceeds warning budget."),
+      ).toBeTruthy();
+      expect(screen.getByText("Increment")).toBeTruthy();
+      expect(screen.getByText("Baseline body")).toBeTruthy();
+    });
+  });
+
+  it("blocks pathological panel a output before preview mount", async () => {
+    streamJsonlUIMock.mockImplementationOnce(async ({ onPatches, onToken }) => {
+      const tree = buildFailPanelATree();
+      onToken?.(buildAssistantJsonl(tree));
+      onPatches(buildPatchOps(tree));
+      return "panel-a-response";
+    });
+
+    render(<PlaygroundPage />);
+
+    fireEvent.change(screen.getByLabelText("Prompt"), {
+      target: { value: "build a broken table" },
+    });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Verifier blocked panel A render")).toBeTruthy();
+      expect(
+        screen.getByText(
+          "Malformed compound structure exceeds verifier budget.",
+        ),
+      ).toBeTruthy();
+      expect(screen.queryByText("Broken header")).toBeNull();
+      expect(screen.getByText("Baseline body")).toBeTruthy();
     });
   });
 
@@ -664,7 +910,7 @@ describe("PlaygroundPage", () => {
               isPanelB ? "create-worker-b" : "create-worker-a",
             );
 
-        onToken?.(JSON.stringify(tree));
+        onToken?.(buildAssistantJsonl(tree));
         onPatches(buildPatchOps(tree));
         return isPanelB ? "panel-b-response" : "panel-a-response";
       },
@@ -725,7 +971,7 @@ describe("PlaygroundPage", () => {
             ? INITIAL_B_TREE
             : INITIAL_A_TREE;
 
-        onToken?.(JSON.stringify(tree));
+        onToken?.(buildAssistantJsonl(tree));
         onPatches(buildPatchOps(tree));
         return isPanelB ? "panel-b-response" : "panel-a-response";
       },

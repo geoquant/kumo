@@ -129,6 +129,14 @@ import {
 } from "~/lib/playground/catalog-data";
 import { buildNestedTree } from "~/lib/playground/nested-tree";
 import { validateEditableTree } from "~/lib/playground/validate-tree";
+import {
+  buildVariantShowcasePromptSupplement,
+  isExhaustiveVariantShowcasePrompt,
+} from "~/lib/playground/variant-showcase";
+import {
+  buildPlaygroundVerifierReport,
+  type PlaygroundVerifierReport,
+} from "~/lib/playground/verifier";
 import type {
   ActionLogEntry,
   PanelId,
@@ -453,6 +461,16 @@ const STATIC_PRESETS: readonly {
   },
 ];
 
+const VARIANT_SHOWCASE_PRESET = {
+  label: "All variants",
+  prompt: "show me every kumo component variant",
+} as const;
+
+const TOOL_PILLS = getToolPills();
+const CREATE_WORKER_PILL_INDEX = TOOL_PILLS.findIndex(
+  (pill) => pill.label === "Create worker",
+);
+
 /**
  * All preset prompts: static presets + tool pills from the registry.
  * Tool pills are appended at the end so they appear as the last pill buttons.
@@ -460,7 +478,15 @@ const STATIC_PRESETS: readonly {
 const PRESET_PROMPTS: readonly {
   readonly label: string;
   readonly prompt: string;
-}[] = [...STATIC_PRESETS, ...getToolPills()];
+}[] =
+  CREATE_WORKER_PILL_INDEX === -1
+    ? [...STATIC_PRESETS, ...TOOL_PILLS, VARIANT_SHOWCASE_PRESET]
+    : [
+        ...STATIC_PRESETS,
+        ...TOOL_PILLS.slice(0, CREATE_WORKER_PILL_INDEX + 1),
+        VARIANT_SHOWCASE_PRESET,
+        ...TOOL_PILLS.slice(CREATE_WORKER_PILL_INDEX + 1),
+      ];
 
 // =============================================================================
 // Component
@@ -1511,6 +1537,7 @@ function PlaygroundContent() {
       readonly model: string;
       readonly history?: readonly TextChatMessage[];
       readonly currentUITree?: string;
+      readonly systemPromptSupplement?: string;
       readonly appendAssistantMessage?: boolean;
       readonly rollbackUserMessageOnError?: boolean;
     }) => {
@@ -1533,6 +1560,9 @@ function PlaygroundContent() {
         model: opts.model,
         ...(opts.history ? { history: opts.history } : {}),
         ...(opts.currentUITree ? { currentUITree: opts.currentUITree } : {}),
+        ...(opts.systemPromptSupplement
+          ? { systemPromptSupplement: opts.systemPromptSupplement }
+          : {}),
       };
 
       const controller = new AbortController();
@@ -1723,7 +1753,6 @@ function PlaygroundContent() {
         ? JSON.stringify(currentTree)
         : undefined;
 
-      // Reset Panel A state
       runtimeValueStore.clear();
       reset();
       resetLeftEditor("");
@@ -1759,6 +1788,9 @@ function PlaygroundContent() {
         model: selectedModel,
         history: history ? [...history] : undefined,
         currentUITree: currentUITreeJson,
+        systemPromptSupplement: isExhaustiveVariantShowcasePrompt(msg)
+          ? buildVariantShowcasePromptSupplement()
+          : undefined,
         appendAssistantMessage: true,
         rollbackUserMessageOnError: true,
       });
@@ -1899,6 +1931,28 @@ function PlaygroundContent() {
         ] ??
         outputHistory[outputHistory.length - 1] ??
         null);
+  const displayedLeftRequestMessage =
+    activeHistoryEntry?.prompt ?? lastSubmittedRef.current ?? "";
+  const displayedLeftVerifierReport = useMemo(() => {
+    if (displayedLeftRequestMessage === "" || displayedStatus === "streaming") {
+      return null;
+    }
+
+    return buildPlaygroundVerifierReport({
+      request: {
+        message: displayedLeftRequestMessage,
+        model: selectedModel,
+        promptText: displayedLeftPromptText ?? undefined,
+      },
+      assistantJsonl: displayedLeftRawJsonl,
+    });
+  }, [
+    displayedLeftPromptText,
+    displayedLeftRawJsonl,
+    displayedLeftRequestMessage,
+    displayedStatus,
+    selectedModel,
+  ]);
   const returnToLatestHistory = useCallback(() => {
     if (outputHistory.length === 0) {
       return;
@@ -1985,6 +2039,7 @@ function PlaygroundContent() {
         onLeftEditorApplied={markLeftEditorApplied}
         leftActionLog={displayedLeftActionLog}
         onClearLeftActionLog={clearLeftActionLog}
+        leftVerifierReport={displayedLeftVerifierReport}
         rightTab={rightTab}
         onRightTabChange={setRightTab}
         rightTree={displayedRightTree}
@@ -2162,6 +2217,7 @@ function PlaygroundContent() {
                 onLeftEditorApplied={markLeftEditorApplied}
                 leftActionLog={displayedLeftActionLog}
                 onClearLeftActionLog={clearLeftActionLog}
+                leftVerifierReport={displayedLeftVerifierReport}
                 noPromptTree={displayedRightTree}
                 noPromptStreamedTree={
                   historyPreview?.panelB.tree ?? noPromptTree
@@ -2253,6 +2309,7 @@ interface ComparisonPanelsProps {
   // Left panel action log
   readonly leftActionLog: readonly ActionLogEntry[];
   readonly onClearLeftActionLog: () => void;
+  readonly leftVerifierReport: PlaygroundVerifierReport | null;
   // Comparison (right) panel data
   readonly noPromptTree: UITree;
   readonly noPromptStreamedTree: UITree;
@@ -2389,6 +2446,7 @@ function ComparisonPanels({
   onLeftEditorApplied,
   leftActionLog,
   onClearLeftActionLog,
+  leftVerifierReport,
   noPromptTree,
   noPromptStreamedTree,
   noPromptRuntimeValueStore,
@@ -2494,6 +2552,8 @@ function ComparisonPanels({
               onAction={onAction}
               actionLog={leftActionLog}
               onClearActionLog={onClearLeftActionLog}
+              verifierReport={leftVerifierReport}
+              deferPreviewUntilSettled={!isHistoryPlayback}
               exportComponentName="GeneratedPanelA"
             />
           </div>
@@ -2915,6 +2975,7 @@ function MobilePlaygroundShell({
   onLeftEditorApplied,
   leftActionLog,
   onClearLeftActionLog,
+  leftVerifierReport,
   rightTab,
   onRightTabChange,
   rightTree,
@@ -2993,6 +3054,7 @@ function MobilePlaygroundShell({
   readonly onLeftEditorApplied: () => void;
   readonly leftActionLog: readonly ActionLogEntry[];
   readonly onClearLeftActionLog: () => void;
+  readonly leftVerifierReport: PlaygroundVerifierReport | null;
   readonly rightTab: PanelTab;
   readonly onRightTabChange: (tab: PanelTab) => void;
   readonly rightTree: UITree;
@@ -3140,6 +3202,8 @@ function MobilePlaygroundShell({
                 onAction={onLeftAction}
                 actionLog={leftActionLog}
                 onClearActionLog={onClearLeftActionLog}
+                verifierReport={leftVerifierReport}
+                deferPreviewUntilSettled={!isHistoryPlayback}
                 exportComponentName="GeneratedPanelA"
               />
             </div>
@@ -3763,6 +3827,8 @@ function PanelContent({
   streamStatus,
   actionLog,
   onClearActionLog,
+  verifierReport,
+  deferPreviewUntilSettled,
   exportComponentName,
 }: {
   readonly tab: PanelTab;
@@ -3797,6 +3863,8 @@ function PanelContent({
   readonly streamStatus?: StreamStatus;
   readonly actionLog: readonly ActionLogEntry[];
   readonly onClearActionLog: () => void;
+  readonly verifierReport?: PlaygroundVerifierReport | null;
+  readonly deferPreviewUntilSettled?: boolean;
   readonly exportComponentName: string;
 }) {
   switch (tab) {
@@ -3809,6 +3877,8 @@ function PanelContent({
           isStreaming={isStreaming}
           onAction={onAction}
           streamStatus={streamStatus}
+          verifierReport={verifierReport}
+          deferPreviewUntilSettled={deferPreviewUntilSettled}
         />
       );
     case "code":
@@ -4127,6 +4197,8 @@ function PreviewContent({
   isStreaming,
   onAction,
   streamStatus,
+  verifierReport,
+  deferPreviewUntilSettled,
 }: {
   readonly tree: UITree;
   readonly showTree: boolean;
@@ -4134,10 +4206,27 @@ function PreviewContent({
   readonly isStreaming: boolean;
   readonly onAction?: (event: ActionEvent) => void;
   readonly streamStatus?: StreamStatus;
+  readonly verifierReport?: PlaygroundVerifierReport | null;
+  readonly deferPreviewUntilSettled?: boolean;
 }) {
+  if (deferPreviewUntilSettled && isStreaming) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader size="sm" />
+      </div>
+    );
+  }
+
+  if (verifierReport?.status === "fail") {
+    return <VerifierFailureState report={verifierReport} />;
+  }
+
   if (showTree) {
     return (
-      <div className="p-4">
+      <div className="space-y-3 p-4">
+        {verifierReport?.status === "warn" ? (
+          <VerifierWarningState report={verifierReport} />
+        ) : null}
         <UITreeRenderer
           tree={tree}
           streaming={isStreaming}
@@ -4163,6 +4252,63 @@ function PreviewContent({
     );
   }
   return <div className="h-full" />;
+}
+
+function VerifierWarningState({
+  report,
+}: {
+  readonly report: PlaygroundVerifierReport;
+}) {
+  return (
+    <div className="rounded-lg border border-kumo-warning/40 bg-kumo-warning/10 p-3">
+      <div className="flex items-center gap-2">
+        <WarningCircleIcon
+          size={16}
+          weight="fill"
+          className="text-kumo-warning"
+        />
+        <p className="text-sm font-medium text-kumo-default">
+          Verifier warnings
+        </p>
+      </div>
+      <div className="mt-2 space-y-1">
+        {report.reasons.map((reason) => (
+          <p key={reason} className="text-xs text-kumo-default">
+            {reason}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function VerifierFailureState({
+  report,
+}: {
+  readonly report: PlaygroundVerifierReport;
+}) {
+  return (
+    <div className="flex h-full items-center justify-center p-4">
+      <div className="max-w-md rounded-xl border border-kumo-danger/40 bg-kumo-danger/10 p-4">
+        <div className="flex items-center gap-2">
+          <XCircleIcon size={18} weight="fill" className="text-kumo-danger" />
+          <p className="text-sm font-medium text-kumo-default">
+            Verifier blocked panel A render
+          </p>
+        </div>
+        <div className="mt-3 space-y-1">
+          {report.reasons.map((reason) => (
+            <p key={reason} className="text-xs text-kumo-default">
+              {reason}
+            </p>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-kumo-subtle">
+          Inspect Tree, JSONL, or Grade tabs for raw output details.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 /** Approximate token count using chars/4 heuristic. */
