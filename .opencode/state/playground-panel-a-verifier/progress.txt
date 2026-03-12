@@ -9,6 +9,7 @@ Started: 2026-03-10
 - Keep verifier back-pressure tuning in `DEFAULT_PLAYGROUND_VERIFIER_CONFIG`, with separate warn/fail threshold sets passed through `buildPlaygroundVerifierReport({ config })` instead of caller-specific conditionals.
 - Gate only panel A preview mount from verifier output: defer render until streaming settles, render warn banners inline, and block fail cases while leaving Tree/JSONL/Grade inspection paths available.
 - Reuse compact header popovers plus tab-jump buttons for verifier/debug surfacing, so panel A can expose status + drill-down without changing panel B tabs or adding a new report tab.
+- Centralize synthetic verifier trees/SSE builders in `packages/kumo-docs-astro/src/lib/playground/verifier-fixtures.ts` so budget, malformed-structure, and non-renderable cases stay reusable across verifier-focused tests.
 
 ---
 
@@ -70,3 +71,14 @@ Started: 2026-03-10
   - `.opencode/state/playground-panel-a-verifier/prd.json`
   - `.opencode/state/playground-panel-a-verifier/progress.txt`
 - **Learnings:** full docs-package lint still fails on unrelated pre-existing docs-site files, while targeted oxlint on the touched playground files reports only existing non-blocking test warnings from the local component mocks.
+
+## Task - testing-1
+- Added reusable synthetic verifier fixtures in `packages/kumo-docs-astro/src/lib/playground/verifier-fixtures.ts` for healthy, malformed, repair-heavy, non-renderable, and SSE-backed panel A cases.
+- Extended `packages/kumo-docs-astro/src/lib/playground/verifier.test.ts` to cover zero-op output, malformed table structure, non-renderable trees, oversized SSE budgets, and excessive repair-count failures alongside pass/warn cases.
+- Kept panel B unaffected coverage in `packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.test.tsx`, which still asserts panel B baseline output survives panel A pass/warn/fail verifier flows.
+- Files changed:
+  - `packages/kumo-docs-astro/src/lib/playground/verifier-fixtures.ts`
+  - `packages/kumo-docs-astro/src/lib/playground/verifier.test.ts`
+  - `.opencode/state/playground-panel-a-verifier/prd.json`
+  - `.opencode/state/playground-panel-a-verifier/progress.txt`
+- **Learnings:** full docs-package lint still fails on unrelated pre-existing docs-site files; targeted oxlint on the touched verifier files is clean apart from longstanding non-blocking mock warnings in `_PlaygroundPage.test.tsx`.

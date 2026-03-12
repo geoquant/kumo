@@ -1,32 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import type { UITree } from "@cloudflare/kumo/streaming";
-
 import {
   DEFAULT_PLAYGROUND_VERIFIER_CONFIG,
   buildPlaygroundVerifierReport,
   extractAssistantJsonlFromSse,
 } from "~/lib/playground/verifier";
-
-function buildJsonl(tree: UITree): string {
-  return [
-    JSON.stringify({ op: "replace", path: "/root", value: tree.root }),
-    JSON.stringify({
-      op: "replace",
-      path: "/elements",
-      value: tree.elements,
-    }),
-  ].join("\n");
-}
-
-function buildSse(tokens: readonly string[]): string {
-  return `${tokens
-    .map(
-      (token) =>
-        `data: ${JSON.stringify({ choices: [{ delta: { content: token } }] })}\n\n`,
-    )
-    .join("")}data: [DONE]\n\n`;
-}
+import {
+  buildExcessiveRepairVerifierTree,
+  buildHealthyVerifierTree,
+  buildMalformedVerifierTree,
+  buildNonRenderableVerifierTree,
+  buildRepairWarnVerifierTree,
+  buildVerifierJsonl,
+  buildVerifierSse,
+} from "~/lib/playground/verifier-fixtures";
 
 describe("playground verifier", () => {
   it("extracts assistant JSONL and ignores reasoning chunks", () => {
@@ -44,42 +31,7 @@ describe("playground verifier", () => {
   });
 
   it("builds a normalized report for a healthy generated tree", () => {
-    const tree: UITree = {
-      root: "surface",
-      elements: {
-        surface: {
-          key: "surface",
-          type: "Surface",
-          props: {},
-          children: ["stack"],
-        },
-        stack: {
-          key: "stack",
-          type: "Stack",
-          props: { gap: "base" },
-          parentKey: "surface",
-          children: ["heading", "subheading", "badge"],
-        },
-        heading: {
-          key: "heading",
-          type: "Text",
-          props: { children: "Kumo", variant: "heading1" },
-          parentKey: "stack",
-        },
-        subheading: {
-          key: "subheading",
-          type: "Text",
-          props: { children: "Verifier", variant: "heading2" },
-          parentKey: "stack",
-        },
-        badge: {
-          key: "badge",
-          type: "Badge",
-          props: { children: "Healthy", variant: "success" },
-          parentKey: "stack",
-        },
-      },
-    };
+    const tree = buildHealthyVerifierTree();
 
     const report = buildPlaygroundVerifierReport({
       request: {
@@ -87,7 +39,7 @@ describe("playground verifier", () => {
         model: "gpt-oss-120b",
         promptText: "effective prompt text",
       },
-      rawSse: buildSse([buildJsonl(tree)]),
+      rawSse: buildVerifierSse([buildVerifierJsonl(tree)]),
     });
 
     expect(report.prompt.promptChars).toBe("effective prompt text".length);
@@ -106,7 +58,7 @@ describe("playground verifier", () => {
         message: "show me every kumo component variant",
         model: "gpt-oss-120b",
       },
-      rawSse: buildSse([]),
+      rawSse: buildVerifierSse([]),
     });
 
     expect(report.stream.patchOpCount).toBe(0);
@@ -115,30 +67,14 @@ describe("playground verifier", () => {
   });
 
   it("counts malformed compound structure failures", () => {
-    const tree: UITree = {
-      root: "table",
-      elements: {
-        table: {
-          key: "table",
-          type: "Table",
-          props: {},
-          children: ["head"],
-        },
-        head: {
-          key: "head",
-          type: "TableHead",
-          props: { children: "Header" },
-          parentKey: "table",
-        },
-      },
-    };
+    const tree = buildMalformedVerifierTree();
 
     const report = buildPlaygroundVerifierReport({
       request: {
         message: "render a broken table",
         model: "gpt-oss-120b",
       },
-      assistantJsonl: buildJsonl(tree),
+      assistantJsonl: buildVerifierJsonl(tree),
     });
 
     expect(report.tree.malformedStructureCount).toBeGreaterThan(0);
@@ -149,37 +85,14 @@ describe("playground verifier", () => {
   });
 
   it("reports repair counts for invalid props", () => {
-    const tree: UITree = {
-      root: "surface",
-      elements: {
-        surface: {
-          key: "surface",
-          type: "Surface",
-          props: {},
-          children: ["stack"],
-        },
-        stack: {
-          key: "stack",
-          type: "Stack",
-          props: { gap: "medium" },
-          parentKey: "surface",
-          children: ["heading"],
-        },
-        heading: {
-          key: "heading",
-          type: "Text",
-          props: { children: "Kumo", variant: "heading1" },
-          parentKey: "stack",
-        },
-      },
-    };
+    const tree = buildRepairWarnVerifierTree();
 
     const report = buildPlaygroundVerifierReport({
       request: {
         message: "render a stack",
         model: "gpt-oss-120b",
       },
-      assistantJsonl: buildJsonl(tree),
+      assistantJsonl: buildVerifierJsonl(tree),
     });
 
     expect(report.validation.repairedElementCount).toBe(1);
@@ -189,6 +102,60 @@ describe("playground verifier", () => {
     expect(report.reasons).toContain(
       "Stripped prop count exceeds warning budget.",
     );
+  });
+
+  it("fails non-renderable trees without requiring preview mount", () => {
+    const report = buildPlaygroundVerifierReport({
+      request: {
+        message: "render a missing root",
+        model: "gpt-oss-120b",
+      },
+      assistantJsonl: buildVerifierJsonl(buildNonRenderableVerifierTree()),
+    });
+
+    expect(report.tree.renderable).toBe(false);
+    expect(report.status).toBe("fail");
+    expect(report.reasons).toContain("Tree is not renderable.");
+  });
+
+  it("fails oversized streamed responses when budgets are exceeded", () => {
+    const tree = buildHealthyVerifierTree();
+    const rawSse = buildVerifierSse([buildVerifierJsonl(tree)]);
+    const report = buildPlaygroundVerifierReport({
+      request: {
+        message: "render a large response",
+        model: "gpt-oss-120b",
+      },
+      rawSse,
+      config: {
+        failThresholds: {
+          maxSseBytes: rawSse.length - 1,
+        },
+      },
+    });
+
+    expect(report.stream.sseBytes).toBe(rawSse.length);
+    expect(report.status).toBe("fail");
+    expect(report.reasons).toContain("SSE bytes exceed verifier budget.");
+  });
+
+  it("fails when repair counts exceed configured limits", () => {
+    const report = buildPlaygroundVerifierReport({
+      request: {
+        message: "render too many repairs",
+        model: "gpt-oss-120b",
+      },
+      assistantJsonl: buildVerifierJsonl(buildExcessiveRepairVerifierTree()),
+      config: {
+        failThresholds: {
+          maxRepairCount: 1,
+        },
+      },
+    });
+
+    expect(report.validation.repairedElementCount).toBeGreaterThan(1);
+    expect(report.status).toBe("fail");
+    expect(report.reasons).toContain("Repair count exceeds verifier budget.");
   });
 
   it("exposes named verifier budgets for every tracked back-pressure metric", () => {
@@ -221,42 +188,7 @@ describe("playground verifier", () => {
   });
 
   it("changes pass warn fail outcomes when verifier budgets change", () => {
-    const tree: UITree = {
-      root: "surface",
-      elements: {
-        surface: {
-          key: "surface",
-          type: "Surface",
-          props: {},
-          children: ["stack"],
-        },
-        stack: {
-          key: "stack",
-          type: "Stack",
-          props: { gap: "base" },
-          parentKey: "surface",
-          children: ["heading", "subheading", "badge"],
-        },
-        heading: {
-          key: "heading",
-          type: "Text",
-          props: { children: "Kumo", variant: "heading1" },
-          parentKey: "stack",
-        },
-        subheading: {
-          key: "subheading",
-          type: "Text",
-          props: { children: "Verifier", variant: "heading2" },
-          parentKey: "stack",
-        },
-        badge: {
-          key: "badge",
-          type: "Badge",
-          props: { children: "Healthy", variant: "success" },
-          parentKey: "stack",
-        },
-      },
-    };
+    const tree = buildHealthyVerifierTree();
 
     const baseInput = {
       request: {
@@ -264,7 +196,7 @@ describe("playground verifier", () => {
         model: "gpt-oss-120b",
         promptText: "1234567890",
       },
-      assistantJsonl: buildJsonl(tree),
+      assistantJsonl: buildVerifierJsonl(tree),
     };
 
     const passReport = buildPlaygroundVerifierReport({

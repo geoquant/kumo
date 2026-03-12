@@ -72,7 +72,7 @@
         "Verify tests cover malformed table-like compound structure, zero-op output, non-renderable tree, oversized response budget, and excessive repair counts.",
         "Verify tests assert panel B remains unaffected by panel A verifier changes."
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
