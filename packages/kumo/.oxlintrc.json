@@ -1,5 +1,11 @@
 {
-  "jsPlugins": ["./lint/kumo-plugin.js"],
+  "jsPlugins": [
+    "./lint/kumo-plugin.js",
+    {
+      "name": "jsx-a11y-js",
+      "specifier": "eslint-plugin-jsx-a11y"
+    }
+  ],
   "plugins": ["eslint", "typescript", "unicorn", "oxc", "jsx-a11y"],
   "categories": {
     "correctness": "error",
@@ -14,6 +20,15 @@
     "typescript/no-unsafe-type-assertion": "off",
     "typescript/no-unnecessary-template-expression": "off",
     "typescript/no-unnecessary-type-assertion": "off",
-    "jsx-a11y/no-autofocus": "off"
+    "jsx-a11y/no-autofocus": "off",
+    "unicorn/no-array-sort": "off",
+    "unicorn/no-array-reverse": "off",
+    "jsx-a11y-js/aria-proptypes": "error",
+    "jsx-a11y-js/interactive-supports-focus": "error",
+    "jsx-a11y-js/no-interactive-element-to-noninteractive-role": "error",
+    "jsx-a11y-js/no-noninteractive-element-interactions": "error",
+    "jsx-a11y-js/no-noninteractive-element-to-interactive-role": "error",
+    "jsx-a11y-js/no-static-element-interactions": "error",
+    "jsx-a11y-js/control-has-associated-label": "warn"
   }
 }
