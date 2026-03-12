@@ -1323,7 +1323,7 @@ function RenderElement({
   }
 
   // Coerce known-invalid enum values to valid equivalents BEFORE validation.
-  // This preserves the LLM's semantic intent (e.g. Badge "success" → "primary")
+  // This preserves the LLM's semantic intent (e.g. Badge "info" → "primary")
   // instead of stripping the prop entirely via repair.
   const element = coerceElementProps(rawElement);
 

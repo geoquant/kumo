@@ -258,11 +258,11 @@ describe("coerceElementProps", () => {
       expect(result.props).toHaveProperty("children", "Status");
     });
 
-    it("coerces success → primary", () => {
+    it("preserves success", () => {
       const result = coerceElementProps(
         el("b-2", "Badge", { variant: "success" }),
       );
-      expect(result.props).toHaveProperty("variant", "primary");
+      expect(result.props).toHaveProperty("variant", "success");
     });
 
     it("coerces error → destructive", () => {

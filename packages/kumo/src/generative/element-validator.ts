@@ -31,7 +31,7 @@ function normalizeProps(input: unknown): Record<string, unknown> {
  * Maps `ComponentType.propName` → `{ invalidValue → validValue }`.
  *
  * LLMs frequently hallucinate enum values that are semantically close
- * (e.g. "success" for Badge instead of "primary", or "medium" for a gap
+ * (e.g. "info" for Badge instead of "primary", or "medium" for a gap
  * instead of "base"). Rather than stripping these via repair, we silently
  * coerce them to the nearest valid value BEFORE Zod validation so the
  * corrected value survives into the rendered component.
@@ -41,10 +41,9 @@ function normalizeProps(input: unknown): Record<string, unknown> {
 const ENUM_COERCION_MAP: Readonly<
   Record<string, Readonly<Record<string, string>>>
 > = {
-  // Badge.variant — valid: primary, secondary, destructive, outline, beta
+  // Badge.variant — valid: primary, secondary, destructive, success, outline, beta
   "Badge.variant": {
     info: "primary",
-    success: "primary",
     error: "destructive",
     danger: "destructive",
     warning: "outline",
@@ -189,7 +188,7 @@ const VALID: ElementValidationResult = { valid: true } as const;
  *
  * **Important**: Callers should run {@link coerceElementProps} on the element
  * BEFORE calling this function. Coercion fixes commonly hallucinated enum
- * values (e.g. Badge "success" → "primary") so they pass validation and
+ * values (e.g. Badge "info" → "primary") so they pass validation and
  * survive into the rendered output. See {@link ENUM_COERCION_MAP}.
  *
  * @param customSchemas - Optional map of custom component type → Zod schema.
