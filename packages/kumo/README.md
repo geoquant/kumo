@@ -52,6 +52,117 @@ Instead of adopting a handwritten schema/render system such as `json-render`, Ku
 
 ## Usage
 
+### Streaming UI APIs
+
+Kumo ships a dedicated streaming entrypoint for LLM-generated UI:
+
+```ts
+import {
+  EMPTY_TREE,
+  applyPatch,
+  createJsonlParser,
+  createRuntimeValueStore,
+  useUITree,
+  useRuntimeValueStore,
+} from "@cloudflare/kumo/streaming";
+```
+
+- `createJsonlParser()` parses JSONL-encoded RFC 6902 patch lines from token streams.
+- `applyPatch()` applies a single patch to a `UITree`.
+- `useUITree({ batchPatches, onAction })` manages streamed tree state in React and returns `tree`, `applyPatch`, `applyPatches`, `reset`, and pass-through `onAction`.
+- `createRuntimeValueStore()` / `useRuntimeValueStore()` capture uncontrolled field values so `submit_form` actions can include touched runtime input.
+
+#### React streaming example
+
+```tsx
+import {
+  createJsonlParser,
+  useRuntimeValueStore,
+  useUITree,
+} from "@cloudflare/kumo/streaming";
+import { UITreeRenderer } from "@cloudflare/kumo/generative";
+
+function StreamingSurface({ stream }: { stream: AsyncIterable<string> }) {
+  const runtimeValueStore = useRuntimeValueStore();
+  const { tree, applyPatches, onAction } = useUITree({ batchPatches: true });
+
+  useEffect(() => {
+    const parser = createJsonlParser();
+    let cancelled = false;
+
+    void (async () => {
+      for await (const chunk of stream) {
+        if (cancelled) return;
+        const ops = parser.push(chunk);
+        if (ops.length > 0) applyPatches(ops);
+      }
+
+      const trailing = parser.flush();
+      if (!cancelled && trailing.length > 0) applyPatches(trailing);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applyPatches, stream]);
+
+  return (
+    <UITreeRenderer
+      tree={tree}
+      streaming
+      onAction={onAction}
+      runtimeValueStore={runtimeValueStore}
+    />
+  );
+}
+```
+
+#### Action handling
+
+`UITreeRenderer` can dispatch structured action events declared in the streamed tree.
+
+- Pass `onAction` to receive `tool_approve`, `tool_cancel`, `submit_form`, and custom actions.
+- Built-in helpers live in `@cloudflare/kumo/streaming`: `createHandlerMap`, `dispatchAction`, and `processActionResult`.
+- `submit_form` reads touched values from the runtime value store and returns a typed `message` result payload.
+
+### Loadable UMD Runtime
+
+Non-React hosts can use the bundled UMD runtime:
+
+```html
+<link
+  rel="stylesheet"
+  href="/node_modules/@cloudflare/kumo/loadable/style.css"
+/>
+<script src="/node_modules/@cloudflare/kumo/loadable/kumo-loadable.umd.js"></script>
+<div id="kumo-root"></div>
+```
+
+```js
+const parser = window.CloudflareKumo.createParser();
+
+for (const chunk of chunks) {
+  const ops = parser.push(chunk);
+  if (ops.length > 0) {
+    window.CloudflareKumo.applyPatchesBatched(ops, "kumo-root");
+  }
+}
+
+const trailing = parser.flush();
+if (trailing.length > 0) {
+  window.CloudflareKumo.applyPatchesBatched(trailing, "kumo-root");
+}
+```
+
+Available host APIs include:
+
+- `applyPatch`, `applyPatches`, `applyPatchBatched`, `applyPatchesBatched`
+- `renderTree`, `getTree`, `reset`, `setTheme`
+- `getRuntimeValues`, `subscribeTree`, `subscribeRuntimeValues`
+- `dispatchAction`, `processActionResult`, `onAction`
+
+The loadable runtime also accepts AppSpec-oriented patches on `/state`, `/meta`, `/watch`, and `/version` while keeping `UITree` compatibility for existing stream producers.
+
 ### Import Components
 
 ```tsx

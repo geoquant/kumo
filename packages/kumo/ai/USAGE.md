@@ -39,6 +39,52 @@ Prompts, validation, wrappers, renderers, streaming, and loadable should all tre
 
 `UITree` remains a compatibility input during rollout so existing playground and host integrations can continue to stream legacy trees while the runtime stays AppSpec-native internally.
 
+## Streaming + Runtime APIs
+
+Kumo exposes a dedicated streaming module:
+
+```ts
+import {
+  EMPTY_TREE,
+  applyPatch,
+  createHandlerMap,
+  createJsonlParser,
+  createRuntimeValueStore,
+  dispatchAction,
+  processActionResult,
+  useRuntimeValueStore,
+  useUITree,
+} from "@cloudflare/kumo/streaming";
+import { UITreeRenderer } from "@cloudflare/kumo/generative";
+```
+
+### Core pieces
+
+- `createJsonlParser()` incrementally parses JSONL RFC 6902 patch lines from token streams.
+- `applyPatch()` applies one patch to a `UITree`; `useUITree()` wraps the same model for React state.
+- `useUITree({ batchPatches: true, onAction })` returns `tree`, `applyPatch`, `applyPatches`, `reset`, and pass-through `onAction`.
+- `createRuntimeValueStore()` / `useRuntimeValueStore()` capture uncontrolled input values for runtime actions.
+- `UITreeRenderer` accepts `tree`, optional `streaming`, optional `onAction`, and optional `runtimeValueStore`.
+
+### Actions
+
+`UITreeRenderer` dispatches structured `ActionEvent`s declared in the streamed tree.
+
+- Built-in actions include `submit_form` plus common patch/navigation helpers.
+- Playground-style flows can add custom actions such as `tool_approve` and `tool_cancel` via `createHandlerMap()`.
+- `dispatchAction()` resolves a handler result.
+- `processActionResult()` lets the host apply patches, send follow-up messages, or trigger external side effects.
+- `submit_form` payloads include touched runtime field values from the runtime value store.
+
+### Non-React hosts
+
+The loadable bundle is published at:
+
+- `@cloudflare/kumo/loadable/kumo-loadable.umd.js`
+- `@cloudflare/kumo/loadable/style.css`
+
+`window.CloudflareKumo` exposes parser, patch application, render, theme, runtime-value subscription, and action-dispatch APIs for script-tag hosts.
+
 ### Positioning note
 
 Kumo is catalog-derived from the real design system surface. It intentionally does not depend on or adopt handwritten schema/render systems such as `json-render`.
