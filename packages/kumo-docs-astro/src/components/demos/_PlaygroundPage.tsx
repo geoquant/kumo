@@ -1949,6 +1949,7 @@ function PlaygroundContent() {
         promptText: displayedLeftPromptText ?? undefined,
       },
       assistantJsonl: displayedLeftRawJsonl,
+      customTypes: CUSTOM_COMPONENT_TYPES,
     });
   }, [
     displayedLeftPromptText,

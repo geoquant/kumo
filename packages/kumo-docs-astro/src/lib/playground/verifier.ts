@@ -625,6 +625,7 @@ export function buildPlaygroundVerifierReport(input: {
   readonly rawSse?: string;
   readonly assistantJsonl?: string;
   readonly config?: PlaygroundVerifierConfigOverrides;
+  readonly customTypes?: ReadonlySet<string>;
 }): PlaygroundVerifierReport {
   const config = resolvePlaygroundVerifierConfig(input.config);
   const promptText = input.request.promptText ?? input.request.message;
@@ -635,7 +636,10 @@ export function buildPlaygroundVerifierReport(input: {
   const replayed = replayJsonl(assistantStream.assistantJsonl);
   const normalizedTree = normalizeTree(replayed.tree);
   const treeMetrics = measureTree(normalizedTree);
-  const structuralReport = gradeTree(normalizedTree);
+  const customTypesOpt = input.customTypes
+    ? { customTypes: input.customTypes }
+    : undefined;
+  const structuralReport = gradeTree(normalizedTree, customTypesOpt);
   const compositionReport = gradeComposition(normalizedTree);
   const validationMetrics = buildValidationMetrics(normalizedTree);
 
@@ -657,7 +661,7 @@ export function buildPlaygroundVerifierReport(input: {
       renderable: isRenderableTree(normalizedTree),
       elementCount: treeMetrics.elementCount,
       maxDepth: treeMetrics.maxDepth,
-      unknownTypeCount: getUnknownTypes(normalizedTree).length,
+      unknownTypeCount: getUnknownTypes(normalizedTree, customTypesOpt).length,
       missingChildRefCount: treeMetrics.missingChildRefCount,
       malformedStructureCount: countMalformedStructures(normalizedTree),
     },

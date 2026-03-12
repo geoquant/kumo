@@ -2150,11 +2150,18 @@ export function isRenderableTree(tree: UITree): boolean {
 }
 
 /** Get unrecognized types in a tree (for debugging). */
-export function getUnknownTypes(tree: UITree): string[] {
+export function getUnknownTypes(
+  tree: UITree,
+  options?: { readonly customTypes?: ReadonlySet<string> },
+): string[] {
+  const known =
+    options?.customTypes && options.customTypes.size > 0
+      ? new Set([...KNOWN_TYPES, ...options.customTypes])
+      : KNOWN_TYPES;
   const unknown: string[] = [];
   for (const key of Object.keys(tree.elements)) {
     const el = tree.elements[key];
-    if (el && !KNOWN_TYPES.has(el.type) && el.type !== "Div") {
+    if (el && !known.has(el.type) && el.type !== "Div") {
       unknown.push(el.type);
     }
   }
