@@ -21,6 +21,10 @@
     "typescript/no-unnecessary-template-expression": "off",
     "typescript/no-unnecessary-type-assertion": "off",
     "jsx-a11y/no-autofocus": "off",
+    // These unicorn rules auto-fix .sort()/.reverse() to .toSorted()/.toReversed()
+    // (ES2023). The library still needs to avoid newer runtime Array APIs in
+    // published dist output, so keep the source rule off and let the post-build
+    // browser-compat test catch regressions instead.
     "unicorn/no-array-sort": "off",
     "unicorn/no-array-reverse": "off",
     "jsx-a11y-js/aria-proptypes": "error",
