@@ -4339,9 +4339,8 @@ Select component
 - `className`: string
   Additional CSS classes merged via `cn()`.
 - `label`: ReactNode
-  Label content for the select (enables Field wrapper) — can be a string or any React node.
+  Label content for the select. When provided, enables the Field wrapper with a visible label above the select. For accessibility without a visible label, use `aria-label` instead.
 - `hideLabel`: boolean
-  Visually hide the label while keeping it accessible to screen readers. Set to `false` to show a visible label above the select via the Field wrapper.
 - `placeholder`: string
   Placeholder text shown when no value is selected.
 - `loading`: boolean

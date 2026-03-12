@@ -3995,12 +3995,11 @@
         "label": {
           "type": "ReactNode",
           "optional": true,
-          "description": "Label content for the select (enables Field wrapper) — can be a string or any React node."
+          "description": "Label content for the select. When provided, enables the Field wrapper with a visible label above the select. For accessibility without a visible label, use `aria-label` instead."
         },
         "hideLabel": {
           "type": "boolean",
-          "optional": true,
-          "description": "Visually hide the label while keeping it accessible to screen readers. Set to `false` to show a visible label above the select via the Field wrapper."
+          "optional": true
         },
         "placeholder": {
           "type": "string",
