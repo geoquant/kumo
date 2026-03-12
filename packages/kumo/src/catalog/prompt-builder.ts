@@ -247,6 +247,8 @@ const COMPOSITION_HINTS: Readonly<Record<string, string>> = {
   Cluster:
     "Hint: Set justify (start, end, between). Use for button groups and inline items.",
   Flow: "Hint: Children must be FlowNode or FlowParallel. Use FlowParallel to branch nodes side-by-side.",
+  TimeseriesChart:
+    "Hint: Always set height explicitly — 350-400 for standalone charts, 200-250 for dashboard grid cells. Data format is [{name, data: [[timestamp_ms, value], ...], color}, ...]. Use realistic timestamps (Date.now() range) and hex colors.",
 };
 
 /** Props that score higher in the ranking (+1). */

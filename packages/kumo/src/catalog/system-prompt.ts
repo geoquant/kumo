@@ -358,6 +358,21 @@ User: "Show a traffic analytics dashboard"
 {"op":"add","path":"/elements/stat-cache-label","value":{"key":"stat-cache-label","type":"Text","props":{"children":"Cache hit rate","variant":"secondary"},"parentKey":"stat-cache-stack"}}
 {"op":"add","path":"/elements/stat-cache-val","value":{"key":"stat-cache-val","type":"Text","props":{"children":"94.7%","variant":"heading2"},"parentKey":"stat-cache-stack"}}`;
 
+const EXAMPLE_CHART = `## Example (Line Chart Dashboard)
+
+User: "Show a line chart of request traffic"
+
+{"op":"add","path":"/root","value":"chart-page"}
+{"op":"add","path":"/elements/chart-page","value":{"key":"chart-page","type":"Surface","props":{},"children":["chart-stack"]}}
+{"op":"add","path":"/elements/chart-stack","value":{"key":"chart-stack","type":"Stack","props":{"gap":"lg"},"children":["chart-header","chart-card"],"parentKey":"chart-page"}}
+{"op":"add","path":"/elements/chart-header","value":{"key":"chart-header","type":"Stack","props":{"gap":"sm"},"children":["chart-title","chart-desc"],"parentKey":"chart-stack"}}
+{"op":"add","path":"/elements/chart-title","value":{"key":"chart-title","type":"Text","props":{"children":"Request traffic","variant":"heading2"},"parentKey":"chart-header"}}
+{"op":"add","path":"/elements/chart-desc","value":{"key":"chart-desc","type":"Text","props":{"children":"Requests per second over the last 24 hours","variant":"secondary"},"parentKey":"chart-header"}}
+{"op":"add","path":"/elements/chart-card","value":{"key":"chart-card","type":"Surface","props":{"color":"neutral"},"children":["chart-inner-stack"],"parentKey":"chart-stack"}}
+{"op":"add","path":"/elements/chart-inner-stack","value":{"key":"chart-inner-stack","type":"Stack","props":{"gap":"sm"},"children":["chart-label","traffic-chart"],"parentKey":"chart-card"}}
+{"op":"add","path":"/elements/chart-label","value":{"key":"chart-label","type":"Text","props":{"children":"Requests/s","variant":"secondary"},"parentKey":"chart-inner-stack"}}
+{"op":"add","path":"/elements/traffic-chart","value":{"key":"traffic-chart","type":"TimeseriesChart","props":{"type":"line","height":400,"xAxisName":"Time (UTC)","yAxisName":"Req/s","gradient":true,"data":[{"name":"Requests","data":[[1710288000000,120],[1710291600000,185],[1710295200000,310],[1710298800000,275],[1710302400000,420],[1710306000000,380],[1710309600000,510],[1710313200000,465],[1710316800000,390],[1710320400000,345],[1710324000000,280],[1710327600000,150]],"color":"#4C8BF5"}]},"parentKey":"chart-inner-stack"}}`;
+
 const EXAMPLE_LIST = `## Example (Data List with Badges and Actions)
 
 User: "Show a list of recent deployments"
@@ -630,7 +645,7 @@ const CLOSING_RULES = `## Important
  * - JSONL/RFC 6902 response format with UITree schema
  * - Available components (injected via `componentsSection`)
  * - Action system (built-in actions, dispatch rules)
- *   - Eleven working examples (user card, counter, notification form, pricing table, dashboard, list, empty state, flow diagram, product overview page, service detail page, service tabs page)
+ *   - Twelve working examples (user card, counter, notification form, pricing table, dashboard, line chart, list, empty state, flow diagram, product overview page, service detail page, service tabs page)
  *   - Multi-turn follow-up instructions (how to handle modification requests)
  *
  * @example
@@ -675,6 +690,7 @@ export function buildSystemPrompt(options: SystemPromptOptions = {}): string {
     EXAMPLE_NOTIFICATION_PREFS_FORM,
     EXAMPLE_TABLE,
     EXAMPLE_DASHBOARD,
+    EXAMPLE_CHART,
     EXAMPLE_LIST,
     EXAMPLE_EMPTY_STATE,
     EXAMPLE_FLOW,
