@@ -4366,7 +4366,7 @@ function PreviewContent({
 
   if (showTree) {
     return (
-      <div className="space-y-3 p-4">
+      <div className="w-full space-y-3 p-4">
         {verifierReport?.status === "warn" ? (
           <VerifierWarningState report={verifierReport} />
         ) : null}
