@@ -186,10 +186,11 @@ function parseDemoFile(filePath: string): ComponentDemos | null {
 
       const jsx = extractReturnJSX(node.body, sourceFile);
       if (jsx) {
+        const description = extractJSDocDescription(node, sourceFile);
         demos.push({
           name: funcName,
           code: jsx,
-          description: extractJSDocDescription(node, sourceFile),
+          ...(description === undefined ? {} : { description }),
         });
       }
     }

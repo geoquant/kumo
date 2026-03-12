@@ -377,6 +377,17 @@ function MatrixRow({
           hasViolations && "cursor-pointer hover:bg-kumo-elevated",
         )}
         onClick={hasViolations ? onToggle : undefined}
+        onKeyDown={
+          hasViolations
+            ? (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onToggle();
+                }
+              }
+            : undefined
+        }
+        tabIndex={hasViolations ? 0 : undefined}
       >
         <td className="sticky left-0 z-10 bg-kumo-base px-2 py-1 font-mono text-kumo-default">
           <span className="flex items-center gap-1">
@@ -605,8 +616,8 @@ function ABComparison({
   const a = baselineA.baseline;
   const b = baselineB.baseline;
 
-  const allOverallA = { ...a.overall, ...(a.overallComposition ?? {}) };
-  const allOverallB = { ...b.overall, ...(b.overallComposition ?? {}) };
+  const allOverallA = { ...a.overall, ...a.overallComposition };
+  const allOverallB = { ...b.overall, ...b.overallComposition };
 
   return (
     <div className="space-y-4">

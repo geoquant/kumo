@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "wrangler deploy --dry-run --outdir=dist",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.app.json",
+    "typecheck": "tsc --noEmit && if [ -d app ] && find app -type f \\( -name '*.ts' -o -name '*.tsx' \\) | grep -q .; then tsc --noEmit -p tsconfig.app.json; fi",
     "pretypecheck": "wrangler types ./types/worker-configuration.d.ts"
   },
   "dependencies": {

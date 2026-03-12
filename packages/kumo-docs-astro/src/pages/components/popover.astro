@@ -66,48 +66,48 @@ export default function Example() {
 
   <ComponentSection>
     <Heading level={2}>Popover vs Tooltip</Heading>
-    <p class="mb-4 text-sm text-label">
-      While popovers can be triggered on hover (using <code class="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs">openOnHover</code>), they serve a different purpose than tooltips. Understanding when to use each is important for accessibility and user experience.
+    <p class="mb-4 text-sm text-kumo-strong">
+      While popovers can be triggered on hover (using <code class="rounded bg-kumo-control px-1.5 py-0.5 font-mono text-xs">openOnHover</code>), they serve a different purpose than tooltips. Understanding when to use each is important for accessibility and user experience.
     </p>
-    <div class="overflow-hidden rounded-lg border border-border">
+    <div class="overflow-hidden rounded-lg border border-kumo-line">
       <table class="w-full text-sm">
-        <thead class="bg-surface-2">
+        <thead class="bg-kumo-recessed">
           <tr>
             <th class="px-4 py-3 text-left font-semibold"></th>
             <th class="px-4 py-3 text-left font-semibold">Tooltip</th>
             <th class="px-4 py-3 text-left font-semibold">Popover</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-border">
+        <tbody class="divide-y divide-kumo-line">
           <tr>
             <td class="px-4 py-3 font-medium">Purpose</td>
-            <td class="px-4 py-3 text-muted">Short, non-interactive text labels for identification</td>
-            <td class="px-4 py-3 text-muted">Rich, interactive content containers</td>
+            <td class="px-4 py-3 text-kumo-subtle">Short, non-interactive text labels for identification</td>
+            <td class="px-4 py-3 text-kumo-subtle">Rich, interactive content containers</td>
           </tr>
           <tr>
             <td class="px-4 py-3 font-medium">Content</td>
-            <td class="px-4 py-3 text-muted">Plain text only</td>
-            <td class="px-4 py-3 text-muted">Any content: links, buttons, forms, images</td>
+            <td class="px-4 py-3 text-kumo-subtle">Plain text only</td>
+            <td class="px-4 py-3 text-kumo-subtle">Any content: links, buttons, forms, images</td>
           </tr>
           <tr>
             <td class="px-4 py-3 font-medium">Trigger</td>
-            <td class="px-4 py-3 text-muted">Hover or focus</td>
-            <td class="px-4 py-3 text-muted">Click (default) or hover</td>
+            <td class="px-4 py-3 text-kumo-subtle">Hover or focus</td>
+            <td class="px-4 py-3 text-kumo-subtle">Click (default) or hover</td>
           </tr>
           <tr>
             <td class="px-4 py-3 font-medium">ARIA Role</td>
-            <td class="px-4 py-3"><code class="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs">role="tooltip"</code></td>
-            <td class="px-4 py-3"><code class="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs">aria-haspopup</code></td>
+            <td class="px-4 py-3"><code class="rounded bg-kumo-control px-1.5 py-0.5 font-mono text-xs">role="tooltip"</code></td>
+            <td class="px-4 py-3"><code class="rounded bg-kumo-control px-1.5 py-0.5 font-mono text-xs">aria-haspopup</code></td>
           </tr>
           <tr>
             <td class="px-4 py-3 font-medium">Keyboard</td>
-            <td class="px-4 py-3 text-muted">Not focusable</td>
-            <td class="px-4 py-3 text-muted">Focus moves inside, traps when open</td>
+            <td class="px-4 py-3 text-kumo-subtle">Not focusable</td>
+            <td class="px-4 py-3 text-kumo-subtle">Focus moves inside, traps when open</td>
           </tr>
         </tbody>
       </table>
     </div>
-    <p class="mt-4 text-sm text-label">
+    <p class="mt-4 text-sm text-kumo-strong">
       <strong>Use a Tooltip</strong> when you need to label an icon button or provide a brief explanation. <strong>Use a Popover</strong> when users need to interact with the content inside, such as clicking links, filling out forms, or dismissing with a button.
     </p>
   </ComponentSection>
@@ -208,8 +208,8 @@ export default function Example() {
 
       <div>
         <Heading level={3}>Open on Hover</Heading>
-        <p class="mb-4 text-sm text-label">
-          Use <code class="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs">openOnHover</code> on the trigger to open the popover when the user hovers over it. You can also specify a <code class="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs">delay</code> in milliseconds before the popover appears.
+        <p class="mb-4 text-sm text-kumo-strong">
+          Use <code class="rounded bg-kumo-control px-1.5 py-0.5 font-mono text-xs">openOnHover</code> on the trigger to open the popover when the user hovers over it. You can also specify a <code class="rounded bg-kumo-control px-1.5 py-0.5 font-mono text-xs">delay</code> in milliseconds before the popover appears.
         </p>
         <ComponentExample code={`<Popover>
   <Popover.Trigger openOnHover delay={200} asChild>
