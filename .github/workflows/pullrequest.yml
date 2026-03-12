@@ -41,4 +41,5 @@ jobs:
         uses: ./.github/actions/install-dependencies
 
       - run: pnpm --filter @cloudflare/kumo build
+      - run: pnpm --filter @cloudflare/kumo-docs-astro codegen:demos
       - run: pnpm --filter @cloudflare/kumo test
