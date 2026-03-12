@@ -975,6 +975,8 @@ describe("PlaygroundPage", () => {
       expect(streamToolConfirmationMock).toHaveBeenCalledTimes(1);
       expect(streamJsonlUIMock).not.toHaveBeenCalled();
       expect(screen.getByText("Awaiting follow-up stage.")).toBeTruthy();
+      expect(screen.queryByText("Verifier blocked panel A render")).toBeNull();
+      expect(screen.queryByLabelText("Panel A verifier status")).toBeNull();
     });
   });
 

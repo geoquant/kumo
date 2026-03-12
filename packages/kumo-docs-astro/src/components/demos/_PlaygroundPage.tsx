@@ -1934,7 +1934,11 @@ function PlaygroundContent() {
   const displayedLeftRequestMessage =
     activeHistoryEntry?.prompt ?? lastSubmittedRef.current ?? "";
   const displayedLeftVerifierReport = useMemo(() => {
-    if (displayedLeftRequestMessage === "" || displayedStatus === "streaming") {
+    if (
+      displayedLeftRequestMessage === "" ||
+      displayedStatus === "streaming" ||
+      displayedLeftRawJsonl.trim() === ""
+    ) {
       return null;
     }
 
