@@ -366,7 +366,7 @@ const handlePost: APIRoute = async ({ request, locals }) => {
     null;
 
   try {
-    if (clientIp) {
+    if (typeof rateLimiter?.limit === "function" && clientIp) {
       const { success } = await rateLimiter.limit({ key: clientIp });
       if (!success) {
         return new Response(
@@ -377,23 +377,18 @@ const handlePost: APIRoute = async ({ request, locals }) => {
           },
         );
       }
-    } else if (!import.meta.env.DEV) {
+    } else if (!clientIp && !import.meta.env.DEV) {
       // In production behind Cloudflare, cf-connecting-ip should always exist.
-      // If missing, fail closed to prevent rate-limit bypass.
-      return new Response(
-        JSON.stringify({ error: "Unable to identify client." }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+      // If missing, proceed without rate limiting rather than taking down chat.
+      console.warn("[chat] missing client ip; skipping rate limit");
+    } else if (typeof rateLimiter?.limit !== "function") {
+      console.warn("[chat] CHAT_RATE_LIMIT binding unavailable; skipping");
     }
-    // In dev, skip rate limiting when no IP header is available.
   } catch (rateLimitErr) {
-    console.error("[chat] rate limiter unavailable:", rateLimitErr);
-    if (!import.meta.env.DEV) {
-      return new Response(
-        JSON.stringify({ error: "Rate limiting unavailable. Try again." }),
-        { status: 503, headers: { "Content-Type": "application/json" } },
-      );
-    }
+    console.error(
+      "[chat] rate limiter unavailable; continuing without limit:",
+      rateLimitErr,
+    );
   }
 
   // --- Parse request body ---
