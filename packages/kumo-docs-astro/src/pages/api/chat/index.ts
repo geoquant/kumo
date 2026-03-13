@@ -1,10 +1,6 @@
 import type { APIRoute } from "astro";
 import { getSystemPrompt } from "~/lib/playground";
 import { getSkillContents } from "~/lib/skills-data.generated";
-import {
-  buildChartFallbackJsonl,
-  detectChartFallbackScenario,
-} from "~/pages/api/chat/chart-fallback";
 
 export const prerender = false;
 
@@ -180,25 +176,71 @@ interface AiMessage {
   content: string;
 }
 
-function createJsonlSseResponse(jsonl: string): Response {
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(
-        encoder.encode(`data: ${JSON.stringify({ response: jsonl })}\n\n`),
-      );
-      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      controller.close();
-    },
-  });
+function getDevChatUpstreamUrls(request: Request): string[] {
+  const configured = import.meta.env.DEV_CHAT_UPSTREAM_URL;
+  const candidates = [
+    typeof configured === "string" ? configured.trim() : "",
+    "http://127.0.0.1:8787/api/chat",
+    "http://localhost:8787/api/chat",
+  ].filter((value) => value.length > 0);
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-    },
+  const currentUrl = new URL(request.url);
+
+  return candidates.filter((value, index) => {
+    try {
+      const upstream = new URL(value);
+      return (
+        upstream.origin !== currentUrl.origin &&
+        candidates.indexOf(value) === index
+      );
+    } catch {
+      return false;
+    }
   });
+}
+
+async function proxyDevChatRequest(
+  request: Request,
+  chatRequest: ChatRequest,
+): Promise<Response | null> {
+  const upstreamUrls = getDevChatUpstreamUrls(request);
+
+  for (const upstreamUrl of upstreamUrls) {
+    try {
+      const upstreamResponse = await fetch(upstreamUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: request.headers.get("Accept") ?? "text/event-stream",
+        },
+        body: JSON.stringify(chatRequest),
+      });
+
+      if (upstreamResponse.ok) {
+        return new Response(upstreamResponse.body, {
+          status: upstreamResponse.status,
+          headers: {
+            "Content-Type":
+              upstreamResponse.headers.get("Content-Type") ??
+              "text/event-stream",
+            "Cache-Control":
+              upstreamResponse.headers.get("Cache-Control") ??
+              "no-cache, no-transform",
+            Connection:
+              upstreamResponse.headers.get("Connection") ?? "keep-alive",
+          },
+        });
+      }
+
+      if (upstreamResponse.status < 500) {
+        return upstreamResponse;
+      }
+    } catch (error) {
+      console.warn(`[chat] dev upstream failed: ${upstreamUrl}`, error);
+    }
+  }
+
+  return null;
 }
 
 /** Type guard for non-null, non-array objects. */
@@ -534,9 +576,19 @@ const handlePost: APIRoute = async ({ request, locals }) => {
   } catch (err) {
     console.error("[chat] AI error:", err);
 
-    const fallbackScenario = detectChartFallbackScenario(chatRequest.message);
-    if (fallbackScenario !== null) {
-      return createJsonlSseResponse(buildChartFallbackJsonl(fallbackScenario));
+    if (import.meta.env.DEV) {
+      const upstreamResponse = await proxyDevChatRequest(request, chatRequest);
+      if (upstreamResponse !== null) {
+        return upstreamResponse;
+      }
+
+      return new Response(
+        JSON.stringify({
+          error:
+            "AI unavailable in local astro dev. Run `wrangler dev` on :8787 or set `DEV_CHAT_UPSTREAM_URL`.",
+        }),
+        { status: 503, headers: { "Content-Type": "application/json" } },
+      );
     }
 
     return new Response(

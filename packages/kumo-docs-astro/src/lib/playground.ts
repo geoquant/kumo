@@ -94,8 +94,47 @@ const PLAYGROUND_PROMPT_SUPPLEMENT = [
   '- Treat `pie chart` or `donut chart` as `PieChart` with `variant: "pie" | "donut"`.',
 ].join("\n");
 
+const INCREMENTAL_CHART_STREAMING_PROMPT_SUPPLEMENT = [
+  "# Incremental Chart Streaming",
+  "",
+  "For multi-chart requests, optimize for visible progressive rendering in the playground preview.",
+  "- Emit JSONL in strict top-down order.",
+  "- Never emit a single patch to `/elements` containing the whole tree.",
+  "- Only emit `add` ops to `/elements/<key>` one element per line.",
+  "- Build the first chart card completely before starting the second chart card.",
+  "- Build the second chart card completely before starting the third chart card.",
+  "- Keep chart cards stacked vertically in one parent `Stack` unless the user explicitly asks for a grid.",
+  "- Start with the outer page container and heading, then first chart card subtree, then next subtree, then final subtree.",
+].join("\n");
+
 export function addPlaygroundPromptSupplement(prompt: string): string {
   return `${prompt}\n\n${PLAYGROUND_PROMPT_SUPPLEMENT}`;
+}
+
+export function buildRequestPromptSupplement(
+  message: string,
+): string | undefined {
+  const normalized = message.toLowerCase();
+  const chartMentionCount = [
+    normalized.includes("line chart"),
+    normalized.includes("bar chart"),
+    normalized.includes("column chart"),
+    normalized.includes("area chart"),
+    normalized.includes("pie chart"),
+    normalized.includes("donut chart"),
+  ].filter(Boolean).length;
+
+  if (
+    normalized.includes("chart demo") ||
+    normalized.includes("chart examples") ||
+    normalized.includes("basic charts") ||
+    normalized.includes("multiple charts") ||
+    chartMentionCount >= 2
+  ) {
+    return INCREMENTAL_CHART_STREAMING_PROMPT_SUPPLEMENT;
+  }
+
+  return undefined;
 }
 
 /** Cached system prompt ��� generated once per cold start. */

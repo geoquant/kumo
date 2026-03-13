@@ -108,6 +108,7 @@ import {
   PROMPT_EDITOR_SYSTEM_PROMPT,
 } from "~/lib/tool-prompts";
 import { streamPlainText } from "~/lib/stream-plain-text";
+import { buildRequestPromptSupplement } from "~/lib/playground";
 import { buildPromptEditMessage } from "~/lib/playground/prompt-edit";
 import {
   CREATE_WORKER_SCENARIO,
@@ -501,7 +502,7 @@ const STATIC_PRESETS: readonly {
   {
     label: "Chart demo",
     prompt:
-      "Show basic chart examples in one compact dashboard: a line chart for requests, a bar chart for status codes, and a donut chart for traffic mix. No buttons.",
+      "Show basic chart examples stacked vertically in one compact dashboard: a line chart for requests, a bar chart for status codes, and a donut chart for traffic mix. No buttons.",
   },
   {
     label: "Custom",
@@ -2016,9 +2017,15 @@ function PlaygroundContent() {
         model: selectedModel,
         history: history ? [...history] : undefined,
         currentUITree: currentUITreeJson,
-        systemPromptSupplement: isExhaustiveVariantShowcasePrompt(msg)
-          ? buildVariantShowcasePromptSupplement()
-          : undefined,
+        systemPromptSupplement:
+          [
+            isExhaustiveVariantShowcasePrompt(msg)
+              ? buildVariantShowcasePromptSupplement()
+              : undefined,
+            buildRequestPromptSupplement(msg),
+          ]
+            .filter((value): value is string => value !== undefined)
+            .join("\n\n") || undefined,
         systemPromptOverride: editedSystemPrompt ?? undefined,
         appendAssistantMessage: true,
         rollbackUserMessageOnError: true,
@@ -4694,7 +4701,10 @@ function PreviewContent({
   readonly verifierReport?: PlaygroundVerifierReport | null;
   readonly deferPreviewUntilSettled?: boolean;
 }) {
-  if (deferPreviewUntilSettled && isStreaming) {
+  const hasRenderableContent =
+    tree.root !== "" && tree.elements[tree.root] != null;
+
+  if (deferPreviewUntilSettled && isStreaming && !hasRenderableContent) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader size="sm" />
@@ -4720,7 +4730,7 @@ function PreviewContent({
       </div>
     );
   }
-  if (isStreaming) {
+  if (isStreaming && !hasRenderableContent) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader size="sm" />
