@@ -258,7 +258,7 @@ function TriggerValue({
       >
         <CaretDownIcon
           size={iconStyles.iconSize}
-          className="fill-current text-kumo-subtle"
+          className="text-kumo-subtle"
         />
       </ComboboxBase.Icon>
     </ComboboxBase.Trigger>
@@ -311,7 +311,7 @@ function TriggerInput(props: ComboboxBase.Input.Props) {
 
       <ComboboxBase.Clear
         className={cn(
-          "absolute top-1/2 flex -translate-y-1/2 cursor-pointer bg-transparent p-0",
+          "absolute top-1/2 flex -translate-y-1/2 cursor-pointer bg-transparent p-0 text-kumo-subtle",
           iconStyles.clearRight,
         )}
       >
@@ -327,7 +327,7 @@ function TriggerInput(props: ComboboxBase.Input.Props) {
         >
           <CaretDownIcon
             size={iconStyles.iconSize}
-            className="fill-current text-kumo-subtle"
+            className="text-kumo-subtle"
           />
         </ComboboxBase.Icon>
       </ComboboxBase.Trigger>
@@ -418,7 +418,7 @@ function Chip(props: ComboboxBase.Chip.Props) {
     >
       {props.children}
       <ComboboxBase.ChipRemove className="cursor-pointer rounded-md p-1 hover:bg-kumo-fill-hover">
-        <XIcon size={12} weight="bold" />
+        <XIcon size={12} weight="bold" className="text-kumo-subtle" />
       </ComboboxBase.ChipRemove>
     </ComboboxBase.Chip>
   );
