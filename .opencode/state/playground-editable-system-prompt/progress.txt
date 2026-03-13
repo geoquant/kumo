@@ -10,7 +10,10 @@ Started: 2026-03-12
 - PlaygroundContent state lives in `_PlaygroundPage.tsx:508+`; systemPromptText at ~855, editable prompt state at ~872
 - URL sync hook at `src/lib/playground/prompt-url-sync.ts`; uses lz-string `compressToEncodedURIComponent` (URL-safe, no extra encoding needed)
 - Badge component: `variant` only (primary|secondary|destructive|outline|success|beta), no `size` prop
-- PromptEditor at `_PlaygroundPage.tsx:~4485` (prefixed `_` until wired in ui-2)
+- PromptEditor at `_PlaygroundPage.tsx:~4497` (now wired; renders in panel A prompt tab)
+- PanelContent takes `panelId: PanelId` as required prop; prompt-editor props are optional (panel B doesn't need them)
+- ComparisonPanelsProps is the interface for threading props from PlaygroundContent → ComparisonPanels → PanelContent
+- Mobile shell (`MobilePlaygroundShell`) also has PanelContent calls — needs `panelId` but NOT prompt-editor props (mobile doesn't wire editable prompt yet)
 
 ---
 
@@ -45,3 +48,14 @@ Started: 2026-03-12
 - All semantic tokens: `bg-kumo-base`, `text-kumo-default`, `border-kumo-line`, `text-kumo-subtle`
 - Files changed: `src/components/demos/_PlaygroundPage.tsx`
 - **Learnings:** Badge has no `size` prop, only `variant`. Available variants: primary, secondary, destructive, outline, success, beta. No `warning` variant — use `outline` for informational badges. Function declarations also need `_` prefix for eslint unused-vars rule.
+
+## Task - ui-2
+- Added `panelId: PanelId` prop to `PanelContent`; conditional render in prompt tab: panel A → `PromptEditor`, panel B → `PromptTextView`
+- Added `editedSystemPrompt`, `isPromptModified`, `onPromptChange`, `onPromptReset`, `onRegenerate` to `ComparisonPanelsProps`
+- Threaded all new props: PlaygroundContent → ComparisonPanels → PanelContent (desktop + mobile)
+- Created stable callbacks: `handlePromptChange`, `handlePromptReset`, `handleRegenerate` (placeholder no-op for functional-1)
+- Renamed `_PromptEditor` → `PromptEditor`, un-prefixed `isPromptModified` (now consumed)
+- `activeSystemPrompt` stays `_`-prefixed until consumed by functional-1
+- `onPromptReset` aliased as `_onPromptReset` in PanelContent destructuring (unused until PromptEditor grows a reset button)
+- Files changed: `src/components/demos/_PlaygroundPage.tsx`
+- **Learnings:** PromptEditor props are optional on PanelContent (panel B doesn't need them). Guard with runtime check (`panelId === "a" && onPromptChange && onRegenerate`) to narrow optional props before render.

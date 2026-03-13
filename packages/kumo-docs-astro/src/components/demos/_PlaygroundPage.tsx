@@ -871,15 +871,22 @@ function PlaygroundContent() {
   }, []);
 
   // --- Editable system prompt state ---
-  // _-prefixed derived vars are unused until wired into UI (tasks ui-1, ui-2, functional-1).
   const [editedSystemPrompt, setEditedSystemPrompt] = useState<string | null>(
     null,
   );
-  const _isPromptModified = editedSystemPrompt !== null;
+  const isPromptModified = editedSystemPrompt !== null;
   const _activeSystemPrompt = editedSystemPrompt ?? systemPromptText;
 
   // Sync editedSystemPrompt ↔ URL (?promptOverride / ?promptRef).
   usePromptUrlSync(editedSystemPrompt, setEditedSystemPrompt);
+
+  const handlePromptChange = useCallback(
+    (text: string) => setEditedSystemPrompt(text),
+    [],
+  );
+  const handlePromptReset = useCallback(() => setEditedSystemPrompt(null), []);
+  // Placeholder — real logic wired in functional-1.
+  const handleRegenerate = useCallback(() => {}, []);
 
   // --- Skill picker state ---
   const [skills, setSkills] = useState<readonly SkillInfo[]>([]);
@@ -2280,6 +2287,11 @@ function PlaygroundContent() {
                     value: sizes,
                   });
                 }}
+                editedSystemPrompt={editedSystemPrompt}
+                isPromptModified={isPromptModified}
+                onPromptChange={handlePromptChange}
+                onPromptReset={handlePromptReset}
+                onRegenerate={handleRegenerate}
               />
             </div>
           </div>
@@ -2379,6 +2391,12 @@ interface ComparisonPanelsProps {
   readonly onInspectFeedbackTab: (tab: PanelTab) => void;
   readonly workspaceSizes: readonly [number, number];
   readonly onWorkspaceResize: (sizes: readonly [number, number]) => void;
+  // Editable system prompt (Panel A only)
+  readonly editedSystemPrompt: string | null;
+  readonly isPromptModified: boolean;
+  readonly onPromptChange: (text: string) => void;
+  readonly onPromptReset: () => void;
+  readonly onRegenerate: () => void;
 }
 
 function PlaygroundHistoryScrubber({
@@ -2496,6 +2514,11 @@ function ComparisonPanels({
   onInspectFeedbackTab,
   workspaceSizes,
   onWorkspaceResize,
+  editedSystemPrompt,
+  isPromptModified,
+  onPromptChange,
+  onPromptReset,
+  onRegenerate,
 }: ComparisonPanelsProps) {
   const workspaceLayoutPersistence = useDefaultLayout({
     id: "playground-workspace-layout",
@@ -2557,6 +2580,7 @@ function ComparisonPanels({
           <div className="flex min-h-0 flex-1 overflow-auto">
             <PanelContent
               tab={visibleLeftTab}
+              panelId="a"
               tree={tree}
               showTree={showTree}
               runtimeValueStore={runtimeValueStore}
@@ -2579,6 +2603,11 @@ function ComparisonPanels({
               verifierReport={leftVerifierReport}
               deferPreviewUntilSettled={!isHistoryPlayback}
               exportComponentName="GeneratedPanelA"
+              editedSystemPrompt={editedSystemPrompt}
+              isPromptModified={isPromptModified}
+              onPromptChange={onPromptChange}
+              onPromptReset={onPromptReset}
+              onRegenerate={onRegenerate}
             />
           </div>
         </Panel>
@@ -2618,6 +2647,7 @@ function ComparisonPanels({
           <div className="flex min-h-0 flex-1 overflow-auto">
             <PanelContent
               tab={visibleRightTab}
+              panelId="b"
               tree={noPromptTree}
               showTree={showNoPromptTree}
               runtimeValueStore={noPromptRuntimeValueStore}
@@ -3213,6 +3243,7 @@ function MobilePlaygroundShell({
             <div className="flex min-h-0 flex-1 overflow-auto">
               <PanelContent
                 tab={visibleLeftTab}
+                panelId="a"
                 tree={leftTree}
                 showTree={leftShowTree}
                 runtimeValueStore={leftRuntimeValueStore}
@@ -3262,6 +3293,7 @@ function MobilePlaygroundShell({
             <div className="flex min-h-0 flex-1 overflow-auto">
               <PanelContent
                 tab={visibleRightTab}
+                panelId="b"
                 tree={rightTree}
                 showTree={rightShowTree}
                 runtimeValueStore={rightRuntimeValueStore}
@@ -3963,6 +3995,7 @@ function SkillPickerPopover({
 /** Renders the selected tab content within a single panel. */
 function PanelContent({
   tab,
+  panelId,
   tree,
   showTree,
   runtimeValueStore,
@@ -3986,8 +4019,14 @@ function PanelContent({
   verifierReport,
   deferPreviewUntilSettled,
   exportComponentName,
+  editedSystemPrompt,
+  isPromptModified,
+  onPromptChange,
+  onPromptReset: _onPromptReset,
+  onRegenerate,
 }: {
   readonly tab: PanelTab;
+  readonly panelId: PanelId;
   readonly tree: UITree;
   readonly showTree: boolean;
   readonly runtimeValueStore: RuntimeValueStore;
@@ -4022,6 +4061,12 @@ function PanelContent({
   readonly verifierReport?: PlaygroundVerifierReport | null;
   readonly deferPreviewUntilSettled?: boolean;
   readonly exportComponentName: string;
+  // Editable prompt (Panel A only)
+  readonly editedSystemPrompt?: string | null;
+  readonly isPromptModified?: boolean;
+  readonly onPromptChange?: (text: string) => void;
+  readonly onPromptReset?: () => void;
+  readonly onRegenerate?: () => void;
 }) {
   switch (tab) {
     case "preview":
@@ -4084,6 +4129,18 @@ function PanelContent({
         />
       );
     case "prompt":
+      if (panelId === "a" && onPromptChange && onRegenerate) {
+        return (
+          <PromptEditor
+            canonicalPrompt={promptText}
+            editedPrompt={editedSystemPrompt ?? null}
+            isModified={isPromptModified ?? false}
+            isStreaming={isStreaming}
+            onPromptChange={onPromptChange}
+            onRegenerate={onRegenerate}
+          />
+        );
+      }
       return (
         <div className="p-4">
           <PromptTextView text={promptText} />
@@ -4482,7 +4539,7 @@ function estimateTokenCount(text: string): number {
  *
  * Prefixed with `_` until wired into PanelContent (task ui-2).
  */
-function _PromptEditor({
+function PromptEditor({
   canonicalPrompt,
   editedPrompt,
   isModified,

@@ -71,7 +71,7 @@
         "All new props (panelId, editedSystemPrompt, onPromptChange, onPromptReset, onRegenerate) are threaded through ComparisonPanels to PanelContent",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "functional-1",
