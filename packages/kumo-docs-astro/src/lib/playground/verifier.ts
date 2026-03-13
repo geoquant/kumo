@@ -282,15 +282,92 @@ function buildAssistantStream(input: {
   };
 }
 
+/**
+ * Reassemble pretty-printed JSON objects from raw lines.
+ *
+ * LLMs sometimes emit multi-line indented JSON instead of compact JSONL. This
+ * function buffers lines until brace depth returns to zero, joining them into
+ * a single string that `parsePatchLine` can handle. Truly unparseable
+ * fragments (depth never reaches zero) are flushed as individual lines so they
+ * still count as dropped.
+ */
+function reassembleJsonObjects(rawLines: readonly string[]): readonly string[] {
+  const result: string[] = [];
+  let buffer: string[] = [];
+  let depth = 0;
+
+  function flushBuffer(): void {
+    if (buffer.length === 0) return;
+    if (buffer.length === 1) {
+      result.push(buffer[0]);
+    } else {
+      result.push(buffer.join(" "));
+    }
+    buffer = [];
+    depth = 0;
+  }
+
+  for (const raw of rawLines) {
+    const line = raw.trim();
+    if (line === "" || line.startsWith("```")) continue;
+
+    // Fast path: if not currently buffering and line parses on its own, emit.
+    if (depth === 0) {
+      const quick = parsePatchLine(line);
+      if (quick !== null) {
+        result.push(line);
+        continue;
+      }
+    }
+
+    // Track brace depth (ignoring braces inside JSON strings).
+    let inString = false;
+    let escaped = false;
+    for (const ch of line) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (!inString) {
+        if (ch === "{" || ch === "[") depth += 1;
+        else if (ch === "}" || ch === "]") depth -= 1;
+      }
+    }
+
+    buffer.push(line);
+
+    if (depth <= 0) {
+      flushBuffer();
+    }
+  }
+
+  // Flush any remaining buffered lines that never closed.
+  if (buffer.length > 0) {
+    for (const leftover of buffer) {
+      result.push(leftover);
+    }
+    buffer = [];
+  }
+
+  return result;
+}
+
 function replayJsonl(assistantJsonl: string): ReplayedJsonl {
-  const trimmedLines = assistantJsonl
-    .split("\n")
-    .filter((line) => line.trim() !== "" && !line.trim().startsWith("```"));
+  const rawLines = assistantJsonl.split("\n");
+  const reassembled = reassembleJsonObjects(rawLines);
 
   const patchOps: JsonPatchOp[] = [];
   let droppedLineCount = 0;
 
-  for (const line of trimmedLines) {
+  for (const line of reassembled) {
     const parsed = parsePatchLine(line);
     if (parsed === null) {
       droppedLineCount += 1;
@@ -307,7 +384,7 @@ function replayJsonl(assistantJsonl: string): ReplayedJsonl {
   return {
     tree,
     patchOps,
-    jsonlLineCount: trimmedLines.length,
+    jsonlLineCount: reassembled.length,
     droppedLineCount,
   };
 }

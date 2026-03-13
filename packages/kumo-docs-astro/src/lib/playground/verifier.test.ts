@@ -187,6 +187,40 @@ describe("playground verifier", () => {
     });
   });
 
+  it("reassembles pretty-printed multi-line JSON into valid patch ops", () => {
+    const tree = buildHealthyVerifierTree();
+    // Build the same JSONL but pretty-printed (multi-line indented)
+    const prettyPrintedJsonl = [
+      JSON.stringify(
+        { op: "replace", path: "/root", value: tree.root },
+        null,
+        2,
+      ),
+      JSON.stringify(
+        { op: "replace", path: "/elements", value: tree.elements },
+        null,
+        2,
+      ),
+    ].join("\n");
+
+    // Sanity: pretty-printed JSONL contains newlines within each JSON object
+    expect(prettyPrintedJsonl.split("\n").length).toBeGreaterThan(4);
+
+    const report = buildPlaygroundVerifierReport({
+      request: {
+        message: "render a card",
+        model: "gpt-oss-120b",
+      },
+      assistantJsonl: prettyPrintedJsonl,
+    });
+
+    expect(report.stream.droppedLineCount).toBe(0);
+    expect(report.stream.patchOpCount).toBe(2);
+    expect(report.tree.renderable).toBe(true);
+    expect(report.tree.elementCount).toBe(5);
+    expect(report.status).not.toBe("fail");
+  });
+
   it("changes pass warn fail outcomes when verifier budgets change", () => {
     const tree = buildHealthyVerifierTree();
 
