@@ -102,7 +102,7 @@
         "When isPromptModified is false, no badge is shown",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "util-1",

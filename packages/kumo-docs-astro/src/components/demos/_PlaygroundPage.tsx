@@ -2181,6 +2181,7 @@ function PlaygroundContent() {
           isAnyStreaming || !hasSubmitted || isHistoryPlayback
         }
         isHistoryPlayback={isHistoryPlayback}
+        isPromptModified={isPromptModified}
       />
     );
   }
@@ -2652,6 +2653,7 @@ function ComparisonPanels({
         >
           <PanelHeader
             label="A"
+            isPromptModified={isPromptModified}
             actions={
               <VerifierStatusPopover
                 report={leftVerifierReport}
@@ -3144,6 +3146,7 @@ function MobilePlaygroundShell({
   onApplySkills,
   isSkillApplyDisabled,
   isHistoryPlayback,
+  isPromptModified,
 }: {
   readonly mobileView: "chat" | "a" | "b" | "catalog";
   readonly onMobileViewChange: (value: "chat" | "a" | "b" | "catalog") => void;
@@ -3234,6 +3237,7 @@ function MobilePlaygroundShell({
   readonly onApplySkills: () => void;
   readonly isSkillApplyDisabled: boolean;
   readonly isHistoryPlayback: boolean;
+  readonly isPromptModified: boolean;
 }) {
   const shellTabs = [
     { value: "chat", label: "Chat" },
@@ -3315,6 +3319,7 @@ function MobilePlaygroundShell({
           <div className="flex h-full flex-col overflow-hidden">
             <PanelHeader
               label="A"
+              isPromptModified={isPromptModified}
               actions={
                 <VerifierStatusPopover
                   report={leftVerifierReport}
@@ -3629,12 +3634,14 @@ function PanelHeader({
   tabs,
   activeTab,
   onTabChange,
+  isPromptModified,
 }: {
   readonly label: string;
   readonly actions?: React.ReactNode;
   readonly tabs: TabsItem[];
   readonly activeTab: PanelTab;
   readonly onTabChange: (value: string) => void;
+  readonly isPromptModified?: boolean;
 }) {
   return (
     <div className="shrink-0 bg-kumo-elevated/50">
@@ -3642,6 +3649,7 @@ function PanelHeader({
         <span className="text-[11px] font-semibold uppercase tracking-wider text-kumo-subtle">
           {label}
         </span>
+        {isPromptModified === true && <Badge variant="outline">modified</Badge>}
         {actions}
       </div>
       <div className="px-3">

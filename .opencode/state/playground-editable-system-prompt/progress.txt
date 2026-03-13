@@ -75,3 +75,12 @@ Started: 2026-03-12
 - `handleRegenerate` wired via `regenerateRef` (ref indirection — `handleRegenerate` is defined early for prop threading, `regenerateWithPrompt` defined later after streaming deps are available)
 - Files changed: `src/components/demos/_PlaygroundPage.tsx`
 - **Learnings:** Ref indirection pattern (`regenerateRef.current = regenerateWithPrompt`) allows a stable callback identity (for prop threading) that delegates to a later-defined callback with heavier dependencies. Same pattern used for `handleSubmitRef` in this file.
+
+## Task - ui-3
+- Added optional `isPromptModified?: boolean` prop to `PanelHeader`
+- When `isPromptModified === true`, renders `<Badge variant="outline">modified</Badge>` between the label and the actions slot
+- Passed `isPromptModified={isPromptModified}` at both Panel A PanelHeader call sites (desktop ComparisonPanels + mobile MobilePlaygroundShell)
+- Panel B PanelHeader call sites unchanged (no `isPromptModified` → defaults to `undefined` → badge not shown)
+- Threaded `isPromptModified: boolean` through `MobilePlaygroundShell` props + call site
+- Files changed: `src/components/demos/_PlaygroundPage.tsx`
+- **Learnings:** PanelHeader doesn't need `panelId` — the caller controls which panels get `isPromptModified`. Keep component-level props minimal; let the composition site decide.
