@@ -135,37 +135,6 @@ pnpm --filter @cloudflare/kumo codegen:themes --dry-run`}
     </div>
 
     <div class="mt-6">
-      <h3 class="mb-2 text-lg font-semibold">Adding a Token</h3>
-      <p class="mb-4 text-kumo-strong">
-        If no existing semantic token fits, add a new token in the theme config instead of hardcoding a hex value in a component.
-      </p>
-      <CodeBlock
-        code={`// 1. Add the token in packages/kumo/scripts/theme-generator/config.ts
-"kumo-card": {
-  newName: "",
-  theme: {
-    kumo: {
-      light: "var(--color-kumo-neutral-25, oklch(98.5% 0 0))",
-      dark: "var(--color-kumo-neutral-900, oklch(20% 0 0))",
-    },
-  },
-}
-
-// 2. Regenerate theme outputs
-pnpm --filter @cloudflare/kumo codegen:themes
-
-// 3. Use the semantic class in components
-<div className="bg-kumo-card border-kumo-line text-kumo-default" />`}
-        lang="tsx"
-      />
-      <ul class="mt-4 list-inside list-disc space-y-1 text-kumo-strong">
-        <li>Source of truth: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">config.ts</code></li>
-        <li>Generated outputs: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">src/styles/theme-*.css</code> and <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ai/theme-metadata.json</code></li>
-        <li>Available classnames follow the token name: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">bg-kumo-card</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">text-kumo-card</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">border-kumo-card</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ring-kumo-card</code></li>
-      </ul>
-    </div>
-
-    <div class="mt-6">
       <h3 class="mb-2 text-lg font-semibold">Creating a New Theme</h3>
       <p class="mb-4 text-kumo-strong">
         Add theme overrides in the config file. Only override tokens that need to change—all other tokens inherit from the base kumo theme.
@@ -200,6 +169,37 @@ export const AVAILABLE_THEMES = [${availableThemes.map((theme) => `"${theme}"`).
         Then run <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pnpm codegen:themes</code> to generate the CSS and metadata. Make sure the generated theme stylesheet is imported before using the new <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">data-theme</code> value.
       </p>
     </div>
+  </ComponentSection>
+
+  <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Adding Tokens</h2>
+    <p class="mb-4 text-kumo-strong">
+      If no existing semantic token fits, add a new token in the theme config instead of hardcoding a hex value in a component.
+    </p>
+    <CodeBlock
+      code={`// 1. Add the token in packages/kumo/scripts/theme-generator/config.ts
+"kumo-card": {
+  newName: "",
+  theme: {
+    kumo: {
+      light: "var(--color-kumo-neutral-25, oklch(98.5% 0 0))",
+      dark: "var(--color-kumo-neutral-900, oklch(20% 0 0))",
+    },
+  },
+}
+
+// 2. Regenerate theme outputs
+pnpm --filter @cloudflare/kumo codegen:themes
+
+// 3. Use the semantic class in components
+<div className="bg-kumo-card border-kumo-line text-kumo-default" />`}
+      lang="tsx"
+    />
+    <ul class="mt-4 list-inside list-disc space-y-1 text-kumo-strong">
+      <li>Source of truth: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">config.ts</code></li>
+      <li>Generated outputs: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">src/styles/theme-*.css</code> and <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ai/theme-metadata.json</code></li>
+      <li>Available classnames follow the token name: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">bg-kumo-card</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">text-kumo-card</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">border-kumo-card</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ring-kumo-card</code></li>
+    </ul>
   </ComponentSection>
 
   <ComponentSection>
