@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   addPlaygroundPromptSupplement,
   buildRequestPromptSupplement,
+  isMultiChartRequest,
 } from "~/lib/playground";
 
 describe("playground prompt supplement", () => {
@@ -39,5 +40,14 @@ describe("playground prompt supplement", () => {
     expect(
       buildRequestPromptSupplement("show a settings form"),
     ).toBeUndefined();
+  });
+
+  it("detects heavy multi-chart prompts", () => {
+    expect(
+      isMultiChartRequest(
+        "show chart examples with a line chart, bar chart, and donut chart",
+      ),
+    ).toBe(true);
+    expect(isMultiChartRequest("show a settings form")).toBe(false);
   });
 });

@@ -111,9 +111,7 @@ export function addPlaygroundPromptSupplement(prompt: string): string {
   return `${prompt}\n\n${PLAYGROUND_PROMPT_SUPPLEMENT}`;
 }
 
-export function buildRequestPromptSupplement(
-  message: string,
-): string | undefined {
+export function isMultiChartRequest(message: string): boolean {
   const normalized = message.toLowerCase();
   const chartMentionCount = [
     normalized.includes("line chart"),
@@ -124,13 +122,19 @@ export function buildRequestPromptSupplement(
     normalized.includes("donut chart"),
   ].filter(Boolean).length;
 
-  if (
+  return (
     normalized.includes("chart demo") ||
     normalized.includes("chart examples") ||
     normalized.includes("basic charts") ||
     normalized.includes("multiple charts") ||
     chartMentionCount >= 2
-  ) {
+  );
+}
+
+export function buildRequestPromptSupplement(
+  message: string,
+): string | undefined {
+  if (isMultiChartRequest(message)) {
     return INCREMENTAL_CHART_STREAMING_PROMPT_SUPPLEMENT;
   }
 

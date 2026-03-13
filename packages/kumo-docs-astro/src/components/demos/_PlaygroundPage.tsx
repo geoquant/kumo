@@ -108,7 +108,10 @@ import {
   PROMPT_EDITOR_SYSTEM_PROMPT,
 } from "~/lib/tool-prompts";
 import { streamPlainText } from "~/lib/stream-plain-text";
-import { buildRequestPromptSupplement } from "~/lib/playground";
+import {
+  buildRequestPromptSupplement,
+  isMultiChartRequest,
+} from "~/lib/playground";
 import { buildPromptEditMessage } from "~/lib/playground/prompt-edit";
 import {
   CREATE_WORKER_SCENARIO,
@@ -1439,6 +1442,10 @@ function PlaygroundContent() {
       return;
     }
 
+    if (status === "streaming" && leftTab !== "tree") {
+      return;
+    }
+
     const nextText = JSON.stringify(tree, null, 2);
     if (leftEditor.text !== nextText || leftEditor.source !== "stream") {
       syncLeftEditorFromStream(nextText);
@@ -1447,7 +1454,9 @@ function PlaygroundContent() {
     leftEditor.source,
     leftEditor.text,
     leftLocalTreeOverride,
+    leftTab,
     setLeftStreamTree,
+    status,
     syncLeftEditorFromStream,
     tree,
   ]);
@@ -1458,15 +1467,21 @@ function PlaygroundContent() {
       return;
     }
 
+    if (noPromptStatus === "streaming" && rightTab !== "tree") {
+      return;
+    }
+
     const nextText = JSON.stringify(noPromptTree, null, 2);
     if (rightEditor.text !== nextText || rightEditor.source !== "stream") {
       syncRightEditorFromStream(nextText);
     }
   }, [
     noPromptTree,
+    noPromptStatus,
     rightEditor.source,
     rightEditor.text,
     rightLocalTreeOverride,
+    rightTab,
     setRightStreamTree,
     syncRightEditorFromStream,
   ]);
@@ -1648,6 +1663,8 @@ function PlaygroundContent() {
     }) => {
       abortRef.current?.abort();
 
+      const deferComparisonPanel = isMultiChartRequest(opts.message);
+
       const runId = runIdRef.current + 1;
       runIdRef.current = runId;
 
@@ -1659,6 +1676,17 @@ function PlaygroundContent() {
       setRawJsonl("");
       rawJsonlRef.current = "";
       clearLeftActionLog();
+
+      if (deferComparisonPanel) {
+        noPromptAbortRef.current?.abort();
+        noPromptRuntimeValueStore.clear();
+        noPromptReset();
+        resetRightEditor("");
+        setNoPromptStatus("idle");
+        setNoPromptRawJsonl("");
+        noPromptRawJsonlRef.current = "";
+        clearRightActionLog();
+      }
 
       const baseBody: Record<string, unknown> = {
         message: opts.message,
@@ -1702,6 +1730,16 @@ function PlaygroundContent() {
               ]);
             }
             setStatus("idle");
+
+            if (deferComparisonPanel) {
+              streamPanelB({
+                message: opts.message,
+                model: opts.model,
+                history: opts.history ? [...opts.history] : undefined,
+                currentUITree: opts.currentUITree,
+                systemPromptOverride: editedBaselinePrompt ?? undefined,
+              });
+            }
           }
         } catch (err: unknown) {
           if (err instanceof DOMException && err.name === "AbortError") return;
@@ -1732,13 +1770,15 @@ function PlaygroundContent() {
         panels: ["a", "b"],
       });
 
-      streamPanelB({
-        message: opts.message,
-        model: opts.model,
-        history: opts.history ? [...opts.history] : undefined,
-        currentUITree: opts.currentUITree,
-        systemPromptOverride: editedBaselinePrompt ?? undefined,
-      });
+      if (!deferComparisonPanel) {
+        streamPanelB({
+          message: opts.message,
+          model: opts.model,
+          history: opts.history ? [...opts.history] : undefined,
+          currentUITree: opts.currentUITree,
+          systemPromptOverride: editedBaselinePrompt ?? undefined,
+        });
+      }
 
       void primaryStream;
     },
@@ -1746,10 +1786,16 @@ function PlaygroundContent() {
       applyPatches,
       cancelOutputHistoryCapture,
       clearLeftActionLog,
+      clearRightActionLog,
       editedBaselinePrompt,
+      noPromptReset,
+      noPromptRuntimeValueStore,
       reset,
       resetLeftEditor,
+      resetRightEditor,
       runtimeValueStore,
+      setNoPromptRawJsonl,
+      setNoPromptStatus,
       startOutputHistoryCapture,
       streamPanelB,
     ],
