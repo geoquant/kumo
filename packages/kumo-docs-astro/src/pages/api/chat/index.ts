@@ -66,8 +66,11 @@ const MAX_MESSAGE_LENGTH = 2000;
 /** Maximum length (in characters) for each history entry. */
 const MAX_HISTORY_ENTRY_LENGTH = 4000;
 
-/** Maximum length (in characters) for a system prompt override. */
-const MAX_SYSTEM_PROMPT_OVERRIDE_LENGTH = 50_000;
+/** Maximum length (in characters) for a system prompt override.
+ *  The canonical system prompt from `getSystemPrompt()` is ~75 000 chars,
+ *  so the limit must exceed that to allow the PromptEditor to send an
+ *  edited copy back as `systemPromptOverride`. */
+const MAX_SYSTEM_PROMPT_OVERRIDE_LENGTH = 200_000;
 
 /** Maximum number of history entries accepted in a request. */
 const MAX_HISTORY_ENTRIES = 50;
