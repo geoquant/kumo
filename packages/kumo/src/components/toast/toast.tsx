@@ -42,13 +42,13 @@ export const KUMO_TOAST_VARIANTS = {
     },
     error: {
       classes:
-        "border-kumo-fill bg-kumo-control [&_[data-toast-icon]]:text-[light-dark(var(--color-red-600),var(--color-red-400))] [&_[data-toast-title]]:text-[light-dark(var(--color-red-600),var(--color-red-400))]",
+        "border-kumo-fill bg-kumo-control [&_[data-toast-icon]]:text-kumo-danger [&_[data-toast-title]]:text-kumo-danger",
       description: "Error toast for critical issues",
       icon: WarningOctagonIcon,
     },
     warning: {
       classes:
-        "border-kumo-fill bg-kumo-control [&_[data-toast-icon]]:text-[light-dark(var(--color-amber-700),var(--color-amber-500))] [&_[data-toast-title]]:text-[light-dark(var(--color-amber-700),var(--color-amber-500))]",
+        "border-kumo-fill bg-kumo-control [&_[data-toast-icon]]:text-kumo-warning [&_[data-toast-title]]:text-kumo-warning",
       description: "Warning toast for cautionary messages",
       icon: WarningIcon,
     },
@@ -343,4 +343,3 @@ function ToastIcon({ variant }: { variant?: KumoToastVariant }) {
     <Icon data-toast-icon className="mt-0.5 h-4 w-4 shrink-0" weight="fill" />
   );
 }
-

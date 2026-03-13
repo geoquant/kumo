@@ -24,12 +24,25 @@ describe("theme css generator", () => {
   it("emits override theme runtime fallbacks in base layers only", () => {
     const css = generateThemeOverrideCSS(THEME_CONFIG, "fedramp");
 
-    expect(countOccurrences(css, "@layer base {")).toBe(2);
-    expect(css).toContain('  [data-theme="fedramp"] {');
+    expect(countOccurrences(css, "@layer base {")).toBe(1);
+    expect(css).toContain('[data-theme="fedramp"] {');
     expect(css).toContain(
       '  [data-mode="dark"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="dark"], [data-theme="fedramp"] [data-mode="dark"] {',
     );
     expect(css).not.toMatch(/\n\[data-theme="fedramp"\] \{/);
+  });
+
+  it("emits light values in theme registration and avoids light-dark", () => {
+    const kumoCss = generateKumoThemeCSS(THEME_CONFIG);
+    const fedrampCss = generateThemeOverrideCSS(THEME_CONFIG, "fedramp");
+
+    expect(kumoCss).not.toContain("light-dark(");
+    expect(fedrampCss).not.toContain("light-dark(");
+    expect(kumoCss).toContain(
+      "--text-color-kumo-default: var(--color-neutral-900, oklch(21% 0.006 285.885));",
+    );
+    expect(fedrampCss).toContain('  [data-theme="fedramp"] {');
+    expect(fedrampCss).toContain("--color-kumo-surface: #5b697c;");
   });
 
   it("builds exportable theme metadata from config", () => {

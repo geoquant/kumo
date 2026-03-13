@@ -5,7 +5,7 @@
  *
  * **Key rules:**
  * - Use **semantic tokens only** (`bg-kumo-base`, `text-kumo-default`, etc.) — never raw Tailwind colors.
- * - **No `dark:` variant** — light/dark mode is handled automatically via CSS `light-dark()`.
+ * - **No `dark:` variant** — light/dark mode is handled automatically via Kumo's mode-scoped CSS variables.
  * - Merge custom classes with the `cn()` utility exported from this package.
  * - Wrap your app with the kumo CSS import: `import "@cloudflare/kumo/styles"`.
  *

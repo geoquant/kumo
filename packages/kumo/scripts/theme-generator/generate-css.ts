@@ -30,13 +30,6 @@ const GENERATED_FILE_HEADER = `/**
 
 `;
 
-/**
- * Generate a light-dark() CSS function call
- */
-function lightDark(light: string, dark: string): string {
-  return `light-dark(\n    ${light},\n    ${dark}\n  )`;
-}
-
 function pushModeScopedBaseVariables(
   lines: string[],
   config: ThemeConfig,
@@ -138,9 +131,7 @@ export function generateKumoThemeCSS(
     const name = useNewNames ? def.newName : tokenName;
     const kumoColors = def.theme.kumo;
 
-    lines.push(
-      `  --text-color-${name}: ${lightDark(kumoColors.light, kumoColors.dark)};`,
-    );
+    lines.push(`  --text-color-${name}: ${kumoColors.light};`);
     lines.push("");
   }
 
@@ -154,9 +145,7 @@ export function generateKumoThemeCSS(
     const name = useNewNames ? def.newName : tokenName;
     const kumoColors = def.theme.kumo;
 
-    lines.push(
-      `  --color-${name}: ${lightDark(kumoColors.light, kumoColors.dark)};`,
-    );
+    lines.push(`  --color-${name}: ${kumoColors.light};`);
     lines.push("");
   }
 
@@ -178,8 +167,8 @@ export function generateKumoThemeCSS(
     lines.push("}");
   }
 
-  // Explicit runtime vars avoid transient unresolved light-dark() values
-  // during class/DOM mutations in some browser style recalculation paths.
+  // Explicit runtime vars are the canonical light/dark source at runtime.
+  // @theme registration keeps token names available for utility generation.
   pushModeScopedBaseVariables(lines, config, "kumo", useNewNames, {
     wrapInBaseLayer: true,
   });
@@ -202,28 +191,6 @@ export function generateThemeOverrideCSS(
 
   const overrides: string[] = [];
 
-  // Collect text token overrides
-  for (const [tokenName, def] of Object.entries(config.text)) {
-    const themeColors = def.theme[themeName];
-    if (themeColors) {
-      const name = useNewNames ? def.newName : tokenName;
-      overrides.push(
-        `    --text-color-${name}: ${lightDark(themeColors.light, themeColors.dark)};`,
-      );
-    }
-  }
-
-  // Collect color token overrides
-  for (const [tokenName, def] of Object.entries(config.color)) {
-    const themeColors = def.theme[themeName];
-    if (themeColors) {
-      const name = useNewNames ? def.newName : tokenName;
-      overrides.push(
-        `    --color-${name}: ${lightDark(themeColors.light, themeColors.dark)};`,
-      );
-    }
-  }
-
   // Collect typography token overrides
   if (config.typography) {
     for (const [tokenName, def] of Object.entries(config.typography)) {
@@ -236,7 +203,13 @@ export function generateThemeOverrideCSS(
   }
 
   if (overrides.length === 0) {
-    return `${GENERATED_FILE_HEADER}/* No overrides for ${themeName} theme */\n`;
+    const lines = [GENERATED_FILE_HEADER];
+
+    pushModeScopedBaseVariables(lines, config, themeName, useNewNames, {
+      wrapInBaseLayer: true,
+    });
+
+    return `${lines.join("\n")}\n`;
   }
 
   const lines = [
