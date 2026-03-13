@@ -1586,6 +1586,7 @@ function PlaygroundContent() {
       readonly history?: readonly TextChatMessage[];
       readonly currentUITree?: string;
       readonly systemPromptSupplement?: string;
+      readonly systemPromptOverride?: string;
       readonly appendAssistantMessage?: boolean;
       readonly rollbackUserMessageOnError?: boolean;
     }) => {
@@ -1603,13 +1604,19 @@ function PlaygroundContent() {
       rawJsonlRef.current = "";
       clearLeftActionLog();
 
-      const baseBody = {
+      const baseBody: Record<string, unknown> = {
         message: opts.message,
         model: opts.model,
         ...(opts.history ? { history: opts.history } : {}),
         ...(opts.currentUITree ? { currentUITree: opts.currentUITree } : {}),
         ...(opts.systemPromptSupplement
           ? { systemPromptSupplement: opts.systemPromptSupplement }
+          : {}),
+        ...(opts.systemPromptOverride
+          ? {
+              skipSystemPrompt: true,
+              systemPromptOverride: opts.systemPromptOverride,
+            }
           : {}),
       };
 
@@ -1957,12 +1964,14 @@ function PlaygroundContent() {
         systemPromptSupplement: isExhaustiveVariantShowcasePrompt(msg)
           ? buildVariantShowcasePromptSupplement()
           : undefined,
+        systemPromptOverride: editedSystemPrompt ?? undefined,
         appendAssistantMessage: true,
         rollbackUserMessageOnError: true,
       });
     },
     [
       captureOutputHistorySnapshot,
+      editedSystemPrompt,
       inputValue,
       selectedModel,
       messages,
