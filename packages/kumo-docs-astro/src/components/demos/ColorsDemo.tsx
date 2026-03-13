@@ -1,4 +1,4 @@
-import { type FC, useMemo, useState } from "react";
+import { type FC, useMemo } from "react";
 import themeMetadata from "@cloudflare/kumo/ai/theme-metadata.json";
 
 type ThemeMetadataToken = (typeof themeMetadata.tokens)[number];
@@ -57,7 +57,7 @@ const textTokens = themeMetadata.tokens.filter(
 const colorTokens = themeMetadata.tokens.filter(
   (token): token is ThemeMetadataToken => token.kind === "color",
 );
-const availableThemes = [...themeMetadata.themes];
+const DEFAULT_THEME: ThemeName = "kumo";
 
 function getEffectiveTokenValue(
   token: ThemeMetadataToken,
@@ -68,14 +68,6 @@ function getEffectiveTokenValue(
 
   const defaultValue = token.themes.kumo;
   return isThemeColorMode(defaultValue) ? defaultValue : null;
-}
-
-function countThemeOverrides(selectedTheme: ThemeName): number {
-  if (selectedTheme === "kumo") return 0;
-
-  return [...textTokens, ...colorTokens].filter((token) =>
-    isThemeColorMode(token.themes[selectedTheme]),
-  ).length;
 }
 
 const ColorSwatch: FC<{ label: string; value: string }> = ({
@@ -126,12 +118,6 @@ const TokenGrid: FC<{
               <span className="font-mono text-xs font-medium text-kumo-default">
                 {token.name}
               </span>
-              {selectedTheme !== "kumo" &&
-              isThemeColorMode(token.themes[selectedTheme]) ? (
-                <span className="rounded bg-kumo-brand/15 px-1.5 py-0.5 text-[10px] font-medium text-kumo-brand">
-                  override
-                </span>
-              ) : null}
             </div>
             <ColorSwatch label="Light" value={value.light} />
             <ColorSwatch label="Dark" value={value.dark} />
@@ -142,72 +128,7 @@ const TokenGrid: FC<{
   </div>
 );
 
-const ThemePreview: FC<{ selectedTheme: ThemeName }> = ({ selectedTheme }) => (
-  <div
-    data-theme={selectedTheme}
-    className="rounded-xl border border-kumo-line p-4"
-  >
-    <div className="grid gap-3 md:grid-cols-[1.3fr_0.7fr]">
-      <div className="rounded-lg border border-kumo-line bg-kumo-base p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-kumo-default">
-              Scoped theme preview
-            </p>
-            <p className="text-sm text-kumo-strong">
-              This card inherits{" "}
-              <code className="rounded bg-kumo-control px-1 py-0.5 text-xs">
-                data-theme=&quot;{selectedTheme}&quot;
-              </code>
-            </p>
-          </div>
-          <span className="rounded-full bg-kumo-brand px-3 py-1 text-xs font-medium text-white">
-            {selectedTheme}
-          </span>
-        </div>
-        <div className="mt-4 rounded-lg border border-kumo-line bg-kumo-recessed p-3">
-          <p className="text-sm font-medium text-kumo-default">
-            Token names stay the same
-          </p>
-          <p className="mt-1 text-sm text-kumo-strong">
-            Only the values behind semantic classes change per theme and mode.
-          </p>
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-kumo-line bg-kumo-surface p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-kumo-subtle">
-          Sample values
-        </p>
-        <div className="mt-3 space-y-2 text-sm">
-          <div className="flex items-center justify-between rounded bg-kumo-base px-3 py-2 text-kumo-default">
-            <span>Base surface</span>
-            <span className="text-kumo-strong">bg-kumo-base</span>
-          </div>
-          <div className="flex items-center justify-between rounded bg-kumo-recessed px-3 py-2 text-kumo-default">
-            <span>Recessed panel</span>
-            <span className="text-kumo-strong">bg-kumo-recessed</span>
-          </div>
-          <div className="flex items-center justify-between rounded bg-kumo-control px-3 py-2 text-kumo-default">
-            <span>Control chrome</span>
-            <span className="text-kumo-strong">bg-kumo-control</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
 export const TailwindColorTokens: FC = () => {
-  const [selectedTheme, setSelectedTheme] = useState<ThemeName>(
-    availableThemes[0] ?? "kumo",
-  );
-
-  const overrideCount = useMemo(
-    () => countThemeOverrides(selectedTheme),
-    [selectedTheme],
-  );
-
   return (
     <div className="flex flex-col gap-8 bg-kumo-elevated p-8 text-kumo-default">
       <div className="flex flex-col gap-4">
@@ -215,55 +136,22 @@ export const TailwindColorTokens: FC = () => {
           <h2 className="m-0 text-2xl font-semibold">Colors</h2>
           <div className="text-sm text-kumo-strong">
             Displaying {textTokens.length + colorTokens.length} semantic tokens
-            {overrideCount > 0 ? (
-              <span className="ml-1">
-                — {overrideCount} overridden by{" "}
-                <code className="rounded bg-kumo-control px-1 py-0.5 text-xs">
-                  {selectedTheme}
-                </code>
-              </span>
-            ) : null}
           </div>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          {availableThemes.map((theme) => {
-            const isActive = theme === selectedTheme;
-
-            return (
-              <button
-                key={theme}
-                type="button"
-                onClick={() => setSelectedTheme(theme)}
-                aria-pressed={isActive}
-                className={[
-                  "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                  isActive
-                    ? "border-kumo-brand bg-kumo-brand text-white"
-                    : "border-kumo-line bg-kumo-base text-kumo-default hover:bg-kumo-recessed",
-                ].join(" ")}
-              >
-                {theme}
-              </button>
-            );
-          })}
-        </div>
       </div>
-
-      <ThemePreview selectedTheme={selectedTheme} />
 
       <section className="flex flex-col gap-4">
         <h2 className="text-sm font-semibold">
           Text Colors ({textTokens.length})
         </h2>
-        <TokenGrid tokens={textTokens} selectedTheme={selectedTheme} />
+        <TokenGrid tokens={textTokens} selectedTheme={DEFAULT_THEME} />
       </section>
 
       <section className="flex flex-col gap-4">
         <h2 className="text-sm font-semibold">
           Surface, State & Theme Colors ({colorTokens.length})
         </h2>
-        <TokenGrid tokens={colorTokens} selectedTheme={selectedTheme} />
+        <TokenGrid tokens={colorTokens} selectedTheme={DEFAULT_THEME} />
       </section>
     </div>
   );
