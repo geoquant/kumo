@@ -100,6 +100,13 @@ describe("Package.json Validation", () => {
       expect(packageJson.exports).toHaveProperty("./styles");
       expect(packageJson.exports).toHaveProperty("./styles/*");
     });
+
+    it("should have theme metadata export", () => {
+      expect(packageJson.exports).toHaveProperty("./ai/theme-metadata.json");
+      expect(packageJson.exports["./ai/theme-metadata.json"]).toBe(
+        "./ai/theme-metadata.json",
+      );
+    });
   });
 
   describe("Build configuration consistency", () => {

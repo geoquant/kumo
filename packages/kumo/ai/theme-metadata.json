@@ -1,0 +1,598 @@
+{
+  "themes": [
+    "kumo",
+    "fedramp"
+  ],
+  "tokens": [
+    {
+      "name": "kumo-default",
+      "cssVariable": "--text-color-kumo-default",
+      "tailwindUtilityFamily": "text",
+      "kind": "text",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-neutral-900, oklch(21% 0.006 285.885))",
+          "dark": "var(--color-neutral-100, oklch(97% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-inverse",
+      "cssVariable": "--text-color-kumo-inverse",
+      "tailwindUtilityFamily": "text",
+      "kind": "text",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-neutral-100, oklch(97% 0 0))",
+          "dark": "var(--color-neutral-900, oklch(20.5% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-strong",
+      "cssVariable": "--text-color-kumo-strong",
+      "tailwindUtilityFamily": "text",
+      "kind": "text",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-neutral-600, oklch(43.9% 0 0))",
+          "dark": "var(--color-neutral-400, oklch(70.8% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-subtle",
+      "cssVariable": "--text-color-kumo-subtle",
+      "tailwindUtilityFamily": "text",
+      "kind": "text",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-neutral-500, oklch(55.6% 0 0))",
+          "dark": "var(--color-kumo-neutral-50, oklch(97.5% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-inactive",
+      "cssVariable": "--text-color-kumo-inactive",
+      "tailwindUtilityFamily": "text",
+      "kind": "text",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-neutral-400, oklch(70.8% 0 0))",
+          "dark": "var(--color-neutral-600, oklch(70.8% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-brand",
+      "cssVariable": "--text-color-kumo-brand",
+      "tailwindUtilityFamily": "text",
+      "kind": "text",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "#f6821f",
+          "dark": "#f6821f"
+        }
+      }
+    },
+    {
+      "name": "kumo-link",
+      "cssVariable": "--text-color-kumo-link",
+      "tailwindUtilityFamily": "text",
+      "kind": "text",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-blue-800, oklch(42.4% 0.199 265.638))",
+          "dark": "var(--color-blue-400, oklch(70.7% 0.165 254.624))"
+        }
+      }
+    },
+    {
+      "name": "kumo-success",
+      "cssVariable": "--text-color-kumo-success",
+      "tailwindUtilityFamily": "text",
+      "kind": "text",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-green-500, oklch(72.3% 0.219 149.579))",
+          "dark": "var(--color-green-400, oklch(79.2% 0.209 151.711))"
+        }
+      }
+    },
+    {
+      "name": "kumo-danger",
+      "cssVariable": "--text-color-kumo-danger",
+      "tailwindUtilityFamily": "text",
+      "kind": "text",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-red-500, oklch(63.7% 0.237 25.331))",
+          "dark": "var(--color-red-400, oklch(70.4% 0.191 22.216))"
+        }
+      }
+    },
+    {
+      "name": "kumo-warning",
+      "cssVariable": "--text-color-kumo-warning",
+      "tailwindUtilityFamily": "text",
+      "kind": "text",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-yellow-800, oklch(47.6% 0.114 61.907))",
+          "dark": "var(--color-yellow-400, oklch(85.2% 0.199 91.936))"
+        }
+      }
+    },
+    {
+      "name": "kumo-surface",
+      "cssVariable": "--color-kumo-surface",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-kumo-neutral-25, oklch(99% 0 0))",
+          "dark": "var(--color-kumo-neutral-975, oklch(8.5% 0 0))"
+        },
+        "fedramp": {
+          "light": "#5b697c",
+          "dark": "#5b697c"
+        }
+      }
+    },
+    {
+      "name": "kumo-recessed",
+      "cssVariable": "--color-kumo-recessed",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-kumo-neutral-50, oklch(97.5% 0 0))",
+          "dark": "var(--color-kumo-neutral-925, oklch(18% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-base",
+      "cssVariable": "--color-kumo-base",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-white, #fff)",
+          "dark": "var(--color-kumo-neutral-850, oklch(22.4% 0 0))"
+        },
+        "fedramp": {
+          "light": "#5b697c",
+          "dark": "#5b697c"
+        }
+      }
+    },
+    {
+      "name": "kumo-tint",
+      "cssVariable": "--color-kumo-tint",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-kumo-neutral-75, oklch(96.7% 0 0))",
+          "dark": "var(--color-kumo-neutral-800, oklch(26.9% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-contrast",
+      "cssVariable": "--color-kumo-contrast",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-kumo-neutral-975, oklch(8.5% 0 0))",
+          "dark": "var(--color-kumo-neutral-25, oklch(99% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-elevated",
+      "cssVariable": "--color-kumo-elevated",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-kumo-neutral-25, oklch(98.5% 0 0))",
+          "dark": "var(--color-neutral-950, oklch(14.5% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-overlay",
+      "cssVariable": "--color-kumo-overlay",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-kumo-neutral-50, oklch(97.5% 0 0))",
+          "dark": "var(--color-neutral-800, oklch(26.9% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-control",
+      "cssVariable": "--color-kumo-control",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-white, #fff)",
+          "dark": "var(--color-neutral-900, oklch(21% 0.006 285.885))"
+        }
+      }
+    },
+    {
+      "name": "kumo-interact",
+      "cssVariable": "--color-kumo-interact",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-neutral-300, oklch(87% 0 0))",
+          "dark": "var(--color-neutral-700, oklch(37.1% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-fill",
+      "cssVariable": "--color-kumo-fill",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-neutral-200, oklch(92.2% 0 0))",
+          "dark": "var(--color-neutral-800, oklch(26.9% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-fill-hover",
+      "cssVariable": "--color-kumo-fill-hover",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-neutral-200, oklch(92.2% 0 0))",
+          "dark": "var(--color-neutral-700, oklch(37.1% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-brand",
+      "cssVariable": "--color-kumo-brand",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "oklch(0.5772 0.2324 260)",
+          "dark": "oklch(0.5772 0.2324 260)"
+        }
+      }
+    },
+    {
+      "name": "kumo-brand-hover",
+      "cssVariable": "--color-kumo-brand-hover",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-blue-700, oklch(48.8% 0.243 264.376))",
+          "dark": "var(--color-blue-700, oklch(48.8% 0.243 264.376))"
+        }
+      }
+    },
+    {
+      "name": "kumo-line",
+      "cssVariable": "--color-kumo-line",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "oklch(14.5% 0 0 / 0.1)",
+          "dark": "var(--color-neutral-800, oklch(26.9% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-ring",
+      "cssVariable": "--color-kumo-ring",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-kumo-neutral-150, oklch(93.5% 0 0))",
+          "dark": "var(--color-neutral-700, oklch(37.1% 0 0))"
+        },
+        "fedramp": {
+          "light": "#c8d4e5",
+          "dark": "#c8d4e5"
+        }
+      }
+    },
+    {
+      "name": "kumo-tip-shadow",
+      "cssVariable": "--color-kumo-tip-shadow",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-gray-200, oklch(92.8% 0.006 264.531))",
+          "dark": "transparent"
+        }
+      }
+    },
+    {
+      "name": "kumo-tip-stroke",
+      "cssVariable": "--color-kumo-tip-stroke",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "transparent",
+          "dark": "var(--color-neutral-800, oklch(26.9% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-info",
+      "cssVariable": "--color-kumo-info",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-blue-500, oklch(62.3% 0.214 259.815))",
+          "dark": "var(--color-blue-400, oklch(70.7% 0.165 254.624))"
+        }
+      }
+    },
+    {
+      "name": "kumo-info-tint",
+      "cssVariable": "--color-kumo-info-tint",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-blue-300, oklch(80.9% 0.105 251.813))",
+          "dark": "var(--color-blue-900, oklch(37.9% 0.146 265.522))"
+        }
+      }
+    },
+    {
+      "name": "kumo-warning",
+      "cssVariable": "--color-kumo-warning",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-yellow-500, oklch(79.5% 0.184 86.047))",
+          "dark": "var(--color-yellow-700, oklch(55.4% 0.135 66.442))"
+        }
+      }
+    },
+    {
+      "name": "kumo-warning-tint",
+      "cssVariable": "--color-kumo-warning-tint",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-yellow-300, oklch(90.5% 0.182 98.111))",
+          "dark": "var(--color-yellow-900, oklch(42.1% 0.095 57.708))"
+        }
+      }
+    },
+    {
+      "name": "kumo-danger",
+      "cssVariable": "--color-kumo-danger",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-red-500, oklch(63.7% 0.237 25.331))",
+          "dark": "var(--color-red-700, oklch(50.5% 0.213 27.518))"
+        }
+      }
+    },
+    {
+      "name": "kumo-danger-tint",
+      "cssVariable": "--color-kumo-danger-tint",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-red-300, oklch(80.8% 0.114 19.571))",
+          "dark": "var(--color-red-900, oklch(39.6% 0.141 25.723))"
+        }
+      }
+    },
+    {
+      "name": "kumo-success",
+      "cssVariable": "--color-kumo-success",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-green-500, oklch(72.3% 0.219 149.579))",
+          "dark": "var(--color-green-700, oklch(52.7% 0.154 150.069))"
+        }
+      }
+    },
+    {
+      "name": "kumo-success-tint",
+      "cssVariable": "--color-kumo-success-tint",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-green-300, oklch(87.1% 0.15 154.449))",
+          "dark": "var(--color-green-900, oklch(39.3% 0.095 152.535))"
+        }
+      }
+    },
+    {
+      "name": "xs",
+      "cssVariable": "--text-xs",
+      "tailwindUtilityFamily": "typography",
+      "kind": "typography",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": "12px"
+      }
+    },
+    {
+      "name": "xs--line-height",
+      "cssVariable": "--text-xs--line-height",
+      "tailwindUtilityFamily": "typography",
+      "kind": "typography",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": "calc(1 / 0.75)"
+      }
+    },
+    {
+      "name": "sm",
+      "cssVariable": "--text-sm",
+      "tailwindUtilityFamily": "typography",
+      "kind": "typography",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": "13px"
+      }
+    },
+    {
+      "name": "sm--line-height",
+      "cssVariable": "--text-sm--line-height",
+      "tailwindUtilityFamily": "typography",
+      "kind": "typography",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": "calc(1 / 0.85)"
+      }
+    },
+    {
+      "name": "base",
+      "cssVariable": "--text-base",
+      "tailwindUtilityFamily": "typography",
+      "kind": "typography",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": "14px"
+      }
+    },
+    {
+      "name": "base--line-height",
+      "cssVariable": "--text-base--line-height",
+      "tailwindUtilityFamily": "typography",
+      "kind": "typography",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": "calc(1.25 / 0.875)"
+      }
+    },
+    {
+      "name": "lg",
+      "cssVariable": "--text-lg",
+      "tailwindUtilityFamily": "typography",
+      "kind": "typography",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": "16px"
+      }
+    },
+    {
+      "name": "lg--line-height",
+      "cssVariable": "--text-lg--line-height",
+      "tailwindUtilityFamily": "typography",
+      "kind": "typography",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": "calc(1.25 / 1)"
+      }
+    }
+  ]
+}

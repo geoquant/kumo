@@ -9,7 +9,13 @@
  */
 
 import { THEME_CONFIG, AVAILABLE_THEMES } from "./config.js";
-import type { ThemeConfig, GeneratorOptions, TokenRenameMap } from "./types.js";
+import type {
+  ThemeConfig,
+  GeneratorOptions,
+  ThemeMetadata,
+  ThemeMetadataToken,
+  TokenRenameMap,
+} from "./types.js";
 
 /**
  * Header comment for generated CSS files
@@ -296,6 +302,96 @@ export function generateAllThemes(
   }
 
   return files;
+}
+
+function buildMetadataToken(input: {
+  tokenName: string;
+  cssVariable: string;
+  tailwindUtilityFamily: ThemeMetadataToken["tailwindUtilityFamily"];
+  kind: ThemeMetadataToken["kind"];
+  newName: string;
+  description?: string;
+  themes: Record<string, { light: string; dark: string } | string>;
+}): ThemeMetadataToken {
+  return {
+    name: input.tokenName,
+    cssVariable: input.cssVariable,
+    tailwindUtilityFamily: input.tailwindUtilityFamily,
+    kind: input.kind,
+    defaultTheme: "kumo",
+    newName: input.newName,
+    ...(input.description !== undefined
+      ? { description: input.description }
+      : {}),
+    themes: input.themes,
+  };
+}
+
+function compactThemeValues(
+  themes: Record<string, { light: string; dark: string } | string | undefined>,
+): Record<string, { light: string; dark: string } | string> {
+  const entries: Record<string, { light: string; dark: string } | string> = {};
+
+  for (const [themeName, value] of Object.entries(themes)) {
+    if (value !== undefined) {
+      entries[themeName] = value;
+    }
+  }
+
+  return entries;
+}
+
+export function generateThemeMetadata(config: ThemeConfig): ThemeMetadata {
+  const tokens: ThemeMetadataToken[] = [];
+
+  for (const [tokenName, def] of Object.entries(config.text)) {
+    tokens.push(
+      buildMetadataToken({
+        tokenName,
+        cssVariable: `--text-color-${tokenName}`,
+        tailwindUtilityFamily: "text",
+        kind: "text",
+        newName: def.newName,
+        description: def.description,
+        themes: compactThemeValues({ ...def.theme }),
+      }),
+    );
+  }
+
+  for (const [tokenName, def] of Object.entries(config.color)) {
+    tokens.push(
+      buildMetadataToken({
+        tokenName,
+        cssVariable: `--color-${tokenName}`,
+        tailwindUtilityFamily: "bg-border-ring",
+        kind: "color",
+        newName: def.newName,
+        description: def.description,
+        themes: compactThemeValues({ ...def.theme }),
+      }),
+    );
+  }
+
+  if (config.typography) {
+    for (const [tokenName, def] of Object.entries(config.typography)) {
+      tokens.push(
+        buildMetadataToken({
+          tokenName,
+          cssVariable: `--text-${tokenName}`,
+          tailwindUtilityFamily: "typography",
+          kind: "typography",
+          newName: def.newName,
+          description: def.description,
+          themes: compactThemeValues({ ...def.theme }),
+        }),
+      );
+    }
+  }
+
+  return {
+    themes: [...AVAILABLE_THEMES],
+    tokens,
+  };
 }
 
 /**

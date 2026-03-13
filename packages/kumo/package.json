@@ -371,6 +371,7 @@
       "types": "./dist/ai/schemas.d.ts",
       "import": "./dist/ai/schemas.js"
     },
+    "./ai/theme-metadata.json": "./ai/theme-metadata.json",
     "./registry/component-registry.json": "./ai/component-registry.json",
     "./registry/component-registry.md": "./ai/component-registry.md",
     "./styles/tailwind": "./dist/styles/kumo.css",

@@ -59,6 +59,26 @@ export type TypographyTokens = {
   [tokenName: string]: TypographyTokenDefinition;
 };
 
+export type ThemeTokenKind = "text" | "color" | "typography";
+
+export type TailwindUtilityFamily = "text" | "bg-border-ring" | "typography";
+
+export type ThemeMetadataToken = {
+  name: string;
+  cssVariable: string;
+  tailwindUtilityFamily: TailwindUtilityFamily;
+  kind: ThemeTokenKind;
+  defaultTheme: "kumo";
+  newName: string;
+  description?: string;
+  themes: Record<string, ColorMode | string>;
+};
+
+export type ThemeMetadata = {
+  themes: readonly string[];
+  tokens: readonly ThemeMetadataToken[];
+};
+
 /** Complete theme configuration */
 export type ThemeConfig = {
   /** Text color tokens */

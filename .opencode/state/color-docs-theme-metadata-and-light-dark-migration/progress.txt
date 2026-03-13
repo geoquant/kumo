@@ -1,0 +1,14 @@
+# Progress Log
+PRD: color-docs-theme-metadata-and-light-dark-migration
+Started: 2026-03-13
+
+## Codebase Patterns
+- Export shared machine-readable artifacts from `packages/kumo/ai/*` and wire them through `packages/kumo/package.json` instead of exposing generator internals directly.
+
+---
+
+## Task - [metadata-1]
+- Implemented exported theme metadata generation from `packages/kumo/scripts/theme-generator/config.ts` into `packages/kumo/ai/theme-metadata.json`.
+- Added public package export for `@cloudflare/kumo/ai/theme-metadata.json` and test coverage for the metadata shape/export presence.
+- Files changed: `packages/kumo/scripts/theme-generator/types.ts`, `packages/kumo/scripts/theme-generator/generate-css.ts`, `packages/kumo/scripts/theme-generator/index.ts`, `packages/kumo/scripts/theme-generator/generate-css.test.ts`, `packages/kumo/tests/imports/package-json-validation.test.ts`, `packages/kumo/package.json`, `packages/kumo/ai/theme-metadata.json`, `packages/kumo/src/code/provider.tsx`, `packages/kumo/src/code/server.tsx`, `.opencode/state/color-docs-theme-metadata-and-light-dark-migration/prd.json`
+- **Learnings:** `codegen:themes` is the right place to write committed machine-readable theme artifacts under `packages/kumo/ai/`; package export validation is the safest place to lock additive AI/data exports. `pnpm install` was required after syncing main to restore workspace deps before typecheck/lint would run cleanly.

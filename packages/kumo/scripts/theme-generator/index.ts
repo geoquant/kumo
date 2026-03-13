@@ -15,6 +15,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   generateAllThemes,
+  generateThemeMetadata,
   listAllTokens,
   getTokenRenameMap,
 } from "./generate-css.js";
@@ -22,6 +23,7 @@ import { THEME_CONFIG, AVAILABLE_THEMES } from "./config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STYLES_DIR = path.resolve(__dirname, "../../src/styles");
+const AI_DIR = path.resolve(__dirname, "../../ai");
 
 function parseArgs(args: string[]) {
   return {
@@ -51,6 +53,7 @@ Output:
   Generates theme CSS files in src/styles/:
   - theme-kumo.css     Base theme with all tokens
   - theme-fedramp.css  FedRAMP theme overrides
+  - ai/theme-metadata.json Shared machine-readable theme metadata
 `);
 }
 
@@ -132,6 +135,11 @@ async function main() {
     outputDir: STYLES_DIR,
     useNewNames: args.useNewNames,
   });
+  const themeMetadata = JSON.stringify(
+    generateThemeMetadata(THEME_CONFIG),
+    null,
+    2,
+  );
 
   for (const [filename, content] of files) {
     const filepath = path.join(STYLES_DIR, filename);
@@ -143,6 +151,16 @@ async function main() {
       fs.writeFileSync(filepath, content, "utf-8");
       console.log(`  Wrote ${filename}`);
     }
+  }
+
+  const metadataPath = path.join(AI_DIR, "theme-metadata.json");
+
+  if (args.dryRun) {
+    console.log(`\n=== ai/theme-metadata.json ===\n`);
+    console.log(themeMetadata);
+  } else {
+    fs.writeFileSync(metadataPath, `${themeMetadata}\n`, "utf-8");
+    console.log("  Wrote ai/theme-metadata.json");
   }
 
   if (!args.dryRun) {
