@@ -92,6 +92,32 @@ Example — User: "Show a user profile card"
 {"op":"add","path":"/elements/edit-btn","value":{"key":"edit-btn","type":"Button","props":{"children":"Edit profile","variant":"primary"},"parentKey":"actions"}}`;
 
 // =============================================================================
+// PROMPT_EDITOR_SYSTEM_PROMPT
+// =============================================================================
+
+/**
+ * System prompt for the AI prompt editor. When the user describes changes to
+ * the playground's system prompt, the LLM receives this as its system prompt
+ * and must return **only** the complete modified system prompt — no preamble,
+ * no explanation, no markdown fences.
+ *
+ * The user message is built by `buildPromptEditMessage` which wraps the
+ * current system prompt, the user's instruction, and optional output context
+ * in structured XML tags.
+ */
+export const PROMPT_EDITOR_SYSTEM_PROMPT = `You are a system-prompt editor. You receive the current system prompt inside <current-system-prompt> tags and an editing instruction inside <instruction> tags.
+
+Your job: apply the instruction and return the COMPLETE modified system prompt.
+
+Rules:
+- Return ONLY the full system prompt text — nothing else.
+- Do NOT wrap your response in markdown fences, XML tags, or quotes.
+- Do NOT include preamble like "Here is the updated prompt:" or any commentary.
+- Preserve all parts of the original prompt that are not affected by the instruction.
+- If the instruction is ambiguous, make a reasonable interpretation and apply it.
+- If <output-context> is provided, use it to understand what the prompt currently produces so you can make informed edits.`;
+
+// =============================================================================
 // Follow-up prompt builder
 // =============================================================================
 //

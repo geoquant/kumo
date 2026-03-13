@@ -92,3 +92,11 @@ Started: 2026-03-12
 - Error handling reuses same `extractErrorMessage` pattern (local copy, not shared — acceptable for 5-line helper)
 - Files changed: `src/lib/stream-plain-text.ts` (new)
 - **Learnings:** `readSSEStream` already handles all SSE wire formats (Workers AI, OpenAI-compatible, plain text fallback) and emits string tokens — making a plain-text accumulator trivially thin. The abort guard in the token callback (`if (signal.aborted) return`) prevents appending tokens after cancellation.
+
+## Task - util-2
+- Added `PROMPT_EDITOR_SYSTEM_PROMPT` exported constant to `src/lib/tool-prompts.ts`
+- Instructs AI to act as system-prompt editor: receive current prompt in `<current-system-prompt>` tags + instruction in `<instruction>` tags, return only the complete modified prompt
+- Rules: no markdown fences, no preamble, no commentary, preserve unaffected parts, use `<output-context>` if provided
+- Sits between `BASELINE_PROMPT` and the follow-up builder comment block
+- Files changed: `src/lib/tool-prompts.ts`
+- **Learnings:** The prompt references `buildPromptEditMessage` (util-3) which will wrap user messages in the XML tags this prompt expects. Keep the tag names in sync between the two.

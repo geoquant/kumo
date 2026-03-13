@@ -131,7 +131,7 @@
         "Sits alongside existing BASELINE_PROMPT constant",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "util-3",
