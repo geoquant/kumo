@@ -32,8 +32,6 @@ import {
   OPACITY,
   COLORS,
   GRID_LAYOUT,
-  BORDER_RADIUS,
-  FONT_SIZE,
   VAR_NAMES,
 } from "./shared";
 import { getButtonIcon, bindIconColor } from "./icon-utils";
@@ -48,12 +46,11 @@ const selectStyling = {
   trigger: {
     height: selectRegistryStyling?.trigger?.height ?? 36, // h-9
     paddingX: selectRegistryStyling?.trigger?.paddingX ?? 12, // px-3
-    borderRadius:
-      selectRegistryStyling?.trigger?.borderRadius ?? BORDER_RADIUS.lg,
+    borderRadius: selectRegistryStyling?.trigger?.borderRadius ?? 8, // rounded-lg
     background: VAR_NAMES.color.control,
     text: VAR_NAMES.text.default,
     ring: VAR_NAMES.color.line,
-    fontSize: selectRegistryStyling?.trigger?.fontSize ?? FONT_SIZE.lg,
+    fontSize: selectRegistryStyling?.trigger?.fontSize ?? 16, // text-base
     fontWeight: selectRegistryStyling?.trigger?.fontWeight ?? 400, // font-normal
   },
   stateTokens: {
@@ -63,17 +60,15 @@ const selectStyling = {
   popup: {
     background: VAR_NAMES.color.control,
     ring: VAR_NAMES.color.line,
-    borderRadius:
-      selectRegistryStyling?.popup?.borderRadius ?? BORDER_RADIUS.lg,
+    borderRadius: selectRegistryStyling?.popup?.borderRadius ?? 8, // rounded-lg
     padding: selectRegistryStyling?.popup?.padding ?? 6, // p-1.5
     width: selectRegistryStyling?.popup?.width ?? 280,
   },
   option: {
     paddingX: selectRegistryStyling?.option?.paddingX ?? 8, // px-2
     paddingY: selectRegistryStyling?.option?.paddingY ?? 6, // py-1.5
-    borderRadius:
-      selectRegistryStyling?.option?.borderRadius ?? BORDER_RADIUS.sm,
-    fontSize: selectRegistryStyling?.option?.fontSize ?? FONT_SIZE.lg,
+    borderRadius: selectRegistryStyling?.option?.borderRadius ?? 4, // rounded
+    fontSize: selectRegistryStyling?.option?.fontSize ?? 16, // text-base
     highlightBackground: VAR_NAMES.color.overlay,
   },
 };

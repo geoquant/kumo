@@ -31,8 +31,6 @@ const EXCLUDED_COMPONENTS = new Set([
   "Grid", // Layout utility - Figma has native grid/auto-layout tools
   "PageHeader", // Complex composite component - too layout-specific for Figma generation
   "Popover", // Interactive popup - similar to Tooltip but click-triggered, will add generator later
-  "CloudflareLogo", // Brand asset component - generated/exported separately from UI kit primitives
-  "DatePicker", // Calendar interaction surface - plugin currently supports DateRangePicker only
 ]);
 
 // Map registry component names to generator file names (if they differ)
