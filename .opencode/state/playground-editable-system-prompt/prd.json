@@ -1,0 +1,207 @@
+{
+  "prdName": "playground-editable-system-prompt",
+  "tasks": [
+    {
+      "id": "setup-1",
+      "category": "setup",
+      "description": "Install lz-string dependency for URL state compression. BRANCH: geoquant/streaming-ui — do NOT switch branches.",
+      "steps": [
+        "Verify current branch is geoquant/streaming-ui before any work",
+        "lz-string is listed in package.json dependencies for kumo-docs-astro",
+        "pnpm install completes without errors",
+        "lz-string can be imported in a .ts file without type errors"
+      ],
+      "passes": true
+    },
+    {
+      "id": "state-1",
+      "category": "state",
+      "description": "Add editedSystemPrompt state and derived values to PlaygroundContent. BRANCH: geoquant/streaming-ui — do NOT switch branches.",
+      "steps": [
+        "Verify current branch is geoquant/streaming-ui before any work",
+        "PlaygroundContent has useState<string | null> for editedSystemPrompt, initialized to null",
+        "isPromptModified derived boolean exists (true when editedSystemPrompt !== null)",
+        "activeSystemPrompt derived value exists (editedSystemPrompt ?? systemPromptText)",
+        "pnpm typecheck passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "state-2",
+      "category": "state",
+      "description": "URL state sync — read promptOverride/promptRef from URL on mount, write back on change with lz-string compression and localStorage fallback. BRANCH: geoquant/streaming-ui — do NOT switch branches.",
+      "steps": [
+        "Verify current branch is geoquant/streaming-ui before any work",
+        "On mount, if ?promptOverride= param exists, decompresses and sets editedSystemPrompt",
+        "On mount, if ?promptRef= param exists, reads from localStorage and sets editedSystemPrompt",
+        "When editedSystemPrompt changes, URL is updated via replaceState (debounced)",
+        "When compressed prompt exceeds 1500 chars, falls back to localStorage + ?promptRef=<hash>",
+        "When editedSystemPrompt is null, promptOverride and promptRef params are removed from URL",
+        "pnpm typecheck passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-1",
+      "category": "ui",
+      "description": "Create PromptEditor component with editable textarea, token count, and Regenerate button. BRANCH: geoquant/streaming-ui — do NOT switch branches.",
+      "steps": [
+        "Verify current branch is geoquant/streaming-ui before any work",
+        "PromptEditor component exists in _PlaygroundPage.tsx",
+        "Renders a monospace <textarea> pre-filled with canonicalPrompt when editedPrompt is null",
+        "Textarea onChange calls onPromptChange with the new text",
+        "Header shows token count estimate that updates as text changes",
+        "Header shows 'modified' badge when isModified is true",
+        "Footer has 'Regenerate with this prompt' button that calls onRegenerate",
+        "Regenerate button is disabled when isStreaming is true",
+        "Uses only semantic Kumo tokens (bg-kumo-*, text-kumo-*, border-kumo-*) — no raw Tailwind colors",
+        "pnpm typecheck passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-2",
+      "category": "ui",
+      "description": "Conditional prompt tab rendering — Panel A shows PromptEditor, Panel B keeps read-only PromptTextView. BRANCH: geoquant/streaming-ui — do NOT switch branches.",
+      "steps": [
+        "Verify current branch is geoquant/streaming-ui before any work",
+        "PanelContent receives panelId prop",
+        "When tab is 'prompt' and panelId is 'a', renders PromptEditor",
+        "When tab is 'prompt' and panelId is 'b', renders PromptTextView (unchanged)",
+        "All new props (panelId, editedSystemPrompt, onPromptChange, onPromptReset, onRegenerate) are threaded through ComparisonPanels to PanelContent",
+        "pnpm typecheck passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "functional-1",
+      "category": "functional",
+      "description": "Regeneration logic — re-run Panel A only with edited system prompt via skipSystemPrompt + systemPromptOverride. BRANCH: geoquant/streaming-ui — do NOT switch branches.",
+      "steps": [
+        "Verify current branch is geoquant/streaming-ui before any work",
+        "regenerateWithPrompt callback exists in PlaygroundContent",
+        "Aborts any in-flight Panel A stream",
+        "Sends POST /api/chat with skipSystemPrompt: true and systemPromptOverride: activeSystemPrompt",
+        "Uses the last user message from chat history as the message field",
+        "Panel B stream is NOT re-fired",
+        "Panel A resets (tree, JSONL, status, editor) before streaming",
+        "On stream complete, Panel A shows new output",
+        "pnpm typecheck passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-3",
+      "category": "ui",
+      "description": "Modified badge in Panel A header when system prompt has been edited. BRANCH: geoquant/streaming-ui — do NOT switch branches.",
+      "steps": [
+        "Verify current branch is geoquant/streaming-ui before any work",
+        "PanelHeader receives isPromptModified prop",
+        "When isPromptModified is true and panelId is 'a', a Badge with 'modified' text is rendered next to the 'A' label",
+        "Badge uses Kumo semantic tokens only",
+        "When isPromptModified is false, no badge is shown",
+        "pnpm typecheck passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "util-1",
+      "category": "util",
+      "description": "Create streamPlainText utility — thin SSE stream reader that accumulates raw text without JSONL parsing. BRANCH: geoquant/streaming-ui — do NOT switch branches.",
+      "steps": [
+        "Verify current branch is geoquant/streaming-ui before any work",
+        "File exists at src/lib/stream-plain-text.ts",
+        "Exports async function streamPlainText with opts: { body, signal, onToken }",
+        "Calls fetch('/api/chat') with POST and Accept: text/event-stream",
+        "Uses existing readSSEStream to process SSE, accumulates tokens as plain text",
+        "Returns the full concatenated response string",
+        "Does NOT import or use createJsonlParser",
+        "pnpm typecheck passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "util-2",
+      "category": "util",
+      "description": "Add PROMPT_EDITOR_SYSTEM_PROMPT constant to tool-prompts.ts. BRANCH: geoquant/streaming-ui — do NOT switch branches.",
+      "steps": [
+        "Verify current branch is geoquant/streaming-ui before any work",
+        "PROMPT_EDITOR_SYSTEM_PROMPT is exported from src/lib/tool-prompts.ts",
+        "Instructs AI to return only the complete modified system prompt with no preamble",
+        "Sits alongside existing BASELINE_PROMPT constant",
+        "pnpm typecheck passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "util-3",
+      "category": "util",
+      "description": "Create buildPromptEditMessage helper with tests. BRANCH: geoquant/streaming-ui — do NOT switch branches.",
+      "steps": [
+        "Verify current branch is geoquant/streaming-ui before any work",
+        "File exists at src/lib/playground/prompt-edit.ts",
+        "Exports buildPromptEditMessage function",
+        "Wraps currentPrompt in <current-system-prompt> tags",
+        "Wraps instruction in <instruction> tags",
+        "When outputContext is provided, includes <output-context> section with lastUserPrompt, elementCount, treeDepth, gradingReport",
+        "When outputContext is omitted, no <output-context> section appears",
+        "Test file exists at src/lib/playground/prompt-edit.test.ts",
+        "Tests cover: basic message, with all output context fields, with partial context, without context",
+        "pnpm --filter @cloudflare/kumo-docs-astro test passes for prompt-edit.test.ts"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-4",
+      "category": "ui",
+      "description": "AI prompt editor UI — add chat-style input to PromptEditor that streams AI edits directly into textarea. BRANCH: geoquant/streaming-ui — do NOT switch branches.",
+      "steps": [
+        "Verify current branch is geoquant/streaming-ui before any work",
+        "PromptEditor has a text input below the textarea with placeholder 'Describe changes...'",
+        "Send button triggers POST /api/chat with skipSystemPrompt: true and systemPromptOverride: PROMPT_EDITOR_SYSTEM_PROMPT",
+        "Message is built via buildPromptEditMessage with current prompt text + instruction + output context",
+        "Uses streamPlainText (not streamJsonlUI) to stream the response",
+        "As tokens stream in, textarea content is progressively replaced",
+        "On stream complete, textarea contains the full AI response",
+        "Send button is disabled while AI is streaming",
+        "User can manually edit textarea after AI completes",
+        "PromptEditor receives tree, lastUserPrompt, gradingReport, selectedModel props for output context",
+        "Uses only semantic Kumo tokens — no raw Tailwind colors",
+        "pnpm typecheck passes"
+      ],
+      "passes": false
+    }
+  ],
+  "context": {
+    "patterns": [
+      "Playground page: src/components/demos/_PlaygroundPage.tsx (5,500 lines, all sub-components inline)",
+      "State management: src/lib/playground/state.ts (useReducer with discriminated union actions)",
+      "Types: src/lib/playground/types.ts (PanelId, PanelTab, PanelArtifact)",
+      "System prompt generation: src/lib/playground.ts (getSystemPrompt, addPlaygroundPromptSupplement)",
+      "API endpoint: src/pages/api/chat/index.ts (POST /api/chat with skipSystemPrompt + systemPromptOverride)",
+      "SSE streaming: src/lib/stream-jsonl-ui.ts (streamJsonlUI, readSSEStream)",
+      "Baseline prompt: src/lib/tool-prompts.ts (BASELINE_PROMPT constant)",
+      "Styling: ONLY semantic tokens (bg-kumo-*, text-kumo-*, border-kumo-*), NEVER raw Tailwind colors, NEVER dark: variant",
+      "Classnames: Always use cn() utility"
+    ],
+    "keyFiles": [
+      "packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx",
+      "packages/kumo-docs-astro/src/lib/playground.ts",
+      "packages/kumo-docs-astro/src/lib/playground/state.ts",
+      "packages/kumo-docs-astro/src/lib/playground/types.ts",
+      "packages/kumo-docs-astro/src/lib/stream-jsonl-ui.ts",
+      "packages/kumo-docs-astro/src/lib/tool-prompts.ts",
+      "packages/kumo-docs-astro/src/pages/api/chat/index.ts",
+      "packages/kumo-docs-astro/src/pages/api/chat/prompt.ts"
+    ],
+    "nonGoals": [
+      "Persisting prompt edits server-side (no database)",
+      "Collaborator accounts or permissions",
+      "Editing the Panel B baseline prompt",
+      "Modifying the prompt generation pipeline (playground.ts, catalog system)",
+      "Multi-turn conversation for AI prompt editing (single-turn only)",
+      "Separate worker deployment for AI editing",
+      "Creating new git branches — ALL work stays on geoquant/streaming-ui"
+    ]
+  }
+}

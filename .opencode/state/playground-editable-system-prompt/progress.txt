@@ -1,0 +1,15 @@
+# Progress Log
+PRD: playground-editable-system-prompt
+Started: 2026-03-12
+
+## Codebase Patterns
+- lz-string ships bundled types (typings/lz-string.d.ts), no @types package needed
+- pnpm --filter @cloudflare/kumo-docs-astro add <pkg> for docs-only deps
+- Pre-existing typecheck warnings (unused vars in .astro files) — ignore, not ours
+
+---
+
+## Task - setup-1
+- Installed lz-string ^1.5.0 as dependency of kumo-docs-astro
+- Files changed: packages/kumo-docs-astro/package.json, pnpm-lock.yaml
+- **Learnings:** lz-string has bundled types; compressToEncodedURIComponent / decompressFromEncodedURIComponent are the URL-safe methods
