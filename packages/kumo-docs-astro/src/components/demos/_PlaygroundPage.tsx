@@ -896,6 +896,25 @@ function PlaygroundContent() {
     regenerateRef.current();
   }, []);
 
+  // --- Editable baseline prompt state (Panel B) ---
+  const [editedBaselinePrompt, setEditedBaselinePrompt] = useState<
+    string | null
+  >(null);
+  const isBaselinePromptModified = editedBaselinePrompt !== null;
+
+  const handleBaselinePromptChange = useCallback(
+    (text: string) => setEditedBaselinePrompt(text),
+    [],
+  );
+  const handleBaselinePromptReset = useCallback(
+    () => setEditedBaselinePrompt(null),
+    [],
+  );
+  const regeneratePanelBRef = useRef<() => void>(() => {});
+  const handleRegeneratePanelB = useCallback(() => {
+    regeneratePanelBRef.current();
+  }, []);
+
   // --- Skill picker state ---
   const [skills, setSkills] = useState<readonly SkillInfo[]>([]);
   const [pendingSkillIds, setPendingSkillIds] = useState<ReadonlySet<string>>(
@@ -1487,6 +1506,7 @@ function PlaygroundContent() {
       readonly history?: readonly TextChatMessage[];
       readonly currentUITree?: string;
       readonly skillIds?: readonly string[];
+      readonly systemPromptOverride?: string;
     }) => {
       // Abort any in-flight Panel B stream
       noPromptAbortRef.current?.abort();
@@ -1507,7 +1527,7 @@ function PlaygroundContent() {
         message: opts.message,
         model: opts.model,
         skipSystemPrompt: true,
-        systemPromptOverride: BASELINE_PROMPT,
+        systemPromptOverride: opts.systemPromptOverride ?? BASELINE_PROMPT,
       };
       if (opts.history && opts.history.length > 0) {
         bodyPayload.history = opts.history;
@@ -1654,6 +1674,7 @@ function PlaygroundContent() {
         model: opts.model,
         history: opts.history ? [...opts.history] : undefined,
         currentUITree: opts.currentUITree,
+        systemPromptOverride: editedBaselinePrompt ?? undefined,
       });
 
       void primaryStream;
@@ -1662,6 +1683,7 @@ function PlaygroundContent() {
       applyPatches,
       cancelOutputHistoryCapture,
       clearLeftActionLog,
+      editedBaselinePrompt,
       reset,
       resetLeftEditor,
       runtimeValueStore,
@@ -1770,6 +1792,21 @@ function PlaygroundContent() {
     systemPromptText,
   ]);
   regenerateRef.current = regenerateWithPrompt;
+
+  // --- Regenerate Panel B with edited baseline prompt ---
+  const regeneratePanelBWithPrompt = useCallback(() => {
+    const lastMessage = lastSubmittedRef.current;
+    if (lastMessage === null) return;
+
+    const prompt = editedBaselinePrompt ?? BASELINE_PROMPT;
+
+    streamPanelB({
+      message: lastMessage,
+      model: selectedModel,
+      systemPromptOverride: prompt,
+    });
+  }, [editedBaselinePrompt, selectedModel, streamPanelB]);
+  regeneratePanelBRef.current = regeneratePanelBWithPrompt;
 
   // --- Submit handler ---
   const handleSubmit = useCallback(
@@ -1970,8 +2007,15 @@ function PlaygroundContent() {
       message: lastMsg,
       model: selectedModel,
       skillIds: Array.from(pendingSkillIds),
+      systemPromptOverride: editedBaselinePrompt ?? undefined,
     });
-  }, [pendingSkillIds, selectedModel, startOutputHistoryCapture, streamPanelB]);
+  }, [
+    editedBaselinePrompt,
+    pendingSkillIds,
+    selectedModel,
+    startOutputHistoryCapture,
+    streamPanelB,
+  ]);
 
   const initialHistorySnapshot = useMemo(
     () => createInitialHistorySnapshot(systemPromptText),
@@ -2025,7 +2069,9 @@ function PlaygroundContent() {
   const displayedLeftPromptText =
     historyPreview?.panelA.promptText ?? systemPromptText;
   const displayedRightPromptText =
-    historyPreview?.panelB.promptText ?? BASELINE_PROMPT;
+    historyPreview?.panelB.promptText ??
+    editedBaselinePrompt ??
+    BASELINE_PROMPT;
   const displayedLeftEditorText = historyPreview
     ? JSON.stringify(historyPreview.panelA.tree, null, 2)
     : leftEditor.text;
@@ -2402,6 +2448,11 @@ function PlaygroundContent() {
                 onPromptChange={handlePromptChange}
                 onPromptReset={handlePromptReset}
                 onRegenerate={handleRegenerate}
+                editedBaselinePrompt={editedBaselinePrompt}
+                isBaselinePromptModified={isBaselinePromptModified}
+                onBaselinePromptChange={handleBaselinePromptChange}
+                onBaselinePromptReset={handleBaselinePromptReset}
+                onRegeneratePanelB={handleRegeneratePanelB}
                 lastUserPrompt={lastSubmittedRef.current}
                 selectedModel={selectedModel}
               />
@@ -2503,13 +2554,19 @@ interface ComparisonPanelsProps {
   readonly onInspectFeedbackTab: (tab: PanelTab) => void;
   readonly workspaceSizes: readonly [number, number];
   readonly onWorkspaceResize: (sizes: readonly [number, number]) => void;
-  // Editable system prompt (Panel A only)
+  // Editable system prompt (Panel A)
   readonly editedSystemPrompt: string | null;
   readonly isPromptModified: boolean;
   readonly onPromptChange: (text: string) => void;
   readonly onPromptReset: () => void;
   readonly onRegenerate: () => void;
-  // AI prompt editor context (Panel A only)
+  // Editable baseline prompt (Panel B)
+  readonly editedBaselinePrompt: string | null;
+  readonly isBaselinePromptModified: boolean;
+  readonly onBaselinePromptChange: (text: string) => void;
+  readonly onBaselinePromptReset: () => void;
+  readonly onRegeneratePanelB: () => void;
+  // AI prompt editor context (both panels)
   readonly lastUserPrompt: string | null;
   readonly selectedModel: string;
 }
@@ -2634,6 +2691,11 @@ function ComparisonPanels({
   onPromptChange,
   onPromptReset,
   onRegenerate,
+  editedBaselinePrompt,
+  isBaselinePromptModified,
+  onBaselinePromptChange,
+  onBaselinePromptReset,
+  onRegeneratePanelB,
   lastUserPrompt,
   selectedModel,
 }: ComparisonPanelsProps) {
@@ -2742,6 +2804,7 @@ function ComparisonPanels({
         >
           <PanelHeader
             label="B"
+            isPromptModified={isBaselinePromptModified}
             actions={
               <div className="flex items-center gap-1">
                 <FeedbackStatusPopover
@@ -2789,6 +2852,13 @@ function ComparisonPanels({
               actionLog={rightActionLog}
               onClearActionLog={onClearRightActionLog}
               exportComponentName="GeneratedPanelB"
+              editedSystemPrompt={editedBaselinePrompt}
+              isPromptModified={isBaselinePromptModified}
+              onPromptChange={onBaselinePromptChange}
+              onPromptReset={onBaselinePromptReset}
+              onRegenerate={onRegeneratePanelB}
+              lastUserPrompt={lastUserPrompt}
+              selectedModel={selectedModel}
             />
           </div>
         </Panel>
@@ -4260,7 +4330,7 @@ function PanelContent({
         />
       );
     case "prompt":
-      if (panelId === "a" && onPromptChange && onRegenerate) {
+      if (onPromptChange && onRegenerate) {
         return (
           <PromptEditor
             canonicalPrompt={promptText}
@@ -4268,6 +4338,7 @@ function PanelContent({
             isModified={isPromptModified ?? false}
             isStreaming={isStreaming}
             onPromptChange={onPromptChange}
+            onReset={_onPromptReset}
             onRegenerate={onRegenerate}
             tree={tree}
             lastUserPrompt={lastUserPrompt ?? null}
@@ -4679,6 +4750,7 @@ function PromptEditor({
   isModified,
   isStreaming,
   onPromptChange,
+  onReset,
   onRegenerate,
   tree,
   lastUserPrompt,
@@ -4691,8 +4763,10 @@ function PromptEditor({
   readonly isModified: boolean;
   readonly isStreaming: boolean;
   readonly onPromptChange: (text: string) => void;
+  /** Reset prompt to original (unedited) state. Undefined if reset is not supported. */
+  readonly onReset?: () => void;
   readonly onRegenerate: () => void;
-  /** Current Panel A tree — used for output context in AI prompt editing. */
+  /** Current panel tree — used for output context in AI prompt editing. */
   readonly tree: UITree;
   /** Last user prompt submitted — used for output context. */
   readonly lastUserPrompt: string | null;
@@ -4850,7 +4924,20 @@ function PromptEditor({
       </div>
 
       {/* ---- Footer ---- */}
-      <div className="flex items-center justify-end border-t border-kumo-line px-4 py-2">
+      <div className="flex items-center justify-between border-t border-kumo-line px-4 py-2">
+        {onReset ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={isStreaming || !isModified}
+            onClick={onReset}
+          >
+            <ArrowCounterClockwiseIcon className="size-3.5" />
+            Reset
+          </Button>
+        ) : (
+          <div />
+        )}
         <Button
           variant="outline"
           size="sm"

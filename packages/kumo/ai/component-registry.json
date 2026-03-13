@@ -4730,14 +4730,13 @@
         "<Tabs\n      variant=\"underline\"\n      tabs={[\n        { value: \"tab1\", label: \"Tab 1\" },\n        { value: \"tab2\", label: \"Tab 2\" },\n        { value: \"tab3\", label: \"Tab 3\" },\n      ]}\n      selectedValue=\"tab1\"\n    />",
         "<div className=\"space-y-4\">\n      <Tabs\n        tabs={[\n          { value: \"tab1\", label: \"Tab 1\" },\n          { value: \"tab2\", label: \"Tab 2\" },\n          { value: \"tab3\", label: \"Tab 3\" },\n        ]}\n        value={activeTab}\n        onValueChange={setActiveTab}\n      />\n      <p className=\"text-sm text-kumo-subtle\">\n        Active tab: <code className=\"text-sm\">{activeTab}</code>\n      </p>\n    </div>",
         "<Tabs\n      tabs={[\n        { value: \"overview\", label: \"Overview\" },\n        { value: \"analytics\", label: \"Analytics\" },\n        { value: \"reports\", label: \"Reports\" },\n        { value: \"notifications\", label: \"Notifications\" },\n        { value: \"settings\", label: \"Settings\" },\n        { value: \"billing\", label: \"Billing\" },\n      ]}\n      selectedValue=\"overview\"\n    />",
-        "<Tabs\n      tabs={[\n        {\n          value: \"tab1\",\n          label: \"Regular Tab\",\n        },\n        {\n          value: \"tab2\",\n          label: \"Link Tab\",\n          render: (props) => (\n            <a {...props} href=\"#tab2\">\n              Link Tab\n            </a>\n          ),\n        },\n        {\n          value: \"tab3\",\n          label: \"Another Link\",\n          render: (props) => (\n            <a {...props} href=\"#tab3\">\n              Another Link\n            </a>\n          ),\n        },\n      ]}\n      selectedValue=\"tab1\"\n    />"
+        "<Tabs\n      tabs={[\n        {\n          value: \"tab1\",\n          label: \"Regular Tab\",\n        },\n        {\n          value: \"tab2\",\n          label: \"Link Tab\",\n          render: (props) => (\n            <a {...props} href=\"#tab2\">\n              Link Tab\n            </a>\n          ),\n        },\n        {\n          value: \"tab3\",\n          label: \"Cloudflare\",\n          render: (props) => (\n            <a {...props} href=\"https://cloudflare.com\" target=\"_blank\">\n              Cloudflare\n            </a>\n          ),\n        },\n      ]}\n      selectedValue=\"tab1\"\n    />"
       ],
       "colors": [
         "bg-kumo-brand",
         "bg-kumo-overlay",
         "bg-kumo-tint",
         "border-kumo-line",
-        "border-kumo-tint",
         "ring-kumo-fill-hover",
         "ring-kumo-ring",
         "text-kumo-default",

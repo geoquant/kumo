@@ -5347,7 +5347,7 @@ Tab navigation component with segmented or underline style. Built on Base UI Tab
 
 **Colors (kumo tokens used):**
 
-`bg-kumo-brand`, `bg-kumo-overlay`, `bg-kumo-tint`, `border-kumo-line`, `border-kumo-tint`, `ring-kumo-fill-hover`, `ring-kumo-ring`, `text-kumo-default`, `text-kumo-strong`, `text-kumo-subtle`
+`bg-kumo-brand`, `bg-kumo-overlay`, `bg-kumo-tint`, `border-kumo-line`, `ring-kumo-fill-hover`, `ring-kumo-ring`, `text-kumo-default`, `text-kumo-strong`, `text-kumo-subtle`
 
 **Styling:**
 
@@ -5444,10 +5444,10 @@ Tab navigation component with segmented or underline style. Built on Base UI Tab
         },
         {
           value: "tab3",
-          label: "Another Link",
+          label: "Cloudflare",
           render: (props) => (
-            <a {...props} href="#tab3">
-              Another Link
+            <a {...props} href="https://cloudflare.com" target="_blank">
+              Cloudflare
             </a>
           ),
         },
