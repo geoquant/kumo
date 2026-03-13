@@ -17,16 +17,6 @@ const themeSummaries = availableThemes.map((theme) => ({
       : themeMetadata.tokens.filter((token) => token.themes[theme] !== undefined)
           .length,
 }));
-const totalTokens = themeMetadata.tokens.length;
-const textTokenCount = themeMetadata.tokens.filter(
-  (token) => token.kind === "text",
-).length;
-const colorTokenCount = themeMetadata.tokens.filter(
-  (token) => token.kind === "color",
-).length;
-const typographyTokenCount = themeMetadata.tokens.filter(
-  (token) => token.kind === "typography",
-).length;
 ---
 
 <DocLayout
@@ -93,23 +83,6 @@ const typographyTokenCount = themeMetadata.tokens.filter(
       Set <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">data-theme</code> on a parent element to apply a theme.
     </p>
 
-    <div class="mb-6 grid gap-3 md:grid-cols-3">
-      <div class="rounded-lg border border-kumo-line bg-kumo-base p-4">
-        <p class="text-xs font-medium uppercase tracking-wide text-kumo-subtle">Themes</p>
-        <p class="mt-2 text-2xl font-semibold text-kumo-default">{availableThemes.length}</p>
-      </div>
-      <div class="rounded-lg border border-kumo-line bg-kumo-base p-4">
-        <p class="text-xs font-medium uppercase tracking-wide text-kumo-subtle">Semantic Tokens</p>
-        <p class="mt-2 text-2xl font-semibold text-kumo-default">{totalTokens}</p>
-      </div>
-      <div class="rounded-lg border border-kumo-line bg-kumo-base p-4">
-        <p class="text-xs font-medium uppercase tracking-wide text-kumo-subtle">Token Groups</p>
-        <p class="mt-2 text-sm text-kumo-strong">
-          {textTokenCount} text, {colorTokenCount} color, {typographyTokenCount} typography
-        </p>
-      </div>
-    </div>
-    
     <div class="mb-6">
       <h3 class="mb-2 text-lg font-semibold">Available Themes</h3>
       <ul class="list-inside list-disc space-y-1 text-kumo-strong">
@@ -159,6 +132,37 @@ pnpm --filter @cloudflare/kumo codegen:themes --dry-run`}
       <p class="mt-4 text-kumo-strong">
         Theme config: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">packages/kumo/scripts/theme-generator/config.ts</code>
       </p>
+    </div>
+
+    <div class="mt-6">
+      <h3 class="mb-2 text-lg font-semibold">Adding a Token</h3>
+      <p class="mb-4 text-kumo-strong">
+        If no existing semantic token fits, add a new token in the theme config instead of hardcoding a hex value in a component.
+      </p>
+      <CodeBlock
+        code={`// 1. Add the token in packages/kumo/scripts/theme-generator/config.ts
+"kumo-card": {
+  newName: "",
+  theme: {
+    kumo: {
+      light: "var(--color-kumo-neutral-25, oklch(98.5% 0 0))",
+      dark: "var(--color-kumo-neutral-900, oklch(20% 0 0))",
+    },
+  },
+}
+
+// 2. Regenerate theme outputs
+pnpm --filter @cloudflare/kumo codegen:themes
+
+// 3. Use the semantic class in components
+<div className="bg-kumo-card border-kumo-line text-kumo-default" />`}
+        lang="tsx"
+      />
+      <ul class="mt-4 list-inside list-disc space-y-1 text-kumo-strong">
+        <li>Source of truth: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">config.ts</code></li>
+        <li>Generated outputs: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">src/styles/theme-*.css</code> and <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ai/theme-metadata.json</code></li>
+        <li>Available classnames follow the token name: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">bg-kumo-card</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">text-kumo-card</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">border-kumo-card</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ring-kumo-card</code></li>
+      </ul>
     </div>
 
     <div class="mt-6">
