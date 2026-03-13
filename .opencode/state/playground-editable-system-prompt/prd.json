@@ -149,7 +149,7 @@
         "Tests cover: basic message, with all output context fields, with partial context, without context",
         "pnpm --filter @cloudflare/kumo-docs-astro test passes for prompt-edit.test.ts"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-4",

@@ -100,3 +100,13 @@ Started: 2026-03-12
 - Sits between `BASELINE_PROMPT` and the follow-up builder comment block
 - Files changed: `src/lib/tool-prompts.ts`
 - **Learnings:** The prompt references `buildPromptEditMessage` (util-3) which will wrap user messages in the XML tags this prompt expects. Keep the tag names in sync between the two.
+
+## Task - util-3
+- Created `buildPromptEditMessage` in `src/lib/playground/prompt-edit.ts`
+- Wraps `currentPrompt` in `<current-system-prompt>` tags, `instruction` in `<instruction>` tags
+- `OutputContext` interface: optional `lastUserPrompt`, `elementCount`, `treeDepth`, `gradingReport`
+- When `outputContext` provided with fields, wraps each in its own XML tag inside `<output-context>`; omits fields that are `undefined`
+- When `outputContext` omitted, no `<output-context>` section at all
+- Test file at `src/lib/playground/prompt-edit.test.ts` — 4 tests: basic message, all context fields, partial context, no context
+- Files changed: `src/lib/playground/prompt-edit.ts` (new), `src/lib/playground/prompt-edit.test.ts` (new)
+- **Learnings:** XML tag names match what `PROMPT_EDITOR_SYSTEM_PROMPT` expects — `<current-system-prompt>`, `<instruction>`, `<output-context>`. Each context sub-field gets its own tag (`<last-user-prompt>`, `<element-count>`, `<tree-depth>`, `<grading-report>`) for structured parsing.
