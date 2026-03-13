@@ -1,9 +1,32 @@
 ---
+import themeMetadata from "@cloudflare/kumo/ai/theme-metadata.json";
 import DocLayout from "../layouts/DocLayout.astro";
 import ComponentSection from "../components/docs/ComponentSection.astro";
 import CodeBlock from "../components/docs/CodeBlock.astro";
 import Callout from "../components/docs/Callout.astro";
 import { TailwindColorTokens } from "../components/demos/ColorsDemo";
+
+const availableThemes = [...themeMetadata.themes];
+const nonDefaultThemes = availableThemes.filter((theme) => theme !== "kumo");
+const exampleTheme = nonDefaultThemes[0] ?? "fedramp";
+const themeSummaries = availableThemes.map((theme) => ({
+  name: theme,
+  overrideCount:
+    theme === "kumo"
+      ? 0
+      : themeMetadata.tokens.filter((token) => token.themes[theme] !== undefined)
+          .length,
+}));
+const totalTokens = themeMetadata.tokens.length;
+const textTokenCount = themeMetadata.tokens.filter(
+  (token) => token.kind === "text",
+).length;
+const colorTokenCount = themeMetadata.tokens.filter(
+  (token) => token.kind === "color",
+).length;
+const typographyTokenCount = themeMetadata.tokens.filter(
+  (token) => token.kind === "typography",
+).length;
 ---
 
 <DocLayout
@@ -31,8 +54,8 @@ import { TailwindColorTokens } from "../components/demos/ColorsDemo";
         <p class="mb-2 text-sm font-medium text-kumo-default">Incorrect</p>
         <CodeBlock
           code={`<!-- Never use raw Tailwind colors -->
-<div className="bg-white dark:bg-gray-900 text-black dark:text-white">
-  <button className="bg-blue-500">Primary</button>
+<div className="bg-white ${"dark:bg-gray-900"} text-black ${"dark:text-white"}">
+  <button className="${"bg-blue-500"}">Primary</button>
 </div>`}
           lang="tsx"
         />
@@ -41,7 +64,7 @@ import { TailwindColorTokens } from "../components/demos/ColorsDemo";
     <div class="mt-6">
       <Callout type="warning">
         <strong>Lint rules enforce this:</strong> The <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">no-primitive-colors</code> 
-        rule will flag any raw Tailwind colors like <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">bg-blue-500</code>.
+        rule will flag any raw Tailwind colors like <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">{`bg-${"blue-500"}`}</code>.
       </Callout>
     </div>
   </ComponentSection>
@@ -50,7 +73,7 @@ import { TailwindColorTokens } from "../components/demos/ColorsDemo";
     <h2 class="mb-4 text-2xl font-bold">Mode</h2>
     <p class="mb-4 text-kumo-strong">
       Set <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">data-mode</code> on a parent element to control light/dark mode.
-      Never use Tailwind's <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">dark:</code> variant—semantic tokens handle dark mode automatically via CSS <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">light-dark()</code>.
+      Never use Tailwind's <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">dark:</code> variant—semantic tokens resolve through Kumo's generated mode-aware CSS variables.
     </p>
     <CodeBlock
       code={`// Set mode on html or body
@@ -69,31 +92,55 @@ import { TailwindColorTokens } from "../components/demos/ColorsDemo";
       Themes override semantic token values while preserving the same token names.
       Set <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">data-theme</code> on a parent element to apply a theme.
     </p>
+
+    <div class="mb-6 grid gap-3 md:grid-cols-3">
+      <div class="rounded-lg border border-kumo-line bg-kumo-base p-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-kumo-subtle">Themes</p>
+        <p class="mt-2 text-2xl font-semibold text-kumo-default">{availableThemes.length}</p>
+      </div>
+      <div class="rounded-lg border border-kumo-line bg-kumo-base p-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-kumo-subtle">Semantic Tokens</p>
+        <p class="mt-2 text-2xl font-semibold text-kumo-default">{totalTokens}</p>
+      </div>
+      <div class="rounded-lg border border-kumo-line bg-kumo-base p-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-kumo-subtle">Token Groups</p>
+        <p class="mt-2 text-sm text-kumo-strong">
+          {textTokenCount} text, {colorTokenCount} color, {typographyTokenCount} typography
+        </p>
+      </div>
+    </div>
     
     <div class="mb-6">
       <h3 class="mb-2 text-lg font-semibold">Available Themes</h3>
       <ul class="list-inside list-disc space-y-1 text-kumo-strong">
-        <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">kumo</code> — Default theme (no attribute needed)</li>
-        <li><code class="rounded bg-kumo-control px-1 py-0.5 text-sm">fedramp</code> — Government compliance styling</li>
+        {themeSummaries.map((theme) => (
+          <li>
+            <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">{theme.name}</code>
+            {" — "}
+            {theme.name === "kumo"
+              ? "Default theme (no attribute needed)"
+              : `${theme.overrideCount} token overrides`}
+          </li>
+        ))}
       </ul>
     </div>
 
     <CodeBlock
       code={`// Apply a theme to a section or the whole app
-<div data-theme="fedramp">
-  {/* All Kumo components inside use fedramp token overrides */}
-  <Button>FedRAMP Styled</Button>
+<div data-theme="${exampleTheme}">
+  {/* All Kumo components inside use ${exampleTheme} token overrides */}
+  <Button>${exampleTheme} Styled</Button>
 </div>
 
 // Themes work with both light and dark mode
-<html data-mode="dark" data-theme="fedramp">`}
+<html data-mode="dark" data-theme="${exampleTheme}">`}
       lang="tsx"
     />
 
     <div class="mt-6">
       <h3 class="mb-2 text-lg font-semibold">Theme Generator</h3>
       <p class="mb-4 text-kumo-strong">
-        Themes are defined in a centralized config and generated as CSS files. The theme generator ensures consistency across all themes.
+        Themes are defined in a centralized config and generated as CSS files plus machine-readable metadata. The generator keeps package exports and docs in sync.
       </p>
       <CodeBlock
         code={`# List all tokens and their theme overrides
@@ -101,6 +148,9 @@ pnpm --filter @cloudflare/kumo codegen:themes --list
 
 # Generate theme CSS files
 pnpm --filter @cloudflare/kumo codegen:themes
+
+# Inspect generated theme metadata
+cat packages/kumo/ai/theme-metadata.json
 
 # Preview changes without writing files
 pnpm --filter @cloudflare/kumo codegen:themes --dry-run`}
@@ -139,11 +189,11 @@ export const THEME_CONFIG: ThemeConfig = {
 };
 
 // Add to available themes
-export const AVAILABLE_THEMES = ["kumo", "fedramp", "myTheme"] as const;`}
+export const AVAILABLE_THEMES = [${availableThemes.map((theme) => `"${theme}"`).join(", ")}, "myTheme"] as const;`}
         lang="ts"
       />
       <p class="mt-4 text-kumo-strong">
-        Then run <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pnpm codegen:themes</code> to generate the CSS.
+        Then run <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">pnpm codegen:themes</code> to generate the CSS and metadata. Make sure the generated theme stylesheet is imported before using the new <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">data-theme</code> value.
       </p>
     </div>
   </ComponentSection>
@@ -151,8 +201,7 @@ export const AVAILABLE_THEMES = ["kumo", "fedramp", "myTheme"] as const;`}
   <ComponentSection>
     <h2 class="mb-4 text-2xl font-bold">Token Reference</h2>
     <p class="mb-4 text-kumo-strong">
-      Toggle the theme in the header to see how tokens adapt. Tokens marked as "global" 
-      are explicit opt-in classes available regardless of theme.
+      Use the mode toggle in the header to inspect light and dark values. Theme-specific overrides shown below come from the generated theme metadata.
     </p>
     <TailwindColorTokens client:load />
   </ComponentSection>

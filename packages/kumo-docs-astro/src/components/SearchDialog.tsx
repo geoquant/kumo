@@ -171,6 +171,35 @@ interface SearchItem {
   url: string;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isComponentRegistryEntry(
+  value: unknown,
+): value is ComponentRegistryEntry {
+  if (!isRecord(value)) return false;
+
+  return (
+    typeof value.name === "string" &&
+    (value.type === "component" ||
+      value.type === "block" ||
+      value.type === "layout") &&
+    typeof value.description === "string" &&
+    typeof value.category === "string"
+  );
+}
+
+function isComponentRegistry(value: unknown): value is ComponentRegistry {
+  if (!isRecord(value)) return false;
+
+  if (typeof value.version !== "string" || !isRecord(value.components)) {
+    return false;
+  }
+
+  return Object.values(value.components).every(isComponentRegistryEntry);
+}
+
 interface SearchGroup {
   label: string;
   items: SearchItem[];
@@ -312,6 +341,9 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
           throw new Error(`Failed to fetch registry: ${response.status}`);
         }
         const data = await response.json();
+        if (!isComponentRegistry(data)) {
+          throw new Error("Invalid component registry response");
+        }
         setRegistry(data);
         setError(null);
       } catch (err) {
