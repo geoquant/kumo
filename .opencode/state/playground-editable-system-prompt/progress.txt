@@ -17,6 +17,7 @@ Started: 2026-03-12
 - Ref indirection pattern for forward-declared callbacks: define `const fooRef = useRef<() => void>(() => {})` early, create stable callback via `useCallback(() => { fooRef.current(); }, [])`, then sync after actual impl: `fooRef.current = realCallback`. See `handleSubmitRef` and `regenerateRef` as examples.
 - `startWorkspaceComparison` fires both panels; for Panel-A-only regen, replicate its reset/stream logic without calling `streamPanelB`
 - Panel A abort: `abortRef.current?.abort()`, staleness guard: `runIdRef`. Panel B abort: `noPromptAbortRef`
+- For progressive streaming into non-setState callbacks, accumulate in a local `let` variable and pass full string on each token (can't use functional updater)
 
 ---
 
@@ -110,3 +111,22 @@ Started: 2026-03-12
 - Test file at `src/lib/playground/prompt-edit.test.ts` — 4 tests: basic message, all context fields, partial context, no context
 - Files changed: `src/lib/playground/prompt-edit.ts` (new), `src/lib/playground/prompt-edit.test.ts` (new)
 - **Learnings:** XML tag names match what `PROMPT_EDITOR_SYSTEM_PROMPT` expects — `<current-system-prompt>`, `<instruction>`, `<output-context>`. Each context sub-field gets its own tag (`<last-user-prompt>`, `<element-count>`, `<tree-depth>`, `<grading-report>`) for structured parsing.
+
+## Task - ui-4
+- Added AI chat-style input to PromptEditor: text input with "Describe changes..." placeholder + Send button below textarea
+- Send button triggers POST `/api/chat` with `skipSystemPrompt: true`, `systemPromptOverride: PROMPT_EDITOR_SYSTEM_PROMPT`
+- Message built via `buildPromptEditMessage` with current prompt text + instruction + output context (elementCount, treeDepth, lastUserPrompt from tree/props)
+- Uses `streamPlainText` (not `streamJsonlUI`) — accumulated tokens via local `let accumulated` variable, calling `onPromptChange(accumulated)` on each token
+- Textarea is set `readOnly` while AI is streaming; content progressively replaced with AI response
+- On stream complete, textarea contains full AI response; user can manually edit after
+- On error/abort, previous prompt text is restored
+- Send button disabled while streaming; shows SpinnerIcon + "Editing…" label during stream
+- Enter key submits (with shift+enter passthrough)
+- New props threaded: `tree`, `lastUserPrompt`, `selectedModel` through ComparisonPanelsProps → ComparisonPanels → PanelContent → PromptEditor
+- `lastUserPrompt` sourced from `lastSubmittedRef.current` in PlaygroundContent
+- `selectedModel` sourced from PlaygroundContent state
+- `gradingReport` omitted (optional, computed dynamically in GradingTabContent — not worth threading for v1)
+- Added imports: `streamPlainText`, `buildPromptEditMessage`, `PROMPT_EDITOR_SYSTEM_PROMPT`
+- Mobile shell unchanged (new props are optional on PanelContent)
+- Files changed: `src/components/demos/_PlaygroundPage.tsx`
+- **Learnings:** `onPromptChange` is `(text: string) => void`, not a React setState — can't use functional updater pattern. Solution: accumulate in a local `let` variable and pass the accumulated string on each token. The `readOnly` attr on textarea prevents user edits during streaming without disabling keyboard focus.

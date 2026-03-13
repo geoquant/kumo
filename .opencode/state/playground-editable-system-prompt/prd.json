@@ -169,7 +169,7 @@
         "Uses only semantic Kumo tokens — no raw Tailwind colors",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {

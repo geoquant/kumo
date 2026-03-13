@@ -102,7 +102,12 @@ import {
   updateToolMessageTree as applyToolTreeUpdate,
   streamToolConfirmation,
 } from "~/lib/tool-middleware";
-import { BASELINE_PROMPT } from "~/lib/tool-prompts";
+import {
+  BASELINE_PROMPT,
+  PROMPT_EDITOR_SYSTEM_PROMPT,
+} from "~/lib/tool-prompts";
+import { streamPlainText } from "~/lib/stream-plain-text";
+import { buildPromptEditMessage } from "~/lib/playground/prompt-edit";
 import {
   CREATE_WORKER_SCENARIO,
   matchToolForMessage,
@@ -2380,6 +2385,8 @@ function PlaygroundContent() {
                 onPromptChange={handlePromptChange}
                 onPromptReset={handlePromptReset}
                 onRegenerate={handleRegenerate}
+                lastUserPrompt={lastSubmittedRef.current}
+                selectedModel={selectedModel}
               />
             </div>
           </div>
@@ -2485,6 +2492,9 @@ interface ComparisonPanelsProps {
   readonly onPromptChange: (text: string) => void;
   readonly onPromptReset: () => void;
   readonly onRegenerate: () => void;
+  // AI prompt editor context (Panel A only)
+  readonly lastUserPrompt: string | null;
+  readonly selectedModel: string;
 }
 
 function PlaygroundHistoryScrubber({
@@ -2607,6 +2617,8 @@ function ComparisonPanels({
   onPromptChange,
   onPromptReset,
   onRegenerate,
+  lastUserPrompt,
+  selectedModel,
 }: ComparisonPanelsProps) {
   const workspaceLayoutPersistence = useDefaultLayout({
     id: "playground-workspace-layout",
@@ -2697,6 +2709,8 @@ function ComparisonPanels({
               onPromptChange={onPromptChange}
               onPromptReset={onPromptReset}
               onRegenerate={onRegenerate}
+              lastUserPrompt={lastUserPrompt}
+              selectedModel={selectedModel}
             />
           </div>
         </Panel>
@@ -4119,6 +4133,8 @@ function PanelContent({
   onPromptChange,
   onPromptReset: _onPromptReset,
   onRegenerate,
+  lastUserPrompt,
+  selectedModel,
 }: {
   readonly tab: PanelTab;
   readonly panelId: PanelId;
@@ -4162,6 +4178,9 @@ function PanelContent({
   readonly onPromptChange?: (text: string) => void;
   readonly onPromptReset?: () => void;
   readonly onRegenerate?: () => void;
+  // AI prompt editor context (Panel A only)
+  readonly lastUserPrompt?: string | null;
+  readonly selectedModel?: string;
 }) {
   switch (tab) {
     case "preview":
@@ -4233,6 +4252,9 @@ function PanelContent({
             isStreaming={isStreaming}
             onPromptChange={onPromptChange}
             onRegenerate={onRegenerate}
+            tree={tree}
+            lastUserPrompt={lastUserPrompt ?? null}
+            selectedModel={selectedModel ?? ""}
           />
         );
       }
@@ -4641,6 +4663,9 @@ function PromptEditor({
   isStreaming,
   onPromptChange,
   onRegenerate,
+  tree,
+  lastUserPrompt,
+  selectedModel,
 }: {
   /** The server-canonical (unedited) system prompt text, or null while loading. */
   readonly canonicalPrompt: string | null;
@@ -4650,9 +4675,98 @@ function PromptEditor({
   readonly isStreaming: boolean;
   readonly onPromptChange: (text: string) => void;
   readonly onRegenerate: () => void;
+  /** Current Panel A tree — used for output context in AI prompt editing. */
+  readonly tree: UITree;
+  /** Last user prompt submitted — used for output context. */
+  readonly lastUserPrompt: string | null;
+  /** Currently selected model — used for AI prompt editing requests. */
+  readonly selectedModel: string;
 }) {
   const displayedText = editedPrompt ?? canonicalPrompt ?? "";
   const tokenCount = estimateTokenCount(displayedText);
+
+  // AI prompt editor state
+  const [aiInstruction, setAiInstruction] = useState("");
+  const [isAiStreaming, setIsAiStreaming] = useState(false);
+  const aiAbortRef = useRef<AbortController | null>(null);
+
+  const handleAiEdit = useCallback(async () => {
+    const instruction = aiInstruction.trim();
+    if (instruction === "" || isAiStreaming) return;
+
+    const currentPromptText = editedPrompt ?? canonicalPrompt ?? "";
+    if (currentPromptText === "") return;
+
+    // Build output context from current tree state
+    const elementCount = Object.keys(tree.elements).length;
+    let treeDepth = 0;
+    if (elementCount > 0) {
+      for (const key of Object.keys(tree.elements)) {
+        let depth = 0;
+        let current = tree.elements[key];
+        while (current?.parentKey) {
+          depth++;
+          current = tree.elements[current.parentKey];
+        }
+        if (depth > treeDepth) treeDepth = depth;
+      }
+    }
+
+    const message = buildPromptEditMessage({
+      currentPrompt: currentPromptText,
+      instruction,
+      outputContext:
+        lastUserPrompt !== null || elementCount > 0
+          ? {
+              lastUserPrompt: lastUserPrompt ?? undefined,
+              elementCount: elementCount > 0 ? elementCount : undefined,
+              treeDepth: treeDepth > 0 ? treeDepth : undefined,
+            }
+          : undefined,
+    });
+
+    const controller = new AbortController();
+    aiAbortRef.current = controller;
+    setIsAiStreaming(true);
+    setAiInstruction("");
+
+    // Clear the textarea and accumulate streamed tokens progressively
+    let accumulated = "";
+    onPromptChange("");
+
+    try {
+      await streamPlainText({
+        body: {
+          message,
+          model: selectedModel,
+          skipSystemPrompt: true,
+          systemPromptOverride: PROMPT_EDITOR_SYSTEM_PROMPT,
+        },
+        signal: controller.signal,
+        onToken: (token) => {
+          if (controller.signal.aborted) return;
+          accumulated += token;
+          onPromptChange(accumulated);
+        },
+      });
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      // On error, restore the previous prompt
+      onPromptChange(currentPromptText);
+    } finally {
+      setIsAiStreaming(false);
+      aiAbortRef.current = null;
+    }
+  }, [
+    aiInstruction,
+    isAiStreaming,
+    editedPrompt,
+    canonicalPrompt,
+    tree,
+    lastUserPrompt,
+    selectedModel,
+    onPromptChange,
+  ]);
 
   return (
     <div className="flex h-full flex-col">
@@ -4679,8 +4793,44 @@ function PromptEditor({
         value={displayedText}
         placeholder="System prompt will appear here…"
         onChange={(e) => onPromptChange(e.target.value)}
+        readOnly={isAiStreaming}
         spellCheck={false}
       />
+
+      {/* ---- AI edit input ---- */}
+      <div className="flex items-center gap-2 border-t border-kumo-line px-4 py-2">
+        <input
+          type="text"
+          className={cn(
+            "flex-1 rounded border border-kumo-line bg-kumo-base px-3 py-1.5 text-sm text-kumo-default",
+            "outline-none placeholder:text-kumo-subtle",
+            "focus:ring-1 focus:ring-kumo-ring",
+          )}
+          placeholder="Describe changes..."
+          value={aiInstruction}
+          onChange={(e) => setAiInstruction(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void handleAiEdit();
+            }
+          }}
+          disabled={isAiStreaming}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isAiStreaming || aiInstruction.trim() === ""}
+          onClick={() => void handleAiEdit()}
+        >
+          {isAiStreaming ? (
+            <SpinnerIcon className="size-3.5 animate-spin" />
+          ) : (
+            <PaperPlaneRightIcon className="size-3.5" />
+          )}
+          {isAiStreaming ? "Editing…" : "Send"}
+        </Button>
+      </div>
 
       {/* ---- Footer ---- */}
       <div className="flex items-center justify-end border-t border-kumo-line px-4 py-2">
