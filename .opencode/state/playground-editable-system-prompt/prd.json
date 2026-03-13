@@ -24,7 +24,7 @@
         "activeSystemPrompt derived value exists (editedSystemPrompt ?? systemPromptText)",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "state-2",

@@ -6,6 +6,8 @@ Started: 2026-03-12
 - lz-string ships bundled types (typings/lz-string.d.ts), no @types package needed
 - pnpm --filter @cloudflare/kumo-docs-astro add <pkg> for docs-only deps
 - Pre-existing typecheck warnings (unused vars in .astro files) — ignore, not ours
+- eslint enforces `_` prefix for unused vars; rename back when wiring into consumers
+- PlaygroundContent state lives in `_PlaygroundPage.tsx:508+`; systemPromptText at ~855, editable prompt state at ~871
 
 ---
 
@@ -13,3 +15,10 @@ Started: 2026-03-12
 - Installed lz-string ^1.5.0 as dependency of kumo-docs-astro
 - Files changed: packages/kumo-docs-astro/package.json, pnpm-lock.yaml
 - **Learnings:** lz-string has bundled types; compressToEncodedURIComponent / decompressFromEncodedURIComponent are the URL-safe methods
+
+## Task - state-1
+- Added `editedSystemPrompt` useState<string | null> (init null) to PlaygroundContent
+- Added `isPromptModified` derived boolean (editedSystemPrompt !== null)
+- Added `activeSystemPrompt` derived value (editedSystemPrompt ?? systemPromptText)
+- Files changed: packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx
+- **Learnings:** Codebase uses `_` prefix for declared-but-unused vars (see `_appliedSkillIds`). Prefixed setter/derived values with `_` since they're unused until wired in later tasks. eslint `no-unused-vars` rule requires this.
