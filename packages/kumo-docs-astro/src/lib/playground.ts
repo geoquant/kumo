@@ -51,6 +51,30 @@ const CUSTOM_COMPONENTS: Readonly<Record<string, CustomComponentDefinition>> = {
       },
     },
   },
+  PieChart: {
+    component: "span",
+    description:
+      "A playground-only pie or donut chart for quick categorical chart demos",
+    props: {
+      title: {
+        type: "string",
+        description: "Chart title shown above the visualization",
+        optional: true,
+      },
+      description: {
+        type: "string",
+        description: "Short supporting copy shown under the title",
+        optional: true,
+      },
+      variant: {
+        type: "string",
+        description: "Chart style",
+        values: ["pie", "donut"],
+        default: "pie",
+        optional: true,
+      },
+    },
+  },
 };
 
 const PLAYGROUND_PROMPT_SUPPLEMENT = [
@@ -60,6 +84,14 @@ const PLAYGROUND_PROMPT_SUPPLEMENT = [
   "- Do not limit responses to 30 elements.",
   "- Render as many elements as needed to fully satisfy the request.",
   "- Prefer completeness and correct component variants over brevity.",
+  "",
+  "## Chart Request Mapping",
+  "",
+  "- For a simple chart request, render a clear chart card with a title, brief description, and the chart.",
+  '- Treat `line chart`, `trend chart`, and `timeseries` as `TimeseriesChart` with `type: "line"`.',
+  '- Treat `area chart` as `TimeseriesChart` with `type: "line"` and `gradient: true`.',
+  '- Treat `bar chart` or `column chart` as `TimeseriesChart` with `type: "bar"`.',
+  '- Treat `pie chart` or `donut chart` as `PieChart` with `variant: "pie" | "donut"`.',
 ].join("\n");
 
 export function addPlaygroundPromptSupplement(prompt: string): string {

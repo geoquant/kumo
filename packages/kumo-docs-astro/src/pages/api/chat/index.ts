@@ -1,6 +1,10 @@
 import type { APIRoute } from "astro";
 import { getSystemPrompt } from "~/lib/playground";
 import { getSkillContents } from "~/lib/skills-data.generated";
+import {
+  buildChartFallbackJsonl,
+  detectChartFallbackScenario,
+} from "~/pages/api/chat/chart-fallback";
 
 export const prerender = false;
 
@@ -174,6 +178,27 @@ interface ChatRequest {
 interface AiMessage {
   role: "system" | "user" | "assistant";
   content: string;
+}
+
+function createJsonlSseResponse(jsonl: string): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(
+        encoder.encode(`data: ${JSON.stringify({ response: jsonl })}\n\n`),
+      );
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+    },
+  });
 }
 
 /** Type guard for non-null, non-array objects. */
@@ -508,6 +533,12 @@ const handlePost: APIRoute = async ({ request, locals }) => {
     });
   } catch (err) {
     console.error("[chat] AI error:", err);
+
+    const fallbackScenario = detectChartFallbackScenario(chatRequest.message);
+    if (fallbackScenario !== null) {
+      return createJsonlSseResponse(buildChartFallbackJsonl(fallbackScenario));
+    }
+
     return new Response(
       JSON.stringify({ error: "AI service temporarily unavailable." }),
       { status: 503, headers: { "Content-Type": "application/json" } },

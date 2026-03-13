@@ -78,6 +78,7 @@ import {
 import type { GradeReport } from "@cloudflare/kumo/generative/graders";
 import type { CustomComponentDefinition } from "@cloudflare/kumo/catalog";
 import { DemoButton } from "./DemoButton";
+import { PlaygroundPieChart } from "./_PlaygroundPieChart";
 import Markdown from "react-markdown";
 import {
   Group,
@@ -160,8 +161,7 @@ import type {
 // renderer can instantiate what the LLM is told about in the system prompt.
 // =============================================================================
 
-const demoButtonDef = defineCustomComponent({
-  component: DemoButton,
+const demoButtonMetadata = {
   description: "A fancy button with a rainbow conic-gradient hover effect",
   props: {
     children: { type: "string", description: "Button label text" },
@@ -173,15 +173,65 @@ const demoButtonDef = defineCustomComponent({
       optional: true,
     },
   },
+} as const;
+
+const demoButtonDef = defineCustomComponent({
+  component: DemoButton,
+  ...demoButtonMetadata,
 });
 
-const CUSTOM_COMPONENTS: Readonly<Record<string, CustomComponentDefinition>> = {
+const pieChartMetadata = {
+  description:
+    "A playground-only pie or donut chart for quick categorical chart demos",
+  props: {
+    title: {
+      type: "string",
+      description: "Chart title shown above the visualization",
+      optional: true,
+    },
+    description: {
+      type: "string",
+      description: "Short supporting copy shown under the title",
+      optional: true,
+    },
+    variant: {
+      type: "string",
+      description: "Chart style",
+      values: ["pie", "donut"] as const,
+      default: "pie",
+      optional: true,
+    },
+  },
+} as const;
+
+const playgroundPieChartDef = defineCustomComponent({
+  component: PlaygroundPieChart,
+  ...pieChartMetadata,
+});
+
+const CUSTOM_COMPONENTS = {
   DemoButton: demoButtonDef,
+  PieChart: playgroundPieChartDef,
+} as const;
+
+const VALIDATION_CUSTOM_COMPONENTS: Readonly<
+  Record<string, CustomComponentDefinition>
+> = {
+  DemoButton: {
+    component: "span",
+    ...demoButtonMetadata,
+  },
+  PieChart: {
+    component: "span",
+    ...pieChartMetadata,
+  },
 };
+
+const PLAYGROUND_ONLY_COMPONENT_TYPES = new Set(["DemoButton", "PieChart"]);
 
 /** Custom type names for the grader so it doesn't flag them as unknown. */
 const CUSTOM_COMPONENT_TYPES: ReadonlySet<string> = new Set(
-  Object.keys(CUSTOM_COMPONENTS),
+  Object.keys(VALIDATION_CUSTOM_COMPONENTS),
 );
 
 // =============================================================================
@@ -412,8 +462,8 @@ const NOOP_LAYOUT_STORAGE = {
 
 /** Models available in the playground, matching ALLOWED_MODELS in /api/chat. */
 const MODELS = [
-  { value: "gpt-oss-120b", label: "GPT OSS 120B" },
   { value: "glm-4.7-flash", label: "GLM 4.7 Flash" },
+  { value: "gpt-oss-120b", label: "GPT OSS 120B" },
   { value: "llama-4-scout-17b-16e-instruct", label: "Llama 4 Scout 17B" },
   { value: "gemma-3-27b-it", label: "Gemma 3 27B" },
 ] as const;
@@ -447,6 +497,11 @@ const STATIC_PRESETS: readonly {
   {
     label: "Pricing table",
     prompt: "Display a pricing comparison table with 3 tiers",
+  },
+  {
+    label: "Chart demo",
+    prompt:
+      "Show basic chart examples in one compact dashboard: a line chart for requests, a bar chart for status codes, and a donut chart for traffic mix. No buttons.",
   },
   {
     label: "Custom",
@@ -4482,7 +4537,10 @@ function EditorTabContent({
   const runValidation = useCallback(async () => {
     setIsWorking(true);
     try {
-      const result = await validateEditableTree(text, CUSTOM_COMPONENTS);
+      const result = await validateEditableTree(
+        text,
+        VALIDATION_CUSTOM_COMPONENTS,
+      );
       if (result.success) {
         onValidate([]);
       } else {
@@ -5113,9 +5171,22 @@ function CodeTabContent({
   );
 
   const includesPlaygroundOnlyComponent = useMemo(
-    () => jsxCode.includes("DemoButton"),
-    [jsxCode],
+    () =>
+      Object.values(tree.elements).some((element) =>
+        PLAYGROUND_ONLY_COMPONENT_TYPES.has(element.type),
+      ),
+    [tree],
   );
+
+  const playgroundOnlyComponentList = useMemo(() => {
+    return Array.from(
+      new Set(
+        Object.values(tree.elements)
+          .map((element) => element.type)
+          .filter((type) => PLAYGROUND_ONLY_COMPONENT_TYPES.has(type)),
+      ),
+    ).join(", ");
+  }, [tree]);
 
   const handleCopy = useCallback(() => {
     void navigator.clipboard.writeText(jsxCode).then(() => {
@@ -5163,7 +5234,11 @@ function CodeTabContent({
           <p className="text-sm font-medium text-kumo-default">
             {exportComponentName}
           </p>
-          <p className="text-xs text-kumo-subtle">Exportable TSX module</p>
+          <p className="text-xs text-kumo-subtle">
+            {includesPlaygroundOnlyComponent
+              ? "Preview TSX only"
+              : "Exportable TSX module"}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -5182,8 +5257,9 @@ function CodeTabContent({
       {includesPlaygroundOnlyComponent ? (
         <div className="border-b border-kumo-line bg-kumo-warning/10 px-4 py-2">
           <p className="text-xs text-kumo-subtle">
-            Warning: this export references `DemoButton`, which is
-            playground-only and not shipped by `@cloudflare/kumo`.
+            Warning: this export references playground-only components (
+            {playgroundOnlyComponentList}), which are not shipped by
+            `@cloudflare/kumo`.
           </p>
         </div>
       ) : null}

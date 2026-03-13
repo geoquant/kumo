@@ -68,4 +68,42 @@ describe("validateEditableTree", () => {
       expect(result.issues.length).toBeGreaterThan(0);
     }
   });
+
+  it("accepts playground custom components when provided", async () => {
+    const result = await validateEditableTree(
+      JSON.stringify({
+        root: "surface",
+        elements: {
+          surface: {
+            key: "surface",
+            type: "Surface",
+            props: {},
+            children: ["chart"],
+          },
+          chart: {
+            key: "chart",
+            type: "PieChart",
+            props: { title: "Traffic mix", variant: "donut" },
+            parentKey: "surface",
+          },
+        },
+      }),
+      {
+        PieChart: {
+          component: "span",
+          description: "Playground-only pie chart",
+          props: {
+            title: { type: "string", optional: true },
+            variant: {
+              type: "string",
+              values: ["pie", "donut"],
+              optional: true,
+            },
+          },
+        },
+      },
+    );
+
+    expect(result.success).toBe(true);
+  });
 });

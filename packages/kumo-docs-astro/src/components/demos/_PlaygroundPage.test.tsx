@@ -35,6 +35,23 @@ vi.mock("./DemoButton", () => ({
   ),
 }));
 
+vi.mock("./_PlaygroundPieChart", () => ({
+  PlaygroundPieChart: ({
+    title,
+    description,
+  }: {
+    readonly title?: string;
+    readonly description?: string;
+  }) => (
+    <div>
+      <div>{title ?? "Traffic mix"}</div>
+      <div>
+        {description ?? "Distribution across the latest request categories."}
+      </div>
+    </div>
+  ),
+}));
+
 vi.mock("~/lib/stream-jsonl-ui", () => ({
   streamJsonlUI: streamJsonlUIMock,
 }));
@@ -401,6 +418,39 @@ function buildPassPanelATree(): UITree {
   };
 }
 
+function buildPieChartTree(): UITree {
+  return {
+    root: "surface",
+    elements: {
+      surface: {
+        key: "surface",
+        type: "Surface",
+        props: {},
+        children: ["stack"],
+      },
+      stack: {
+        key: "stack",
+        type: "Stack",
+        props: { gap: "base" },
+        children: ["heading", "chart"],
+        parentKey: "surface",
+      },
+      heading: {
+        key: "heading",
+        type: "Text",
+        props: { children: "Traffic mix", variant: "heading2" },
+        parentKey: "stack",
+      },
+      chart: {
+        key: "chart",
+        type: "PieChart",
+        props: { title: "Traffic mix", variant: "donut" },
+        parentKey: "stack",
+      },
+    },
+  };
+}
+
 function buildFailPanelATree(): UITree {
   return {
     root: "surface",
@@ -743,6 +793,53 @@ describe("PlaygroundPage", () => {
       });
       expect(screen.getByText("Increment")).toBeTruthy();
       expect(screen.getByText("Baseline body")).toBeTruthy();
+    });
+  });
+
+  it("defaults the playground model to glm 4.7 flash", () => {
+    render(<PlaygroundPage />);
+
+    const modelSelect = screen.getByLabelText("Model");
+
+    if (!(modelSelect instanceof HTMLSelectElement)) {
+      throw new Error("Expected model control to be a select element");
+    }
+
+    expect(modelSelect.value).toBe("glm-4.7-flash");
+  });
+
+  it("renders the chart demo pill", () => {
+    render(<PlaygroundPage />);
+
+    expect(screen.getByText("Chart demo")).toBeTruthy();
+  });
+
+  it("warns when code export includes playground-only pie charts", async () => {
+    streamJsonlUIMock.mockImplementation(async ({ onPatches, onToken }) => {
+      const tree = buildPieChartTree();
+      onToken?.(buildAssistantJsonl(tree));
+      onPatches(buildPatchOps(tree));
+      return "pie-chart-response";
+    });
+
+    render(<PlaygroundPage />);
+
+    fireEvent.change(screen.getByLabelText("Prompt"), {
+      target: { value: "pie chart" },
+    });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Traffic mix").length).toBeGreaterThan(0);
+    });
+
+    fireEvent.click(screen.getAllByText("TSX")[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Preview TSX only")).toBeTruthy();
+      expect(
+        screen.getByText(/playground-only components \(PieChart\)/),
+      ).toBeTruthy();
     });
   });
 

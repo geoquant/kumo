@@ -11,5 +11,12 @@ describe("playground prompt supplement", () => {
       "does not use the default 30-element response cap",
     );
     expect(result).toContain("Do not limit responses to 30 elements");
+    expect(result).toContain("Chart Request Mapping");
+    expect(result).toContain(
+      "Treat `line chart`, `trend chart`, and `timeseries`",
+    );
+    expect(result).toContain(
+      "Treat `pie chart` or `donut chart` as `PieChart`",
+    );
   });
 });
