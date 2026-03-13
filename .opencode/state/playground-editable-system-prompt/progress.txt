@@ -7,7 +7,8 @@ Started: 2026-03-12
 - pnpm --filter @cloudflare/kumo-docs-astro add <pkg> for docs-only deps
 - Pre-existing typecheck warnings (unused vars in .astro files) — ignore, not ours
 - eslint enforces `_` prefix for unused vars; rename back when wiring into consumers
-- PlaygroundContent state lives in `_PlaygroundPage.tsx:508+`; systemPromptText at ~855, editable prompt state at ~871
+- PlaygroundContent state lives in `_PlaygroundPage.tsx:508+`; systemPromptText at ~855, editable prompt state at ~872
+- URL sync hook at `src/lib/playground/prompt-url-sync.ts`; uses lz-string `compressToEncodedURIComponent` (URL-safe, no extra encoding needed)
 
 ---
 
@@ -22,3 +23,13 @@ Started: 2026-03-12
 - Added `activeSystemPrompt` derived value (editedSystemPrompt ?? systemPromptText)
 - Files changed: packages/kumo-docs-astro/src/components/demos/_PlaygroundPage.tsx
 - **Learnings:** Codebase uses `_` prefix for declared-but-unused vars (see `_appliedSkillIds`). Prefixed setter/derived values with `_` since they're unused until wired in later tasks. eslint `no-unused-vars` rule requires this.
+
+## Task - state-2
+- Created `usePromptUrlSync` hook in `src/lib/playground/prompt-url-sync.ts`
+- On mount: reads `?promptOverride=` (lz-string decompress) or `?promptRef=` (localStorage lookup) → sets editedSystemPrompt
+- On change: debounced (400ms) replaceState; compressed ≤ 1500 chars → `?promptOverride=`, else localStorage + `?promptRef=<hash>`
+- On null: removes both params from URL
+- Uses FNV-1a 32-bit hash for localStorage keys (deterministic, fast)
+- Wired into PlaygroundContent; renamed `_setEditedSystemPrompt` → `setEditedSystemPrompt` since it's now consumed
+- Files changed: `src/lib/playground/prompt-url-sync.ts` (new), `src/components/demos/_PlaygroundPage.tsx`
+- **Learnings:** `replaceState` preserves scroll position and doesn't trigger navigation; debouncing prevents URL thrash during rapid edits. `compressToEncodedURIComponent` is already URL-safe (no encodeURIComponent needed).

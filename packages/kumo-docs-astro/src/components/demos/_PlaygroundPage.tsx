@@ -109,6 +109,7 @@ import {
   TOOL_REGISTRY,
   type ToolDefinition,
 } from "~/lib/tool-registry";
+import { usePromptUrlSync } from "~/lib/playground/prompt-url-sync";
 import { buildStageArtifact } from "~/lib/playground/eval-analysis";
 import {
   createScenarioRunPair,
@@ -869,12 +870,15 @@ function PlaygroundContent() {
   }, []);
 
   // --- Editable system prompt state ---
-  // _-prefixed vars are unused until wired into UI (tasks ui-1, ui-2, functional-1).
-  const [editedSystemPrompt, _setEditedSystemPrompt] = useState<string | null>(
+  // _-prefixed derived vars are unused until wired into UI (tasks ui-1, ui-2, functional-1).
+  const [editedSystemPrompt, setEditedSystemPrompt] = useState<string | null>(
     null,
   );
   const _isPromptModified = editedSystemPrompt !== null;
   const _activeSystemPrompt = editedSystemPrompt ?? systemPromptText;
+
+  // Sync editedSystemPrompt ↔ URL (?promptOverride / ?promptRef).
+  usePromptUrlSync(editedSystemPrompt, setEditedSystemPrompt);
 
   // --- Skill picker state ---
   const [skills, setSkills] = useState<readonly SkillInfo[]>([]);

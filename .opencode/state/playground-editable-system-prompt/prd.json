@@ -39,7 +39,7 @@
         "When editedSystemPrompt is null, promptOverride and promptRef params are removed from URL",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-1",
