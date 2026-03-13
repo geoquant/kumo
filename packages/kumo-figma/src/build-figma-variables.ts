@@ -2,11 +2,11 @@
 /**
  * Build Figma Variables Data
  *
- * Generates figma-variables.json from the theme generator config.
+ * Generates figma-variables.json from exported theme metadata.
  * This data is used by the Figma plugin to create variable collections at runtime.
  *
  * Source:
- *   packages/kumo/scripts/theme-generator/config.ts
+ *   packages/kumo/ai/theme-metadata.json
  *
  * Output:
  *   packages/kumo-figma/src/generated/figma-variables.json
@@ -18,7 +18,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { THEME_CONFIG } from "@cloudflare/kumo/scripts/theme-generator/config";
+import themeMetadata from "@cloudflare/kumo/ai/theme-metadata.json";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -181,44 +181,45 @@ type ColorVariable = {
   dark: FigmaColor;
 };
 
+type ThemeMetadataToken = (typeof themeMetadata.tokens)[number];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isThemeColorMode(
+  value: unknown,
+): value is { light: string; dark: string } {
+  if (!isRecord(value)) return false;
+
+  return typeof value.light === "string" && typeof value.dark === "string";
+}
+
 // =============================================================================
 // Main
 // =============================================================================
 
 function main() {
-  console.log("📖 Building Figma variables from theme config...\n");
+  console.log("📖 Building Figma variables from theme metadata...\n");
 
   const colorVariables: ColorVariable[] = [];
-
-  // Process text color tokens
-  console.log("📝 Processing text color tokens...");
-  for (const [tokenName, def] of Object.entries(THEME_CONFIG.text)) {
-    const kumoTheme = def.theme.kumo;
-    if (!kumoTheme) continue;
-
-    colorVariables.push({
-      name: `text-color-${tokenName}`,
-      light: parseColorToRgb(kumoTheme.light),
-      dark: parseColorToRgb(kumoTheme.dark),
-    });
-  }
-  console.log(`   Found ${Object.keys(THEME_CONFIG.text).length} text tokens`);
-
-  // Process color tokens
-  console.log("🎨 Processing color tokens...");
-  for (const [tokenName, def] of Object.entries(THEME_CONFIG.color)) {
-    const kumoTheme = def.theme.kumo;
-    if (!kumoTheme) continue;
-
-    colorVariables.push({
-      name: `color-${tokenName}`,
-      light: parseColorToRgb(kumoTheme.light),
-      dark: parseColorToRgb(kumoTheme.dark),
-    });
-  }
-  console.log(
-    `   Found ${Object.keys(THEME_CONFIG.color).length} color tokens`,
+  const semanticTokens = themeMetadata.tokens.filter(
+    (token): token is ThemeMetadataToken =>
+      token.kind === "text" || token.kind === "color",
   );
+
+  console.log("📝 Processing semantic theme tokens...");
+  for (const token of semanticTokens) {
+    const kumoTheme = token.themes.kumo;
+    if (!isThemeColorMode(kumoTheme)) continue;
+
+    colorVariables.push({
+      name: token.cssVariable.replace(/^--/, ""),
+      light: parseColorToRgb(kumoTheme.light),
+      dark: parseColorToRgb(kumoTheme.dark),
+    });
+  }
+  console.log(`   Found ${semanticTokens.length} semantic tokens`);
 
   console.log(`\n✅ Total: ${colorVariables.length} color variables`);
 
@@ -249,7 +250,7 @@ function main() {
   // Build output
   const output = {
     _generated: new Date().toISOString(),
-    _source: "packages/kumo/scripts/theme-generator/config.ts",
+    _source: "packages/kumo/ai/theme-metadata.json",
     collectionName: "kumo-colors",
     variables: colorVariables,
     byName: variablesByName,

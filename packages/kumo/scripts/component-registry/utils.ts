@@ -5,10 +5,10 @@
  */
 
 import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import themeMetadata from "../../ai/theme-metadata.json";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+type ThemeMetadataToken = (typeof themeMetadata.tokens)[number];
 
 // =============================================================================
 // String Transformation Utilities
@@ -72,8 +72,7 @@ export function extractBalancedBraces(
 let _semanticColorNames: string[] | null = null;
 
 /**
- * Parse theme-kumo.css to extract semantic color names from --color-* and --text-color-* variables.
- * Excludes raw palette colors (e.g., --color-red-650, --color-neutral-50) which have numeric suffixes.
+ * Read semantic color names from exported theme metadata.
  * Results are cached for performance.
  */
 export function parseSemanticColorNames(): string[] {
@@ -81,23 +80,14 @@ export function parseSemanticColorNames(): string[] {
     return _semanticColorNames;
   }
 
-  const themePath = join(__dirname, "../../src/styles/theme-kumo.css");
-  const content = readFileSync(themePath, "utf-8");
+  _semanticColorNames = themeMetadata.tokens
+    .filter(
+      (token): token is ThemeMetadataToken =>
+        token.kind === "text" || token.kind === "color",
+    )
+    .map((token) => token.name)
+    .sort();
 
-  const colorNames = new Set<string>();
-
-  // Match semantic color variable declarations that use light-dark()
-  // Pattern: "--color-<name>: light-dark(" or "--text-color-<name>: light-dark("
-  // This excludes raw palette colors which are defined with direct values like "oklch(...)"
-  const semanticColorPattern =
-    /--(?:text-)?color-([a-zA-Z][a-zA-Z0-9-]*)\s*:\s*light-dark\(/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = semanticColorPattern.exec(content)) !== null) {
-    colorNames.add(match[1]);
-  }
-
-  _semanticColorNames = [...colorNames].sort();
   return _semanticColorNames;
 }
 

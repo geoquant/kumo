@@ -15,6 +15,12 @@
  *
  * Usage:
  *   pnpm run build:data (from packages/kumo-figma)
+ *
+ * Note:
+ *   This file intentionally continues to parse CSS and component source for
+ *   non-color computed values (typography, spacing, radii, shadows, compact sizes).
+ *   Semantic color/token metadata now comes from `@cloudflare/kumo/ai/theme-metadata.json`
+ *   via `build-figma-variables.ts`.
  */
 
 import { writeFileSync, readFileSync, mkdirSync, readdirSync } from "node:fs";
