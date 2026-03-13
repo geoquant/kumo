@@ -885,8 +885,11 @@ function PlaygroundContent() {
     [],
   );
   const handlePromptReset = useCallback(() => setEditedSystemPrompt(null), []);
-  // Placeholder — real logic wired in functional-1.
-  const handleRegenerate = useCallback(() => {}, []);
+  // Wired in functional-1 — regenerateWithPrompt lives further down (needs streaming deps).
+  const regenerateRef = useRef<() => void>(() => {});
+  const handleRegenerate = useCallback(() => {
+    regenerateRef.current();
+  }, []);
 
   // --- Skill picker state ---
   const [skills, setSkills] = useState<readonly SkillInfo[]>([]);
@@ -1661,6 +1664,90 @@ function PlaygroundContent() {
       streamPanelB,
     ],
   );
+
+  // --- Regenerate Panel A with edited system prompt ---
+  const regenerateWithPrompt = useCallback(() => {
+    const lastMessage = lastSubmittedRef.current;
+    if (lastMessage === null) return;
+
+    const prompt = editedSystemPrompt ?? systemPromptText;
+    if (prompt === null) return;
+
+    // Abort any in-flight Panel A stream.
+    abortRef.current?.abort();
+
+    const runId = runIdRef.current + 1;
+    runIdRef.current = runId;
+
+    // Reset Panel A state only — Panel B is untouched.
+    runtimeValueStore.clear();
+    reset();
+    resetLeftEditor("");
+    setErrorMessage(null);
+    setStatus("streaming");
+    setRawJsonl("");
+    rawJsonlRef.current = "";
+    clearLeftActionLog();
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    void (async () => {
+      try {
+        const fullResponse = await streamJsonlUI({
+          body: {
+            message: lastMessage,
+            model: selectedModel,
+            skipSystemPrompt: true,
+            systemPromptOverride: prompt,
+          },
+          signal: controller.signal,
+          onToken: (token) => {
+            rawJsonlRef.current += token;
+          },
+          onPatches: (ops) => {
+            applyPatches(ops);
+          },
+        });
+
+        setRawJsonl(rawJsonlRef.current);
+
+        if (runIdRef.current === runId) {
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", content: fullResponse },
+          ]);
+          setStatus("idle");
+        }
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+
+        if (runIdRef.current === runId) {
+          setErrorMessage(
+            err instanceof Error ? err.message : "Something went wrong",
+          );
+          setStatus("error");
+        }
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+        }
+      }
+    })();
+  }, [
+    applyPatches,
+    clearLeftActionLog,
+    editedSystemPrompt,
+    reset,
+    resetLeftEditor,
+    runtimeValueStore,
+    selectedModel,
+    setErrorMessage,
+    setRawJsonl,
+    setStatus,
+    systemPromptText,
+  ]);
+  regenerateRef.current = regenerateWithPrompt;
 
   // --- Submit handler ---
   const handleSubmit = useCallback(

@@ -88,7 +88,7 @@
         "On stream complete, Panel A shows new output",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-3",

@@ -14,6 +14,9 @@ Started: 2026-03-12
 - PanelContent takes `panelId: PanelId` as required prop; prompt-editor props are optional (panel B doesn't need them)
 - ComparisonPanelsProps is the interface for threading props from PlaygroundContent → ComparisonPanels → PanelContent
 - Mobile shell (`MobilePlaygroundShell`) also has PanelContent calls — needs `panelId` but NOT prompt-editor props (mobile doesn't wire editable prompt yet)
+- Ref indirection pattern for forward-declared callbacks: define `const fooRef = useRef<() => void>(() => {})` early, create stable callback via `useCallback(() => { fooRef.current(); }, [])`, then sync after actual impl: `fooRef.current = realCallback`. See `handleSubmitRef` and `regenerateRef` as examples.
+- `startWorkspaceComparison` fires both panels; for Panel-A-only regen, replicate its reset/stream logic without calling `streamPanelB`
+- Panel A abort: `abortRef.current?.abort()`, staleness guard: `runIdRef`. Panel B abort: `noPromptAbortRef`
 
 ---
 
@@ -59,3 +62,16 @@ Started: 2026-03-12
 - `onPromptReset` aliased as `_onPromptReset` in PanelContent destructuring (unused until PromptEditor grows a reset button)
 - Files changed: `src/components/demos/_PlaygroundPage.tsx`
 - **Learnings:** PromptEditor props are optional on PanelContent (panel B doesn't need them). Guard with runtime check (`panelId === "a" && onPromptChange && onRegenerate`) to narrow optional props before render.
+
+## Task - functional-1
+- Created `regenerateWithPrompt` useCallback in PlaygroundContent (~line 1668)
+- Aborts in-flight Panel A stream, bumps runId, resets Panel A state (runtimeValueStore, tree, editor, rawJsonl, actionLog, error, status)
+- Sends `{ message: lastSubmittedRef.current, model: selectedModel, skipSystemPrompt: true, systemPromptOverride: editedSystemPrompt ?? systemPromptText }` via `streamJsonlUI`
+- Panel B is NOT touched at all
+- On success: appends assistant message, sets status to idle
+- On abort: silently returns (AbortError swallowed)
+- On error: sets error message + status
+- Uses staleness guard (`runIdRef`) to prevent stale stream results from overwriting state
+- `handleRegenerate` wired via `regenerateRef` (ref indirection — `handleRegenerate` is defined early for prop threading, `regenerateWithPrompt` defined later after streaming deps are available)
+- Files changed: `src/components/demos/_PlaygroundPage.tsx`
+- **Learnings:** Ref indirection pattern (`regenerateRef.current = regenerateWithPrompt`) allows a stable callback identity (for prop threading) that delegates to a later-defined callback with heavier dependencies. Same pattern used for `handleSubmitRef` in this file.
