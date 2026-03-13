@@ -176,6 +176,36 @@ interface AiMessage {
   content: string;
 }
 
+async function runAiWithGatewayFallback(input: {
+  readonly ai: WorkersAi;
+  readonly modelId: string;
+  readonly body: Record<string, unknown>;
+  readonly useGateway: boolean;
+}): Promise<ReadableStream | Record<string, unknown>> {
+  const gatewayOptions = input.useGateway
+    ? {
+        gateway: {
+          id: AI_GATEWAY_ID,
+          cacheTtl: 0,
+        },
+      }
+    : undefined;
+
+  try {
+    return await input.ai.run(input.modelId, input.body, gatewayOptions);
+  } catch (error) {
+    if (!input.useGateway) {
+      throw error;
+    }
+
+    console.warn(
+      "[chat] gateway path failed; retrying direct AI binding",
+      error,
+    );
+    return await input.ai.run(input.modelId, input.body);
+  }
+}
+
 function getDevChatUpstreamUrls(request: Request): string[] {
   const configured = import.meta.env.DEV_CHAT_UPSTREAM_URL;
   const candidates = [
@@ -512,29 +542,21 @@ const handlePost: APIRoute = async ({ request, locals }) => {
 
   // --- Stream from Workers AI ---
   try {
-    const aiOptions = import.meta.env.DEV
-      ? undefined
-      : {
-          gateway: {
-            id: AI_GATEWAY_ID,
-            cacheTtl: 0,
-          },
-        };
-
     const maxTokens = resolvedModelConfig?.maxTokens ?? DEFAULT_MAX_TOKENS;
     const extraParams = resolvedModelConfig?.extraParams ?? {};
 
-    const stream = await env.AI.run(
-      resolvedModelId,
-      {
+    const stream = await runAiWithGatewayFallback({
+      ai: env.AI,
+      modelId: resolvedModelId,
+      body: {
         messages,
         stream: true,
         max_tokens: maxTokens,
         temperature: 0,
         ...extraParams,
       },
-      aiOptions,
-    );
+      useGateway: !import.meta.env.DEV,
+    });
 
     // Workers AI returns a ReadableStream in SSE format when stream: true
     if (stream instanceof ReadableStream) {
