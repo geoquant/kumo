@@ -1684,6 +1684,18 @@ function PlaygroundContent() {
     const runId = runIdRef.current + 1;
     runIdRef.current = runId;
 
+    // Build history from messages prior to the last user turn.
+    // This mirrors how handleSubmit constructs history — text messages
+    // (excluding tool cards) that preceded the message being (re-)submitted.
+    const currentMessages = messagesRef.current;
+    const textMessages = currentMessages.filter(
+      (m): m is TextChatMessage => m.role !== "tool",
+    );
+    // Drop the trailing user+assistant pair (the turn we're regenerating).
+    const lastUserIdx = textMessages.findLastIndex((m) => m.role === "user");
+    const historyMessages =
+      lastUserIdx > 0 ? textMessages.slice(0, lastUserIdx) : undefined;
+
     // Reset Panel A state only — Panel B is untouched.
     runtimeValueStore.clear();
     reset();
@@ -1697,15 +1709,20 @@ function PlaygroundContent() {
     const controller = new AbortController();
     abortRef.current = controller;
 
+    const body: Record<string, unknown> = {
+      message: lastMessage,
+      model: selectedModel,
+      skipSystemPrompt: true,
+      systemPromptOverride: prompt,
+    };
+    if (historyMessages && historyMessages.length > 0) {
+      body.history = historyMessages;
+    }
+
     void (async () => {
       try {
         const fullResponse = await streamJsonlUI({
-          body: {
-            message: lastMessage,
-            model: selectedModel,
-            skipSystemPrompt: true,
-            systemPromptOverride: prompt,
-          },
+          body,
           signal: controller.signal,
           onToken: (token) => {
             rawJsonlRef.current += token;
@@ -4769,7 +4786,7 @@ function PromptEditor({
   ]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full w-full flex-col">
       {/* ---- Header ---- */}
       <div
         className={cn(
@@ -5540,7 +5557,25 @@ function AssistantMessageSummary({ content }: { readonly content: string }) {
       }
     }
 
-    if (types.size === 0) return `Generated ${String(lines.length)} patch ops`;
+    if (types.size === 0) {
+      // Count actual JSON patch ops vs raw lines to avoid misleading "N patch ops"
+      // when the model returned plain text instead of JSONL.
+      let patchOpCount = 0;
+      for (const line of lines) {
+        try {
+          const parsed: unknown = JSON.parse(line);
+          if (typeof parsed === "object" && parsed !== null && "op" in parsed) {
+            patchOpCount++;
+          }
+        } catch {
+          // not JSON
+        }
+      }
+      if (patchOpCount > 0) {
+        return `Generated ${String(patchOpCount)} patch ops`;
+      }
+      return `Generated ${String(lines.length)} lines (no valid patch ops)`;
+    }
     const typeList = [...types].slice(0, 4).join(", ");
     const suffix = types.size > 4 ? `, +${String(types.size - 4)} more` : "";
     return `Generated UI with ${typeList}${suffix}`;
