@@ -57,7 +57,7 @@
         "Uses only semantic Kumo tokens (bg-kumo-*, text-kumo-*, border-kumo-*) — no raw Tailwind colors",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-2",

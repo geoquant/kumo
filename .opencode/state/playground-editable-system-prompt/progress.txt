@@ -9,6 +9,8 @@ Started: 2026-03-12
 - eslint enforces `_` prefix for unused vars; rename back when wiring into consumers
 - PlaygroundContent state lives in `_PlaygroundPage.tsx:508+`; systemPromptText at ~855, editable prompt state at ~872
 - URL sync hook at `src/lib/playground/prompt-url-sync.ts`; uses lz-string `compressToEncodedURIComponent` (URL-safe, no extra encoding needed)
+- Badge component: `variant` only (primary|secondary|destructive|outline|success|beta), no `size` prop
+- PromptEditor at `_PlaygroundPage.tsx:~4485` (prefixed `_` until wired in ui-2)
 
 ---
 
@@ -33,3 +35,13 @@ Started: 2026-03-12
 - Wired into PlaygroundContent; renamed `_setEditedSystemPrompt` → `setEditedSystemPrompt` since it's now consumed
 - Files changed: `src/lib/playground/prompt-url-sync.ts` (new), `src/components/demos/_PlaygroundPage.tsx`
 - **Learnings:** `replaceState` preserves scroll position and doesn't trigger navigation; debouncing prevents URL thrash during rapid edits. `compressToEncodedURIComponent` is already URL-safe (no encodeURIComponent needed).
+
+## Task - ui-1
+- Created `_PromptEditor` component in `_PlaygroundPage.tsx` (prefixed `_` until wired in ui-2)
+- Monospace `<textarea>` pre-filled with `canonicalPrompt` when `editedPrompt` is null
+- Header: token count estimate + `Badge variant="outline"` "modified" indicator (shown when `isModified`)
+- Footer: "Regenerate with this prompt" `Button variant="outline"` with `ArrowCounterClockwiseIcon`, disabled when `isStreaming`
+- Added `Badge` to `@cloudflare/kumo` imports
+- All semantic tokens: `bg-kumo-base`, `text-kumo-default`, `border-kumo-line`, `text-kumo-subtle`
+- Files changed: `src/components/demos/_PlaygroundPage.tsx`
+- **Learnings:** Badge has no `size` prop, only `variant`. Available variants: primary, secondary, destructive, outline, success, beta. No `warning` variant — use `outline` for informational badges. Function declarations also need `_` prefix for eslint unused-vars rule.

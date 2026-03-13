@@ -19,6 +19,7 @@ import {
   type FormEvent,
 } from "react";
 import {
+  Badge,
   Button,
   Checkbox,
   CloudflareLogo,
@@ -4469,6 +4470,80 @@ function VerifierFailureState({
 /** Approximate token count using chars/4 heuristic. */
 function estimateTokenCount(text: string): number {
   return Math.ceil(text.length / 4);
+}
+
+// =============================================================================
+// Prompt editor (Panel A only)
+// =============================================================================
+
+/**
+ * Editable system prompt textarea with token count, modified indicator, and
+ * a "Regenerate" trigger. Only rendered in Panel A's prompt tab.
+ *
+ * Prefixed with `_` until wired into PanelContent (task ui-2).
+ */
+function _PromptEditor({
+  canonicalPrompt,
+  editedPrompt,
+  isModified,
+  isStreaming,
+  onPromptChange,
+  onRegenerate,
+}: {
+  /** The server-canonical (unedited) system prompt text, or null while loading. */
+  readonly canonicalPrompt: string | null;
+  /** The user's in-progress edit, or null if no edits have been made. */
+  readonly editedPrompt: string | null;
+  readonly isModified: boolean;
+  readonly isStreaming: boolean;
+  readonly onPromptChange: (text: string) => void;
+  readonly onRegenerate: () => void;
+}) {
+  const displayedText = editedPrompt ?? canonicalPrompt ?? "";
+  const tokenCount = estimateTokenCount(displayedText);
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* ---- Header ---- */}
+      <div
+        className={cn(
+          "flex items-center justify-between border-b border-kumo-line px-4 py-2",
+        )}
+      >
+        <Cluster gap="sm" align="center">
+          <span className="text-xs text-kumo-subtle">
+            ~{tokenCount.toLocaleString()} tokens
+          </span>
+          {isModified && <Badge variant="outline">modified</Badge>}
+        </Cluster>
+      </div>
+
+      {/* ---- Textarea ---- */}
+      <textarea
+        className={cn(
+          "flex-1 resize-none bg-kumo-base p-4 font-mono text-sm text-kumo-default",
+          "outline-none placeholder:text-kumo-subtle",
+        )}
+        value={displayedText}
+        placeholder="System prompt will appear here…"
+        onChange={(e) => onPromptChange(e.target.value)}
+        spellCheck={false}
+      />
+
+      {/* ---- Footer ---- */}
+      <div className="flex items-center justify-end border-t border-kumo-line px-4 py-2">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isStreaming}
+          onClick={onRegenerate}
+        >
+          <ArrowCounterClockwiseIcon className="size-3.5" />
+          Regenerate with this prompt
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 /** Renders the prompt text inside a comparison panel. */
