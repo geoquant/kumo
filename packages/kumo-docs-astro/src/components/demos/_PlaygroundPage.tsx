@@ -3917,7 +3917,7 @@ function VerifierStatusPopover({
               ? "Verifier passed before preview mount."
               : report.status === "warn"
                 ? "Verifier found soft issues; inspect before trusting the output."
-                : "Verifier blocked preview mount; inspect raw output details below."}
+                : "Verifier found issues; inspect raw output details below."}
           </Popover.Description>
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-kumo-subtle">
             <span>patch ops {String(report.stream.patchOpCount)}</span>
@@ -4644,14 +4644,12 @@ function PreviewContent({
     );
   }
 
-  if (verifierReport?.status === "fail") {
-    return <VerifierFailureState report={verifierReport} />;
-  }
-
   if (showTree) {
     return (
       <div className="w-full space-y-3 p-4">
-        {verifierReport?.status === "warn" ? (
+        {verifierReport?.status === "fail" ? (
+          <VerifierFailureState report={verifierReport} />
+        ) : verifierReport?.status === "warn" ? (
           <VerifierWarningState report={verifierReport} />
         ) : null}
         <UITreeRenderer
@@ -4715,24 +4713,17 @@ function VerifierFailureState({
   readonly report: PlaygroundVerifierReport;
 }) {
   return (
-    <div className="flex h-full items-center justify-center p-4">
-      <div className="max-w-md rounded-xl border border-kumo-danger/40 bg-kumo-danger/10 p-4">
-        <div className="flex items-center gap-2">
-          <XCircleIcon size={18} weight="fill" className="text-kumo-danger" />
-          <p className="text-sm font-medium text-kumo-default">
-            Verifier blocked panel A render
+    <div className="rounded-lg border border-kumo-danger/40 bg-kumo-danger/10 p-3">
+      <div className="flex items-center gap-2">
+        <XCircleIcon size={16} weight="fill" className="text-kumo-danger" />
+        <p className="text-sm font-medium text-kumo-default">Verifier errors</p>
+      </div>
+      <div className="mt-2 space-y-1">
+        {report.reasons.map((reason) => (
+          <p key={reason} className="text-xs text-kumo-default">
+            {reason}
           </p>
-        </div>
-        <div className="mt-3 space-y-1">
-          {report.reasons.map((reason) => (
-            <p key={reason} className="text-xs text-kumo-default">
-              {reason}
-            </p>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-kumo-subtle">
-          Inspect Tree, JSONL, or Grade tabs for raw output details.
-        </p>
+        ))}
       </div>
     </div>
   );

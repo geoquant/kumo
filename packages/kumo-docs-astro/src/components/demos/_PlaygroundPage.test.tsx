@@ -788,7 +788,7 @@ describe("PlaygroundPage", () => {
       expect(screen.getByLabelText("Panel A verifier status")).toBeTruthy();
       expect(screen.getByText("Pass")).toBeTruthy();
       expect(screen.queryByText("Verifier warnings")).toBeNull();
-      expect(screen.queryByText("Verifier blocked panel A render")).toBeNull();
+      expect(screen.queryByText("Verifier errors")).toBeNull();
     });
 
     fireEvent.click(screen.getByLabelText("Panel A verifier status"));
@@ -836,7 +836,7 @@ describe("PlaygroundPage", () => {
     });
   });
 
-  it("blocks pathological panel a output before preview mount", async () => {
+  it("shows verifier errors inline without blocking panel a render", async () => {
     streamJsonlUIMock.mockImplementationOnce(async ({ onPatches, onToken }) => {
       const tree = buildFailPanelATree();
       onToken?.(buildAssistantJsonl(tree));
@@ -852,13 +852,14 @@ describe("PlaygroundPage", () => {
     fireEvent.click(screen.getByText("Send"));
 
     await waitFor(() => {
-      expect(screen.getByText("Verifier blocked panel A render")).toBeTruthy();
+      expect(screen.getByText("Verifier errors")).toBeTruthy();
       expect(
         screen.getByText(
           "Malformed compound structure exceeds verifier budget.",
         ),
       ).toBeTruthy();
-      expect(screen.queryByText("Broken header")).toBeNull();
+      // Content renders despite verifier failure
+      expect(screen.getByText("Broken header")).toBeTruthy();
       expect(screen.getByText("Baseline body")).toBeTruthy();
       expect(screen.getByText("Fail")).toBeTruthy();
     });
@@ -975,7 +976,7 @@ describe("PlaygroundPage", () => {
       expect(streamToolConfirmationMock).toHaveBeenCalledTimes(1);
       expect(streamJsonlUIMock).not.toHaveBeenCalled();
       expect(screen.getByText("Awaiting follow-up stage.")).toBeTruthy();
-      expect(screen.queryByText("Verifier blocked panel A render")).toBeNull();
+      expect(screen.queryByText("Verifier errors")).toBeNull();
       expect(screen.queryByLabelText("Panel A verifier status")).toBeNull();
     });
   });
