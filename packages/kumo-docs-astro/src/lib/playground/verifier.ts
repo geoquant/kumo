@@ -134,7 +134,8 @@ const DEFAULT_PLAYGROUND_VERIFIER_THRESHOLDS: PlaygroundVerifierThresholds = {
   maxStrippedProps: 24,
   maxMalformedStructureCount: 0,
   maxUnknownTypes: 0,
-  maxDroppedLines: 0,
+  /** LLMs frequently emit pretty-printed JSON; dropped lines are informational. */
+  maxDroppedLines: 200,
 };
 
 const DEFAULT_PLAYGROUND_VERIFIER_CONFIG: PlaygroundVerifierConfig = {
