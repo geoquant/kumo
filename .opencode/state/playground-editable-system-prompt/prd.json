@@ -118,7 +118,7 @@
         "Does NOT import or use createJsonlParser",
         "pnpm typecheck passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "util-2",

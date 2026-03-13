@@ -84,3 +84,11 @@ Started: 2026-03-12
 - Threaded `isPromptModified: boolean` through `MobilePlaygroundShell` props + call site
 - Files changed: `src/components/demos/_PlaygroundPage.tsx`
 - **Learnings:** PanelHeader doesn't need `panelId` — the caller controls which panels get `isPromptModified`. Keep component-level props minimal; let the composition site decide.
+
+## Task - util-1
+- Created `streamPlainText` async function in `src/lib/stream-plain-text.ts`
+- Thin SSE stream reader: fetch POST `/api/chat` with `Accept: text/event-stream`, uses `readSSEStream` to process SSE events, accumulates raw text tokens, returns full concatenated string
+- No JSONL parsing — mirrors `streamJsonlUI` structure but skips `createJsonlParser` entirely
+- Error handling reuses same `extractErrorMessage` pattern (local copy, not shared — acceptable for 5-line helper)
+- Files changed: `src/lib/stream-plain-text.ts` (new)
+- **Learnings:** `readSSEStream` already handles all SSE wire formats (Workers AI, OpenAI-compatible, plain text fallback) and emits string tokens — making a plain-text accumulator trivially thin. The abort guard in the token callback (`if (signal.aborted) return`) prevents appending tokens after cancellation.
