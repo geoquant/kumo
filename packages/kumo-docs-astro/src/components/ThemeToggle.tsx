@@ -18,10 +18,17 @@ export function ThemeToggle() {
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
+    document.documentElement.classList.add("theme-switching");
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
     document.documentElement.setAttribute("data-mode", newTheme);
     document.documentElement.style.colorScheme = newTheme;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove("theme-switching");
+      });
+    });
   };
 
   // Prevent hydration mismatch
