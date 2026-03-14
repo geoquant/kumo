@@ -23,7 +23,7 @@ const buildDate = typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : new D
 ---
 
 <!doctype html>
-<html class="bg-kumo-elevated" lang="en">
+<html class="bg-kumo-elevated" data-mode="light" lang="en" style="color-scheme: light;">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -46,11 +46,9 @@ const buildDate = typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : new D
       // This runs immediately (blocking) to prevent flash of unstyled content
       (function() {
         const stored = localStorage.getItem("theme");
-        if (stored) {
-          document.documentElement.setAttribute("data-mode", stored);
-        } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-          document.documentElement.setAttribute("data-mode", "dark");
-        }
+        const mode = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-mode", mode);
+        document.documentElement.style.colorScheme = mode;
       })();
     </script>
   </head>

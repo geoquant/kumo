@@ -21,6 +21,7 @@ export function ThemeToggle() {
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
     document.documentElement.setAttribute("data-mode", newTheme);
+    document.documentElement.style.colorScheme = newTheme;
   };
 
   // Prevent hydration mismatch
