@@ -19,6 +19,9 @@ const INVALID_TOKEN_RULE = "invalid-color-token";
 export const TOKEN_RE =
   /(?:^|[^a-zA-Z0-9-])(((?:[a-z-]+:)*)?(?:bg|border|text|ring(?:-offset)?|fill|stroke|placeholder|caret|accent|decoration|divide|outline|from|via|to)-([a-z][a-z0-9-]*)(?:-\d{2,3})?(?:\/[0-9]{1,3})?)/gim;
 
+export const FORBIDDEN_CSS_VALUE_RE =
+  /(?:light-dark\(|var\(--(?:text-)?color-[a-z0-9-]+)/i;
+
 export const TAILWIND_COLOR_FAMILIES = new Set([
   "red",
   "orange",
@@ -315,6 +318,20 @@ function findPrimitiveColor(str) {
 }
 
 /**
+ * Check if a string contains forbidden raw CSS variable or light-dark() usage.
+ * These values bypass the semantic token system and should be replaced by a
+ * token from theme-generator/config.ts or a semantic utility class.
+ */
+export function findForbiddenCssValue(str) {
+  if (!str) return null;
+
+  const match = str.match(FORBIDDEN_CSS_VALUE_RE);
+  if (!match) return null;
+
+  return match[0];
+}
+
+/**
  * Check if a token name matches any non-color pattern
  */
 function isNonColorUtility(tokenName) {
@@ -400,6 +417,8 @@ export const noPrimitiveColorsRule = defineRule({
         "Avoid Tailwind color utilities (e.g. `bg-blue-500`, `border-red-500`). Use Kumo semantic tokens instead.",
       [INVALID_TOKEN_RULE]:
         "Invalid color token '{{token}}'. Token '{{tokenName}}' is not defined in theme-kumo.css or theme-fedramp.css.",
+      forbiddenCssValue:
+        "Avoid raw CSS color values like '{{value}}' in class strings. Use an existing semantic token or add one to theme-generator/config.ts.",
     },
     schema: [],
   },
@@ -407,6 +426,16 @@ export const noPrimitiveColorsRule = defineRule({
   createOnce(context) {
     function reportColorIssues(node, collected) {
       for (const s of collected) {
+        const forbiddenCssValue = findForbiddenCssValue(s);
+        if (forbiddenCssValue) {
+          context.report({
+            node,
+            messageId: "forbiddenCssValue",
+            data: { value: forbiddenCssValue },
+          });
+          return;
+        }
+
         // First check for primitive Tailwind colors
         const primitive = findPrimitiveColor(s);
         if (primitive) {
