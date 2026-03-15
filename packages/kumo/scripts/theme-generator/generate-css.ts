@@ -30,13 +30,6 @@ const GENERATED_FILE_HEADER = `/**
 
 `;
 
-/**
- * Generate a light-dark() CSS function call
- */
-function lightDark(light: string, dark: string): string {
-  return `light-dark(\n    ${light},\n    ${dark}\n  )`;
-}
-
 function resolvedTextVariable(name: string): string {
   return `--_text-color-${name}`;
 }
@@ -177,14 +170,11 @@ function pushBaseThemeResolvedVariables(
   lines.push("}");
 }
 
-function pushModeScopedBaseVariables(
+function pushOverrideThemeResolvedVariables(
   lines: string[],
   config: ThemeConfig,
   themeName: string,
   useNewNames: boolean,
-  options: {
-    wrapInBaseLayer?: boolean;
-  } = {},
 ): void {
   const { textEntries, colorEntries } = collectThemeEntries(
     config,
@@ -197,49 +187,53 @@ function pushModeScopedBaseVariables(
   }
 
   const themeSelector = `[data-theme="${themeName}"]`;
-  const lightSelector =
-    themeName === "kumo" ? `:root, ${themeSelector}` : `${themeSelector}`;
-  const darkSelector =
-    themeName === "kumo"
-      ? `:root[data-mode="dark"], [data-mode="dark"]:not([data-theme]), [data-mode="dark"] ${themeSelector}, ${themeSelector}[data-mode="dark"], ${themeSelector} [data-mode="dark"]`
-      : `[data-mode="dark"] ${themeSelector}, ${themeSelector}[data-mode="dark"], ${themeSelector} [data-mode="dark"]`;
-
+  const explicitLightSelector = `[data-mode="light"] ${themeSelector}, ${themeSelector}[data-mode="light"], ${themeSelector} [data-mode="light"]`;
+  const explicitDarkSelector = `[data-mode="dark"] ${themeSelector}, ${themeSelector}[data-mode="dark"], ${themeSelector} [data-mode="dark"]`;
   const ruleLines: string[] = [];
-  ruleLines.push(`${lightSelector} {`);
 
+  ruleLines.push(`${themeSelector} {`);
   for (const entry of textEntries) {
-    ruleLines.push(`  --text-color-${entry.name}: ${entry.light};`);
+    ruleLines.push(`  ${resolvedTextVariable(entry.name)}: ${entry.light};`);
   }
-
   for (const entry of colorEntries) {
-    ruleLines.push(`  --color-${entry.name}: ${entry.light};`);
+    ruleLines.push(`  ${resolvedColorVariable(entry.name)}: ${entry.light};`);
   }
-
   ruleLines.push("}");
   ruleLines.push("");
-  ruleLines.push(`${darkSelector} {`);
-
+  ruleLines.push("@media (prefers-color-scheme: dark) {");
+  ruleLines.push(`  ${themeSelector} {`);
   for (const entry of textEntries) {
-    ruleLines.push(`  --text-color-${entry.name}: ${entry.dark};`);
+    ruleLines.push(`    ${resolvedTextVariable(entry.name)}: ${entry.dark};`);
   }
-
   for (const entry of colorEntries) {
-    ruleLines.push(`  --color-${entry.name}: ${entry.dark};`);
+    ruleLines.push(`    ${resolvedColorVariable(entry.name)}: ${entry.dark};`);
   }
-
+  ruleLines.push("  }");
+  ruleLines.push("}");
+  ruleLines.push("");
+  ruleLines.push(`${explicitLightSelector} {`);
+  for (const entry of textEntries) {
+    ruleLines.push(`  ${resolvedTextVariable(entry.name)}: ${entry.light};`);
+  }
+  for (const entry of colorEntries) {
+    ruleLines.push(`  ${resolvedColorVariable(entry.name)}: ${entry.light};`);
+  }
+  ruleLines.push("}");
+  ruleLines.push("");
+  ruleLines.push(`${explicitDarkSelector} {`);
+  for (const entry of textEntries) {
+    ruleLines.push(`  ${resolvedTextVariable(entry.name)}: ${entry.dark};`);
+  }
+  for (const entry of colorEntries) {
+    ruleLines.push(`  ${resolvedColorVariable(entry.name)}: ${entry.dark};`);
+  }
   ruleLines.push("}");
 
-  lines.push("");
-  if (options.wrapInBaseLayer) {
-    lines.push("@layer base {");
-    for (const line of ruleLines) {
-      lines.push(`  ${line}`);
-    }
-    lines.push("}");
-    return;
+  lines.push("@layer base {");
+  for (const line of ruleLines) {
+    lines.push(`  ${line}`);
   }
-
-  lines.push(...ruleLines);
+  lines.push("}");
 }
 
 /**
@@ -290,57 +284,42 @@ export function generateThemeOverrideCSS(
     throw new Error("Use generateKumoThemeCSS for the base kumo theme");
   }
 
-  const overrides: string[] = [];
+  const lines = [GENERATED_FILE_HEADER];
+  const typographyOverrides: string[] = [];
 
-  // Collect text token overrides
-  for (const [tokenName, def] of Object.entries(config.text)) {
-    const themeColors = def.theme[themeName];
-    if (themeColors) {
-      const name = useNewNames ? def.newName : tokenName;
-      overrides.push(
-        `    --text-color-${name}: ${lightDark(themeColors.light, themeColors.dark)};`,
-      );
-    }
-  }
-
-  // Collect color token overrides
-  for (const [tokenName, def] of Object.entries(config.color)) {
-    const themeColors = def.theme[themeName];
-    if (themeColors) {
-      const name = useNewNames ? def.newName : tokenName;
-      overrides.push(
-        `    --color-${name}: ${lightDark(themeColors.light, themeColors.dark)};`,
-      );
-    }
-  }
-
-  // Collect typography token overrides
   if (config.typography) {
     for (const [tokenName, def] of Object.entries(config.typography)) {
       const themeValue = def.theme[themeName];
       if (themeValue) {
         const name = useNewNames && def.newName ? def.newName : tokenName;
-        overrides.push(`    --text-${name}: ${themeValue};`);
+        typographyOverrides.push(`    --text-${name}: ${themeValue};`);
       }
     }
   }
 
-  if (overrides.length === 0) {
+  const { textEntries, colorEntries } = collectThemeEntries(
+    config,
+    themeName,
+    useNewNames,
+  );
+
+  if (
+    typographyOverrides.length === 0 &&
+    textEntries.length === 0 &&
+    colorEntries.length === 0
+  ) {
     return `${GENERATED_FILE_HEADER}/* No overrides for ${themeName} theme */\n`;
   }
 
-  const lines = [
-    GENERATED_FILE_HEADER,
-    "@layer base {",
-    `  [data-theme="${themeName}"] {`,
-    ...overrides,
-    "  }",
-    "}",
-  ];
+  if (typographyOverrides.length > 0) {
+    lines.push("@layer base {");
+    lines.push(`  [data-theme="${themeName}"] {`);
+    lines.push(...typographyOverrides);
+    lines.push("  }");
+    lines.push("}");
+  }
 
-  pushModeScopedBaseVariables(lines, config, themeName, useNewNames, {
-    wrapInBaseLayer: true,
-  });
+  pushOverrideThemeResolvedVariables(lines, config, themeName, useNewNames);
 
   return `${lines.join("\n")}\n`;
 }

@@ -35,12 +35,18 @@ describe("theme css generator", () => {
   it("emits override theme runtime fallbacks in base layers only", () => {
     const css = generateThemeOverrideCSS(THEME_CONFIG, "fedramp");
 
-    expect(countOccurrences(css, "@layer base {")).toBe(2);
-    expect(css).toContain('  [data-theme="fedramp"] {');
+    expect(countOccurrences(css, "@layer base {")).toBe(1);
+    expect(css).toContain('[data-theme="fedramp"] {');
+    expect(css).toContain("@media (prefers-color-scheme: dark) {");
+    expect(css).toContain(
+      '  [data-mode="light"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="light"], [data-theme="fedramp"] [data-mode="light"] {',
+    );
     expect(css).toContain(
       '  [data-mode="dark"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="dark"], [data-theme="fedramp"] [data-mode="dark"] {',
     );
     expect(css).not.toMatch(/\n\[data-theme="fedramp"\] \{/);
+    expect(css).not.toContain("--color-kumo-surface: light-dark(");
+    expect(css).toContain("--_color-kumo-surface: #5b697c;");
   });
 
   it("builds exportable theme metadata from config", () => {
