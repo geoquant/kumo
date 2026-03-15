@@ -7,80 +7,47 @@
  */
 
 
+/* Public semantic tokens consumed by Tailwind utilities and consumers.
+ * These stay stable while internal vars below handle mode resolution. */
 @theme {
   --text-color-kumo-default: var(--_text-color-kumo-default);
-
   --text-color-kumo-inverse: var(--_text-color-kumo-inverse);
-
   --text-color-kumo-strong: var(--_text-color-kumo-strong);
-
   --text-color-kumo-subtle: var(--_text-color-kumo-subtle);
-
   --text-color-kumo-inactive: var(--_text-color-kumo-inactive);
-
   --text-color-kumo-brand: var(--_text-color-kumo-brand);
-
   --text-color-kumo-link: var(--_text-color-kumo-link);
-
   --text-color-kumo-success: var(--_text-color-kumo-success);
-
   --text-color-kumo-danger: var(--_text-color-kumo-danger);
-
   --text-color-kumo-warning: var(--_text-color-kumo-warning);
-
 }
 
 @theme {
   --color-kumo-surface: var(--_color-kumo-surface);
-
   --color-kumo-recessed: var(--_color-kumo-recessed);
-
   --color-kumo-base: var(--_color-kumo-base);
-
   --color-kumo-tint: var(--_color-kumo-tint);
-
   --color-kumo-contrast: var(--_color-kumo-contrast);
-
   --color-kumo-elevated: var(--_color-kumo-elevated);
-
   --color-kumo-overlay: var(--_color-kumo-overlay);
-
   --color-kumo-control: var(--_color-kumo-control);
-
   --color-kumo-interact: var(--_color-kumo-interact);
-
   --color-kumo-fill: var(--_color-kumo-fill);
-
   --color-kumo-fill-hover: var(--_color-kumo-fill-hover);
-
   --color-kumo-brand: var(--_color-kumo-brand);
-
   --color-kumo-brand-hover: var(--_color-kumo-brand-hover);
-
   --color-kumo-line: var(--_color-kumo-line);
-
   --color-kumo-ring: var(--_color-kumo-ring);
-
   --color-kumo-tip-shadow: var(--_color-kumo-tip-shadow);
-
   --color-kumo-tip-stroke: var(--_color-kumo-tip-stroke);
-
   --color-kumo-info: var(--_color-kumo-info);
-
   --color-kumo-info-tint: var(--_color-kumo-info-tint);
-
   --color-kumo-warning: var(--_color-kumo-warning);
-
   --color-kumo-warning-tint: var(--_color-kumo-warning-tint);
-
   --color-kumo-danger: var(--_color-kumo-danger);
-
   --color-kumo-danger-tint: var(--_color-kumo-danger-tint);
-
   --color-kumo-success: var(--_color-kumo-success);
-
   --color-kumo-success-tint: var(--_color-kumo-success-tint);
-
 }
 
 @theme {
@@ -96,157 +63,234 @@
 }
 
 @layer base {
+  /* Internal theme plumbing for the base kumo theme.
+   * `*-light` / `*-dark` vars store raw values from config.ts once.
+   * Resolved vars without the suffix are what public `@theme` tokens read. */
+  /* Default light mapping for root and unscoped kumo usage. */
   :root, [data-theme="kumo"] {
-    --_text-color-kumo-default: var(--color-neutral-900, oklch(21% 0.006 285.885));
-    --_text-color-kumo-inverse: var(--color-neutral-100, oklch(97% 0 0));
-    --_text-color-kumo-strong: var(--color-neutral-600, oklch(43.9% 0 0));
-    --_text-color-kumo-subtle: var(--color-neutral-500, oklch(55.6% 0 0));
-    --_text-color-kumo-inactive: var(--color-neutral-400, oklch(70.8% 0 0));
-    --_text-color-kumo-brand: #f6821f;
-    --_text-color-kumo-link: var(--color-blue-800, oklch(42.4% 0.199 265.638));
-    --_text-color-kumo-success: var(--color-green-500, oklch(72.3% 0.219 149.579));
-    --_text-color-kumo-danger: var(--color-red-500, oklch(63.7% 0.237 25.331));
-    --_text-color-kumo-warning: var(--color-yellow-800, oklch(47.6% 0.114 61.907));
-    --_color-kumo-surface: var(--color-kumo-neutral-25, oklch(99% 0 0));
-    --_color-kumo-recessed: var(--color-kumo-neutral-50, oklch(97.5% 0 0));
-    --_color-kumo-base: var(--color-white, #fff);
-    --_color-kumo-tint: var(--color-kumo-neutral-75, oklch(96.7% 0 0));
-    --_color-kumo-contrast: var(--color-kumo-neutral-975, oklch(8.5% 0 0));
-    --_color-kumo-elevated: var(--color-kumo-neutral-25, oklch(98.5% 0 0));
-    --_color-kumo-overlay: var(--color-kumo-neutral-50, oklch(97.5% 0 0));
-    --_color-kumo-control: var(--color-white, #fff);
-    --_color-kumo-interact: var(--color-neutral-300, oklch(87% 0 0));
-    --_color-kumo-fill: var(--color-neutral-200, oklch(92.2% 0 0));
-    --_color-kumo-fill-hover: var(--color-neutral-200, oklch(92.2% 0 0));
-    --_color-kumo-brand: oklch(0.5772 0.2324 260);
-    --_color-kumo-brand-hover: var(--color-blue-700, oklch(48.8% 0.243 264.376));
-    --_color-kumo-line: oklch(14.5% 0 0 / 0.1);
-    --_color-kumo-ring: var(--color-kumo-neutral-150, oklch(93.5% 0 0));
-    --_color-kumo-tip-shadow: var(--color-gray-200, oklch(92.8% 0.006 264.531));
-    --_color-kumo-tip-stroke: transparent;
-    --_color-kumo-info: var(--color-blue-500, oklch(62.3% 0.214 259.815));
-    --_color-kumo-info-tint: var(--color-blue-300, oklch(80.9% 0.105 251.813));
-    --_color-kumo-warning: var(--color-yellow-500, oklch(79.5% 0.184 86.047));
-    --_color-kumo-warning-tint: var(--color-yellow-300, oklch(90.5% 0.182 98.111));
-    --_color-kumo-danger: var(--color-red-500, oklch(63.7% 0.237 25.331));
-    --_color-kumo-danger-tint: var(--color-red-300, oklch(80.8% 0.114 19.571));
-    --_color-kumo-success: var(--color-green-500, oklch(72.3% 0.219 149.579));
-    --_color-kumo-success-tint: var(--color-green-300, oklch(87.1% 0.15 154.449));
+    --_text-color-kumo-default-light: var(--color-neutral-900, oklch(21% 0.006 285.885));
+    --_text-color-kumo-default-dark: var(--color-neutral-100, oklch(97% 0 0));
+    --_text-color-kumo-default: var(--_text-color-kumo-default-light);
+    --_text-color-kumo-inverse-light: var(--color-neutral-100, oklch(97% 0 0));
+    --_text-color-kumo-inverse-dark: var(--color-neutral-900, oklch(20.5% 0 0));
+    --_text-color-kumo-inverse: var(--_text-color-kumo-inverse-light);
+    --_text-color-kumo-strong-light: var(--color-neutral-600, oklch(43.9% 0 0));
+    --_text-color-kumo-strong-dark: var(--color-neutral-400, oklch(70.8% 0 0));
+    --_text-color-kumo-strong: var(--_text-color-kumo-strong-light);
+    --_text-color-kumo-subtle-light: var(--color-neutral-500, oklch(55.6% 0 0));
+    --_text-color-kumo-subtle-dark: var(--color-kumo-neutral-50, oklch(97.5% 0 0));
+    --_text-color-kumo-subtle: var(--_text-color-kumo-subtle-light);
+    --_text-color-kumo-inactive-light: var(--color-neutral-400, oklch(70.8% 0 0));
+    --_text-color-kumo-inactive-dark: var(--color-neutral-600, oklch(70.8% 0 0));
+    --_text-color-kumo-inactive: var(--_text-color-kumo-inactive-light);
+    --_text-color-kumo-brand-light: #f6821f;
+    --_text-color-kumo-brand-dark: #f6821f;
+    --_text-color-kumo-brand: var(--_text-color-kumo-brand-light);
+    --_text-color-kumo-link-light: var(--color-blue-800, oklch(42.4% 0.199 265.638));
+    --_text-color-kumo-link-dark: var(--color-blue-400, oklch(70.7% 0.165 254.624));
+    --_text-color-kumo-link: var(--_text-color-kumo-link-light);
+    --_text-color-kumo-success-light: var(--color-green-500, oklch(72.3% 0.219 149.579));
+    --_text-color-kumo-success-dark: var(--color-green-400, oklch(79.2% 0.209 151.711));
+    --_text-color-kumo-success: var(--_text-color-kumo-success-light);
+    --_text-color-kumo-danger-light: var(--color-red-500, oklch(63.7% 0.237 25.331));
+    --_text-color-kumo-danger-dark: var(--color-red-400, oklch(70.4% 0.191 22.216));
+    --_text-color-kumo-danger: var(--_text-color-kumo-danger-light);
+    --_text-color-kumo-warning-light: var(--color-yellow-800, oklch(47.6% 0.114 61.907));
+    --_text-color-kumo-warning-dark: var(--color-yellow-400, oklch(85.2% 0.199 91.936));
+    --_text-color-kumo-warning: var(--_text-color-kumo-warning-light);
+    --_color-kumo-surface-light: var(--color-kumo-neutral-25, oklch(99% 0 0));
+    --_color-kumo-surface-dark: var(--color-kumo-neutral-975, oklch(8.5% 0 0));
+    --_color-kumo-surface: var(--_color-kumo-surface-light);
+    --_color-kumo-recessed-light: var(--color-kumo-neutral-50, oklch(97.5% 0 0));
+    --_color-kumo-recessed-dark: var(--color-kumo-neutral-925, oklch(18% 0 0));
+    --_color-kumo-recessed: var(--_color-kumo-recessed-light);
+    --_color-kumo-base-light: var(--color-white, #fff);
+    --_color-kumo-base-dark: var(--color-kumo-neutral-850, oklch(22.4% 0 0));
+    --_color-kumo-base: var(--_color-kumo-base-light);
+    --_color-kumo-tint-light: var(--color-kumo-neutral-75, oklch(96.7% 0 0));
+    --_color-kumo-tint-dark: var(--color-kumo-neutral-800, oklch(26.9% 0 0));
+    --_color-kumo-tint: var(--_color-kumo-tint-light);
+    --_color-kumo-contrast-light: var(--color-kumo-neutral-975, oklch(8.5% 0 0));
+    --_color-kumo-contrast-dark: var(--color-kumo-neutral-25, oklch(99% 0 0));
+    --_color-kumo-contrast: var(--_color-kumo-contrast-light);
+    --_color-kumo-elevated-light: var(--color-kumo-neutral-25, oklch(98.5% 0 0));
+    --_color-kumo-elevated-dark: var(--color-neutral-950, oklch(14.5% 0 0));
+    --_color-kumo-elevated: var(--_color-kumo-elevated-light);
+    --_color-kumo-overlay-light: var(--color-kumo-neutral-50, oklch(97.5% 0 0));
+    --_color-kumo-overlay-dark: var(--color-neutral-800, oklch(26.9% 0 0));
+    --_color-kumo-overlay: var(--_color-kumo-overlay-light);
+    --_color-kumo-control-light: var(--color-white, #fff);
+    --_color-kumo-control-dark: var(--color-neutral-900, oklch(21% 0.006 285.885));
+    --_color-kumo-control: var(--_color-kumo-control-light);
+    --_color-kumo-interact-light: var(--color-neutral-300, oklch(87% 0 0));
+    --_color-kumo-interact-dark: var(--color-neutral-700, oklch(37.1% 0 0));
+    --_color-kumo-interact: var(--_color-kumo-interact-light);
+    --_color-kumo-fill-light: var(--color-neutral-200, oklch(92.2% 0 0));
+    --_color-kumo-fill-dark: var(--color-neutral-800, oklch(26.9% 0 0));
+    --_color-kumo-fill: var(--_color-kumo-fill-light);
+    --_color-kumo-fill-hover-light: var(--color-neutral-200, oklch(92.2% 0 0));
+    --_color-kumo-fill-hover-dark: var(--color-neutral-700, oklch(37.1% 0 0));
+    --_color-kumo-fill-hover: var(--_color-kumo-fill-hover-light);
+    --_color-kumo-brand-light: oklch(0.5772 0.2324 260);
+    --_color-kumo-brand-dark: oklch(0.5772 0.2324 260);
+    --_color-kumo-brand: var(--_color-kumo-brand-light);
+    --_color-kumo-brand-hover-light: var(--color-blue-700, oklch(48.8% 0.243 264.376));
+    --_color-kumo-brand-hover-dark: var(--color-blue-700, oklch(48.8% 0.243 264.376));
+    --_color-kumo-brand-hover: var(--_color-kumo-brand-hover-light);
+    --_color-kumo-line-light: oklch(14.5% 0 0 / 0.1);
+    --_color-kumo-line-dark: var(--color-neutral-800, oklch(26.9% 0 0));
+    --_color-kumo-line: var(--_color-kumo-line-light);
+    --_color-kumo-ring-light: var(--color-kumo-neutral-150, oklch(93.5% 0 0));
+    --_color-kumo-ring-dark: var(--color-neutral-700, oklch(37.1% 0 0));
+    --_color-kumo-ring: var(--_color-kumo-ring-light);
+    --_color-kumo-tip-shadow-light: var(--color-gray-200, oklch(92.8% 0.006 264.531));
+    --_color-kumo-tip-shadow-dark: transparent;
+    --_color-kumo-tip-shadow: var(--_color-kumo-tip-shadow-light);
+    --_color-kumo-tip-stroke-light: transparent;
+    --_color-kumo-tip-stroke-dark: var(--color-neutral-800, oklch(26.9% 0 0));
+    --_color-kumo-tip-stroke: var(--_color-kumo-tip-stroke-light);
+    --_color-kumo-info-light: var(--color-blue-500, oklch(62.3% 0.214 259.815));
+    --_color-kumo-info-dark: var(--color-blue-400, oklch(70.7% 0.165 254.624));
+    --_color-kumo-info: var(--_color-kumo-info-light);
+    --_color-kumo-info-tint-light: var(--color-blue-300, oklch(80.9% 0.105 251.813));
+    --_color-kumo-info-tint-dark: var(--color-blue-900, oklch(37.9% 0.146 265.522));
+    --_color-kumo-info-tint: var(--_color-kumo-info-tint-light);
+    --_color-kumo-warning-light: var(--color-yellow-500, oklch(79.5% 0.184 86.047));
+    --_color-kumo-warning-dark: var(--color-yellow-700, oklch(55.4% 0.135 66.442));
+    --_color-kumo-warning: var(--_color-kumo-warning-light);
+    --_color-kumo-warning-tint-light: var(--color-yellow-300, oklch(90.5% 0.182 98.111));
+    --_color-kumo-warning-tint-dark: var(--color-yellow-900, oklch(42.1% 0.095 57.708));
+    --_color-kumo-warning-tint: var(--_color-kumo-warning-tint-light);
+    --_color-kumo-danger-light: var(--color-red-500, oklch(63.7% 0.237 25.331));
+    --_color-kumo-danger-dark: var(--color-red-700, oklch(50.5% 0.213 27.518));
+    --_color-kumo-danger: var(--_color-kumo-danger-light);
+    --_color-kumo-danger-tint-light: var(--color-red-300, oklch(80.8% 0.114 19.571));
+    --_color-kumo-danger-tint-dark: var(--color-red-900, oklch(39.6% 0.141 25.723));
+    --_color-kumo-danger-tint: var(--_color-kumo-danger-tint-light);
+    --_color-kumo-success-light: var(--color-green-500, oklch(72.3% 0.219 149.579));
+    --_color-kumo-success-dark: var(--color-green-700, oklch(52.7% 0.154 150.069));
+    --_color-kumo-success: var(--_color-kumo-success-light);
+    --_color-kumo-success-tint-light: var(--color-green-300, oklch(87.1% 0.15 154.449));
+    --_color-kumo-success-tint-dark: var(--color-green-900, oklch(39.3% 0.095 152.535));
+    --_color-kumo-success-tint: var(--_color-kumo-success-tint-light);
   }
   
   @media (prefers-color-scheme: dark) {
+    /* System dark mapping when no explicit `data-mode` is set. */
     :root:not([data-mode]), [data-theme="kumo"] {
-      --_text-color-kumo-default: var(--color-neutral-100, oklch(97% 0 0));
-      --_text-color-kumo-inverse: var(--color-neutral-900, oklch(20.5% 0 0));
-      --_text-color-kumo-strong: var(--color-neutral-400, oklch(70.8% 0 0));
-      --_text-color-kumo-subtle: var(--color-kumo-neutral-50, oklch(97.5% 0 0));
-      --_text-color-kumo-inactive: var(--color-neutral-600, oklch(70.8% 0 0));
-      --_text-color-kumo-brand: #f6821f;
-      --_text-color-kumo-link: var(--color-blue-400, oklch(70.7% 0.165 254.624));
-      --_text-color-kumo-success: var(--color-green-400, oklch(79.2% 0.209 151.711));
-      --_text-color-kumo-danger: var(--color-red-400, oklch(70.4% 0.191 22.216));
-      --_text-color-kumo-warning: var(--color-yellow-400, oklch(85.2% 0.199 91.936));
-      --_color-kumo-surface: var(--color-kumo-neutral-975, oklch(8.5% 0 0));
-      --_color-kumo-recessed: var(--color-kumo-neutral-925, oklch(18% 0 0));
-      --_color-kumo-base: var(--color-kumo-neutral-850, oklch(22.4% 0 0));
-      --_color-kumo-tint: var(--color-kumo-neutral-800, oklch(26.9% 0 0));
-      --_color-kumo-contrast: var(--color-kumo-neutral-25, oklch(99% 0 0));
-      --_color-kumo-elevated: var(--color-neutral-950, oklch(14.5% 0 0));
-      --_color-kumo-overlay: var(--color-neutral-800, oklch(26.9% 0 0));
-      --_color-kumo-control: var(--color-neutral-900, oklch(21% 0.006 285.885));
-      --_color-kumo-interact: var(--color-neutral-700, oklch(37.1% 0 0));
-      --_color-kumo-fill: var(--color-neutral-800, oklch(26.9% 0 0));
-      --_color-kumo-fill-hover: var(--color-neutral-700, oklch(37.1% 0 0));
-      --_color-kumo-brand: oklch(0.5772 0.2324 260);
-      --_color-kumo-brand-hover: var(--color-blue-700, oklch(48.8% 0.243 264.376));
-      --_color-kumo-line: var(--color-neutral-800, oklch(26.9% 0 0));
-      --_color-kumo-ring: var(--color-neutral-700, oklch(37.1% 0 0));
-      --_color-kumo-tip-shadow: transparent;
-      --_color-kumo-tip-stroke: var(--color-neutral-800, oklch(26.9% 0 0));
-      --_color-kumo-info: var(--color-blue-400, oklch(70.7% 0.165 254.624));
-      --_color-kumo-info-tint: var(--color-blue-900, oklch(37.9% 0.146 265.522));
-      --_color-kumo-warning: var(--color-yellow-700, oklch(55.4% 0.135 66.442));
-      --_color-kumo-warning-tint: var(--color-yellow-900, oklch(42.1% 0.095 57.708));
-      --_color-kumo-danger: var(--color-red-700, oklch(50.5% 0.213 27.518));
-      --_color-kumo-danger-tint: var(--color-red-900, oklch(39.6% 0.141 25.723));
-      --_color-kumo-success: var(--color-green-700, oklch(52.7% 0.154 150.069));
-      --_color-kumo-success-tint: var(--color-green-900, oklch(39.3% 0.095 152.535));
+      --_text-color-kumo-default: var(--_text-color-kumo-default-dark);
+      --_text-color-kumo-inverse: var(--_text-color-kumo-inverse-dark);
+      --_text-color-kumo-strong: var(--_text-color-kumo-strong-dark);
+      --_text-color-kumo-subtle: var(--_text-color-kumo-subtle-dark);
+      --_text-color-kumo-inactive: var(--_text-color-kumo-inactive-dark);
+      --_text-color-kumo-brand: var(--_text-color-kumo-brand-dark);
+      --_text-color-kumo-link: var(--_text-color-kumo-link-dark);
+      --_text-color-kumo-success: var(--_text-color-kumo-success-dark);
+      --_text-color-kumo-danger: var(--_text-color-kumo-danger-dark);
+      --_text-color-kumo-warning: var(--_text-color-kumo-warning-dark);
+      --_color-kumo-surface: var(--_color-kumo-surface-dark);
+      --_color-kumo-recessed: var(--_color-kumo-recessed-dark);
+      --_color-kumo-base: var(--_color-kumo-base-dark);
+      --_color-kumo-tint: var(--_color-kumo-tint-dark);
+      --_color-kumo-contrast: var(--_color-kumo-contrast-dark);
+      --_color-kumo-elevated: var(--_color-kumo-elevated-dark);
+      --_color-kumo-overlay: var(--_color-kumo-overlay-dark);
+      --_color-kumo-control: var(--_color-kumo-control-dark);
+      --_color-kumo-interact: var(--_color-kumo-interact-dark);
+      --_color-kumo-fill: var(--_color-kumo-fill-dark);
+      --_color-kumo-fill-hover: var(--_color-kumo-fill-hover-dark);
+      --_color-kumo-brand: var(--_color-kumo-brand-dark);
+      --_color-kumo-brand-hover: var(--_color-kumo-brand-hover-dark);
+      --_color-kumo-line: var(--_color-kumo-line-dark);
+      --_color-kumo-ring: var(--_color-kumo-ring-dark);
+      --_color-kumo-tip-shadow: var(--_color-kumo-tip-shadow-dark);
+      --_color-kumo-tip-stroke: var(--_color-kumo-tip-stroke-dark);
+      --_color-kumo-info: var(--_color-kumo-info-dark);
+      --_color-kumo-info-tint: var(--_color-kumo-info-tint-dark);
+      --_color-kumo-warning: var(--_color-kumo-warning-dark);
+      --_color-kumo-warning-tint: var(--_color-kumo-warning-tint-dark);
+      --_color-kumo-danger: var(--_color-kumo-danger-dark);
+      --_color-kumo-danger-tint: var(--_color-kumo-danger-tint-dark);
+      --_color-kumo-success: var(--_color-kumo-success-dark);
+      --_color-kumo-success-tint: var(--_color-kumo-success-tint-dark);
     }
   }
   
+  /* Explicit light override, even inside dark parent scopes. */
   :root[data-mode="light"], [data-mode="light"]:not([data-theme]), [data-mode="light"] [data-theme="kumo"], [data-theme="kumo"][data-mode="light"], [data-theme="kumo"] [data-mode="light"] {
-    --_text-color-kumo-default: var(--color-neutral-900, oklch(21% 0.006 285.885));
-    --_text-color-kumo-inverse: var(--color-neutral-100, oklch(97% 0 0));
-    --_text-color-kumo-strong: var(--color-neutral-600, oklch(43.9% 0 0));
-    --_text-color-kumo-subtle: var(--color-neutral-500, oklch(55.6% 0 0));
-    --_text-color-kumo-inactive: var(--color-neutral-400, oklch(70.8% 0 0));
-    --_text-color-kumo-brand: #f6821f;
-    --_text-color-kumo-link: var(--color-blue-800, oklch(42.4% 0.199 265.638));
-    --_text-color-kumo-success: var(--color-green-500, oklch(72.3% 0.219 149.579));
-    --_text-color-kumo-danger: var(--color-red-500, oklch(63.7% 0.237 25.331));
-    --_text-color-kumo-warning: var(--color-yellow-800, oklch(47.6% 0.114 61.907));
-    --_color-kumo-surface: var(--color-kumo-neutral-25, oklch(99% 0 0));
-    --_color-kumo-recessed: var(--color-kumo-neutral-50, oklch(97.5% 0 0));
-    --_color-kumo-base: var(--color-white, #fff);
-    --_color-kumo-tint: var(--color-kumo-neutral-75, oklch(96.7% 0 0));
-    --_color-kumo-contrast: var(--color-kumo-neutral-975, oklch(8.5% 0 0));
-    --_color-kumo-elevated: var(--color-kumo-neutral-25, oklch(98.5% 0 0));
-    --_color-kumo-overlay: var(--color-kumo-neutral-50, oklch(97.5% 0 0));
-    --_color-kumo-control: var(--color-white, #fff);
-    --_color-kumo-interact: var(--color-neutral-300, oklch(87% 0 0));
-    --_color-kumo-fill: var(--color-neutral-200, oklch(92.2% 0 0));
-    --_color-kumo-fill-hover: var(--color-neutral-200, oklch(92.2% 0 0));
-    --_color-kumo-brand: oklch(0.5772 0.2324 260);
-    --_color-kumo-brand-hover: var(--color-blue-700, oklch(48.8% 0.243 264.376));
-    --_color-kumo-line: oklch(14.5% 0 0 / 0.1);
-    --_color-kumo-ring: var(--color-kumo-neutral-150, oklch(93.5% 0 0));
-    --_color-kumo-tip-shadow: var(--color-gray-200, oklch(92.8% 0.006 264.531));
-    --_color-kumo-tip-stroke: transparent;
-    --_color-kumo-info: var(--color-blue-500, oklch(62.3% 0.214 259.815));
-    --_color-kumo-info-tint: var(--color-blue-300, oklch(80.9% 0.105 251.813));
-    --_color-kumo-warning: var(--color-yellow-500, oklch(79.5% 0.184 86.047));
-    --_color-kumo-warning-tint: var(--color-yellow-300, oklch(90.5% 0.182 98.111));
-    --_color-kumo-danger: var(--color-red-500, oklch(63.7% 0.237 25.331));
-    --_color-kumo-danger-tint: var(--color-red-300, oklch(80.8% 0.114 19.571));
-    --_color-kumo-success: var(--color-green-500, oklch(72.3% 0.219 149.579));
-    --_color-kumo-success-tint: var(--color-green-300, oklch(87.1% 0.15 154.449));
+    --_text-color-kumo-default: var(--_text-color-kumo-default-light);
+    --_text-color-kumo-inverse: var(--_text-color-kumo-inverse-light);
+    --_text-color-kumo-strong: var(--_text-color-kumo-strong-light);
+    --_text-color-kumo-subtle: var(--_text-color-kumo-subtle-light);
+    --_text-color-kumo-inactive: var(--_text-color-kumo-inactive-light);
+    --_text-color-kumo-brand: var(--_text-color-kumo-brand-light);
+    --_text-color-kumo-link: var(--_text-color-kumo-link-light);
+    --_text-color-kumo-success: var(--_text-color-kumo-success-light);
+    --_text-color-kumo-danger: var(--_text-color-kumo-danger-light);
+    --_text-color-kumo-warning: var(--_text-color-kumo-warning-light);
+    --_color-kumo-surface: var(--_color-kumo-surface-light);
+    --_color-kumo-recessed: var(--_color-kumo-recessed-light);
+    --_color-kumo-base: var(--_color-kumo-base-light);
+    --_color-kumo-tint: var(--_color-kumo-tint-light);
+    --_color-kumo-contrast: var(--_color-kumo-contrast-light);
+    --_color-kumo-elevated: var(--_color-kumo-elevated-light);
+    --_color-kumo-overlay: var(--_color-kumo-overlay-light);
+    --_color-kumo-control: var(--_color-kumo-control-light);
+    --_color-kumo-interact: var(--_color-kumo-interact-light);
+    --_color-kumo-fill: var(--_color-kumo-fill-light);
+    --_color-kumo-fill-hover: var(--_color-kumo-fill-hover-light);
+    --_color-kumo-brand: var(--_color-kumo-brand-light);
+    --_color-kumo-brand-hover: var(--_color-kumo-brand-hover-light);
+    --_color-kumo-line: var(--_color-kumo-line-light);
+    --_color-kumo-ring: var(--_color-kumo-ring-light);
+    --_color-kumo-tip-shadow: var(--_color-kumo-tip-shadow-light);
+    --_color-kumo-tip-stroke: var(--_color-kumo-tip-stroke-light);
+    --_color-kumo-info: var(--_color-kumo-info-light);
+    --_color-kumo-info-tint: var(--_color-kumo-info-tint-light);
+    --_color-kumo-warning: var(--_color-kumo-warning-light);
+    --_color-kumo-warning-tint: var(--_color-kumo-warning-tint-light);
+    --_color-kumo-danger: var(--_color-kumo-danger-light);
+    --_color-kumo-danger-tint: var(--_color-kumo-danger-tint-light);
+    --_color-kumo-success: var(--_color-kumo-success-light);
+    --_color-kumo-success-tint: var(--_color-kumo-success-tint-light);
   }
   
+  /* Explicit dark override, even inside light parent scopes. */
   :root[data-mode="dark"], [data-mode="dark"]:not([data-theme]), [data-mode="dark"] [data-theme="kumo"], [data-theme="kumo"][data-mode="dark"], [data-theme="kumo"] [data-mode="dark"] {
-    --_text-color-kumo-default: var(--color-neutral-100, oklch(97% 0 0));
-    --_text-color-kumo-inverse: var(--color-neutral-900, oklch(20.5% 0 0));
-    --_text-color-kumo-strong: var(--color-neutral-400, oklch(70.8% 0 0));
-    --_text-color-kumo-subtle: var(--color-kumo-neutral-50, oklch(97.5% 0 0));
-    --_text-color-kumo-inactive: var(--color-neutral-600, oklch(70.8% 0 0));
-    --_text-color-kumo-brand: #f6821f;
-    --_text-color-kumo-link: var(--color-blue-400, oklch(70.7% 0.165 254.624));
-    --_text-color-kumo-success: var(--color-green-400, oklch(79.2% 0.209 151.711));
-    --_text-color-kumo-danger: var(--color-red-400, oklch(70.4% 0.191 22.216));
-    --_text-color-kumo-warning: var(--color-yellow-400, oklch(85.2% 0.199 91.936));
-    --_color-kumo-surface: var(--color-kumo-neutral-975, oklch(8.5% 0 0));
-    --_color-kumo-recessed: var(--color-kumo-neutral-925, oklch(18% 0 0));
-    --_color-kumo-base: var(--color-kumo-neutral-850, oklch(22.4% 0 0));
-    --_color-kumo-tint: var(--color-kumo-neutral-800, oklch(26.9% 0 0));
-    --_color-kumo-contrast: var(--color-kumo-neutral-25, oklch(99% 0 0));
-    --_color-kumo-elevated: var(--color-neutral-950, oklch(14.5% 0 0));
-    --_color-kumo-overlay: var(--color-neutral-800, oklch(26.9% 0 0));
-    --_color-kumo-control: var(--color-neutral-900, oklch(21% 0.006 285.885));
-    --_color-kumo-interact: var(--color-neutral-700, oklch(37.1% 0 0));
-    --_color-kumo-fill: var(--color-neutral-800, oklch(26.9% 0 0));
-    --_color-kumo-fill-hover: var(--color-neutral-700, oklch(37.1% 0 0));
-    --_color-kumo-brand: oklch(0.5772 0.2324 260);
-    --_color-kumo-brand-hover: var(--color-blue-700, oklch(48.8% 0.243 264.376));
-    --_color-kumo-line: var(--color-neutral-800, oklch(26.9% 0 0));
-    --_color-kumo-ring: var(--color-neutral-700, oklch(37.1% 0 0));
-    --_color-kumo-tip-shadow: transparent;
-    --_color-kumo-tip-stroke: var(--color-neutral-800, oklch(26.9% 0 0));
-    --_color-kumo-info: var(--color-blue-400, oklch(70.7% 0.165 254.624));
-    --_color-kumo-info-tint: var(--color-blue-900, oklch(37.9% 0.146 265.522));
-    --_color-kumo-warning: var(--color-yellow-700, oklch(55.4% 0.135 66.442));
-    --_color-kumo-warning-tint: var(--color-yellow-900, oklch(42.1% 0.095 57.708));
-    --_color-kumo-danger: var(--color-red-700, oklch(50.5% 0.213 27.518));
-    --_color-kumo-danger-tint: var(--color-red-900, oklch(39.6% 0.141 25.723));
-    --_color-kumo-success: var(--color-green-700, oklch(52.7% 0.154 150.069));
-    --_color-kumo-success-tint: var(--color-green-900, oklch(39.3% 0.095 152.535));
+    --_text-color-kumo-default: var(--_text-color-kumo-default-dark);
+    --_text-color-kumo-inverse: var(--_text-color-kumo-inverse-dark);
+    --_text-color-kumo-strong: var(--_text-color-kumo-strong-dark);
+    --_text-color-kumo-subtle: var(--_text-color-kumo-subtle-dark);
+    --_text-color-kumo-inactive: var(--_text-color-kumo-inactive-dark);
+    --_text-color-kumo-brand: var(--_text-color-kumo-brand-dark);
+    --_text-color-kumo-link: var(--_text-color-kumo-link-dark);
+    --_text-color-kumo-success: var(--_text-color-kumo-success-dark);
+    --_text-color-kumo-danger: var(--_text-color-kumo-danger-dark);
+    --_text-color-kumo-warning: var(--_text-color-kumo-warning-dark);
+    --_color-kumo-surface: var(--_color-kumo-surface-dark);
+    --_color-kumo-recessed: var(--_color-kumo-recessed-dark);
+    --_color-kumo-base: var(--_color-kumo-base-dark);
+    --_color-kumo-tint: var(--_color-kumo-tint-dark);
+    --_color-kumo-contrast: var(--_color-kumo-contrast-dark);
+    --_color-kumo-elevated: var(--_color-kumo-elevated-dark);
+    --_color-kumo-overlay: var(--_color-kumo-overlay-dark);
+    --_color-kumo-control: var(--_color-kumo-control-dark);
+    --_color-kumo-interact: var(--_color-kumo-interact-dark);
+    --_color-kumo-fill: var(--_color-kumo-fill-dark);
+    --_color-kumo-fill-hover: var(--_color-kumo-fill-hover-dark);
+    --_color-kumo-brand: var(--_color-kumo-brand-dark);
+    --_color-kumo-brand-hover: var(--_color-kumo-brand-hover-dark);
+    --_color-kumo-line: var(--_color-kumo-line-dark);
+    --_color-kumo-ring: var(--_color-kumo-ring-dark);
+    --_color-kumo-tip-shadow: var(--_color-kumo-tip-shadow-dark);
+    --_color-kumo-tip-stroke: var(--_color-kumo-tip-stroke-dark);
+    --_color-kumo-info: var(--_color-kumo-info-dark);
+    --_color-kumo-info-tint: var(--_color-kumo-info-tint-dark);
+    --_color-kumo-warning: var(--_color-kumo-warning-dark);
+    --_color-kumo-warning-tint: var(--_color-kumo-warning-tint-dark);
+    --_color-kumo-danger: var(--_color-kumo-danger-dark);
+    --_color-kumo-danger-tint: var(--_color-kumo-danger-tint-dark);
+    --_color-kumo-success: var(--_color-kumo-success-dark);
+    --_color-kumo-success-tint: var(--_color-kumo-success-tint-dark);
   }
 }

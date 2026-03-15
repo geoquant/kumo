@@ -38,6 +38,22 @@ function resolvedColorVariable(name: string): string {
   return `--_color-${name}`;
 }
 
+function lightTextSlotVariable(name: string): string {
+  return `--_text-color-${name}-light`;
+}
+
+function darkTextSlotVariable(name: string): string {
+  return `--_text-color-${name}-dark`;
+}
+
+function lightColorSlotVariable(name: string): string {
+  return `--_color-${name}-light`;
+}
+
+function darkColorSlotVariable(name: string): string {
+  return `--_color-${name}-dark`;
+}
+
 function collectThemeEntries(
   config: ThemeConfig,
   themeName: string,
@@ -79,12 +95,17 @@ function pushThemeAliasVariables(
   config: ThemeConfig,
   useNewNames: boolean,
 ): void {
+  lines.push(
+    "/* Public semantic tokens consumed by Tailwind utilities and consumers.",
+  );
+  lines.push(
+    " * These stay stable while internal vars below handle mode resolution. */",
+  );
   lines.push("@theme {");
 
   for (const [tokenName, def] of Object.entries(config.text)) {
     const name = useNewNames ? def.newName : tokenName;
     lines.push(`  --text-color-${name}: var(${resolvedTextVariable(name)});`);
-    lines.push("");
   }
 
   lines.push("}");
@@ -94,7 +115,6 @@ function pushThemeAliasVariables(
   for (const [tokenName, def] of Object.entries(config.color)) {
     const name = useNewNames ? def.newName : tokenName;
     lines.push(`  --color-${name}: var(${resolvedColorVariable(name)});`);
-    lines.push("");
   }
 
   lines.push("}");
@@ -124,41 +144,80 @@ function pushBaseThemeResolvedVariables(
 
   const ruleLines: string[] = [];
 
+  ruleLines.push("/* Internal theme plumbing for the base kumo theme.");
+  ruleLines.push(
+    " * `*-light` / `*-dark` vars store raw values from config.ts once.",
+  );
+  ruleLines.push(
+    " * Resolved vars without the suffix are what public `@theme` tokens read. */",
+  );
+  ruleLines.push(
+    "/* Default light mapping for root and unscoped kumo usage. */",
+  );
   ruleLines.push(`${lightSelector} {`);
   for (const entry of textEntries) {
-    ruleLines.push(`  ${resolvedTextVariable(entry.name)}: ${entry.light};`);
+    ruleLines.push(`  ${lightTextSlotVariable(entry.name)}: ${entry.light};`);
+    ruleLines.push(`  ${darkTextSlotVariable(entry.name)}: ${entry.dark};`);
+    ruleLines.push(
+      `  ${resolvedTextVariable(entry.name)}: var(${lightTextSlotVariable(entry.name)});`,
+    );
   }
   for (const entry of colorEntries) {
-    ruleLines.push(`  ${resolvedColorVariable(entry.name)}: ${entry.light};`);
+    ruleLines.push(`  ${lightColorSlotVariable(entry.name)}: ${entry.light};`);
+    ruleLines.push(`  ${darkColorSlotVariable(entry.name)}: ${entry.dark};`);
+    ruleLines.push(
+      `  ${resolvedColorVariable(entry.name)}: var(${lightColorSlotVariable(entry.name)});`,
+    );
   }
   ruleLines.push("}");
   ruleLines.push("");
   ruleLines.push("@media (prefers-color-scheme: dark) {");
+  ruleLines.push(
+    "  /* System dark mapping when no explicit `data-mode` is set. */",
+  );
   ruleLines.push(`  ${systemDarkSelector} {`);
   for (const entry of textEntries) {
-    ruleLines.push(`    ${resolvedTextVariable(entry.name)}: ${entry.dark};`);
+    ruleLines.push(
+      `    ${resolvedTextVariable(entry.name)}: var(${darkTextSlotVariable(entry.name)});`,
+    );
   }
   for (const entry of colorEntries) {
-    ruleLines.push(`    ${resolvedColorVariable(entry.name)}: ${entry.dark};`);
+    ruleLines.push(
+      `    ${resolvedColorVariable(entry.name)}: var(${darkColorSlotVariable(entry.name)});`,
+    );
   }
   ruleLines.push("  }");
   ruleLines.push("}");
   ruleLines.push("");
+  ruleLines.push(
+    "/* Explicit light override, even inside dark parent scopes. */",
+  );
   ruleLines.push(`${explicitLightSelector} {`);
   for (const entry of textEntries) {
-    ruleLines.push(`  ${resolvedTextVariable(entry.name)}: ${entry.light};`);
+    ruleLines.push(
+      `  ${resolvedTextVariable(entry.name)}: var(${lightTextSlotVariable(entry.name)});`,
+    );
   }
   for (const entry of colorEntries) {
-    ruleLines.push(`  ${resolvedColorVariable(entry.name)}: ${entry.light};`);
+    ruleLines.push(
+      `  ${resolvedColorVariable(entry.name)}: var(${lightColorSlotVariable(entry.name)});`,
+    );
   }
   ruleLines.push("}");
   ruleLines.push("");
+  ruleLines.push(
+    "/* Explicit dark override, even inside light parent scopes. */",
+  );
   ruleLines.push(`${explicitDarkSelector} {`);
   for (const entry of textEntries) {
-    ruleLines.push(`  ${resolvedTextVariable(entry.name)}: ${entry.dark};`);
+    ruleLines.push(
+      `  ${resolvedTextVariable(entry.name)}: var(${darkTextSlotVariable(entry.name)});`,
+    );
   }
   for (const entry of colorEntries) {
-    ruleLines.push(`  ${resolvedColorVariable(entry.name)}: ${entry.dark};`);
+    ruleLines.push(
+      `  ${resolvedColorVariable(entry.name)}: var(${darkColorSlotVariable(entry.name)});`,
+    );
   }
   ruleLines.push("}");
 
@@ -191,41 +250,80 @@ function pushOverrideThemeResolvedVariables(
   const explicitDarkSelector = `[data-mode="dark"] ${themeSelector}, ${themeSelector}[data-mode="dark"], ${themeSelector} [data-mode="dark"]`;
   const ruleLines: string[] = [];
 
+  ruleLines.push(`/* Internal theme plumbing for ${themeName} overrides.`);
+  ruleLines.push(
+    " * Override themes replace the light/dark slots inside their `data-theme` scope,",
+  );
+  ruleLines.push(
+    " * then reuse the same resolved vars and mode selectors as the base theme. */",
+  );
+  ruleLines.push(
+    `/* Default light mapping for ${themeName} within its data-theme scope. */`,
+  );
   ruleLines.push(`${themeSelector} {`);
   for (const entry of textEntries) {
-    ruleLines.push(`  ${resolvedTextVariable(entry.name)}: ${entry.light};`);
+    ruleLines.push(`  ${lightTextSlotVariable(entry.name)}: ${entry.light};`);
+    ruleLines.push(`  ${darkTextSlotVariable(entry.name)}: ${entry.dark};`);
+    ruleLines.push(
+      `  ${resolvedTextVariable(entry.name)}: var(${lightTextSlotVariable(entry.name)});`,
+    );
   }
   for (const entry of colorEntries) {
-    ruleLines.push(`  ${resolvedColorVariable(entry.name)}: ${entry.light};`);
+    ruleLines.push(`  ${lightColorSlotVariable(entry.name)}: ${entry.light};`);
+    ruleLines.push(`  ${darkColorSlotVariable(entry.name)}: ${entry.dark};`);
+    ruleLines.push(
+      `  ${resolvedColorVariable(entry.name)}: var(${lightColorSlotVariable(entry.name)});`,
+    );
   }
   ruleLines.push("}");
   ruleLines.push("");
   ruleLines.push("@media (prefers-color-scheme: dark) {");
+  ruleLines.push(
+    `  /* System dark mapping for ${themeName} when no explicit mode is set. */`,
+  );
   ruleLines.push(`  ${themeSelector} {`);
   for (const entry of textEntries) {
-    ruleLines.push(`    ${resolvedTextVariable(entry.name)}: ${entry.dark};`);
+    ruleLines.push(
+      `    ${resolvedTextVariable(entry.name)}: var(${darkTextSlotVariable(entry.name)});`,
+    );
   }
   for (const entry of colorEntries) {
-    ruleLines.push(`    ${resolvedColorVariable(entry.name)}: ${entry.dark};`);
+    ruleLines.push(
+      `    ${resolvedColorVariable(entry.name)}: var(${darkColorSlotVariable(entry.name)});`,
+    );
   }
   ruleLines.push("  }");
   ruleLines.push("}");
   ruleLines.push("");
+  ruleLines.push(
+    `/* Explicit light override for ${themeName}, even inside dark parent scopes. */`,
+  );
   ruleLines.push(`${explicitLightSelector} {`);
   for (const entry of textEntries) {
-    ruleLines.push(`  ${resolvedTextVariable(entry.name)}: ${entry.light};`);
+    ruleLines.push(
+      `  ${resolvedTextVariable(entry.name)}: var(${lightTextSlotVariable(entry.name)});`,
+    );
   }
   for (const entry of colorEntries) {
-    ruleLines.push(`  ${resolvedColorVariable(entry.name)}: ${entry.light};`);
+    ruleLines.push(
+      `  ${resolvedColorVariable(entry.name)}: var(${lightColorSlotVariable(entry.name)});`,
+    );
   }
   ruleLines.push("}");
   ruleLines.push("");
+  ruleLines.push(
+    `/* Explicit dark override for ${themeName}, even inside light parent scopes. */`,
+  );
   ruleLines.push(`${explicitDarkSelector} {`);
   for (const entry of textEntries) {
-    ruleLines.push(`  ${resolvedTextVariable(entry.name)}: ${entry.dark};`);
+    ruleLines.push(
+      `  ${resolvedTextVariable(entry.name)}: var(${darkTextSlotVariable(entry.name)});`,
+    );
   }
   for (const entry of colorEntries) {
-    ruleLines.push(`  ${resolvedColorVariable(entry.name)}: ${entry.dark};`);
+    ruleLines.push(
+      `  ${resolvedColorVariable(entry.name)}: var(${darkColorSlotVariable(entry.name)});`,
+    );
   }
   ruleLines.push("}");
 

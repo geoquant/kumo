@@ -6,34 +6,44 @@
  * Then run: pnpm codegen:themes
  */
 
-@layer base {
-  [data-theme="fedramp"] {
-    --_color-kumo-surface: #5b697c;
-    --_color-kumo-base: #5b697c;
-    --_color-kumo-ring: #c8d4e5;
-  }
 
+@layer base {
+  /* Internal theme plumbing for fedramp overrides.
+   * Override themes replace the light/dark slots inside their `data-theme` scope,
+   * then reuse the same resolved vars and mode selectors as the base theme. */
+  /* Default light mapping for fedramp within its data-theme scope. */
+  [data-theme="fedramp"] {
+    --_color-kumo-surface-light: #5b697c;
+    --_color-kumo-surface-dark: #5b697c;
+    --_color-kumo-surface: var(--_color-kumo-surface-light);
+    --_color-kumo-base-light: #5b697c;
+    --_color-kumo-base-dark: #5b697c;
+    --_color-kumo-base: var(--_color-kumo-base-light);
+    --_color-kumo-ring-light: #c8d4e5;
+    --_color-kumo-ring-dark: #c8d4e5;
+    --_color-kumo-ring: var(--_color-kumo-ring-light);
+  }
+  
   @media (prefers-color-scheme: dark) {
+    /* System dark mapping for fedramp when no explicit mode is set. */
     [data-theme="fedramp"] {
-      --_color-kumo-surface: #5b697c;
-      --_color-kumo-base: #5b697c;
-      --_color-kumo-ring: #c8d4e5;
+      --_color-kumo-surface: var(--_color-kumo-surface-dark);
+      --_color-kumo-base: var(--_color-kumo-base-dark);
+      --_color-kumo-ring: var(--_color-kumo-ring-dark);
     }
   }
-
-  [data-mode="light"] [data-theme="fedramp"],
-  [data-theme="fedramp"][data-mode="light"],
-  [data-theme="fedramp"] [data-mode="light"] {
-    --_color-kumo-surface: #5b697c;
-    --_color-kumo-base: #5b697c;
-    --_color-kumo-ring: #c8d4e5;
+  
+  /* Explicit light override for fedramp, even inside dark parent scopes. */
+  [data-mode="light"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="light"], [data-theme="fedramp"] [data-mode="light"] {
+    --_color-kumo-surface: var(--_color-kumo-surface-light);
+    --_color-kumo-base: var(--_color-kumo-base-light);
+    --_color-kumo-ring: var(--_color-kumo-ring-light);
   }
-
-  [data-mode="dark"] [data-theme="fedramp"],
-  [data-theme="fedramp"][data-mode="dark"],
-  [data-theme="fedramp"] [data-mode="dark"] {
-    --_color-kumo-surface: #5b697c;
-    --_color-kumo-base: #5b697c;
-    --_color-kumo-ring: #c8d4e5;
+  
+  /* Explicit dark override for fedramp, even inside light parent scopes. */
+  [data-mode="dark"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="dark"], [data-theme="fedramp"] [data-mode="dark"] {
+    --_color-kumo-surface: var(--_color-kumo-surface-dark);
+    --_color-kumo-base: var(--_color-kumo-base-dark);
+    --_color-kumo-ring: var(--_color-kumo-ring-dark);
   }
 }
