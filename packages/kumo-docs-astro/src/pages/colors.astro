@@ -288,21 +288,6 @@ const themePreviewDocs = Object.fromEntries(
       Set <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">data-theme</code> on a parent element to apply a theme.
     </p>
 
-    <div class="mb-6">
-      <h3 class="mb-2 text-lg font-semibold">Available Themes</h3>
-      <ul class="list-inside list-disc space-y-1 text-kumo-strong">
-        {themeSummaries.map((theme) => (
-          <li>
-            <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">{theme.name}</code>
-            {" — "}
-            {theme.name === "kumo"
-              ? "Default theme (no attribute needed)"
-              : `${theme.overrideCount} token overrides`}
-          </li>
-        ))}
-      </ul>
-    </div>
-
     <div class="mb-6 space-y-4">
       <div class="space-y-4">
         {themeSummaries.map((theme) => (
