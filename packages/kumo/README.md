@@ -74,11 +74,29 @@ This imports a fully compiled CSS file with all Tailwind utilities and Kumo styl
 
 - All Tailwind utility classes used by Kumo components
 - Kumo component styles
-- Dark mode support (via `data-mode="dark"` attribute)
+- System-aware color mode defaults, plus optional `data-mode` overrides
 - All animations and keyframes
 - Responsive utilities
 
 **Note:** The standalone CSS is minified and optimized, but will be larger than the Tailwind version since it includes all utilities.
+
+#### Color Mode Contract
+
+Kumo handles color mode in CSS. You do not need a boot script just to make semantic tokens follow the user's system preference.
+
+```tsx
+// Default: follow the browser / system preference
+<html data-theme="kumo">
+
+// Optional overrides
+<html data-theme="kumo" data-mode="light">
+<html data-theme="kumo" data-mode="dark">
+```
+
+- Omit `data-mode` to follow the current system preference
+- Set `data-mode="light"` to force light mode
+- Set `data-mode="dark"` to force dark mode
+- Use `data-theme` to swap token sets such as `kumo` and `fedramp`
 
 ### Base UI Primitives
 

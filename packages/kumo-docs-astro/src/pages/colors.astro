@@ -14,19 +14,12 @@ const themeSummaries = availableThemes.map((theme) => ({
   overrideCount:
     theme === "kumo"
       ? 0
-      : themeMetadata.tokens.filter((token) => token.themes[theme] !== undefined)
+      : themeMetadata.tokens.filter(
+          (token: { themes: Record<string, unknown> }) =>
+            token.themes[theme] !== undefined,
+        )
           .length,
 }));
-const inheritedCardStyle =
-  "color-scheme: light dark; background-color: light-dark(var(--color-kumo-neutral-25, oklch(98.5% 0 0)), var(--color-neutral-950, oklch(14.5% 0 0))); border-color: light-dark(oklch(14.5% 0 0 / 0.1), var(--color-neutral-800, oklch(26.9% 0 0)));";
-const inheritedPanelStyle =
-  "color-scheme: light dark; background-color: light-dark(var(--color-kumo-neutral-25, oklch(99% 0 0)), var(--color-kumo-neutral-975, oklch(8.5% 0 0))); border-color: light-dark(oklch(14.5% 0 0 / 0.1), var(--color-neutral-800, oklch(26.9% 0 0)));";
-const inheritedSampleStyle =
-  "color-scheme: light dark; background-color: light-dark(var(--color-white, #fff), var(--color-kumo-neutral-850, oklch(22.4% 0 0))); border-color: light-dark(oklch(14.5% 0 0 / 0.1), var(--color-neutral-800, oklch(26.9% 0 0))); color: light-dark(var(--color-neutral-900, oklch(21% 0.006 285.885)), var(--color-neutral-100, oklch(97% 0 0)));";
-const inheritedTextStyle =
-  "color-scheme: light dark; color: light-dark(var(--color-neutral-900, oklch(21% 0.006 285.885)), var(--color-neutral-100, oklch(97% 0 0)));";
-const inheritedSubtleTextStyle =
-  "color-scheme: light dark; color: light-dark(var(--color-neutral-600, oklch(43.9% 0 0)), var(--color-neutral-400, oklch(70.8% 0 0)));";
 ---
 
 <DocLayout
@@ -73,7 +66,11 @@ const inheritedSubtleTextStyle =
     <h2 class="mb-4 text-2xl font-bold">Mode</h2>
     <p class="mb-4 text-kumo-strong">
       Set <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">data-mode</code> on a parent element to force light or dark.
-      If you do nothing, tokens inherit the current user/system preference via <a class="underline decoration-kumo-line underline-offset-2" href="https://web.dev/articles/light-dark">light-dark()</a>.
+      If you omit it in your app, Kumo's shipped CSS follows the current browser/system preference by default.
+    </p>
+    <p class="mb-4 text-sm text-kumo-subtle">
+      This docs site still sets <code class="rounded bg-kumo-control px-1 py-0.5 text-xs">data-mode</code> on the page root so the theme toggle can persist your choice.
+      That bootstrapping is for the docs experience, not a requirement for consuming apps.
     </p>
     <div class="mb-6 grid gap-4 md:grid-cols-3">
       <div class="rounded-xl border border-kumo-line bg-kumo-elevated p-4" data-mode="light" style="color-scheme: light;">
@@ -88,18 +85,21 @@ const inheritedSubtleTextStyle =
           <div class="rounded-md border border-kumo-line bg-kumo-base px-3 py-4 text-sm text-kumo-default"><code>bg-kumo-surface</code></div>
         </div>
       </div>
-      <div class="rounded-xl border border-kumo-line p-4" style={inheritedCardStyle}>
-        <p class="text-sm font-medium" style={inheritedTextStyle}>Inherited</p>
-        <div class="mt-3 rounded-lg border p-3" style={inheritedPanelStyle}>
-          <div class="rounded-md border px-3 py-4 text-sm" style={inheritedSampleStyle}><code>light-dark(...)</code></div>
+      <div class="rounded-xl border border-kumo-line bg-kumo-elevated p-4">
+        <p class="text-sm font-medium text-kumo-default">Default app behavior</p>
+        <div class="mt-3 rounded-lg border border-kumo-line bg-kumo-surface p-3">
+          <div class="rounded-md border border-kumo-line bg-kumo-base px-3 py-4 text-sm text-kumo-default"><code>no data-mode</code></div>
         </div>
-        <p class="mt-2 text-xs" style={inheritedSubtleTextStyle}>current user/system</p>
+        <p class="mt-2 text-xs text-kumo-subtle">follows browser/system at the app root</p>
       </div>
     </div>
     <CodeBlock
-      code={`// Set mode on html or body
-<html data-mode="light">  // Light mode
-<html data-mode="dark">   // Dark mode
+      code={`// Default: follow browser / system preference
+<html data-theme="kumo">
+
+// Optional overrides
+<html data-theme="kumo" data-mode="light">
+<html data-theme="kumo" data-mode="dark">
 
 // Components automatically adapt - no dark: variants needed
 <div className="bg-kumo-base text-kumo-default" />`}
@@ -223,13 +223,13 @@ export const AVAILABLE_THEMES = [${availableThemes.map((theme) => `"${theme}"`).
 pnpm --filter @cloudflare/kumo codegen:themes
 
 // 3. Use the semantic class in components
-<div className="bg-kumo-card border-kumo-line text-kumo-default" />`}
+<div className="bg-kumo-base border-kumo-line text-kumo-default" />`}
       lang="tsx"
     />
     <ul class="mt-4 list-inside list-disc space-y-1 text-kumo-strong">
       <li>Source of truth: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">config.ts</code></li>
       <li>Generated outputs: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">src/styles/theme-*.css</code> and <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ai/theme-metadata.json</code></li>
-      <li>Available classnames follow the token name: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">bg-kumo-card</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">text-kumo-card</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">border-kumo-card</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ring-kumo-card</code></li>
+      <li>Available classnames follow the token name: <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">bg-kumo-base</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">text-kumo-default</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">border-kumo-line</code>, <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">ring-kumo-ring</code></li>
     </ul>
   </ComponentSection>
 

@@ -878,20 +878,23 @@
 
   ### Migration Guide
 
-  Add `data-theme` and `data-mode` attributes to your root element:
+  Add `data-theme` to your root element, and `data-mode` only when you want to force a mode:
 
   ```tsx
-  // React example
-  <html data-theme="kumo" data-mode={isDark ? "dark" : "light"}>
+  // React example - follow system preference by default
+  <html data-theme="kumo">
 
-  // Static HTML
+  // Force light mode
   <html data-theme="kumo" data-mode="light">
+
+  // Force dark mode
+  <html data-theme="kumo" data-mode="dark">
   ```
 
   - **`data-theme`**: Set to `"kumo"` (default theme) or other theme variants like `"fedramp"`
-  - **`data-mode`**: Set to `"light"` or `"dark"` to control color scheme
+  - **`data-mode`**: Optional. Set to `"light"` or `"dark"` to force a color scheme
 
-  If no `data-mode` is set, the system defaults to light mode.
+  If no `data-mode` is set, Kumo follows the current system preference.
 
 - ad3c8fa: tab and text style fixes; storybook theme select always visible
 - 731e636: inputs with built-in fields
