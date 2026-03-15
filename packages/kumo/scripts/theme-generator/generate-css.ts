@@ -37,15 +37,22 @@ function lightDark(light: string, dark: string): string {
   return `light-dark(\n    ${light},\n    ${dark}\n  )`;
 }
 
-function pushModeScopedBaseVariables(
-  lines: string[],
+function resolvedTextVariable(name: string): string {
+  return `--_text-color-${name}`;
+}
+
+function resolvedColorVariable(name: string): string {
+  return `--_color-${name}`;
+}
+
+function collectThemeEntries(
   config: ThemeConfig,
   themeName: string,
   useNewNames: boolean,
-  options: {
-    wrapInBaseLayer?: boolean;
-  } = {},
-): void {
+): {
+  textEntries: Array<{ name: string; light: string; dark: string }>;
+  colorEntries: Array<{ name: string; light: string; dark: string }>;
+} {
   const textEntries: Array<{ name: string; light: string; dark: string }> = [];
   const colorEntries: Array<{ name: string; light: string; dark: string }> = [];
 
@@ -70,6 +77,120 @@ function pushModeScopedBaseVariables(
       dark: themeColors.dark,
     });
   }
+
+  return { textEntries, colorEntries };
+}
+
+function pushThemeAliasVariables(
+  lines: string[],
+  config: ThemeConfig,
+  useNewNames: boolean,
+): void {
+  lines.push("@theme {");
+
+  for (const [tokenName, def] of Object.entries(config.text)) {
+    const name = useNewNames ? def.newName : tokenName;
+    lines.push(`  --text-color-${name}: var(${resolvedTextVariable(name)});`);
+    lines.push("");
+  }
+
+  lines.push("}");
+  lines.push("");
+  lines.push("@theme {");
+
+  for (const [tokenName, def] of Object.entries(config.color)) {
+    const name = useNewNames ? def.newName : tokenName;
+    lines.push(`  --color-${name}: var(${resolvedColorVariable(name)});`);
+    lines.push("");
+  }
+
+  lines.push("}");
+}
+
+function pushBaseThemeResolvedVariables(
+  lines: string[],
+  config: ThemeConfig,
+  useNewNames: boolean,
+): void {
+  const { textEntries, colorEntries } = collectThemeEntries(
+    config,
+    "kumo",
+    useNewNames,
+  );
+
+  if (textEntries.length === 0 && colorEntries.length === 0) {
+    return;
+  }
+
+  const lightSelector = ':root, [data-theme="kumo"]';
+  const systemDarkSelector = ':root:not([data-mode]), [data-theme="kumo"]';
+  const explicitLightSelector =
+    ':root[data-mode="light"], [data-mode="light"]:not([data-theme]), [data-mode="light"] [data-theme="kumo"], [data-theme="kumo"][data-mode="light"], [data-theme="kumo"] [data-mode="light"]';
+  const explicitDarkSelector =
+    ':root[data-mode="dark"], [data-mode="dark"]:not([data-theme]), [data-mode="dark"] [data-theme="kumo"], [data-theme="kumo"][data-mode="dark"], [data-theme="kumo"] [data-mode="dark"]';
+
+  const ruleLines: string[] = [];
+
+  ruleLines.push(`${lightSelector} {`);
+  for (const entry of textEntries) {
+    ruleLines.push(`  ${resolvedTextVariable(entry.name)}: ${entry.light};`);
+  }
+  for (const entry of colorEntries) {
+    ruleLines.push(`  ${resolvedColorVariable(entry.name)}: ${entry.light};`);
+  }
+  ruleLines.push("}");
+  ruleLines.push("");
+  ruleLines.push("@media (prefers-color-scheme: dark) {");
+  ruleLines.push(`  ${systemDarkSelector} {`);
+  for (const entry of textEntries) {
+    ruleLines.push(`    ${resolvedTextVariable(entry.name)}: ${entry.dark};`);
+  }
+  for (const entry of colorEntries) {
+    ruleLines.push(`    ${resolvedColorVariable(entry.name)}: ${entry.dark};`);
+  }
+  ruleLines.push("  }");
+  ruleLines.push("}");
+  ruleLines.push("");
+  ruleLines.push(`${explicitLightSelector} {`);
+  for (const entry of textEntries) {
+    ruleLines.push(`  ${resolvedTextVariable(entry.name)}: ${entry.light};`);
+  }
+  for (const entry of colorEntries) {
+    ruleLines.push(`  ${resolvedColorVariable(entry.name)}: ${entry.light};`);
+  }
+  ruleLines.push("}");
+  ruleLines.push("");
+  ruleLines.push(`${explicitDarkSelector} {`);
+  for (const entry of textEntries) {
+    ruleLines.push(`  ${resolvedTextVariable(entry.name)}: ${entry.dark};`);
+  }
+  for (const entry of colorEntries) {
+    ruleLines.push(`  ${resolvedColorVariable(entry.name)}: ${entry.dark};`);
+  }
+  ruleLines.push("}");
+
+  lines.push("");
+  lines.push("@layer base {");
+  for (const line of ruleLines) {
+    lines.push(`  ${line}`);
+  }
+  lines.push("}");
+}
+
+function pushModeScopedBaseVariables(
+  lines: string[],
+  config: ThemeConfig,
+  themeName: string,
+  useNewNames: boolean,
+  options: {
+    wrapInBaseLayer?: boolean;
+  } = {},
+): void {
+  const { textEntries, colorEntries } = collectThemeEntries(
+    config,
+    themeName,
+    useNewNames,
+  );
 
   if (textEntries.length === 0 && colorEntries.length === 0) {
     return;
@@ -131,36 +252,7 @@ export function generateKumoThemeCSS(
 ): string {
   const lines: string[] = [GENERATED_FILE_HEADER];
 
-  // Text color tokens
-  lines.push("@theme {");
-
-  for (const [tokenName, def] of Object.entries(config.text)) {
-    const name = useNewNames ? def.newName : tokenName;
-    const kumoColors = def.theme.kumo;
-
-    lines.push(
-      `  --text-color-${name}: ${lightDark(kumoColors.light, kumoColors.dark)};`,
-    );
-    lines.push("");
-  }
-
-  lines.push("}");
-  lines.push("");
-
-  // Color tokens (bg, border, ring, etc.)
-  lines.push("@theme {");
-
-  for (const [tokenName, def] of Object.entries(config.color)) {
-    const name = useNewNames ? def.newName : tokenName;
-    const kumoColors = def.theme.kumo;
-
-    lines.push(
-      `  --color-${name}: ${lightDark(kumoColors.light, kumoColors.dark)};`,
-    );
-    lines.push("");
-  }
-
-  lines.push("}");
+  pushThemeAliasVariables(lines, config, useNewNames);
 
   // Typography tokens (font sizes and line heights)
   if (config.typography && Object.keys(config.typography).length > 0) {
@@ -180,9 +272,7 @@ export function generateKumoThemeCSS(
 
   // Explicit runtime vars avoid transient unresolved light-dark() values
   // during class/DOM mutations in some browser style recalculation paths.
-  pushModeScopedBaseVariables(lines, config, "kumo", useNewNames, {
-    wrapInBaseLayer: true,
-  });
+  pushBaseThemeResolvedVariables(lines, config, useNewNames);
 
   return lines.join("\n");
 }

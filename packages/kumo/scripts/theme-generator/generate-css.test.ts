@@ -11,14 +11,25 @@ function countOccurrences(source: string, needle: string): number {
 }
 
 describe("theme css generator", () => {
-  it("emits kumo runtime fallback selectors inside base layer", () => {
+  it("emits kumo theme aliases with explicit mode resolution", () => {
     const css = generateKumoThemeCSS(THEME_CONFIG);
 
+    expect(css).toContain(
+      "--text-color-kumo-default: var(--_text-color-kumo-default);",
+    );
+    expect(css).toContain("--color-kumo-surface: var(--_color-kumo-surface);");
     expect(css).toContain("@layer base {");
     expect(css).toContain(':root, [data-theme="kumo"] {');
+    expect(css).toContain("@media (prefers-color-scheme: dark) {");
+    expect(css).toContain(':root:not([data-mode]), [data-theme="kumo"] {');
+    expect(css).toContain(
+      ':root[data-mode="light"], [data-mode="light"]:not([data-theme]), [data-mode="light"] [data-theme="kumo"], [data-theme="kumo"][data-mode="light"], [data-theme="kumo"] [data-mode="light"] {',
+    );
     expect(css).toContain(
       ':root[data-mode="dark"], [data-mode="dark"]:not([data-theme]), [data-mode="dark"] [data-theme="kumo"], [data-theme="kumo"][data-mode="dark"], [data-theme="kumo"] [data-mode="dark"] {',
     );
+    expect(css).not.toContain("--text-color-kumo-default: light-dark(");
+    expect(css).not.toContain("--color-kumo-surface: light-dark(");
   });
 
   it("emits override theme runtime fallbacks in base layers only", () => {
