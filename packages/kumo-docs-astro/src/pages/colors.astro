@@ -17,6 +17,16 @@ const themeSummaries = availableThemes.map((theme) => ({
       : themeMetadata.tokens.filter((token) => token.themes[theme] !== undefined)
           .length,
 }));
+const inheritedCardStyle =
+  "color-scheme: light dark; background-color: light-dark(var(--color-kumo-neutral-25, oklch(98.5% 0 0)), var(--color-neutral-950, oklch(14.5% 0 0))); border-color: light-dark(oklch(14.5% 0 0 / 0.1), var(--color-neutral-800, oklch(26.9% 0 0)));";
+const inheritedPanelStyle =
+  "color-scheme: light dark; background-color: light-dark(var(--color-kumo-neutral-25, oklch(99% 0 0)), var(--color-kumo-neutral-975, oklch(8.5% 0 0))); border-color: light-dark(oklch(14.5% 0 0 / 0.1), var(--color-neutral-800, oklch(26.9% 0 0)));";
+const inheritedSampleStyle =
+  "color-scheme: light dark; background-color: light-dark(var(--color-white, #fff), var(--color-kumo-neutral-850, oklch(22.4% 0 0))); border-color: light-dark(oklch(14.5% 0 0 / 0.1), var(--color-neutral-800, oklch(26.9% 0 0))); color: light-dark(var(--color-neutral-900, oklch(21% 0.006 285.885)), var(--color-neutral-100, oklch(97% 0 0)));";
+const inheritedTextStyle =
+  "color-scheme: light dark; color: light-dark(var(--color-neutral-900, oklch(21% 0.006 285.885)), var(--color-neutral-100, oklch(97% 0 0)));";
+const inheritedSubtleTextStyle =
+  "color-scheme: light dark; color: light-dark(var(--color-neutral-600, oklch(43.9% 0 0)), var(--color-neutral-400, oklch(70.8% 0 0)));";
 ---
 
 <DocLayout
@@ -62,9 +72,30 @@ const themeSummaries = availableThemes.map((theme) => ({
   <ComponentSection>
     <h2 class="mb-4 text-2xl font-bold">Mode</h2>
     <p class="mb-4 text-kumo-strong">
-      Set <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">data-mode</code> on a parent element to control light/dark mode.
-      Never use Tailwind's <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">dark:</code> variant—semantic tokens resolve through Kumo's generated mode-aware CSS variables.
+      Set <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">data-mode</code> on a parent element to force light or dark.
+      If you do nothing, tokens inherit the current user/system preference via <a class="underline decoration-kumo-line underline-offset-2" href="https://web.dev/articles/light-dark">light-dark()</a>.
     </p>
+    <div class="mb-6 grid gap-4 md:grid-cols-3">
+      <div class="rounded-xl border border-kumo-line bg-kumo-elevated p-4" data-mode="light" style="color-scheme: light;">
+        <p class="text-sm font-medium text-kumo-default">Light</p>
+        <div class="mt-3 rounded-lg border border-kumo-line bg-kumo-surface p-3">
+          <div class="rounded-md border border-kumo-line bg-kumo-base px-3 py-4 text-sm text-kumo-default"><code>bg-kumo-surface</code></div>
+        </div>
+      </div>
+      <div class="rounded-xl border border-kumo-line bg-kumo-elevated p-4" data-mode="dark" style="color-scheme: dark;">
+        <p class="text-sm font-medium text-kumo-default">Dark</p>
+        <div class="mt-3 rounded-lg border border-kumo-line bg-kumo-surface p-3">
+          <div class="rounded-md border border-kumo-line bg-kumo-base px-3 py-4 text-sm text-kumo-default"><code>bg-kumo-surface</code></div>
+        </div>
+      </div>
+      <div class="rounded-xl border border-kumo-line p-4" style={inheritedCardStyle}>
+        <p class="text-sm font-medium" style={inheritedTextStyle}>Inherited</p>
+        <div class="mt-3 rounded-lg border p-3" style={inheritedPanelStyle}>
+          <div class="rounded-md border px-3 py-4 text-sm" style={inheritedSampleStyle}><code>light-dark(...)</code></div>
+        </div>
+        <p class="mt-2 text-xs" style={inheritedSubtleTextStyle}>current user/system</p>
+      </div>
+    </div>
     <CodeBlock
       code={`// Set mode on html or body
 <html data-mode="light">  // Light mode
