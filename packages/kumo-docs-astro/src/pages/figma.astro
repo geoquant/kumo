@@ -167,9 +167,9 @@ FIGMA_COLLECTION_NAME=kumo-colors`}
       lang="bash"
     />
     <p class="mt-3 text-sm text-kumo-subtle">
-      This parses tokens from <code class="rounded bg-kumo-control px-1 py-0.5 text-xs">theme-kumo.css</code>, 
-      resolves <code class="rounded bg-kumo-control px-1 py-0.5 text-xs">light-dark()</code> values for both modes, 
-      and pushes them to Figma via the Variables API.
+      This reads Kumo's generated theme metadata from <code class="rounded bg-kumo-control px-1 py-0.5 text-xs">packages/kumo/ai/theme-metadata.json</code>
+      plus token definitions from <code class="rounded bg-kumo-control px-1 py-0.5 text-xs">packages/kumo/scripts/theme-generator/config.ts</code>,
+      then pushes explicit light and dark token values to Figma via the Variables API.
     </p>
   </ComponentSection>
 

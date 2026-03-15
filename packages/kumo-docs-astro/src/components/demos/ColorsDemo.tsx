@@ -77,19 +77,19 @@ const ColorSwatch: FC<{ label: string; value: string }> = ({
   const hex = useMemo(() => colorToHex(value), [value]);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-2">
       <span
         className="inline-flex h-8 w-8 shrink-0 rounded border border-kumo-fill"
         style={{ background: value }}
       />
-      <div className="flex flex-col text-xs text-kumo-default">
+      <div className="min-w-0 flex flex-col text-xs text-kumo-default">
         <span className="text-[10px] uppercase tracking-wide text-kumo-subtle">
           {label}
         </span>
-        <span className="truncate text-[10px] text-kumo-strong">
-          {value}
+        <span className="flex flex-wrap items-baseline gap-x-1 gap-y-0.5 text-[10px] leading-4 text-kumo-strong">
+          <span className="break-all">{value}</span>
           {hex ? (
-            <span className="ml-1 font-mono font-medium text-kumo-default">
+            <span className="font-mono font-medium text-kumo-default">
               {hex}
             </span>
           ) : null}
@@ -111,11 +111,11 @@ const TokenGrid: FC<{
       return (
         <div
           key={token.name}
-          className="flex items-center gap-3 rounded-md border border-kumo-fill bg-kumo-base px-3 py-2 text-xs"
+          className="min-w-0 rounded-md border border-kumo-fill bg-kumo-base px-3 py-2 text-xs"
         >
-          <div className="flex flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-medium text-kumo-default">
+              <span className="break-all font-mono text-xs font-medium text-kumo-default">
                 {token.name}
               </span>
             </div>

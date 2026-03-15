@@ -45,10 +45,29 @@ const buildDate = typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : new D
       // Initialize theme from localStorage or system preference
       // This runs immediately (blocking) to prevent flash of unstyled content
       (function() {
+        const systemQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        const publishSystemMode = () => {
+          const systemMode = systemQuery.matches ? "dark" : "light";
+          window.__kumoSystemMode = systemMode;
+          window.dispatchEvent(
+            new CustomEvent("kumo:system-mode-change", {
+              detail: systemMode,
+            }),
+          );
+        };
+
+        publishSystemMode();
+
+        if (typeof systemQuery.addEventListener === "function") {
+          systemQuery.addEventListener("change", publishSystemMode);
+        } else {
+          systemQuery.addListener(publishSystemMode);
+        }
+
         const stored = localStorage.getItem("theme");
-        const mode = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        const mode = stored === "dark" || stored === "light" ? stored : window.__kumoSystemMode;
         document.documentElement.setAttribute("data-mode", mode);
-        document.documentElement.style.colorScheme = mode;
+        document.documentElement.style.removeProperty("color-scheme");
       })();
     </script>
   </head>

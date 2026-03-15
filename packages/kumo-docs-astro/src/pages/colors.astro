@@ -1,4 +1,7 @@
 ---
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import themeMetadata from "@cloudflare/kumo/ai/theme-metadata.json";
 import DocLayout from "../layouts/DocLayout.astro";
 import ComponentSection from "../components/docs/ComponentSection.astro";
@@ -6,9 +9,19 @@ import CodeBlock from "../components/docs/CodeBlock.astro";
 import Callout from "../components/docs/Callout.astro";
 import { TailwindColorTokens } from "../components/demos/ColorsDemo";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const availableThemes = [...themeMetadata.themes];
 const nonDefaultThemes = availableThemes.filter((theme) => theme !== "kumo");
 const exampleTheme = nonDefaultThemes[0] ?? "fedramp";
+const generatedThemeCss = availableThemes
+  .map((theme) =>
+    readFileSync(
+      resolve(__dirname, `../../../kumo/src/styles/theme-${theme}.css`),
+      "utf8",
+    ),
+  )
+  .join("\n")
+  .replaceAll("</style>", "<\\/style>");
 const themeSummaries = availableThemes.map((theme) => ({
   name: theme,
   overrideCount:
@@ -20,6 +33,156 @@ const themeSummaries = availableThemes.map((theme) => ({
         )
           .length,
 }));
+const previewModes = ["light", "dark", "system"] as const;
+
+function createPreviewDoc(
+  theme: string,
+  mode: (typeof previewModes)[number],
+): string {
+  const modeScript =
+    mode === "system"
+      ? `<script>
+      const applySystemMode = (nextMode) => {
+        document.documentElement.setAttribute("data-mode", nextMode);
+        document.documentElement.style.removeProperty("color-scheme");
+      };
+
+      const initialMode =
+        parent && "__kumoSystemMode" in parent.window
+          ? parent.window.__kumoSystemMode
+          : "light";
+
+      applySystemMode(initialMode);
+
+      if (parent) {
+        parent.window.addEventListener("kumo:system-mode-change", (event) => {
+          if (typeof event.detail === "string") {
+            applySystemMode(event.detail);
+          }
+        });
+      }
+    </script>`
+      : `<script>
+      document.documentElement.setAttribute("data-mode", "${mode}");
+      document.documentElement.style.removeProperty("color-scheme");
+    </script>`;
+
+  return `<!doctype html>
+<html data-theme="${theme}" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>${generatedThemeCss}</style>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        color-scheme: light dark;
+      }
+
+      body {
+        box-sizing: border-box;
+        padding: 0;
+        background: transparent;
+        color: var(--_text-color-kumo-default);
+        font-family: Inter, system-ui, sans-serif;
+      }
+
+      .preview-swatch {
+        box-sizing: border-box;
+        width: 100%;
+        border: 1px solid var(--_color-kumo-line);
+        border-radius: 8px;
+        background: var(--_color-kumo-base);
+        padding: 16px;
+        font-size: 14px;
+        color: var(--_text-color-kumo-default);
+      }
+
+    </style>
+    ${modeScript}
+  </head>
+  <body>
+    <div class="preview-swatch"><code>bg-kumo-base text-kumo-default</code></div>
+  </body>
+</html>`;
+}
+
+function createThemePreviewDoc(theme: string): string {
+  return `<!doctype html>
+<html data-theme="${theme}" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>${generatedThemeCss}</style>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        color-scheme: light dark;
+      }
+
+      body {
+        box-sizing: border-box;
+        padding: 0;
+        background: transparent;
+        color: var(--_text-color-kumo-default);
+        font-family: Inter, system-ui, sans-serif;
+      }
+
+      .preview-swatch {
+        box-sizing: border-box;
+        width: 100%;
+        border: 1px solid var(--_color-kumo-line);
+        border-radius: 8px;
+        background: var(--_color-kumo-base);
+        padding: 16px;
+        font-size: 14px;
+        color: var(--_text-color-kumo-default);
+      }
+    </style>
+    <script>
+      const applyParentMode = () => {
+        const nextMode = parent?.document?.documentElement?.getAttribute("data-mode");
+
+        if (nextMode === "light" || nextMode === "dark") {
+          document.documentElement.setAttribute("data-mode", nextMode);
+        } else {
+          document.documentElement.removeAttribute("data-mode");
+        }
+
+        document.documentElement.style.removeProperty("color-scheme");
+      };
+
+      applyParentMode();
+
+      if (parent?.document?.documentElement) {
+        const observer = new MutationObserver(applyParentMode);
+        observer.observe(parent.document.documentElement, {
+          attributes: true,
+          attributeFilter: ["data-mode"],
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div class="preview-swatch"><code>bg-kumo-base text-kumo-default</code></div>
+  </body>
+</html>`;
+}
+
+const modePreviewDocs = {
+  light: createPreviewDoc("kumo", "light"),
+  dark: createPreviewDoc("kumo", "dark"),
+  system: createPreviewDoc("kumo", "system"),
+};
+
+const themePreviewDocs = Object.fromEntries(
+  availableThemes.map((theme) => [
+    theme,
+    createThemePreviewDoc(theme),
+  ]),
+);
 ---
 
 <DocLayout
@@ -68,29 +231,40 @@ const themeSummaries = availableThemes.map((theme) => ({
       Set <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">data-mode</code> on a parent element to force light or dark.
       If you omit it in your app, Kumo's shipped CSS follows the current browser/system preference by default.
     </p>
-    <p class="mb-4 text-sm text-kumo-subtle">
-      This docs site still sets <code class="rounded bg-kumo-control px-1 py-0.5 text-xs">data-mode</code> on the page root so the theme toggle can persist your choice.
-      That bootstrapping is for the docs experience, not a requirement for consuming apps.
-    </p>
-    <div class="mb-6 grid gap-4 md:grid-cols-3">
-      <div class="rounded-xl border border-kumo-line bg-kumo-elevated p-4" data-mode="light" style="color-scheme: light;">
-        <p class="text-sm font-medium text-kumo-default">Light</p>
-        <div class="mt-3 rounded-lg border border-kumo-line bg-kumo-surface p-3">
-          <div class="rounded-md border border-kumo-line bg-kumo-base px-3 py-4 text-sm text-kumo-default"><code>bg-kumo-surface</code></div>
-        </div>
-      </div>
-      <div class="rounded-xl border border-kumo-line bg-kumo-elevated p-4" data-mode="dark" style="color-scheme: dark;">
-        <p class="text-sm font-medium text-kumo-default">Dark</p>
-        <div class="mt-3 rounded-lg border border-kumo-line bg-kumo-surface p-3">
-          <div class="rounded-md border border-kumo-line bg-kumo-base px-3 py-4 text-sm text-kumo-default"><code>bg-kumo-surface</code></div>
-        </div>
+    <div class="mb-6 space-y-4">
+      <div class="rounded-xl border border-kumo-line bg-kumo-elevated p-4">
+        <p class="text-xs text-kumo-subtle">
+          <code class="rounded bg-kumo-control px-1 py-0.5 text-xs">data-mode=&quot;light&quot;</code>
+        </p>
+        <iframe
+          title="Light mode preview"
+          class="mt-3 block h-[51px] w-full border-0 bg-transparent"
+          loading="lazy"
+          srcdoc={modePreviewDocs.light}
+        ></iframe>
       </div>
       <div class="rounded-xl border border-kumo-line bg-kumo-elevated p-4">
-        <p class="text-sm font-medium text-kumo-default">Default app behavior</p>
-        <div class="mt-3 rounded-lg border border-kumo-line bg-kumo-surface p-3">
-          <div class="rounded-md border border-kumo-line bg-kumo-base px-3 py-4 text-sm text-kumo-default"><code>no data-mode</code></div>
-        </div>
-        <p class="mt-2 text-xs text-kumo-subtle">follows browser/system at the app root</p>
+        <p class="text-xs text-kumo-subtle">
+          <code class="rounded bg-kumo-control px-1 py-0.5 text-xs">data-mode=&quot;dark&quot;</code>
+        </p>
+        <iframe
+          title="Dark mode preview"
+          class="mt-3 block h-[51px] w-full border-0 bg-transparent"
+          loading="lazy"
+          srcdoc={modePreviewDocs.dark}
+        ></iframe>
+      </div>
+      <div class="rounded-xl border border-kumo-line bg-kumo-elevated p-4">
+        <p class="text-xs text-kumo-subtle">
+          <code class="rounded bg-kumo-control px-1 py-0.5 text-xs">data-mode omitted</code>
+        </p>
+        <iframe
+          title="System mode preview"
+          class="mt-3 block h-[51px] w-full border-0 bg-transparent"
+          loading="lazy"
+          srcdoc={modePreviewDocs.system}
+        ></iframe>
+        <p class="mt-2 text-xs text-kumo-subtle">follows browser / OS preference</p>
       </div>
     </div>
     <CodeBlock
@@ -127,6 +301,24 @@ const themeSummaries = availableThemes.map((theme) => ({
           </li>
         ))}
       </ul>
+    </div>
+
+    <div class="mb-6 space-y-4">
+      <div class="space-y-4">
+        {themeSummaries.map((theme) => (
+          <div class="rounded-xl border border-kumo-line bg-kumo-elevated p-4">
+            <p class="text-xs text-kumo-subtle">
+              <code class="rounded bg-kumo-control px-1 py-0.5 text-xs">data-theme=&quot;{theme.name}&quot;</code>
+            </p>
+            <iframe
+              title={`${theme.name} theme preview`}
+              class="mt-3 block h-[68px] w-full border-0 bg-transparent"
+              loading="lazy"
+              srcdoc={themePreviewDocs[theme.name]}
+            ></iframe>
+          </div>
+        ))}
+      </div>
     </div>
 
     <CodeBlock
