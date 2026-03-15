@@ -33,6 +33,10 @@
 
 @layer base {
   :root {
+    color-scheme: light dark;
+  }
+
+  [data-mode="light"] {
     color-scheme: light;
   }
 
