@@ -49,6 +49,46 @@ describe("theme css generator", () => {
     expect(css).toContain("--_color-kumo-surface: #5b697c;");
   });
 
+  it("covers the unset, explicit light, and explicit dark mode matrix", () => {
+    const kumoCss = generateKumoThemeCSS(THEME_CONFIG);
+    const fedrampCss = generateThemeOverrideCSS(THEME_CONFIG, "fedramp");
+
+    expect(
+      countOccurrences(kumoCss, "@media (prefers-color-scheme: dark) {"),
+    ).toBe(1);
+    expect(kumoCss).toMatch(
+      /:root, \[data-theme="kumo"\] \{[\s\S]*?--_color-kumo-surface: var\(--color-kumo-neutral-25, oklch\(99% 0 0\)\);/,
+    );
+    expect(kumoCss).toMatch(
+      /:root:not\(\[data-mode\]\), \[data-theme="kumo"\] \{[\s\S]*?--_text-color-kumo-default: var\(--color-neutral-100, oklch\(97% 0 0\)\);/,
+    );
+    expect(kumoCss).toMatch(
+      /:root\[data-mode="light"\], \[data-mode="light"\]:not\(\[data-theme\]\), \[data-mode="light"\] \[data-theme="kumo"\], \[data-theme="kumo"\]\[data-mode="light"\], \[data-theme="kumo"\] \[data-mode="light"\] \{[\s\S]*?--_color-kumo-surface: var\(--color-kumo-neutral-25, oklch\(99% 0 0\)\);/,
+    );
+    expect(kumoCss).toMatch(
+      /:root\[data-mode="dark"\], \[data-mode="dark"\]:not\(\[data-theme\]\), \[data-mode="dark"\] \[data-theme="kumo"\], \[data-theme="kumo"\]\[data-mode="dark"\], \[data-theme="kumo"\] \[data-mode="dark"\] \{[\s\S]*?--_color-kumo-surface: var\(--color-kumo-neutral-975, oklch\(8.5% 0 0\)\);/,
+    );
+
+    expect(
+      countOccurrences(fedrampCss, "@media (prefers-color-scheme: dark) {"),
+    ).toBe(1);
+    expect(fedrampCss).toMatch(
+      /\[data-theme="fedramp"\] \{[\s\S]*?--_color-kumo-surface: #5b697c;/,
+    );
+    expect(fedrampCss).toMatch(
+      /@media \(prefers-color-scheme: dark\) \{[\s\S]*?\[data-theme="fedramp"\] \{[\s\S]*?--_color-kumo-surface: #5b697c;/,
+    );
+    expect(fedrampCss).toMatch(
+      /\[data-mode="light"\] \[data-theme="fedramp"\], \[data-theme="fedramp"\]\[data-mode="light"\], \[data-theme="fedramp"\] \[data-mode="light"\] \{[\s\S]*?--_color-kumo-surface: #5b697c;/,
+    );
+    expect(fedrampCss).toMatch(
+      /\[data-mode="dark"\] \[data-theme="fedramp"\], \[data-theme="fedramp"\]\[data-mode="dark"\], \[data-theme="fedramp"\] \[data-mode="dark"\] \{[\s\S]*?--_color-kumo-surface: #5b697c;/,
+    );
+
+    expect(kumoCss).not.toContain("light-dark(");
+    expect(fedrampCss).not.toContain("light-dark(");
+  });
+
   it("builds exportable theme metadata from config", () => {
     const metadata = generateThemeMetadata(THEME_CONFIG);
 
