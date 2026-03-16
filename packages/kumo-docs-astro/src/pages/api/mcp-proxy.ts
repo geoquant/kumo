@@ -46,6 +46,10 @@ interface McpProxyRequest {
   readonly params: Record<string, unknown>;
 }
 
+interface RuntimeEnvBindings {
+  readonly CHAT_RATE_LIMIT?: WorkersRateLimit;
+}
+
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
@@ -83,6 +87,22 @@ const MAX_PARAMS_JSON_LENGTH = 10_000;
 /** Type guard for non-null, non-array objects. */
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function isWorkersRateLimit(v: unknown): v is WorkersRateLimit {
+  return isPlainObject(v) && typeof v["limit"] === "function";
+}
+
+function getRuntimeEnv(locals: App.Locals): RuntimeEnvBindings | null {
+  if (!isPlainObject(locals.runtime)) return null;
+  const env = locals.runtime["env"];
+  if (!isPlainObject(env)) return null;
+
+  return {
+    CHAT_RATE_LIMIT: isWorkersRateLimit(env["CHAT_RATE_LIMIT"])
+      ? env["CHAT_RATE_LIMIT"]
+      : undefined,
+  };
 }
 
 /** Type guard: is the value a valid JSON-RPC 2.0 response? */
@@ -229,17 +249,17 @@ async function parseSseResponse(response: Response): Promise<unknown> {
  * 3. `tools/call` — execute the requested tool
  */
 export const POST: APIRoute = async ({ request, locals }) => {
-  const env = locals.runtime.env;
+  const env = getRuntimeEnv(locals);
 
   // --- Rate limiting (reuse CHAT_RATE_LIMIT) ---
-  const rateLimiter = env.CHAT_RATE_LIMIT;
+  const rateLimiter = env?.CHAT_RATE_LIMIT;
   const clientIp =
     request.headers.get("cf-connecting-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     null;
 
   try {
-    if (clientIp) {
+    if (clientIp && rateLimiter) {
       const { success } = await rateLimiter.limit({ key: clientIp });
       if (!success) {
         return jsonResponse(
@@ -248,7 +268,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
       }
     } else if (!import.meta.env.DEV) {
-      return jsonResponse({ error: "Unable to identify client." }, 400);
+      if (!clientIp) {
+        return jsonResponse({ error: "Unable to identify client." }, 400);
+      }
+
+      console.warn("[mcp-proxy] CHAT_RATE_LIMIT binding unavailable; skipping");
     }
   } catch (rateLimitErr) {
     console.error("[mcp-proxy] rate limiter unavailable:", rateLimitErr);

@@ -176,6 +176,11 @@ interface AiMessage {
   content: string;
 }
 
+interface RuntimeEnvBindings {
+  readonly AI?: WorkersAi;
+  readonly CHAT_RATE_LIMIT?: WorkersRateLimit;
+}
+
 async function runAiWithGatewayFallback(input: {
   readonly ai: WorkersAi;
   readonly modelId: string;
@@ -276,6 +281,27 @@ async function proxyDevChatRequest(
 /** Type guard for non-null, non-array objects. */
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function isWorkersAi(v: unknown): v is WorkersAi {
+  return isPlainObject(v) && typeof v["run"] === "function";
+}
+
+function isWorkersRateLimit(v: unknown): v is WorkersRateLimit {
+  return isPlainObject(v) && typeof v["limit"] === "function";
+}
+
+function getRuntimeEnv(locals: App.Locals): RuntimeEnvBindings | null {
+  if (!isPlainObject(locals.runtime)) return null;
+  const env = locals.runtime["env"];
+  if (!isPlainObject(env)) return null;
+
+  return {
+    AI: isWorkersAi(env["AI"]) ? env["AI"] : undefined,
+    CHAT_RATE_LIMIT: isWorkersRateLimit(env["CHAT_RATE_LIMIT"])
+      ? env["CHAT_RATE_LIMIT"]
+      : undefined,
+  };
 }
 
 /** Type guard for a valid history entry. */
@@ -386,41 +412,6 @@ export const POST: APIRoute = async (ctx) => {
 };
 
 const handlePost: APIRoute = async ({ request, locals }) => {
-  const env = locals.runtime.env;
-
-  // --- Rate limiting ---
-  const rateLimiter = env.CHAT_RATE_LIMIT;
-  const clientIp =
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    null;
-
-  try {
-    if (typeof rateLimiter?.limit === "function" && clientIp) {
-      const { success } = await rateLimiter.limit({ key: clientIp });
-      if (!success) {
-        return new Response(
-          JSON.stringify({ error: "Rate limited. Try again in a minute." }),
-          {
-            status: 429,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
-    } else if (!clientIp && !import.meta.env.DEV) {
-      // In production behind Cloudflare, cf-connecting-ip should always exist.
-      // If missing, proceed without rate limiting rather than taking down chat.
-      console.warn("[chat] missing client ip; skipping rate limit");
-    } else if (typeof rateLimiter?.limit !== "function") {
-      console.warn("[chat] CHAT_RATE_LIMIT binding unavailable; skipping");
-    }
-  } catch (rateLimitErr) {
-    console.error(
-      "[chat] rate limiter unavailable; continuing without limit:",
-      rateLimitErr,
-    );
-  }
-
   // --- Parse request body ---
   let body: unknown;
   try {
@@ -440,6 +431,64 @@ const handlePost: APIRoute = async ({ request, locals }) => {
           "Invalid request. Expected { message: string; history?: Array<{ role, content }> }",
       }),
       { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  const env = getRuntimeEnv(locals);
+
+  if (!env?.AI) {
+    if (import.meta.env.DEV) {
+      const upstreamResponse = await proxyDevChatRequest(request, chatRequest);
+      if (upstreamResponse !== null) {
+        return upstreamResponse;
+      }
+
+      return new Response(
+        JSON.stringify({
+          error:
+            "AI unavailable in local astro dev. Run `wrangler dev` on :8787 or set `DEV_CHAT_UPSTREAM_URL`.",
+        }),
+        { status: 503, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    console.error("[chat] AI binding unavailable");
+    return new Response(
+      JSON.stringify({ error: "AI service temporarily unavailable." }),
+      { status: 503, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  // --- Rate limiting ---
+  const rateLimiter = env.CHAT_RATE_LIMIT;
+  const clientIp =
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    null;
+
+  try {
+    if (clientIp && rateLimiter) {
+      const { success } = await rateLimiter.limit({ key: clientIp });
+      if (!success) {
+        return new Response(
+          JSON.stringify({ error: "Rate limited. Try again in a minute." }),
+          {
+            status: 429,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+    } else if (!clientIp && !import.meta.env.DEV) {
+      // In production behind Cloudflare, cf-connecting-ip should always exist.
+      // If missing, proceed without rate limiting rather than taking down chat.
+      console.warn("[chat] missing client ip; skipping rate limit");
+    } else if (!rateLimiter) {
+      console.warn("[chat] CHAT_RATE_LIMIT binding unavailable; skipping");
+    }
+  } catch (rateLimitErr) {
+    console.error(
+      "[chat] rate limiter unavailable; continuing without limit:",
+      rateLimitErr,
     );
   }
 
