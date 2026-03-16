@@ -252,14 +252,11 @@ function TriggerValue({
       <ComboboxBase.Value>{props.children}</ComboboxBase.Value>
       <ComboboxBase.Icon
         className={cn(
-          "absolute top-1/2 -translate-y-1/2 flex items-center",
+          "absolute top-1/2 -translate-y-1/2 flex items-center text-kumo-subtle",
           iconStyles.iconRight,
         )}
       >
-        <CaretDownIcon
-          size={iconStyles.iconSize}
-          className="text-kumo-subtle"
-        />
+        <CaretDownIcon size={iconStyles.iconSize} className="fill-current" />
       </ComboboxBase.Icon>
     </ComboboxBase.Trigger>
   );
@@ -321,14 +318,11 @@ function TriggerInput(props: ComboboxBase.Input.Props) {
       <ComboboxBase.Trigger className="p-0">
         <ComboboxBase.Icon
           className={cn(
-            "absolute top-1/2 flex -translate-y-1/2 cursor-pointer",
+            "absolute top-1/2 flex -translate-y-1/2 cursor-pointer text-kumo-subtle",
             iconStyles.caretRight,
           )}
         >
-          <CaretDownIcon
-            size={iconStyles.iconSize}
-            className="text-kumo-subtle"
-          />
+          <CaretDownIcon size={iconStyles.iconSize} className="fill-current" />
         </ComboboxBase.Icon>
       </ComboboxBase.Trigger>
     </div>
