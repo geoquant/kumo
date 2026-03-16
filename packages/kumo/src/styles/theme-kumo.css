@@ -217,7 +217,7 @@
   }
   
   /* Explicit light override, even inside dark parent scopes. */
-  :root[data-mode="light"], [data-mode="light"]:not([data-theme]), [data-mode="light"] [data-theme="kumo"], [data-theme="kumo"][data-mode="light"], [data-theme="kumo"] [data-mode="light"] {
+  [data-mode="light"]:not([data-theme]), [data-mode="light"] [data-theme="kumo"], [data-theme="kumo"][data-mode="light"] {
     --_text-color-kumo-default: var(--_text-color-kumo-default-light);
     --_text-color-kumo-inverse: var(--_text-color-kumo-inverse-light);
     --_text-color-kumo-strong: var(--_text-color-kumo-strong-light);
@@ -256,7 +256,7 @@
   }
   
   /* Explicit dark override, even inside light parent scopes. */
-  :root[data-mode="dark"], [data-mode="dark"]:not([data-theme]), [data-mode="dark"] [data-theme="kumo"], [data-theme="kumo"][data-mode="dark"], [data-theme="kumo"] [data-mode="dark"] {
+  [data-mode="dark"]:not([data-theme]), [data-mode="dark"] [data-theme="kumo"], [data-theme="kumo"][data-mode="dark"] {
     --_text-color-kumo-default: var(--_text-color-kumo-default-dark);
     --_text-color-kumo-inverse: var(--_text-color-kumo-inverse-dark);
     --_text-color-kumo-strong: var(--_text-color-kumo-strong-dark);

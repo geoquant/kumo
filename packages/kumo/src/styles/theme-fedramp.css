@@ -34,14 +34,14 @@
   }
   
   /* Explicit light override for fedramp, even inside dark parent scopes. */
-  [data-mode="light"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="light"], [data-theme="fedramp"] [data-mode="light"] {
+  [data-mode="light"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="light"] {
     --_color-kumo-surface: var(--_color-kumo-surface-light);
     --_color-kumo-base: var(--_color-kumo-base-light);
     --_color-kumo-ring: var(--_color-kumo-ring-light);
   }
   
   /* Explicit dark override for fedramp, even inside light parent scopes. */
-  [data-mode="dark"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="dark"], [data-theme="fedramp"] [data-mode="dark"] {
+  [data-mode="dark"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="dark"] {
     --_color-kumo-surface: var(--_color-kumo-surface-dark);
     --_color-kumo-base: var(--_color-kumo-base-dark);
     --_color-kumo-ring: var(--_color-kumo-ring-dark);

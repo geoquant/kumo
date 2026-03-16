@@ -43,22 +43,22 @@ function createPreviewDoc(
     mode === "system"
       ? `<script>
       const applySystemMode = (nextMode) => {
-        document.documentElement.setAttribute("data-mode", nextMode);
-        document.documentElement.style.removeProperty("color-scheme");
+        if (nextMode === "light" || nextMode === "dark") {
+          document.documentElement.setAttribute("data-mode", nextMode);
+          document.documentElement.style.removeProperty("color-scheme");
+        }
       };
 
       const initialMode =
         parent && "__kumoSystemMode" in parent.window
           ? parent.window.__kumoSystemMode
-          : "light";
+          : undefined;
 
       applySystemMode(initialMode);
 
       if (parent) {
         parent.window.addEventListener("kumo:system-mode-change", (event) => {
-          if (typeof event.detail === "string") {
-            applySystemMode(event.detail);
-          }
+          applySystemMode(event.detail);
         });
       }
     </script>`

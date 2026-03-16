@@ -138,9 +138,9 @@ function pushBaseThemeResolvedVariables(
   const lightSelector = ':root, [data-theme="kumo"]';
   const systemDarkSelector = ':root:not([data-mode]), [data-theme="kumo"]';
   const explicitLightSelector =
-    ':root[data-mode="light"], [data-mode="light"]:not([data-theme]), [data-mode="light"] [data-theme="kumo"], [data-theme="kumo"][data-mode="light"], [data-theme="kumo"] [data-mode="light"]';
+    '[data-mode="light"]:not([data-theme]), [data-mode="light"] [data-theme="kumo"], [data-theme="kumo"][data-mode="light"]';
   const explicitDarkSelector =
-    ':root[data-mode="dark"], [data-mode="dark"]:not([data-theme]), [data-mode="dark"] [data-theme="kumo"], [data-theme="kumo"][data-mode="dark"], [data-theme="kumo"] [data-mode="dark"]';
+    '[data-mode="dark"]:not([data-theme]), [data-mode="dark"] [data-theme="kumo"], [data-theme="kumo"][data-mode="dark"]';
 
   const ruleLines: string[] = [];
 
@@ -246,8 +246,8 @@ function pushOverrideThemeResolvedVariables(
   }
 
   const themeSelector = `[data-theme="${themeName}"]`;
-  const explicitLightSelector = `[data-mode="light"] ${themeSelector}, ${themeSelector}[data-mode="light"], ${themeSelector} [data-mode="light"]`;
-  const explicitDarkSelector = `[data-mode="dark"] ${themeSelector}, ${themeSelector}[data-mode="dark"], ${themeSelector} [data-mode="dark"]`;
+  const explicitLightSelector = `[data-mode="light"] ${themeSelector}, ${themeSelector}[data-mode="light"]`;
+  const explicitDarkSelector = `[data-mode="dark"] ${themeSelector}, ${themeSelector}[data-mode="dark"]`;
   const ruleLines: string[] = [];
 
   ruleLines.push(`/* Internal theme plumbing for ${themeName} overrides.`);

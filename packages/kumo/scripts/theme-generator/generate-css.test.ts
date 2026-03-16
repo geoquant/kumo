@@ -29,11 +29,15 @@ describe("theme css generator", () => {
       "--_text-color-kumo-default-dark: var(--color-neutral-100, oklch(97% 0 0));",
     );
     expect(css).toContain(
-      ':root[data-mode="light"], [data-mode="light"]:not([data-theme]), [data-mode="light"] [data-theme="kumo"], [data-theme="kumo"][data-mode="light"], [data-theme="kumo"] [data-mode="light"] {',
+      '[data-mode="light"]:not([data-theme]), [data-mode="light"] [data-theme="kumo"], [data-theme="kumo"][data-mode="light"] {',
     );
     expect(css).toContain(
-      ':root[data-mode="dark"], [data-mode="dark"]:not([data-theme]), [data-mode="dark"] [data-theme="kumo"], [data-theme="kumo"][data-mode="dark"], [data-theme="kumo"] [data-mode="dark"] {',
+      '[data-mode="dark"]:not([data-theme]), [data-mode="dark"] [data-theme="kumo"], [data-theme="kumo"][data-mode="dark"] {',
     );
+    expect(css).not.toContain(':root[data-mode="light"]');
+    expect(css).not.toContain(':root[data-mode="dark"]');
+    expect(css).not.toContain('[data-theme="kumo"] [data-mode="light"]');
+    expect(css).not.toContain('[data-theme="kumo"] [data-mode="dark"]');
     expect(css).not.toContain("--text-color-kumo-default: light-dark(");
     expect(css).not.toContain("--color-kumo-surface: light-dark(");
     expect(css).toContain(
@@ -48,11 +52,13 @@ describe("theme css generator", () => {
     expect(css).toContain('[data-theme="fedramp"] {');
     expect(css).toContain("@media (prefers-color-scheme: dark) {");
     expect(css).toContain(
-      '  [data-mode="light"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="light"], [data-theme="fedramp"] [data-mode="light"] {',
+      '  [data-mode="light"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="light"] {',
     );
     expect(css).toContain(
-      '  [data-mode="dark"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="dark"], [data-theme="fedramp"] [data-mode="dark"] {',
+      '  [data-mode="dark"] [data-theme="fedramp"], [data-theme="fedramp"][data-mode="dark"] {',
     );
+    expect(css).not.toContain('[data-theme="fedramp"] [data-mode="light"]');
+    expect(css).not.toContain('[data-theme="fedramp"] [data-mode="dark"]');
     expect(css).not.toMatch(/\n\[data-theme="fedramp"\] \{/);
     expect(css).not.toContain("--color-kumo-surface: light-dark(");
     expect(css).toContain("--_color-kumo-surface-light: #5b697c;");
@@ -73,10 +79,10 @@ describe("theme css generator", () => {
       /:root:not\(\[data-mode\]\), \[data-theme="kumo"\] \{[\s\S]*?--_text-color-kumo-default: var\(--_text-color-kumo-default-dark\);/,
     );
     expect(kumoCss).toMatch(
-      /:root\[data-mode="light"\], \[data-mode="light"\]:not\(\[data-theme\]\), \[data-mode="light"\] \[data-theme="kumo"\], \[data-theme="kumo"\]\[data-mode="light"\], \[data-theme="kumo"\] \[data-mode="light"\] \{[\s\S]*?--_color-kumo-surface: var\(--_color-kumo-surface-light\);/,
+      /\[data-mode="light"\]:not\(\[data-theme\]\), \[data-mode="light"\] \[data-theme="kumo"\], \[data-theme="kumo"\]\[data-mode="light"\] \{[\s\S]*?--_color-kumo-surface: var\(--_color-kumo-surface-light\);/,
     );
     expect(kumoCss).toMatch(
-      /:root\[data-mode="dark"\], \[data-mode="dark"\]:not\(\[data-theme\]\), \[data-mode="dark"\] \[data-theme="kumo"\], \[data-theme="kumo"\]\[data-mode="dark"\], \[data-theme="kumo"\] \[data-mode="dark"\] \{[\s\S]*?--_color-kumo-surface: var\(--_color-kumo-surface-dark\);/,
+      /\[data-mode="dark"\]:not\(\[data-theme\]\), \[data-mode="dark"\] \[data-theme="kumo"\], \[data-theme="kumo"\]\[data-mode="dark"\] \{[\s\S]*?--_color-kumo-surface: var\(--_color-kumo-surface-dark\);/,
     );
 
     expect(
@@ -89,10 +95,10 @@ describe("theme css generator", () => {
       /@media \(prefers-color-scheme: dark\) \{[\s\S]*?\[data-theme="fedramp"\] \{[\s\S]*?--_color-kumo-surface: var\(--_color-kumo-surface-dark\);/,
     );
     expect(fedrampCss).toMatch(
-      /\[data-mode="light"\] \[data-theme="fedramp"\], \[data-theme="fedramp"\]\[data-mode="light"\], \[data-theme="fedramp"\] \[data-mode="light"\] \{[\s\S]*?--_color-kumo-surface: var\(--_color-kumo-surface-light\);/,
+      /\[data-mode="light"\] \[data-theme="fedramp"\], \[data-theme="fedramp"\]\[data-mode="light"\] \{[\s\S]*?--_color-kumo-surface: var\(--_color-kumo-surface-light\);/,
     );
     expect(fedrampCss).toMatch(
-      /\[data-mode="dark"\] \[data-theme="fedramp"\], \[data-theme="fedramp"\]\[data-mode="dark"\], \[data-theme="fedramp"\] \[data-mode="dark"\] \{[\s\S]*?--_color-kumo-surface: var\(--_color-kumo-surface-dark\);/,
+      /\[data-mode="dark"\] \[data-theme="fedramp"\], \[data-theme="fedramp"\]\[data-mode="dark"\] \{[\s\S]*?--_color-kumo-surface: var\(--_color-kumo-surface-dark\);/,
     );
 
     expect(kumoCss).not.toContain("light-dark(");
