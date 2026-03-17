@@ -1077,27 +1077,6 @@ Props:
 - `lang`: CodeLang
 
 
-**Examples:**
-
-```tsx
-<CodeBlock
-      lang="tsx"
-      code={`const greeting = "Hello, World!";
-console.log(greeting);`}
-    />
-```
-
-```tsx
-<Code
-      lang="bash"
-      code="export API_KEY={{apiKey}}"
-      values={{
-        apiKey: { value: "sk_live_123", highlight: true },
-      }}
-    />
-```
-
-
 ---
 
 ### Collapsible
@@ -3424,7 +3403,7 @@ Progress bar showing a measured value within a known range (e.g. quota usage).
 <Meter
       label="Upload progress"
       value={80}
-      indicatorClassName="from-green-500 via-green-500 to-green-500"
+      indicatorClassName="from-kumo-success via-kumo-success to-kumo-success"
     />
 ```
 
@@ -4951,13 +4930,19 @@ Tab navigation component with segmented or underline style. Built on Base UI Tab
         {
           value: "tab2",
           label: "Link Tab",
-          render: (props) => <a {...props} href="#tab2" />,
+          render: (props) => (
+            <a {...props} href="#tab2">
+              Link Tab
+            </a>
+          ),
         },
         {
           value: "tab3",
           label: "Cloudflare",
           render: (props) => (
-            <a {...props} href="https://cloudflare.com" target="_blank" />
+            <a {...props} href="https://cloudflare.com" target="_blank">
+              Cloudflare
+            </a>
           ),
         },
       ]}
@@ -5100,7 +5085,7 @@ Toasty — toast notification provider and viewport.  Renders a `Toast.Provider`
 
 **Colors (kumo tokens used):**
 
-`bg-kumo-contrast`, `bg-kumo-control`, `bg-kumo-fill-hover`, `border-kumo-fill`, `text-kumo-default`, `text-kumo-strong`, `text-kumo-subtle`
+`bg-kumo-contrast`, `bg-kumo-control`, `bg-kumo-fill-hover`, `border-kumo-fill`, `text-kumo-danger`, `text-kumo-default`, `text-kumo-strong`, `text-kumo-subtle`, `text-kumo-warning`
 
 **Styling:**
 
