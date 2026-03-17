@@ -75,6 +75,20 @@
       }
     },
     {
+      "name": "kumo-placeholder",
+      "cssVariable": "--text-color-kumo-placeholder",
+      "tailwindUtilityFamily": "text",
+      "kind": "text",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-neutral-400, oklch(70.8% 0 0))",
+          "dark": "var(--color-neutral-500, oklch(55.6% 0 0))"
+        }
+      }
+    },
+    {
       "name": "kumo-brand",
       "cssVariable": "--text-color-kumo-brand",
       "tailwindUtilityFamily": "text",
