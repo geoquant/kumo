@@ -239,24 +239,6 @@ export const THEME_CONFIG: ThemeConfig = {
         },
       },
     },
-    "kumo-brand": {
-      newName: "",
-      theme: {
-        kumo: {
-          light: "oklch(0.5772 0.2324 260)",
-          dark: "oklch(0.5772 0.2324 260)",
-        },
-      },
-    },
-    "kumo-brand-hover": {
-      newName: "",
-      theme: {
-        kumo: {
-          light: "var(--color-blue-700, oklch(48.8% 0.243 264.376))",
-          dark: "var(--color-blue-700, oklch(48.8% 0.243 264.376))",
-        },
-      },
-    },
     "kumo-line": {
       newName: "",
       theme: {
@@ -294,6 +276,24 @@ export const THEME_CONFIG: ThemeConfig = {
         kumo: {
           light: "transparent",
           dark: "var(--color-neutral-800, oklch(26.9% 0 0))",
+        },
+      },
+    },
+    "kumo-brand": {
+      newName: "",
+      theme: {
+        kumo: {
+          light: "oklch(0.5772 0.2324 260)",
+          dark: "oklch(0.5772 0.2324 260)",
+        },
+      },
+    },
+    "kumo-brand-hover": {
+      newName: "",
+      theme: {
+        kumo: {
+          light: "var(--color-blue-700, oklch(48.8% 0.243 264.376))",
+          dark: "var(--color-blue-700, oklch(48.8% 0.243 264.376))",
         },
       },
     },

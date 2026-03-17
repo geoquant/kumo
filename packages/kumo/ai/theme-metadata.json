@@ -321,34 +321,6 @@
       }
     },
     {
-      "name": "kumo-brand",
-      "cssVariable": "--color-kumo-brand",
-      "tailwindUtilityFamily": "bg-border-ring",
-      "kind": "color",
-      "defaultTheme": "kumo",
-      "newName": "",
-      "themes": {
-        "kumo": {
-          "light": "oklch(0.5772 0.2324 260)",
-          "dark": "oklch(0.5772 0.2324 260)"
-        }
-      }
-    },
-    {
-      "name": "kumo-brand-hover",
-      "cssVariable": "--color-kumo-brand-hover",
-      "tailwindUtilityFamily": "bg-border-ring",
-      "kind": "color",
-      "defaultTheme": "kumo",
-      "newName": "",
-      "themes": {
-        "kumo": {
-          "light": "var(--color-blue-700, oklch(48.8% 0.243 264.376))",
-          "dark": "var(--color-blue-700, oklch(48.8% 0.243 264.376))"
-        }
-      }
-    },
-    {
       "name": "kumo-line",
       "cssVariable": "--color-kumo-line",
       "tailwindUtilityFamily": "bg-border-ring",
@@ -405,6 +377,34 @@
         "kumo": {
           "light": "transparent",
           "dark": "var(--color-neutral-800, oklch(26.9% 0 0))"
+        }
+      }
+    },
+    {
+      "name": "kumo-brand",
+      "cssVariable": "--color-kumo-brand",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "oklch(0.5772 0.2324 260)",
+          "dark": "oklch(0.5772 0.2324 260)"
+        }
+      }
+    },
+    {
+      "name": "kumo-brand-hover",
+      "cssVariable": "--color-kumo-brand-hover",
+      "tailwindUtilityFamily": "bg-border-ring",
+      "kind": "color",
+      "defaultTheme": "kumo",
+      "newName": "",
+      "themes": {
+        "kumo": {
+          "light": "var(--color-blue-700, oklch(48.8% 0.243 264.376))",
+          "dark": "var(--color-blue-700, oklch(48.8% 0.243 264.376))"
         }
       }
     },
