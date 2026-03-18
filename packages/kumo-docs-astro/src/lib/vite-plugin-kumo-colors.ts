@@ -3,8 +3,8 @@ import { fileURLToPath } from "node:url";
 import {
   THEME_CONFIG,
   AVAILABLE_THEMES,
-} from "@cloudflare/kumo/scripts/theme-generator/config";
-import type { TokenDefinition } from "@cloudflare/kumo/scripts/theme-generator/types";
+} from "../../../kumo/scripts/theme-generator/config";
+import type { TokenDefinition } from "../../../kumo/scripts/theme-generator/types";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
