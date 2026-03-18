@@ -1,10 +1,5 @@
 import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import {
-  THEME_CONFIG,
-  AVAILABLE_THEMES,
-} from "../../../kumo/scripts/theme-generator/config";
-import type { TokenDefinition } from "../../../kumo/scripts/theme-generator/types";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -21,23 +16,47 @@ type ColorToken = {
   tokenType: TokenType;
 };
 
+type ColorMode = {
+  light: string;
+  dark: string;
+};
+
+type TokenDefinition = {
+  theme: Record<string, ColorMode | undefined> & {
+    kumo: ColorMode;
+  };
+};
+
+type ThemeConfigModule = {
+  THEME_CONFIG: {
+    text: Record<string, TokenDefinition>;
+    color: Record<string, TokenDefinition>;
+  };
+  AVAILABLE_THEMES: readonly string[];
+};
+
+async function loadThemeConfig(configFile: string): Promise<ThemeConfigModule> {
+  const configUrl = pathToFileURL(configFile);
+  configUrl.searchParams.set("t", `${Date.now()}`);
+  return import(/* @vite-ignore */ configUrl.href) as Promise<ThemeConfigModule>;
+}
+
 /**
  * Convert theme config to ColorToken array for the virtual module.
  * Derives token data directly from config.ts (single source of truth).
  */
-function getColorsFromConfig(): ColorToken[] {
+async function getColorsFromConfig(configFile: string): Promise<ColorToken[]> {
+  const { THEME_CONFIG, AVAILABLE_THEMES } = await loadThemeConfig(configFile);
   const colors: ColorToken[] = [];
 
   // Process text color tokens
   for (const [tokenName, def] of Object.entries(THEME_CONFIG.text)) {
-    const typedDef = def as TokenDefinition;
-
     // Base kumo theme (semantic tokens)
-    if (typedDef.theme.kumo) {
+    if (def.theme.kumo) {
       colors.push({
         name: `--text-color-${tokenName}`,
-        light: typedDef.theme.kumo.light,
-        dark: typedDef.theme.kumo.dark,
+        light: def.theme.kumo.light,
+        dark: def.theme.kumo.dark,
         theme: "kumo",
         tokenType: "semantic",
       });
@@ -45,8 +64,8 @@ function getColorsFromConfig(): ColorToken[] {
 
     // Theme overrides
     for (const themeName of AVAILABLE_THEMES) {
-      if (themeName !== "kumo" && typedDef.theme[themeName]) {
-        const themeColors = typedDef.theme[themeName]!;
+      if (themeName !== "kumo" && def.theme[themeName]) {
+        const themeColors = def.theme[themeName]!;
         colors.push({
           name: `--text-color-${tokenName}`,
           light: themeColors.light,
@@ -60,14 +79,12 @@ function getColorsFromConfig(): ColorToken[] {
 
   // Process color tokens (bg, border, ring, etc.)
   for (const [tokenName, def] of Object.entries(THEME_CONFIG.color)) {
-    const typedDef = def as TokenDefinition;
-
     // Base kumo theme (semantic tokens)
-    if (typedDef.theme.kumo) {
+    if (def.theme.kumo) {
       colors.push({
         name: `--color-${tokenName}`,
-        light: typedDef.theme.kumo.light,
-        dark: typedDef.theme.kumo.dark,
+        light: def.theme.kumo.light,
+        dark: def.theme.kumo.dark,
         theme: "kumo",
         tokenType: "semantic",
       });
@@ -75,8 +92,8 @@ function getColorsFromConfig(): ColorToken[] {
 
     // Theme overrides
     for (const themeName of AVAILABLE_THEMES) {
-      if (themeName !== "kumo" && typedDef.theme[themeName]) {
-        const themeColors = typedDef.theme[themeName]!;
+      if (themeName !== "kumo" && def.theme[themeName]) {
+        const themeColors = def.theme[themeName]!;
         colors.push({
           name: `--color-${tokenName}`,
           light: themeColors.light,
@@ -113,9 +130,9 @@ export function kumoColorsPlugin() {
       }
     },
 
-    load(id: string) {
+    async load(id: string) {
       if (id === RESOLVED_VIRTUAL_MODULE_ID) {
-        const colors = getColorsFromConfig();
+        const colors = await getColorsFromConfig(configFile);
 
         return `
 export const kumoColors = ${JSON.stringify(colors, null, 2)};
