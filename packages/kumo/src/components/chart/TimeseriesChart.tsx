@@ -3,6 +3,7 @@ import type { LineSeriesOption, BarSeriesOption } from "echarts/charts";
 import type { EChartsOption } from "echarts";
 import { useEffect, useMemo, useRef } from "react";
 import { Chart, ChartEvents } from "./EChart";
+import { getChartThemeColor } from "./Color";
 
 /** A single data series rendered on a `TimeseriesChart` */
 export interface TimeseriesData {
@@ -99,7 +100,13 @@ export interface TimeseriesChartProps {
  *
  * <TimeseriesChart
  *   echarts={echarts}
- *   data={[{ name: "Requests", data: [[Date.now(), 42]], color: "#086FFF" }]}
+ *   data={[
+ *     {
+ *       name: "Requests",
+ *       data: [[Date.now(), 42]],
+ *       color: ChartPalette.color(0, isDarkMode),
+ *     },
+ *   ]}
  *   xAxisName="Time"
  *   xAxisTickFormat={(ts) => new Date(ts).toLocaleTimeString()}
  *   yAxisName="Count"
@@ -216,8 +223,8 @@ export function TimeseriesChart({
         },
         brushStyle: {
           borderWidth: 1,
-          color: "rgba(120,140,180,0.3)",
-          borderColor: "rgba(120,140,180,0.8)",
+          color: getChartThemeColor("kumo-chart-brush-fill", isDarkMode),
+          borderColor: getChartThemeColor("kumo-chart-brush-stroke", isDarkMode),
         },
       },
       tooltip: {
@@ -399,7 +406,10 @@ function ChartWaveLoader({
   }
   const d = points.join(" ");
 
-  const strokeColor = isDarkMode ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.2)";
+  const strokeColor = getChartThemeColor(
+    "kumo-chart-loader-stroke",
+    isDarkMode,
+  );
 
   return (
     <div

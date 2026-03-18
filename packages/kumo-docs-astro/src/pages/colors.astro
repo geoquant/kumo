@@ -149,6 +149,27 @@ export const AVAILABLE_THEMES = ["kumo", "fedramp", "myTheme"] as const;`}
   </ComponentSection>
 
   <ComponentSection>
+    <h2 class="mb-4 text-2xl font-bold">Chart Tokens</h2>
+    <p class="mb-4 text-kumo-strong">
+      Chart components use dedicated semantic tokens from <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">packages/kumo/scripts/theme-generator/config.ts</code>
+      so chart palettes stay centralized with the rest of the theme system.
+    </p>
+    <p class="mb-4 text-kumo-strong">
+      Look for tokens prefixed with <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">kumo-chart-</code>, including categorical series colors like
+      <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">kumo-chart-series-blue</code> and semantic colors like
+      <code class="rounded bg-kumo-control px-1 py-0.5 text-sm">kumo-chart-attention</code>.
+      These also cover chart UI details such as brush selection and loading states.
+    </p>
+    <CodeBlock
+      code={`import { ChartPalette } from "@cloudflare/kumo";
+
+const requests = ChartPalette.color(0, isDarkMode);
+const errors = ChartPalette.semantic("Attention", isDarkMode);`}
+      lang="tsx"
+    />
+  </ComponentSection>
+
+  <ComponentSection>
     <h2 class="mb-4 text-2xl font-bold">Token Reference</h2>
     <p class="mb-4 text-kumo-strong">
       Toggle the theme in the header to see how tokens adapt. Tokens marked as "global" 

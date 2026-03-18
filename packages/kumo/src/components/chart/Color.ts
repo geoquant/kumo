@@ -1,124 +1,83 @@
-/**
- * Categorical colors for light mode — used when assigning colors to data series
- * by index (e.g. the first series gets Blue, the second gets Violet, etc.).
- */
-enum ChartCategoricalLightColors {
-  Blue = "#086FFF",
-  Violet = "#CF7EE9",
-  Cyan = "#73CEE6",
-  Indigo = "#5B5FEF",
-  LightBlue = "#82B6FF",
-  Pink = "#F5609F",
-  Indigo3 = "#C2BDF3",
-  Violet2 = "#8D1EB1",
-  Violet3 = "#EBCAF6",
-  Indigo2 = "#7366E4",
-}
+import { THEME_CONFIG } from "../../../scripts/theme-generator/config";
 
-/**
- * Categorical colors for dark mode — same hues as the light palette but with
- * `E6` alpha (90% opacity) appended to soften contrast on dark backgrounds.
- */
-enum ChartCategoricalDarkColors {
-  Blue = "#086FFFE6",
-  Violet = "#CF7EE9E6",
-  Cyan = "#73CEE6E6",
-  Indigo = "#5B5FEFE6",
-  LightBlue = "#82B6FFE6",
-  Pink = "#F5609FE6",
-  Indigo3 = "#C2BDF3E6",
-  Violet2 = "#8D1EB1E6",
-  Violet3 = "#EBCAF6E6",
-  Indigo2 = "#7366E4E6",
-}
+const CHART_CATEGORICAL_COLOR_TOKENS = [
+  "kumo-chart-series-blue",
+  "kumo-chart-series-violet",
+  "kumo-chart-series-cyan",
+  "kumo-chart-series-indigo",
+  "kumo-chart-series-light-blue",
+  "kumo-chart-series-pink",
+  "kumo-chart-series-indigo-soft",
+  "kumo-chart-series-violet-strong",
+  "kumo-chart-series-violet-soft",
+  "kumo-chart-series-indigo-muted",
+] as const;
 
-/**
- * Semantic colors for light mode — used to convey meaning (status, severity)
- * rather than just distinguishing series. Use via `ChartPalette.semantic()`.
- */
-enum ChartSemanticLightColors {
-  Attention = "#FC574A",
-  Warning = "#F8A054",
-  Neutral = "#82B6FF",
-  NeutralLight = "#B9D6FF",
-  Disabled = "#B6B6B6",
-  DisabledLight = "#D9D9D9",
-}
+type ChartSemanticName =
+  | "Attention"
+  | "Warning"
+  | "Neutral"
+  | "NeutralLight"
+  | "Disabled"
+  | "DisabledLight";
 
-/**
- * Semantic colors for dark mode — same meanings as the light palette but with
- * `E6` alpha (90% opacity) for dark backgrounds.
- */
-enum ChartSemanticDarkColors {
-  Attention = "#FC574AE6",
-  Warning = "#F8A054E6",
-  Neutral = "#82B6FFE6",
-  NeutralLight = "#B9D6FFE6",
-  Disabled = "#B6B6B6E6",
-  DisabledLight = "#D9D9D9E6",
+type ChartColorTokenName = keyof typeof THEME_CONFIG.color;
+
+const CHART_SEMANTIC_COLOR_TOKENS: Record<ChartSemanticName, ChartColorTokenName> =
+  {
+    Attention: "kumo-chart-attention",
+    Warning: "kumo-chart-warning",
+    Neutral: "kumo-chart-neutral",
+    NeutralLight: "kumo-chart-neutral-light",
+    Disabled: "kumo-chart-disabled",
+    DisabledLight: "kumo-chart-disabled-light",
+  };
+
+function getChartColorToken(
+  tokenName: ChartColorTokenName,
+  isDarkMode = false,
+): string {
+  const token = THEME_CONFIG.color[tokenName];
+
+  if (!token) {
+    throw new Error(`Unknown chart color token: ${tokenName}`);
+  }
+
+  return isDarkMode ? token.theme.kumo.dark : token.theme.kumo.light;
 }
 
 /**
  * Ordered list of categorical colors for light mode, indexed by series position.
  * Used as the default ECharts color palette when `isDarkMode` is `false`.
  */
-export const CHART_LIGHT_COLORS = [
-  ChartCategoricalLightColors.Blue,
-  ChartCategoricalLightColors.Violet,
-  ChartCategoricalLightColors.Cyan,
-  ChartCategoricalLightColors.Indigo,
-  ChartCategoricalLightColors.LightBlue,
-  ChartCategoricalLightColors.Pink,
-  ChartCategoricalLightColors.Indigo3,
-  ChartCategoricalLightColors.Violet2,
-  ChartCategoricalLightColors.Violet3,
-  ChartCategoricalLightColors.Indigo2,
-];
+export const CHART_LIGHT_COLORS = CHART_CATEGORICAL_COLOR_TOKENS.map(
+  (tokenName) => getChartColorToken(tokenName),
+);
 
 /**
  * Ordered list of categorical colors for dark mode, indexed by series position.
  * Used as the default ECharts color palette when `isDarkMode` is `true`.
  */
-export const CHART_DARK_COLORS = [
-  ChartCategoricalDarkColors.Blue,
-  ChartCategoricalDarkColors.Violet,
-  ChartCategoricalDarkColors.Cyan,
-  ChartCategoricalDarkColors.Indigo,
-  ChartCategoricalDarkColors.LightBlue,
-  ChartCategoricalDarkColors.Pink,
-  ChartCategoricalDarkColors.Indigo3,
-  ChartCategoricalDarkColors.Violet2,
-  ChartCategoricalDarkColors.Violet3,
-  ChartCategoricalDarkColors.Indigo2,
-];
+export const CHART_DARK_COLORS = CHART_CATEGORICAL_COLOR_TOKENS.map(
+  (tokenName) => getChartColorToken(tokenName, true),
+);
 
 /**
  * Utilities for resolving Kumo chart colors by semantic name or series index.
- * Both functions accept an `isDarkMode` flag and return the appropriate hex color.
+ * Both functions accept an `isDarkMode` flag and return the appropriate color.
  */
 export namespace ChartPalette {
   /**
-   * Returns the hex color for a named semantic value (status, severity, etc.).
+   * Returns the color for a named semantic value (status, severity, etc.).
    *
    * @example
    * ```ts
-   * ChartPalette.semantic("Attention")           // "#FC574A" (light)
-   * ChartPalette.semantic("Warning", true)       // "#F8A054E6" (dark)
+   * ChartPalette.semantic("Attention")           // kumo chart attention color (light)
+   * ChartPalette.semantic("Warning", true)       // kumo chart warning color (dark)
    * ```
    */
-  export function semantic(
-    name:
-      | "Attention"
-      | "Warning"
-      | "Neutral"
-      | "NeutralLight"
-      | "Disabled"
-      | "DisabledLight",
-    isDarkMode = false,
-  ) {
-    return isDarkMode
-      ? ChartSemanticDarkColors[name]
-      : ChartSemanticLightColors[name];
+  export function semantic(name: ChartSemanticName, isDarkMode = false) {
+    return getChartColorToken(CHART_SEMANTIC_COLOR_TOKENS[name], isDarkMode);
   }
 
   /**
@@ -127,9 +86,9 @@ export namespace ChartPalette {
    *
    * @example
    * ```ts
-   * ChartPalette.color(0)        // Blue (light)
-   * ChartPalette.color(0, true)  // Blue with E6 alpha (dark)
-   * ChartPalette.color(10)       // wraps back to Blue
+   * ChartPalette.color(0)        // first categorical color (light)
+   * ChartPalette.color(0, true)  // first categorical color (dark)
+   * ChartPalette.color(10)       // wraps back to the first color
    * ```
    */
   export function color(index: number, isDarkMode = false) {
@@ -137,4 +96,11 @@ export namespace ChartPalette {
       ? CHART_DARK_COLORS[index % CHART_DARK_COLORS.length]
       : CHART_LIGHT_COLORS[index % CHART_LIGHT_COLORS.length];
   }
+}
+
+export function getChartThemeColor(
+  tokenName: ChartColorTokenName,
+  isDarkMode = false,
+) {
+  return getChartColorToken(tokenName, isDarkMode);
 }

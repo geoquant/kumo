@@ -84,8 +84,18 @@ function SmallItem({ color, value, name, inactive }: LegendItemProps) {
  *
  * @example
  * ```tsx
- * <ChartLegend.SmallItem name="Requests" color="#086FFF" value="1,234" />
- * <ChartLegend.LargeItem name="Latency" color="#CF7EE9" value="42" unit="ms" inactive />
+ * <ChartLegend.SmallItem
+ *   name="Requests"
+ *   color={ChartPalette.color(0, isDarkMode)}
+ *   value="1,234"
+ * />
+ * <ChartLegend.LargeItem
+ *   name="Latency"
+ *   color={ChartPalette.semantic("Warning", isDarkMode)}
+ *   value="42"
+ *   unit="ms"
+ *   inactive
+ * />
  * ```
  */
 export const ChartLegend = {

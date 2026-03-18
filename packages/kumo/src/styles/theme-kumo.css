@@ -191,6 +191,101 @@
     var(--color-green-900, oklch(39.3% 0.095 152.535))
   );
 
+  --color-kumo-chart-series-blue: light-dark(
+    #086FFF,
+    #086FFFE6
+  );
+
+  --color-kumo-chart-series-violet: light-dark(
+    #CF7EE9,
+    #CF7EE9E6
+  );
+
+  --color-kumo-chart-series-cyan: light-dark(
+    #73CEE6,
+    #73CEE6E6
+  );
+
+  --color-kumo-chart-series-indigo: light-dark(
+    #5B5FEF,
+    #5B5FEFE6
+  );
+
+  --color-kumo-chart-series-light-blue: light-dark(
+    #82B6FF,
+    #82B6FFE6
+  );
+
+  --color-kumo-chart-series-pink: light-dark(
+    #F5609F,
+    #F5609FE6
+  );
+
+  --color-kumo-chart-series-indigo-soft: light-dark(
+    #C2BDF3,
+    #C2BDF3E6
+  );
+
+  --color-kumo-chart-series-violet-strong: light-dark(
+    #8D1EB1,
+    #8D1EB1E6
+  );
+
+  --color-kumo-chart-series-violet-soft: light-dark(
+    #EBCAF6,
+    #EBCAF6E6
+  );
+
+  --color-kumo-chart-series-indigo-muted: light-dark(
+    #7366E4,
+    #7366E4E6
+  );
+
+  --color-kumo-chart-attention: light-dark(
+    #FC574A,
+    #FC574AE6
+  );
+
+  --color-kumo-chart-warning: light-dark(
+    #F8A054,
+    #F8A054E6
+  );
+
+  --color-kumo-chart-neutral: light-dark(
+    #82B6FF,
+    #82B6FFE6
+  );
+
+  --color-kumo-chart-neutral-light: light-dark(
+    #B9D6FF,
+    #B9D6FFE6
+  );
+
+  --color-kumo-chart-disabled: light-dark(
+    #B6B6B6,
+    #B6B6B6E6
+  );
+
+  --color-kumo-chart-disabled-light: light-dark(
+    #D9D9D9,
+    #D9D9D9E6
+  );
+
+  --color-kumo-chart-brush-fill: light-dark(
+    rgba(120,140,180,0.3),
+    rgba(120,140,180,0.3)
+  );
+
+  --color-kumo-chart-brush-stroke: light-dark(
+    rgba(120,140,180,0.8),
+    rgba(120,140,180,0.8)
+  );
+
+  --color-kumo-chart-loader-stroke: light-dark(
+    rgba(0,0,0,0.2),
+    rgba(255,255,255,0.5)
+  );
+
 }
 
 @theme {
@@ -243,6 +338,25 @@
     --color-kumo-danger-tint: var(--color-red-300, oklch(80.8% 0.114 19.571));
     --color-kumo-success: var(--color-green-500, oklch(72.3% 0.219 149.579));
     --color-kumo-success-tint: var(--color-green-300, oklch(87.1% 0.15 154.449));
+    --color-kumo-chart-series-blue: #086FFF;
+    --color-kumo-chart-series-violet: #CF7EE9;
+    --color-kumo-chart-series-cyan: #73CEE6;
+    --color-kumo-chart-series-indigo: #5B5FEF;
+    --color-kumo-chart-series-light-blue: #82B6FF;
+    --color-kumo-chart-series-pink: #F5609F;
+    --color-kumo-chart-series-indigo-soft: #C2BDF3;
+    --color-kumo-chart-series-violet-strong: #8D1EB1;
+    --color-kumo-chart-series-violet-soft: #EBCAF6;
+    --color-kumo-chart-series-indigo-muted: #7366E4;
+    --color-kumo-chart-attention: #FC574A;
+    --color-kumo-chart-warning: #F8A054;
+    --color-kumo-chart-neutral: #82B6FF;
+    --color-kumo-chart-neutral-light: #B9D6FF;
+    --color-kumo-chart-disabled: #B6B6B6;
+    --color-kumo-chart-disabled-light: #D9D9D9;
+    --color-kumo-chart-brush-fill: rgba(120,140,180,0.3);
+    --color-kumo-chart-brush-stroke: rgba(120,140,180,0.8);
+    --color-kumo-chart-loader-stroke: rgba(0,0,0,0.2);
   }
   
   :root[data-mode="dark"], [data-mode="dark"]:not([data-theme]), [data-mode="dark"] [data-theme="kumo"], [data-theme="kumo"][data-mode="dark"], [data-theme="kumo"] [data-mode="dark"] {
@@ -282,5 +396,24 @@
     --color-kumo-danger-tint: var(--color-red-900, oklch(39.6% 0.141 25.723));
     --color-kumo-success: var(--color-green-700, oklch(52.7% 0.154 150.069));
     --color-kumo-success-tint: var(--color-green-900, oklch(39.3% 0.095 152.535));
+    --color-kumo-chart-series-blue: #086FFFE6;
+    --color-kumo-chart-series-violet: #CF7EE9E6;
+    --color-kumo-chart-series-cyan: #73CEE6E6;
+    --color-kumo-chart-series-indigo: #5B5FEFE6;
+    --color-kumo-chart-series-light-blue: #82B6FFE6;
+    --color-kumo-chart-series-pink: #F5609FE6;
+    --color-kumo-chart-series-indigo-soft: #C2BDF3E6;
+    --color-kumo-chart-series-violet-strong: #8D1EB1E6;
+    --color-kumo-chart-series-violet-soft: #EBCAF6E6;
+    --color-kumo-chart-series-indigo-muted: #7366E4E6;
+    --color-kumo-chart-attention: #FC574AE6;
+    --color-kumo-chart-warning: #F8A054E6;
+    --color-kumo-chart-neutral: #82B6FFE6;
+    --color-kumo-chart-neutral-light: #B9D6FFE6;
+    --color-kumo-chart-disabled: #B6B6B6E6;
+    --color-kumo-chart-disabled-light: #D9D9D9E6;
+    --color-kumo-chart-brush-fill: rgba(120,140,180,0.3);
+    --color-kumo-chart-brush-stroke: rgba(120,140,180,0.8);
+    --color-kumo-chart-loader-stroke: rgba(255,255,255,0.5);
   }
 }

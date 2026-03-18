@@ -369,6 +369,196 @@ export const THEME_CONFIG: ThemeConfig = {
         },
       },
     },
+    "kumo-chart-series-blue": {
+      newName: "",
+      description: "Primary categorical chart series color.",
+      theme: {
+        kumo: {
+          light: "#086FFF",
+          dark: "#086FFFE6",
+        },
+      },
+    },
+    "kumo-chart-series-violet": {
+      newName: "",
+      description: "Secondary categorical chart series color.",
+      theme: {
+        kumo: {
+          light: "#CF7EE9",
+          dark: "#CF7EE9E6",
+        },
+      },
+    },
+    "kumo-chart-series-cyan": {
+      newName: "",
+      description: "Categorical chart series color for tertiary datasets.",
+      theme: {
+        kumo: {
+          light: "#73CEE6",
+          dark: "#73CEE6E6",
+        },
+      },
+    },
+    "kumo-chart-series-indigo": {
+      newName: "",
+      description: "Categorical chart series color for additional datasets.",
+      theme: {
+        kumo: {
+          light: "#5B5FEF",
+          dark: "#5B5FEFE6",
+        },
+      },
+    },
+    "kumo-chart-series-light-blue": {
+      newName: "",
+      description: "Light blue categorical chart series color.",
+      theme: {
+        kumo: {
+          light: "#82B6FF",
+          dark: "#82B6FFE6",
+        },
+      },
+    },
+    "kumo-chart-series-pink": {
+      newName: "",
+      description: "Pink categorical chart series color.",
+      theme: {
+        kumo: {
+          light: "#F5609F",
+          dark: "#F5609FE6",
+        },
+      },
+    },
+    "kumo-chart-series-indigo-soft": {
+      newName: "",
+      description: "Soft indigo categorical chart series color.",
+      theme: {
+        kumo: {
+          light: "#C2BDF3",
+          dark: "#C2BDF3E6",
+        },
+      },
+    },
+    "kumo-chart-series-violet-strong": {
+      newName: "",
+      description: "Strong violet categorical chart series color.",
+      theme: {
+        kumo: {
+          light: "#8D1EB1",
+          dark: "#8D1EB1E6",
+        },
+      },
+    },
+    "kumo-chart-series-violet-soft": {
+      newName: "",
+      description: "Soft violet categorical chart series color.",
+      theme: {
+        kumo: {
+          light: "#EBCAF6",
+          dark: "#EBCAF6E6",
+        },
+      },
+    },
+    "kumo-chart-series-indigo-muted": {
+      newName: "",
+      description: "Muted indigo categorical chart series color.",
+      theme: {
+        kumo: {
+          light: "#7366E4",
+          dark: "#7366E4E6",
+        },
+      },
+    },
+    "kumo-chart-attention": {
+      newName: "",
+      description: "Semantic chart color for attention or error states.",
+      theme: {
+        kumo: {
+          light: "#FC574A",
+          dark: "#FC574AE6",
+        },
+      },
+    },
+    "kumo-chart-warning": {
+      newName: "",
+      description: "Semantic chart color for warning states.",
+      theme: {
+        kumo: {
+          light: "#F8A054",
+          dark: "#F8A054E6",
+        },
+      },
+    },
+    "kumo-chart-neutral": {
+      newName: "",
+      description: "Semantic chart color for neutral highlighted series.",
+      theme: {
+        kumo: {
+          light: "#82B6FF",
+          dark: "#82B6FFE6",
+        },
+      },
+    },
+    "kumo-chart-neutral-light": {
+      newName: "",
+      description: "Lighter semantic chart color for neutral comparison series.",
+      theme: {
+        kumo: {
+          light: "#B9D6FF",
+          dark: "#B9D6FFE6",
+        },
+      },
+    },
+    "kumo-chart-disabled": {
+      newName: "",
+      description: "Semantic chart color for disabled or de-emphasized series.",
+      theme: {
+        kumo: {
+          light: "#B6B6B6",
+          dark: "#B6B6B6E6",
+        },
+      },
+    },
+    "kumo-chart-disabled-light": {
+      newName: "",
+      description: "Lighter disabled chart color for secondary de-emphasis.",
+      theme: {
+        kumo: {
+          light: "#D9D9D9",
+          dark: "#D9D9D9E6",
+        },
+      },
+    },
+    "kumo-chart-brush-fill": {
+      newName: "",
+      description: "Brush selection fill color used in timeseries charts.",
+      theme: {
+        kumo: {
+          light: "rgba(120,140,180,0.3)",
+          dark: "rgba(120,140,180,0.3)",
+        },
+      },
+    },
+    "kumo-chart-brush-stroke": {
+      newName: "",
+      description: "Brush selection border color used in timeseries charts.",
+      theme: {
+        kumo: {
+          light: "rgba(120,140,180,0.8)",
+          dark: "rgba(120,140,180,0.8)",
+        },
+      },
+    },
+    "kumo-chart-loader-stroke": {
+      newName: "",
+      description: "Loading skeleton stroke color used in timeseries charts.",
+      theme: {
+        kumo: {
+          light: "rgba(0,0,0,0.2)",
+          dark: "rgba(255,255,255,0.5)",
+        },
+      },
+    },
   },
 
   /**
