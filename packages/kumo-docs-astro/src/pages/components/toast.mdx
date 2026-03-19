@@ -18,6 +18,7 @@ import {
   ToastMultipleDemo,
   ToastErrorDemo,
   ToastWarningDemo,
+  ToastInfoDemo,
   ToastCustomContentDemo,
   ToastActionsDemo,
   ToastPromiseDemo,
@@ -160,15 +161,16 @@ description: "Your changes have been saved successfully."
 <ToastDescriptionOnlyDemo client:visible />
 </ComponentExample>
 
-  <Heading level={3}>Success Action</Heading>
+  <Heading level={3}>Success Variant</Heading>
   <p>
-    Toasts work well for confirming user actions.
+    Use the success variant for confirmations and positive outcomes.
   </p>
   <ComponentExample
     code={`toastManager.add({
 
-title: "Success!",
-description: "Your Worker has been deployed."
+title: "Deployed successfully",
+description: "Your Worker is now live.",
+variant: "success"
 })`} >
 
 <ToastSuccessDemo client:visible />
@@ -216,6 +218,21 @@ variant: "warning"
 })`} >
 
 <ToastWarningDemo client:visible />
+</ComponentExample>
+
+  <Heading level={3}>Info Variant</Heading>
+  <p>
+    Use the info variant for neutral informational messages.
+  </p>
+  <ComponentExample
+    code={`toastManager.add({
+
+title: "New version available",
+description: "Kumo v4.2 includes performance improvements.",
+variant: "info"
+})`} >
+
+<ToastInfoDemo client:visible />
 </ComponentExample>
 
   <Heading level={3}>Custom Content</Heading>
@@ -329,9 +346,9 @@ lang="tsx"
         </tr>
         <tr class="border-b border-kumo-line">
           <td class="py-3 pr-4 font-mono text-kumo-default">variant</td>
-          <td class="py-3 pr-4 font-mono">"default" | "error" | "warning"</td>
+          <td class="py-3 pr-4 font-mono">"default" | "success" | "error" | "warning" | "info"</td>
           <td class="py-3 pr-4 font-mono">"default"</td>
-          <td class="py-3">Visual style of the toast. Use `error` for failures and `warning` for cautionary messages.</td>
+          <td class="py-3">Visual style of the toast. Use `success` for confirmations, `error` for failures, `warning` for cautionary messages, and `info` for neutral informational messages.</td>
         </tr>
         <tr class="border-b border-kumo-line">
           <td class="py-3 pr-4 font-mono text-kumo-default">content</td>
