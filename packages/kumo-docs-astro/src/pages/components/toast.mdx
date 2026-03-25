@@ -205,12 +205,12 @@ toastManager.add({
 });
 ```
 
-<Heading level={3}>Top Position</Heading>
+<Heading level={3}>Top-Right Position</Heading>
 <p>
   The <code>Toasty</code> wrapper positions toasts in the bottom-right by default.
-  To place toasts at the top of the viewport, use the Base UI <code>Toast</code> primitives
+  To place toasts at the top-right of the viewport, use the Base UI <code>Toast</code> primitives
   directly (re-exported from <code>@cloudflare/kumo</code>) with custom viewport and root styling.
-  The key differences from bottom positioning are: anchor to <code>top: 0</code> instead of <code>bottom: 0</code>,
+  The key differences from bottom positioning are: anchor to <code>top</code> instead of <code>bottom</code>,
   use <code>origin-top</code>, flip the <code>--offset-y</code> calculation (no negation), reverse the peek
   and shrink directions, and set <code>swipeDirection="up"</code>.
 </p>
@@ -221,15 +221,15 @@ toastManager.add({
 ```tsx
 import { Toast, cn } from "@cloudflare/kumo";
 
-// Viewport: anchor to top instead of bottom
-<Toast.Viewport className="fixed top-4 right-0 bottom-auto left-0 z-50 mx-auto flex w-full max-w-[340px]">
+// Viewport: anchor to top-right instead of bottom-right
+<Toast.Viewport className="fixed top-4 right-4 bottom-auto left-auto z-50 flex w-[340px]">
 
-// Root: anchor top-0, origin-top, swipe up to dismiss
+// Root: anchor top-0, right-0, origin-top, swipe up to dismiss
 <Toast.Root
   toast={toast}
   swipeDirection="up"
   className={cn(
-    "absolute top-0 left-0 right-0 mx-auto origin-top ...",
+    "absolute top-0 right-0 left-auto mr-0 origin-top ...",
     // Flip offset-y: positive instead of negative
     "[--offset-y:calc(var(--toast-offset-y)+(var(--toast-index)*var(--gap))+var(--toast-swipe-movement-y))]",
     // Flip peek/shrink: push down instead of up

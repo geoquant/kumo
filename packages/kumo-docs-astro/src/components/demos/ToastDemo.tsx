@@ -394,7 +394,7 @@ function TopPositionToastList() {
       toast={toast}
       swipeDirection="up"
       className={cn(
-        "absolute right-0 top-0 left-0 z-[calc(1000-var(--toast-index))] mx-auto w-full origin-top select-none",
+        "absolute right-0 top-0 left-auto z-[calc(1000-var(--toast-index))] mr-0 w-full origin-top select-none",
         "rounded-xl border border-kumo-fill bg-kumo-control bg-clip-padding p-4 shadow-lg",
         "h-[var(--height)]",
         "[--gap:0.75rem] [--height:var(--toast-frontmost-height,var(--toast-height))] [--offset-y:calc(var(--toast-offset-y)+(var(--toast-index)*var(--gap))+var(--toast-swipe-movement-y))] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))]",
@@ -432,7 +432,7 @@ export function ToastTopPositionDemo() {
     <Toast.Provider>
       <TopPositionToastButton />
       <Toast.Portal>
-        <Toast.Viewport className="fixed top-4 right-0 bottom-auto left-0 z-50 mx-auto flex w-full max-w-[340px]">
+        <Toast.Viewport className="fixed top-4 right-4 bottom-auto left-auto z-50 flex w-[340px]">
           <TopPositionToastList />
         </Toast.Viewport>
       </Toast.Portal>
