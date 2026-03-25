@@ -21,6 +21,8 @@ import {
   ToastCustomContentDemo,
   ToastActionsDemo,
   ToastPromiseDemo,
+  ToastPersistentDemo,
+  ToastTopPositionDemo,
 } from "~/components/demos/ToastDemo";
 
 {/* Hero Demo */}
@@ -185,6 +187,59 @@ export function Layout({ children }) {
   <ToastPromiseDemo client:visible />
 </ComponentExample>
 
+<Heading level={3}>Persistent (No Auto-Dismiss)</Heading>
+<p>
+  Set <code>timeout: 0</code> to keep a toast visible indefinitely until the user manually dismisses it.
+  This is useful for important messages that require acknowledgment, such as action confirmations or
+  connectivity warnings.
+</p>
+<ComponentExample demo="ToastPersistentDemo">
+  <ToastPersistentDemo client:visible />
+</ComponentExample>
+
+```tsx
+toastManager.add({
+  title: "Action required",
+  description: "This toast will stay visible until dismissed.",
+  timeout: 0, // Disables auto-dismiss
+});
+```
+
+<Heading level={3}>Top Position</Heading>
+<p>
+  The <code>Toasty</code> wrapper positions toasts in the bottom-right by default.
+  To place toasts at the top of the viewport, use the Base UI <code>Toast</code> primitives
+  directly (re-exported from <code>@cloudflare/kumo</code>) with custom viewport and root styling.
+  The key differences from bottom positioning are: anchor to <code>top: 0</code> instead of <code>bottom: 0</code>,
+  use <code>origin-top</code>, flip the <code>--offset-y</code> calculation (no negation), reverse the peek
+  and shrink directions, and set <code>swipeDirection="up"</code>.
+</p>
+<ComponentExample demo="ToastTopPositionDemo">
+  <ToastTopPositionDemo client:visible />
+</ComponentExample>
+
+```tsx
+import { Toast, cn } from "@cloudflare/kumo";
+
+// Viewport: anchor to top instead of bottom
+<Toast.Viewport className="fixed top-4 right-0 bottom-auto left-0 z-50 mx-auto flex w-full max-w-[340px]">
+
+// Root: anchor top-0, origin-top, swipe up to dismiss
+<Toast.Root
+  toast={toast}
+  swipeDirection="up"
+  className={cn(
+    "absolute top-0 left-0 right-0 mx-auto origin-top ...",
+    // Flip offset-y: positive instead of negative
+    "[--offset-y:calc(var(--toast-offset-y)+(var(--toast-index)*var(--gap))+var(--toast-swipe-movement-y))]",
+    // Flip peek/shrink: push down instead of up
+    "[transform:...translateY(calc(+(var(--toast-index)*var(--peek))+(var(--shrink)*var(--height))))...]",
+    // Enter/exit: slide from top (-150%) instead of bottom (150%)
+    "data-[starting-style]:[transform:translateY(-150%)]",
+  )}
+/>
+```
+
 </ComponentSection>
 
 {/* API Reference */}
@@ -266,7 +321,7 @@ toastManager.promise(asyncFn(), {
         <td class="py-3 pr-4 font-mono">number</td>
         <td class="py-3 pr-4 font-mono">5000</td>
         <td class="py-3">
-          Time in milliseconds before the toast auto-dismisses.
+          Time in milliseconds before the toast auto-dismisses. Set to <code>0</code> to persist indefinitely.
         </td>
       </tr>
     </tbody>
