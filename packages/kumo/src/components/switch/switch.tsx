@@ -254,7 +254,7 @@ const SwitchBase = forwardRef<HTMLButtonElement, SwitchProps>(
           const thumbColors = isNeutral
             ? state.checked
               ? "ring-transparent bg-kumo-base dark:bg-neutral-400"
-              : "bg-kumo-base dark:bg-neutral-850 ring-transparent"
+              : "bg-kumo-base dark:bg-neutral-850 ring-neutral-300 dark:ring-neutral-700"
             : state.checked
               ? "ring-transparent bg-kumo-base dark:bg-blue-300"
               : "bg-kumo-base dark:bg-neutral-850 ring-transparent";
@@ -404,7 +404,7 @@ const SwitchItem = forwardRef<HTMLButtonElement, SwitchItemProps>(
             const thumbColors = isNeutral
               ? state.checked
                 ? "ring-transparent bg-kumo-base dark:bg-neutral-400"
-                : "bg-kumo-base dark:bg-neutral-850 ring-transparent"
+                : "bg-kumo-base dark:bg-neutral-850 ring-neutral-300 dark:ring-neutral-700"
               : state.checked
                 ? "ring-transparent bg-kumo-base dark:bg-blue-300"
                 : "bg-kumo-base dark:bg-neutral-850 ring-transparent";
