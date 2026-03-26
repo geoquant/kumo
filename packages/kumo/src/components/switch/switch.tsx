@@ -253,11 +253,11 @@ const SwitchBase = forwardRef<HTMLButtonElement, SwitchProps>(
           // Thumb colors based on variant
           const thumbColors = isNeutral
             ? state.checked
-              ? "ring-transparent bg-kumo-base dark:bg-neutral-400"
-              : "bg-kumo-base dark:bg-neutral-850 ring-neutral-300 dark:ring-neutral-700"
+              ? "bg-kumo-base dark:bg-neutral-400"
+              : "bg-kumo-base dark:bg-neutral-850"
             : state.checked
-              ? "ring-transparent bg-kumo-base dark:bg-blue-300"
-              : "bg-kumo-base dark:bg-neutral-850 ring-transparent";
+              ? "bg-kumo-base dark:bg-blue-300"
+              : "bg-kumo-base dark:bg-neutral-850";
 
           const trackClassName = cn(
             "relative inline-flex items-center ring cursor-pointer border-none p-0",
@@ -272,7 +272,7 @@ const SwitchBase = forwardRef<HTMLButtonElement, SwitchProps>(
           );
 
           const thumbClassName = cn(
-            "absolute top-0 bottom-0 shadow-sm ring-1 ring-inset",
+            "absolute top-0 bottom-0 shadow-[0_0_1px_0.5px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.08)] dark:shadow-[0_0_1px_0.5px_rgba(255,255,255,0.1),0_1px_2px_rgba(0,0,0,0.3)]",
             s.thumb,
             squircleRadius,
             thumbColors,
@@ -403,11 +403,11 @@ const SwitchItem = forwardRef<HTMLButtonElement, SwitchItemProps>(
             // Thumb colors based on variant
             const thumbColors = isNeutral
               ? state.checked
-                ? "ring-transparent bg-kumo-base dark:bg-neutral-400"
-                : "bg-kumo-base dark:bg-neutral-850 ring-neutral-300 dark:ring-neutral-700"
+                ? "bg-kumo-base dark:bg-neutral-400"
+                : "bg-kumo-base dark:bg-neutral-850"
               : state.checked
-                ? "ring-transparent bg-kumo-base dark:bg-blue-300"
-                : "bg-kumo-base dark:bg-neutral-850 ring-transparent";
+                ? "bg-kumo-base dark:bg-blue-300"
+                : "bg-kumo-base dark:bg-neutral-850";
 
             const trackClassName = cn(
               "relative inline-flex items-center ring cursor-pointer border-none p-0",
@@ -421,7 +421,7 @@ const SwitchItem = forwardRef<HTMLButtonElement, SwitchItemProps>(
             );
 
             const thumbClassName = cn(
-              "absolute top-0 bottom-0 shadow-sm ring-1 ring-inset",
+              "absolute top-0 bottom-0 shadow-[0_0_1px_0.5px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.08)] dark:shadow-[0_0_1px_0.5px_rgba(255,255,255,0.1),0_1px_2px_rgba(0,0,0,0.3)]",
               s.thumb,
               squircleRadius,
               thumbColors,
