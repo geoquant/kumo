@@ -272,7 +272,7 @@ const SwitchBase = forwardRef<HTMLButtonElement, SwitchProps>(
           );
 
           const thumbClassName = cn(
-            "absolute top-0 bottom-0 shadow-[0_0_1px_0.5px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.08)] dark:shadow-[0_0_1px_0.5px_rgba(255,255,255,0.1),0_1px_2px_rgba(0,0,0,0.3)]",
+            "absolute top-0 bottom-0 shadow-[0_0_1px_0.5px_var(--color-kumo-shadow-edge),0_1px_2px_var(--color-kumo-shadow-drop)]",
             s.thumb,
             squircleRadius,
             thumbColors,
@@ -421,7 +421,7 @@ const SwitchItem = forwardRef<HTMLButtonElement, SwitchItemProps>(
             );
 
             const thumbClassName = cn(
-              "absolute top-0 bottom-0 shadow-[0_0_1px_0.5px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.08)] dark:shadow-[0_0_1px_0.5px_rgba(255,255,255,0.1),0_1px_2px_rgba(0,0,0,0.3)]",
+              "absolute top-0 bottom-0 shadow-[0_0_1px_0.5px_var(--color-kumo-shadow-edge),0_1px_2px_var(--color-kumo-shadow-drop)]",
               s.thumb,
               squircleRadius,
               thumbColors,
