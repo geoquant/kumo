@@ -45,7 +45,7 @@ html {
   --tw-prose-kbd-shadows: transparent;
   --tw-prose-code: var(--color-kumo-default);
   --tw-prose-pre-code: var(--color-kumo-default);
-  --tw-prose-pre-bg: var(--color-kumo-recessed);
+  --tw-prose-pre-bg: var(--color-kumo-canvas);
   --tw-prose-th-borders: var(--color-kumo-line);
   --tw-prose-td-borders: var(--color-kumo-line);
 
@@ -65,7 +65,7 @@ html {
   --tw-prose-invert-kbd-shadows: transparent;
   --tw-prose-invert-code: var(--color-kumo-default);
   --tw-prose-invert-pre-code: var(--color-kumo-default);
-  --tw-prose-invert-pre-bg: var(--color-kumo-recessed);
+  --tw-prose-invert-pre-bg: var(--color-kumo-canvas);
   --tw-prose-invert-th-borders: var(--color-kumo-line);
   --tw-prose-invert-td-borders: var(--color-kumo-line);
 }
