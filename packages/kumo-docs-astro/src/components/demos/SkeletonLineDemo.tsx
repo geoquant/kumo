@@ -20,6 +20,17 @@ export function SkeletonLineWidthDemo() {
   );
 }
 
+export function SkeletonLineHeightDemo() {
+  return (
+    <div className="flex w-64 flex-col gap-3">
+      <SkeletonLine className="h-2" />
+      <SkeletonLine className="h-4" />
+      <SkeletonLine className="h-6" />
+      <SkeletonLine className="h-8" />
+    </div>
+  );
+}
+
 export function SkeletonLineCardDemo() {
   return (
     <div className="w-64 rounded-lg p-4 ring ring-kumo-line">

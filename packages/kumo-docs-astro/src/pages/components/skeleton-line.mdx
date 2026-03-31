@@ -11,6 +11,7 @@ import Heading from "~/components/docs/Heading.astro";
 import {
   SkeletonLineDemo,
   SkeletonLineWidthDemo,
+  SkeletonLineHeightDemo,
   SkeletonLineCardDemo,
 } from "~/components/demos/SkeletonLineDemo";
 
@@ -42,6 +43,18 @@ import { SkeletonLine } from "@cloudflare/kumo";
   </p>
   <ComponentExample demo="SkeletonLineWidthDemo">
     <SkeletonLineWidthDemo client:visible />
+  </ComponentExample>
+</ComponentSection>
+
+{/* Custom Height */}
+
+<ComponentSection>
+  <Heading level={2}>Custom Height</Heading>
+  <p class="text-kumo-strong mb-4">
+    Override the default height using Tailwind utility classes via <code>className</code>. The default height is <code>0.5rem</code>.
+  </p>
+  <ComponentExample demo="SkeletonLineHeightDemo">
+    <SkeletonLineHeightDemo client:visible />
   </ComponentExample>
 </ComponentSection>
 
