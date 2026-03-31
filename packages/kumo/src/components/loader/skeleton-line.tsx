@@ -16,7 +16,6 @@ export const SkeletonLine = ({
   maxDuration = 1.7,
   minDelay = 0,
   maxDelay = 0.5,
-  height,
   className,
 }: {
   minWidth?: number;
@@ -25,8 +24,6 @@ export const SkeletonLine = ({
   maxDuration?: number;
   minDelay?: number;
   maxDelay?: number;
-  /** CSS height value (e.g. "1rem", "24px"). Defaults to 0.5rem. */
-  height?: string;
   className?: string;
 }) => {
   const { width, duration, delay } = useMemo(() => {
@@ -41,7 +38,6 @@ export const SkeletonLine = ({
     "--skeleton-width": `${width}%`,
     "--shimmer-duration": `${duration}s`,
     "--shimmer-delay": `${delay}s`,
-    ...(height != null && { "--skeleton-height": height }),
   };
 
   return (
