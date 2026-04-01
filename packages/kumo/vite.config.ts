@@ -183,6 +183,10 @@ export default defineConfig(({ mode }) => {
             "src/components/empty/index.ts",
           ),
           "components/grid": resolve(__dirname, "src/components/grid/index.ts"),
+          "components/cloudflare-icon": resolve(
+            __dirname,
+            "src/components/cloudflare-icon/index.ts",
+          ),
           "components/cloudflare-logo": resolve(
             __dirname,
             "src/components/cloudflare-logo/index.ts",

@@ -197,6 +197,16 @@ export {
   type CloudflareLogoSvgVariant,
   type CloudflareLogoSvgColor,
 } from "./components/cloudflare-logo";
+export {
+  CloudflareIcon,
+  KUMO_CLOUDFLARE_ICON_VARIANTS,
+  KUMO_CLOUDFLARE_ICON_DEFAULT_VARIANTS,
+  cloudflareIconNames,
+  cloudflareIconSpriteUrl,
+  type CloudflareIconProps,
+  type CloudflareIconName,
+  type CloudflareIconSize,
+} from "./components/cloudflare-icon";
 
 // DatePicker
 export {

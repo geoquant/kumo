@@ -5,6 +5,7 @@ import {
   KUMO_CLOUDFLARE_ICON_DEFAULT_VARIANTS,
   KUMO_CLOUDFLARE_ICON_VARIANTS,
   cloudflareIconNames,
+  cloudflareIconSpriteUrl,
 } from "./index";
 
 describe("CloudflareIcon", () => {
@@ -16,7 +17,14 @@ describe("CloudflareIcon", () => {
 
   it("exports KUMO size variants", () => {
     expect(KUMO_CLOUDFLARE_ICON_VARIANTS.size.base.classes).toContain("size-5");
+    expect(KUMO_CLOUDFLARE_ICON_VARIANTS.size.base.description).toBe(
+      "Default icon size",
+    );
     expect(KUMO_CLOUDFLARE_ICON_DEFAULT_VARIANTS.size).toBe("base");
+  });
+
+  it("exports the shared sprite URL", () => {
+    expect(cloudflareIconSpriteUrl).toContain("sprite.svg");
   });
 
   it("renders a real glyph from the generated sprite", () => {

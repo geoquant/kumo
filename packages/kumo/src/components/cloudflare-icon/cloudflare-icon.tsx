@@ -1,5 +1,6 @@
-import { forwardRef, useEffect, useId, type SVGAttributes } from "react";
+import React, { forwardRef, useEffect, type SVGAttributes } from "react";
 import spriteMarkup from "../../icons/generated/sprite.svg?raw";
+import spriteUrl from "../../icons/generated/sprite.svg";
 import {
   cloudflareIconViewBoxes,
   type CloudflareIconName,
@@ -53,6 +54,8 @@ export const KUMO_CLOUDFLARE_ICON_DEFAULT_VARIANTS = {
   size: "base",
 } as const;
 
+export const cloudflareIconSpriteUrl = spriteUrl;
+
 export type CloudflareIconSize =
   keyof typeof KUMO_CLOUDFLARE_ICON_VARIANTS.size;
 
@@ -81,7 +84,7 @@ export const CloudflareIcon = forwardRef<SVGSVGElement, CloudflareIconProps>(
     },
     ref,
   ) => {
-    const titleId = useId();
+    const titleId = React.useId();
     const href = `#${glyph}`;
     const viewBox = cloudflareIconViewBoxes[glyph];
     const labelled = Boolean(title);

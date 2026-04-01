@@ -179,6 +179,10 @@
       "types": "./dist/src/components/grid/index.d.ts",
       "import": "./dist/components/grid.js"
     },
+    "./components/cloudflare-icon": {
+      "types": "./dist/src/components/cloudflare-icon/index.d.ts",
+      "import": "./dist/components/cloudflare-icon.js"
+    },
     "./components/cloudflare-logo": {
       "types": "./dist/src/components/cloudflare-logo/index.d.ts",
       "import": "./dist/components/cloudflare-logo.js"
