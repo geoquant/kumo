@@ -14,6 +14,19 @@ This directory is the Kumo-owned source of truth for `CloudflareIcon` glyph asse
 pnpm --filter @cloudflare/kumo codegen:icons
 ```
 
+## Validation
+
+```bash
+pnpm --filter @cloudflare/kumo lint:icons
+```
+
+This validator is warning-only. It helps catch asset-shape drift before regeneration, including:
+- unexpected filename normalization
+- missing or non-`0 0 16 16` `viewBox`
+- stray `width` / `height` attributes
+- empty SVG bodies
+- disallowed script / inline event handler markup
+
 The generation path is intentionally repo-local and does **not** depend on any committed Figma fetch script.
 If glyphs originate from another internal source, that ingestion/prep should happen out-of-repo before the final SVGs are committed into `assets/`.
 

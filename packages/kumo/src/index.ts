@@ -202,7 +202,6 @@ export {
   KUMO_CLOUDFLARE_ICON_VARIANTS,
   KUMO_CLOUDFLARE_ICON_DEFAULT_VARIANTS,
   cloudflareIconNames,
-  cloudflareIconSpriteUrl,
   type CloudflareIconProps,
   type CloudflareIconName,
   type CloudflareIconSize,

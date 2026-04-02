@@ -133,6 +133,8 @@ const COMPONENT_DESCRIPTIONS: Record<string, string> = {
   checkbox:
     "A control that allows the user to toggle between checked and not checked.",
   "clipboard-text": "A text component with a copy-to-clipboard button.",
+  "cloudflare-icon":
+    "Cloudflare product and platform glyphs backed by Kumo’s generated icon sprite.",
   collapsible:
     "A vertically stacked set of interactive headings that each reveal content.",
   combobox:

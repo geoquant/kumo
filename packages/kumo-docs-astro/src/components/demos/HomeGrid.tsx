@@ -5,6 +5,7 @@ import {
   Button,
   Checkbox,
   ClipboardText,
+  CloudflareIcon,
   Collapsible,
   Combobox,
   DatePicker,
@@ -55,6 +56,7 @@ const componentRoutes: Record<string, string> = {
   button: "/components/button",
   checkbox: "/components/checkbox",
   "clipboard-text": "/components/clipboard-text",
+  "cloudflare-icon": "/components/cloudflare-icon",
   "code-highlighted": "/components/code-highlighted",
   collapsible: "/components/collapsible",
   combobox: "/components/combobox",
@@ -474,6 +476,21 @@ export function HomeGrid() {
       name: "ClipboardText",
       id: "clipboard-text",
       Component: <ClipboardText text="npx kumo add button" />,
+    },
+    {
+      name: "CloudflareIcon",
+      id: "cloudflare-icon",
+      Component: (
+        <div className="flex items-center gap-4">
+          <CloudflareIcon glyph="cloudflare-gateway-outline" size="lg" />
+          <CloudflareIcon
+            glyph="cloudflare-pages-solid"
+            size="lg"
+            className="text-kumo-brand"
+          />
+          <CloudflareIcon glyph="cloudflare-radar-outline" size="lg" />
+        </div>
+      ),
     },
     {
       name: "CommandPalette",

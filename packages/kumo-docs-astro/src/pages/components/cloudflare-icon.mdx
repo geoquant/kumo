@@ -1,0 +1,172 @@
+---
+layout: ~/layouts/MdxDocLayout.astro
+title: "CloudflareIcon"
+description: "Cloudflare product and platform glyphs backed by Kumo’s generated icon sprite."
+sourceFile: "components/cloudflare-icon"
+---
+
+import ComponentExample from "~/components/docs/ComponentExample.astro";
+import ComponentSection from "~/components/docs/ComponentSection.astro";
+import CodeBlock from "~/components/docs/CodeBlock.astro";
+import Heading from "~/components/docs/Heading.astro";
+import {
+  CloudflareIconBasicDemo,
+  CloudflareIconSizesDemo,
+  CloudflareIconAccessibilityDemo,
+  CloudflareIconColorDemo,
+  CloudflareIconGalleryDemo,
+} from "~/components/demos/CloudflareIconDemo";
+
+<ComponentSection>
+  <ComponentExample demo="CloudflareIconBasicDemo" vrSection="basic" vrTitle="Basic">
+    <CloudflareIconBasicDemo client:visible />
+  </ComponentExample>
+</ComponentSection>
+
+<ComponentSection>
+  <Heading level={2}>Installation</Heading>
+  <Heading level={3}>Barrel</Heading>
+  <CodeBlock
+    code={`import { CloudflareIcon, cloudflareIconNames } from "@cloudflare/kumo";`}
+    lang="tsx"
+  />
+  <Heading level={3}>Granular</Heading>
+  <CodeBlock
+    code={`import {
+  CloudflareIcon,
+  cloudflareIconNames,
+} from "@cloudflare/kumo/components/cloudflare-icon";`}
+    lang="tsx"
+  />
+</ComponentSection>
+
+<ComponentSection>
+  <Heading level={2}>Usage</Heading>
+
+```tsx
+import { CloudflareIcon } from "@cloudflare/kumo";
+
+export default function Example() {
+  return (
+    <CloudflareIcon
+      glyph="cloudflare-gateway-outline"
+      title="Cloudflare Gateway"
+    />
+  );
+}
+```
+
+<p>
+  <code>CloudflareIcon</code> renders real shipped glyphs from Kumo’s generated
+  Cloudflare icon catalog. Use a glyph name from <code>cloudflareIconNames</code>{" "}
+  and size or recolor the icon with normal Kumo classes.
+</p>
+</ComponentSection>
+
+<ComponentSection>
+  <Heading level={2}>Examples</Heading>
+
+  <Heading level={3}>Sizing</Heading>
+  <p>
+    Use the built-in <code>size</code> prop for common icon sizes: <code>xs</code>,{" "}
+    <code>sm</code>, <code>base</code>, and <code>lg</code>.
+  </p>
+  <ComponentExample demo="CloudflareIconSizesDemo" vrSection="sizes" vrTitle="Sizes">
+    <CloudflareIconSizesDemo client:visible />
+  </ComponentExample>
+
+  <Heading level={3}>Accessibility</Heading>
+  <p>
+    Decorative icons can remain unlabeled. When the icon needs its own accessible
+    name, pass a <code>title</code> so the component renders an SVG title and is
+    announced to assistive technology.
+  </p>
+  <ComponentExample
+    demo="CloudflareIconAccessibilityDemo"
+    vrSection="accessibility"
+    vrTitle="Accessibility"
+  >
+    <CloudflareIconAccessibilityDemo client:visible />
+  </ComponentExample>
+
+  <Heading level={3}>Color customization via className</Heading>
+  <p>
+    The icon uses <code>fill-current</code> and defaults to semantic Kumo text
+    color. Override color with <code>className</code> and semantic text tokens.
+  </p>
+  <ComponentExample demo="CloudflareIconColorDemo" vrSection="color" vrTitle="Color customization">
+    <CloudflareIconColorDemo client:visible />
+  </ComponentExample>
+
+  <Heading level={3}>Glyph discovery gallery</Heading>
+  <p>
+    Search the full generated glyph set, preview the real rendered icon, and click
+    any result to copy the glyph name only.
+  </p>
+  <ComponentExample demo="CloudflareIconGalleryDemo" vrSection="gallery" vrTitle="Glyph discovery gallery">
+    <CloudflareIconGalleryDemo client:load />
+  </ComponentExample>
+</ComponentSection>
+
+<ComponentSection>
+  <Heading level={2}>API Reference</Heading>
+  <p>
+    <code>CloudflareIcon</code> extends <code>SVGSVGElement</code> and accepts all
+    standard SVG attributes in addition to the props below.
+  </p>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead>
+        <tr class="border-b border-kumo-line">
+          <th class="py-3 pr-4 font-medium">Prop</th>
+          <th class="py-3 pr-4 font-medium">Type</th>
+          <th class="py-3 pr-4 font-medium">Default</th>
+          <th class="py-3 font-medium">Description</th>
+        </tr>
+      </thead>
+      <tbody class="text-kumo-subtle">
+        <tr class="border-b border-kumo-line">
+          <td class="py-3 pr-4 font-mono text-kumo-default">glyph</td>
+          <td class="py-3 pr-4 font-mono">CloudflareIconName</td>
+          <td class="py-3 pr-4 font-mono">—</td>
+          <td class="py-3">
+            Required glyph name from <code>cloudflareIconNames</code>.
+          </td>
+        </tr>
+        <tr class="border-b border-kumo-line">
+          <td class="py-3 pr-4 font-mono text-kumo-default">size</td>
+          <td class="py-3 pr-4 font-mono">"xs" | "sm" | "base" | "lg"</td>
+          <td class="py-3 pr-4 font-mono">"base"</td>
+          <td class="py-3">
+            Applies Kumo’s built-in icon sizing classes.
+          </td>
+        </tr>
+        <tr class="border-b border-kumo-line">
+          <td class="py-3 pr-4 font-mono text-kumo-default">title</td>
+          <td class="py-3 pr-4 font-mono">string</td>
+          <td class="py-3 pr-4 font-mono">—</td>
+          <td class="py-3">
+            Accessible label for non-decorative icons.
+          </td>
+        </tr>
+        <tr class="border-b border-kumo-line">
+          <td class="py-3 pr-4 font-mono text-kumo-default">focusable</td>
+          <td class="py-3 pr-4 font-mono">boolean</td>
+          <td class="py-3 pr-4 font-mono">false</td>
+          <td class="py-3">
+            Controls the underlying SVG <code>focusable</code> attribute.
+          </td>
+        </tr>
+        <tr>
+          <td class="py-3 pr-4 font-mono text-kumo-default">className</td>
+          <td class="py-3 pr-4 font-mono">string</td>
+          <td class="py-3 pr-4 font-mono">—</td>
+          <td class="py-3">
+            Add semantic text color or layout classes such as <code>text-kumo-brand</code>.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</ComponentSection>
