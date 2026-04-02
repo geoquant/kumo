@@ -93,9 +93,11 @@ jobs:
           prompt: |
             Review PR #${{ github.event.inputs.pr_number }} in ${{ github.repository }}.
 
-            This run was automatically dispatched when the PR was opened, updated, or marked ready for review. Review-only mode: do not modify code or push commits. Read AGENTS.md before reviewing. Prefer leaving one cohesive PR review with inline comments only where they are high-signal.
+            This run was automatically dispatched when the PR was opened, updated, or marked ready for review. Review-only mode: do not modify code or push commits. Read AGENTS.md before reviewing.
 
-            Focus on correctness, regressions, CI/workflow breakage, security, and repo conventions. If the PR is clean, say so clearly.
+            Use the `gh` CLI to submit your review back to PR #${{ github.event.inputs.pr_number }} in ${{ github.repository }}. Do not stop at printing a review to stdout. If the PR is clean, submit an approving review with a concise summary. If you find issues, submit a comment review with the findings and include inline comments only where they are high-signal.
+
+            Focus on correctness, regressions, CI/workflow breakage, security, and repo conventions.
 
             <pr_number>
             ${{ github.event.inputs.pr_number }}
