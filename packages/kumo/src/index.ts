@@ -199,12 +199,14 @@ export {
 } from "./components/cloudflare-logo";
 export {
   CloudflareIcon,
+  CloudflareIconSprite,
   KUMO_CLOUDFLARE_ICON_VARIANTS,
   KUMO_CLOUDFLARE_ICON_DEFAULT_VARIANTS,
   cloudflareIconNames,
   type CloudflareIconProps,
   type CloudflareIconName,
   type CloudflareIconSize,
+  type CloudflareIconSpriteProps,
 } from "./components/cloudflare-icon";
 
 // DatePicker

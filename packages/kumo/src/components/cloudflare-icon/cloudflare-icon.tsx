@@ -1,4 +1,9 @@
-import React, { forwardRef, useEffect, type SVGAttributes } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  type HTMLAttributes,
+  type SVGAttributes,
+} from "react";
 import spriteMarkup from "../../icons/generated/sprite.svg?raw";
 import {
   cloudflareIconViewBoxes,
@@ -65,6 +70,37 @@ export interface CloudflareIconProps
   /** Accessible label for a non-decorative icon. */
   title?: string;
 }
+
+export interface CloudflareIconSpriteProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "dangerouslySetInnerHTML"> {}
+
+/**
+ * Hidden sprite container for CloudflareIcon symbols. Render once near the app root
+ * to ensure sprite-backed icons are available during SSR before any client JS runs.
+ */
+export const CloudflareIconSprite = forwardRef<
+  HTMLDivElement,
+  CloudflareIconSpriteProps
+>(({ style, ...props }, ref) => {
+  return (
+    <div
+      ref={ref}
+      id={SPRITE_CONTAINER_ID}
+      aria-hidden="true"
+      style={{
+        position: "absolute",
+        width: 0,
+        height: 0,
+        overflow: "hidden",
+        ...style,
+      }}
+      dangerouslySetInnerHTML={{ __html: spriteMarkup }}
+      {...props}
+    />
+  );
+});
+
+CloudflareIconSprite.displayName = "CloudflareIconSprite";
 
 /**
  * Minimal Cloudflare icon component backed by the generated Kumo sprite.

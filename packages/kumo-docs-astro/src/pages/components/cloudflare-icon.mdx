@@ -27,13 +27,18 @@ import {
   <Heading level={2}>Installation</Heading>
   <Heading level={3}>Barrel</Heading>
   <CodeBlock
-    code={`import { CloudflareIcon, cloudflareIconNames } from "@cloudflare/kumo";`}
+    code={`import {
+  CloudflareIcon,
+  CloudflareIconSprite,
+  cloudflareIconNames,
+} from "@cloudflare/kumo";`}
     lang="tsx"
   />
   <Heading level={3}>Granular</Heading>
   <CodeBlock
     code={`import {
   CloudflareIcon,
+  CloudflareIconSprite,
   cloudflareIconNames,
 } from "@cloudflare/kumo/components/cloudflare-icon";`}
     lang="tsx"
@@ -44,22 +49,27 @@ import {
   <Heading level={2}>Usage</Heading>
 
 ```tsx
-import { CloudflareIcon } from "@cloudflare/kumo";
+import { CloudflareIcon, CloudflareIconSprite } from "@cloudflare/kumo";
 
 export default function Example() {
   return (
-    <CloudflareIcon
-      glyph="cloudflare-gateway-outline"
-      title="Cloudflare Gateway"
-    />
+    <>
+      <CloudflareIconSprite />
+      <CloudflareIcon
+        glyph="cloudflare-gateway-outline"
+        title="Cloudflare Gateway"
+      />
+    </>
   );
 }
 ```
 
 <p>
   <code>CloudflareIcon</code> renders real shipped glyphs from Kumo’s generated
-  Cloudflare icon catalog. Use a glyph name from <code>cloudflareIconNames</code>{" "}
-  and size or recolor the icon with normal Kumo classes.
+  Cloudflare icon catalog. Render <code>CloudflareIconSprite</code> once near your
+  app root so sprite-backed icons are available during SSR, then use a glyph name
+  from <code>cloudflareIconNames</code> and size or recolor the icon with normal
+  Kumo classes.
 </p>
 </ComponentSection>
 
@@ -103,7 +113,12 @@ export default function Example() {
     Search the full generated glyph set, preview the real rendered icon, and click
     any result to copy the glyph name only.
   </p>
-  <ComponentExample demo="CloudflareIconGalleryDemo" vrSection="gallery" vrTitle="Glyph discovery gallery">
+  <ComponentExample
+    demo="CloudflareIconGalleryDemo"
+    vrSection="gallery"
+    vrTitle="Glyph discovery gallery"
+    hideCode
+  >
     <CloudflareIconGalleryDemo client:load />
   </ComponentExample>
 </ComponentSection>

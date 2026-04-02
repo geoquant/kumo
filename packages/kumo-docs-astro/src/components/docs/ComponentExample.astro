@@ -18,9 +18,10 @@ interface Props {
   lang?: "tsx" | "ts" | "jsx" | "js" | "bash" | "css";
   vrSection?: string;
   vrTitle?: string;
+  hideCode?: boolean;
 }
 
-const { code, demo, lang = "tsx", vrSection, vrTitle } = Astro.props;
+const { code, demo, lang = "tsx", vrSection, vrTitle, hideCode = false } = Astro.props;
 
 // Resolve the code snippet: either from the `code` prop (legacy) or auto-extracted from demo source
 let resolvedCode = code ?? "";
@@ -78,12 +79,16 @@ const vrAttrs = resolvedVrSection
   <ComponentPreview {...vrAttrs}>
     <slot />
   </ComponentPreview>
-  <div class="component-example-code">
+  <div class:list={["component-example-code", hideCode && "hidden"]}>
     <CodeBlock code={resolvedCode} lang={lang} />
   </div>
 </div>
 
 <style>
+  .component-example-code.hidden {
+    display: none;
+  }
+
   .component-example-code :global(pre.astro-code) {
     border-radius: 0;
     border-bottom-left-radius: 0.5rem;
