@@ -7,8 +7,8 @@ import {
 } from "@cloudflare/kumo/components/cloudflare-icon";
 
 const FEATURED_GLYPHS: CloudflareIconName[] = [
-  "cloudflare-gateway-outline",
-  "cloudflare-gateway-solid",
+  "cloud-internet-outline",
+  "cloud-internet-solid",
 ];
 
 export function CloudflareIconBasicDemo() {
