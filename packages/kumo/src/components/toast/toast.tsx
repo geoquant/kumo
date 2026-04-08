@@ -361,18 +361,18 @@ function ToastList() {
   ));
 }
 
-const TOAST_TINT_CLASSES: Record<string, string> = {
-  success: "bg-kumo-success-tint/5",
-  error: "bg-kumo-danger-tint/5",
-  warning: "bg-kumo-warning-tint/5",
-  info: "bg-kumo-info-tint/5",
+const TOAST_BACKGROUND_CLASSES: Record<string, string> = {
+  success: "bg-kumo-success/5",
+  error: "bg-kumo-danger/5",
+  warning: "bg-kumo-warning/5",
+  info: "bg-kumo-info/5",
 };
 
 function ToastBackground({ variant }: { variant?: KumoToastVariant }) {
-  const tint = variant && TOAST_TINT_CLASSES[variant];
+  const background = variant && TOAST_BACKGROUND_CLASSES[variant];
   return (
     <div
-      className={cn("absolute inset-0 rounded-[11px] bg-kumo-base/90", tint)}
+      className={cn("absolute inset-0 rounded-[11px] bg-kumo-base/90", background)}
     />
   );
 }
