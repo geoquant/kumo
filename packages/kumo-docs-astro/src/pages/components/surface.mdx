@@ -1,7 +1,7 @@
 ---
 layout: ~/layouts/MdxDocLayout.astro
-title: "Surface"
-description: "A container component that provides a surface for content with proper styling."
+title: "Surface (Deprecated)"
+description: "Deprecated compatibility wrapper. Prefer LayerCard for new surface-style containers."
 sourceFile: "components/surface"
 ---
 
@@ -26,10 +26,18 @@ import {
 {/* Installation */}
 
 <ComponentSection>
-  <Heading level={2}>Installation</Heading>
+  <Heading level={2}>Deprecation</Heading>
+  <p class="mb-4 text-kumo-strong">
+    <code>Surface</code> is deprecated. Prefer <a href="/components/layer-card" class="text-kumo-link hover:underline">LayerCard</a> for new work.
+    Existing <code>Surface</code> usage remains supported for backwards compatibility.
+  </p>
 
 ```tsx
-import { Surface } from "@cloudflare/kumo";
+import { LayerCard } from "@cloudflare/kumo";
+
+export default function Example() {
+  return <LayerCard className="rounded-lg p-6">Card content</LayerCard>;
+}
 ```
 
 </ComponentSection>
@@ -39,8 +47,9 @@ import { Surface } from "@cloudflare/kumo";
 <ComponentSection>
   <Heading level={2}>Rendering as a different element</Heading>
   <p class="text-kumo-strong mb-4">
-    Use the `render` prop to render Surface as a different HTML element or
-    custom component.
+    The deprecated <code>Surface</code> API still supports the <code>render</code>
+    prop, and keeps <code>as</code> as a deprecated migration alias. New
+    <code>LayerCard</code> usage should use <code>render</code> only.
   </p>
   <ComponentExample demo="SurfaceRenderDemo">
     <SurfaceRenderDemo client:visible />
@@ -50,9 +59,11 @@ import { Surface } from "@cloudflare/kumo";
 {/* Nested Surfaces */}
 
 <ComponentSection>
-  <Heading level={2}>Nested Surfaces</Heading>
+  <Heading level={2}>Migration notes</Heading>
   <p class="text-kumo-strong mb-4">
-    Surfaces can be nested to create layered interfaces.
+    If you previously used <code>Surface</code> to avoid wrapping content in
+    <code>LayerCard.Primary</code>, you can now render content directly inside
+    <code>LayerCard</code> instead.
   </p>
   <ComponentExample demo="SurfaceNestedDemo">
     <SurfaceNestedDemo client:visible />
