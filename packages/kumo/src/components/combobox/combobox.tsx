@@ -441,7 +441,7 @@ function GroupLabel(props: ComboboxBase.GroupLabel.Props) {
     <ComboboxBase.GroupLabel
       {...props}
       className={cn(
-        "mx-1.5 px-2 py-1.5 text-sm text-kumo-strong",
+        "mx-1.5 px-2 py-1.5 text-sm text-kumo-subtle",
         props.className,
       )}
     />
