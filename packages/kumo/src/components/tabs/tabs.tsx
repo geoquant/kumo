@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { TabsTab } from "@base-ui/react/tabs";
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
+import { useDrag } from "@use-gesture/react";
 import { cn } from "../../utils/cn";
 
 /** Tabs variant definitions. */
@@ -150,6 +151,8 @@ export function Tabs({
   const isSegmented = variant === "segmented";
   const isUnderline = variant === "underline";
   const isSm = size === "sm";
+  const { ref: listRef, isOverflowing } = useOverflowDetect(isSegmented);
+  const bindDrag = useHorizontalDragScroll(listRef, isOverflowing);
 
   return (
     <TabsPrimitive.Root
@@ -165,10 +168,13 @@ export function Tabs({
         <div className={cn("absolute inset-x-0 top-1/2 z-0 -translate-y-1/2 rounded-lg bg-kumo-recessed", isSm ? "h-6.5" : "h-9")} />
       )}
       <TabsPrimitive.List
+        ref={listRef}
         activateOnFocus={activateOnFocus}
+        data-overflowing={isOverflowing ? "" : undefined}
+        {...bindDrag()}
         className={cn(
-          "scrollbar-hide relative flex min-w-0 shrink items-stretch",
-          isSegmented && "rounded-lg bg-kumo-recessed px-0.5 ring ring-kumo-hairline/70",
+          "relative flex min-w-0 shrink items-stretch",
+          isSegmented && "kumo-tabs-list overflow-x-auto rounded-lg bg-kumo-recessed px-0.5 touch-pan-y ring ring-kumo-hairline/70 [--scroll-fade-width:3rem]",
           isSegmented && (isSm ? "h-6.5 rounded-md" : "h-9"),
           isUnderline && "gap-4 border-b border-kumo-hairline pb-2",
           isUnderline && (isSm ? "h-6.5" : "h-7.5"),
@@ -214,4 +220,61 @@ export function Tabs({
       </TabsPrimitive.List>
     </TabsPrimitive.Root>
   );
+}
+
+// ─── Horizontal drag-to-scroll ────────────────────────────────────────
+
+/**
+ * Enables pointer/touch drag to horizontally scroll the tab list.
+ * Only active when the list is overflowing. Prevents vertical scroll
+ * interference and uses `touch-action: pan-y` so native vertical
+ * scrolling is preserved.
+ */
+function useHorizontalDragScroll(
+  ref: React.RefObject<HTMLElement | null>,
+  enabled: boolean,
+) {
+  return useDrag(
+    ({ delta: [dx], event }) => {
+      const el = ref.current;
+      if (!el || !enabled) return;
+      // Prevent text selection while dragging
+      event?.preventDefault();
+      el.scrollLeft -= dx;
+    },
+    {
+      axis: "x",
+      pointer: { touch: true },
+      filterTaps: true,
+      from: [0, 0],
+    },
+  );
+}
+
+// ─── Overflow detection ───────────────────────────────────────────────
+
+/**
+ * Detects whether the element's content overflows horizontally.
+ * Returns a ref to attach and a boolean for conditional rendering.
+ * The `data-overflowing` attribute drives the scroll-fade CSS.
+ */
+function useOverflowDetect(enabled: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const el = ref.current;
+    if (!el) return;
+
+    const check = () => setIsOverflowing(el.scrollWidth > el.clientWidth);
+
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    check();
+
+    return () => ro.disconnect();
+  }, [enabled]);
+
+  return { ref, isOverflowing };
 }
