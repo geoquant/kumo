@@ -76,7 +76,7 @@ describe("Dialog", () => {
         <Dialog.Title className="!text-xl !font-semibold mb-6">
           Customized dialog
         </Dialog.Title>
-        <Dialog.Description className="leading-relaxed text-neutral-700 dark:text-neutral-300">
+        <Dialog.Description className="leading-relaxed text-kumo-muted">
           Custom description
         </Dialog.Description>
       </Dialog>,
@@ -99,7 +99,7 @@ describe("Dialog", () => {
       screen.getByRole("heading", { name: "Customized dialog" }).className,
     ).toContain("mb-6");
     expect(screen.getByText("Custom description").className).toContain(
-      "dark:text-neutral-300",
+      "text-kumo-muted",
     );
   });
 
