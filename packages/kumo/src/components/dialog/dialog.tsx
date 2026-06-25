@@ -194,20 +194,17 @@ export function dialogVariants({
  * </Dialog.Root>
  * ```
  */
-export type DialogProps = KumoDialogVariantsProps & {
-  /** Additional CSS classes merged via `cn()`. */
-  className?: string;
-  /** Dialog content (typically Title, Description, Close, and action buttons). */
-  children: ReactNode;
-  /** Inline styles. */
-  style?: CSSProperties;
-  /**
-   * Container element for the portal. Use this to render the dialog inside
-   * a Shadow DOM or custom container. Overrides `KumoPortalProvider` context.
-   * @default document.body (or KumoPortalProvider container if set)
-   */
-  container?: PortalContainer;
-};
+export type DialogProps = KumoDialogVariantsProps &
+  ComponentPropsWithoutRef<"div"> & {
+    /** Dialog content (typically Title, Description, Close, and action buttons). */
+    children: ReactNode;
+    /**
+     * Container element for the portal. Use this to render the dialog inside
+     * a Shadow DOM or custom container. Overrides `KumoPortalProvider` context.
+     * @default document.body (or KumoPortalProvider container if set)
+     */
+    container?: PortalContainer;
+  };
 
 export type DialogContentProps = DialogProps;
 
@@ -247,6 +244,7 @@ function DialogContent({
   size = KUMO_DIALOG_DEFAULT_VARIANTS.size,
   variant = KUMO_DIALOG_DEFAULT_VARIANTS.variant,
   container: containerProp,
+  ...popupProps
 }: DialogProps) {
   const role = useDialogRole();
   const contextContainer = usePortalContainer();
@@ -276,6 +274,7 @@ function DialogContent({
               ...style,
             } as CSSProperties
           }
+          {...popupProps}
         >
           <DialogVariantContext.Provider value={variant}>
             <LayerCard className="rounded-xl bg-kumo-canvas p-2 shadow">
@@ -304,6 +303,7 @@ function DialogContent({
               ...style,
             } as CSSProperties
           }
+          {...popupProps}
         >
           {children}
         </LayerCard>

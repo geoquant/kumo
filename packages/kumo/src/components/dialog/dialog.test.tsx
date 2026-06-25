@@ -67,6 +67,42 @@ describe("Dialog", () => {
     ).not.toContain("text-xl");
   });
 
+  it("preserves common legacy className customization on the base dialog parts", () => {
+    renderOpenDialog(
+      <Dialog
+        className="p-0 max-w-lg overflow-hidden rounded-none bg-kumo-canvas"
+        data-testid="customized-dialog"
+      >
+        <Dialog.Title className="!text-xl !font-semibold mb-6">
+          Customized dialog
+        </Dialog.Title>
+        <Dialog.Description className="leading-relaxed text-neutral-700 dark:text-neutral-300">
+          Custom description
+        </Dialog.Description>
+      </Dialog>,
+    );
+
+    expect(screen.getByTestId("customized-dialog").className).toContain("p-0");
+    expect(screen.getByTestId("customized-dialog").className).toContain(
+      "max-w-lg",
+    );
+    expect(screen.getByTestId("customized-dialog").className).toContain(
+      "rounded-none",
+    );
+    expect(screen.getByTestId("customized-dialog").className).toContain(
+      "bg-kumo-canvas",
+    );
+    expect(
+      screen.getByRole("heading", { name: "Customized dialog" }).className,
+    ).toContain("!text-xl");
+    expect(
+      screen.getByRole("heading", { name: "Customized dialog" }).className,
+    ).toContain("mb-6");
+    expect(screen.getByText("Custom description").className).toContain(
+      "dark:text-neutral-300",
+    );
+  });
+
   it("supports Dialog.Content as an alias for the content surface", () => {
     renderOpenDialog(
       <Dialog.Content>
@@ -80,25 +116,32 @@ describe("Dialog", () => {
 
   it("renders the layer variant with structured sections", () => {
     renderOpenDialog(
-      <Dialog.Content variant="layer">
-        <Dialog.Body data-testid="body">
-          <Dialog.Title>Layer dialog</Dialog.Title>
-          <Dialog.Description>Structured workflow</Dialog.Description>
-          <Dialog.Separator data-testid="separator" />
+      <Dialog.Content variant="layer" className="max-w-lg">
+        <Dialog.Body className="p-8" data-testid="body">
+          <Dialog.Title className="text-2xl font-bold">
+            Layer dialog
+          </Dialog.Title>
+          <Dialog.Description className="mt-2 text-kumo-default">
+            Structured workflow
+          </Dialog.Description>
+          <Dialog.Separator className="my-6" data-testid="separator" />
         </Dialog.Body>
-        <Dialog.Footer data-testid="footer">Actions</Dialog.Footer>
+        <Dialog.Footer className="justify-between px-4" data-testid="footer">
+          Actions
+        </Dialog.Footer>
       </Dialog.Content>,
     );
 
-    expect(screen.getByRole("dialog").className).toContain("max-w-md");
+    expect(screen.getByRole("dialog").className).toContain("max-w-lg");
     expect(
       screen.getByRole("heading", { name: "Layer dialog" }).className,
-    ).toContain("text-xl");
+    ).toContain("text-2xl");
     expect(screen.getByText("Structured workflow").className).toContain(
-      "text-kumo-subtle",
+      "text-kumo-default",
     );
-    expect(screen.getByTestId("body").className).toContain("p-6");
-    expect(screen.getByTestId("footer").className).toContain("px-0");
-    expect(screen.getByTestId("separator").className).toContain("-mx-6");
+    expect(screen.getByTestId("body").className).toContain("p-8");
+    expect(screen.getByTestId("footer").className).toContain("justify-between");
+    expect(screen.getByTestId("footer").className).toContain("px-4");
+    expect(screen.getByTestId("separator").className).toContain("my-6");
   });
 });
