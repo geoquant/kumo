@@ -1,5 +1,5 @@
 ---
-"@cloudflare/kumo": major
+"@cloudflare/kumo": minor
 ---
 
 Add `ChoroplethMap`, a GeoJSON region choropleth chart component that joins data rows to features by `name`/`nameProperty` and shades regions with a continuous `visualMap` scale. Includes Kumo light/dark map colours, tooltip formatting, optional legend, hover/click callbacks, roam controls, docs, and demos.
@@ -8,4 +8,4 @@ Both `BubbleMap` and `ChoroplethMap` now apply a d3-geo `projection` (latitude-c
 
 Update `BubbleMap` viewport behavior to avoid resetting user pan and zoom while refreshing bubble data.
 
-Breaking interaction change: `BubbleMap` now defaults `roam` to `false`, so maps no longer allow drag-to-pan or scroll-to-zoom unless consumers pass `roam={true}`.
+`BubbleMap` now defaults `roam` to `false` to avoid accidental pan and zoom interactions. Consumers that want drag-to-pan or scroll-to-zoom can pass `roam={true}`.
